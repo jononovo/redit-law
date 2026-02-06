@@ -2,19 +2,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   email: z.string().email({
-    message: "Invalid email address.",
-  }),
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+    message: "Invalid email.",
   }),
 });
 
@@ -25,94 +19,62 @@ export function WaitlistForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
-      name: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     toast({
-      title: "ACCESS_REQUEST_RECEIVED",
-      description: `Welcome to the queue, ${values.name}. We will notify ${values.email} upon activation.`,
+      title: "REGISTERED",
+      description: "We will contact you shortly.",
     });
     console.log(values);
   }
 
   return (
-    <section className="py-24 container mx-auto px-4 flex justify-center">
-      <Card className="w-full max-w-lg bg-card border-primary/20 shadow-[0_0_50px_-12px_rgba(0,255,65,0.1)]">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-mono">INITIALIZE_REGISTRATION</CardTitle>
-          <CardDescription>Join the waitlist to secure early access.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="human" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/50">
-              <TabsTrigger value="human" className="data-[state=active]:bg-background data-[state=active]:text-primary font-mono">
-                <User className="mr-2 h-4 w-4" /> HUMAN
-              </TabsTrigger>
-              <TabsTrigger value="bot" className="data-[state=active]:bg-background data-[state=active]:text-secondary font-mono">
-                <Bot className="mr-2 h-4 w-4" /> BOT
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="human">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-mono text-xs uppercase text-muted-foreground">User_Designation</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Alice Smith" {...field} className="bg-background/50 font-mono" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Comms_Channel</FormLabel>
-                        <FormControl>
-                          <Input placeholder="alice@example.com" {...field} className="bg-background/50 font-mono" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button type="submit" className="w-full font-bold bg-primary text-primary-foreground hover:bg-primary/90">
-                    REQUEST_ACCESS
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="bot">
-              <div className="space-y-4 text-center py-4">
-                <div className="font-mono text-sm text-secondary mb-4 p-4 border border-secondary/20 rounded bg-secondary/5">
-                  <p>{`> DETECTING_API_HANDSHAKE...`}</p>
-                  <p>{`> PROTOCOL: OPENCLAW_V1`}</p>
-                </div>
-                <p className="text-muted-foreground text-sm">
-                  Bots can register programmatically via our API.
-                </p>
-                <div className="bg-black/50 p-4 rounded text-left font-mono text-xs text-muted-foreground overflow-x-auto">
-                  <span className="text-purple-400">curl</span> -X POST https://api.creditclaw.com/v1/bots/register \<br/>
-                  &nbsp;&nbsp;-H <span className="text-green-400">"Authorization: Bearer YOUR_API_KEY"</span> \<br/>
-                  &nbsp;&nbsp;-d <span className="text-yellow-400">'&#123;"type": "claw_bot", "owner": "user_123"&#125;'</span>
-                </div>
-                <Button variant="secondary" className="w-full mt-4 font-bold">
-                  GET_API_KEY
+    <section className="py-32 bg-black text-white relative overflow-hidden">
+        {/* Subtle Gradient Spot */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[hsl(var(--accent))] opacity-[0.03] blur-[100px] pointer-events-none rounded-full" />
+
+      <div className="container mx-auto px-6 max-w-2xl text-center relative z-10">
+        <h2 className="text-3xl font-light tracking-tight mb-6">
+            Join the <span className="italic">Protocol</span>.
+        </h2>
+        <p className="text-neutral-500 mb-12 font-light">
+            Early access is limited to developers and qualified bot operators.
+        </p>
+
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-0 border border-white/10 p-1 bg-neutral-900/20 backdrop-blur-sm">
+                <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem className="flex-1">
+                    <FormControl>
+                        <Input 
+                            placeholder="ENTER_EMAIL_ADDRESS" 
+                            {...field} 
+                            className="bg-transparent border-none rounded-none h-12 px-4 font-mono text-sm placeholder:text-neutral-700 focus-visible:ring-0" 
+                        />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <Button type="submit" className="rounded-none h-12 px-8 bg-white text-black hover:bg-neutral-200 font-mono text-xs uppercase tracking-wider">
+                Request_Access
                 </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </form>
+        </Form>
+        
+        <div className="mt-16 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-mono text-neutral-600 uppercase tracking-widest">
+            <div>© 2024 CREDITCLAW</div>
+            <div className="flex gap-4">
+                <a href="#" className="hover:text-white transition-colors">Privacy</a>
+                <a href="#" className="hover:text-white transition-colors">Terms</a>
+            </div>
+        </div>
+      </div>
     </section>
   );
 }

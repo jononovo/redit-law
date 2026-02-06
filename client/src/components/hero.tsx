@@ -1,113 +1,100 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ShieldCheck, Cpu } from "lucide-react";
-import clawCardHero from "@/assets/images/credit-claw-hero.png";
+import { ArrowRight } from "lucide-react";
+import heroImage from "@/assets/images/credit-claw-minimal.png";
 
 export function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-      <div className="container mx-auto px-4 grid lg:grid-cols-2 gap-12 items-center">
+    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-black text-white selection:bg-[hsl(var(--accent))] selection:text-black">
+      
+      {/* Abstract decorative line */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-full bg-gradient-to-b from-transparent via-[hsl(var(--border))] to-transparent opacity-50" />
+
+      <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center relative z-10">
         
-        <div className="space-y-8 z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-mono mb-4"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            SYSTEM_ONLINE // WAITING_FOR_INPUT
-          </motion.div>
+        <div className="space-y-12">
+          <div className="space-y-6">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, ease: "circOut" }}
+              className="font-mono text-[10px] uppercase tracking-[0.2em] text-[hsl(var(--accent))]"
+            >
+              01 — Financial Infrastructure
+            </motion.div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-bold tracking-tight leading-none"
-          >
-            SECURE PAYMENTS FOR THE <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-accent glitch-text" data-text="BOT ECONOMY">
-              BOT ECONOMY
-            </span>
-          </motion.h1>
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "circOut" }}
+              className="text-6xl md:text-8xl font-light tracking-tighter leading-[0.9] text-balance"
+            >
+              Silent<br />
+              Security.
+            </motion.h1>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg text-muted-foreground max-w-xl"
-          >
-            Give your OpenClaw bot a secure prepaid credit card. Set spending limits via API, track transactions in real-time, and protect your main accounts.
-          </motion.p>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.6 }}
+              className="text-sm md:text-base text-neutral-400 max-w-md font-light leading-relaxed border-l border-neutral-800 pl-6"
+            >
+              The first autonomous payment rail designed for the machine economy. 
+              Pure programmatic control. Zero friction.
+            </motion.p>
+          </div>
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4"
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-col items-start gap-4"
           >
-            <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold h-12 px-8">
-              INITIALIZE_CARD <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-8 border-white/10 hover:bg-white/5">
-              VIEW_DOCUMENTATION
-            </Button>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex items-center gap-6 text-sm text-muted-foreground font-mono pt-4"
-          >
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="text-primary h-4 w-4" />
-              <span>BANK_GRADE_SECURITY</span>
+            <div className="flex gap-4">
+                <Button variant="outline" className="rounded-none h-12 px-8 border-neutral-800 bg-transparent hover:bg-white hover:text-black hover:border-white transition-all duration-300 font-mono text-xs uppercase tracking-wider">
+                  Initialize
+                </Button>
+                <Button variant="ghost" className="rounded-none h-12 px-6 text-neutral-500 hover:text-white hover:bg-transparent font-mono text-xs uppercase tracking-wider group">
+                  Documentation <ArrowRight className="ml-2 h-3 w-3 transition-transform group-hover:translate-x-1" />
+                </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <Cpu className="text-secondary h-4 w-4" />
-              <span>BOT_FRIENDLY_API</span>
+            
+            <div className="font-mono text-[10px] text-neutral-600 pt-8">
+              <span className="text-[hsl(var(--accent))]">●</span> SYSTEM_OPERATIONAL
             </div>
           </motion.div>
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-0 flex justify-center lg:justify-end"
+          transition={{ duration: 1.2, delay: 0.4, ease: "circOut" }}
+          className="relative lg:h-[80vh] flex items-center justify-center lg:justify-end"
         >
-          <div className="relative w-full max-w-[500px] aspect-square">
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-50 animate-pulse" />
-            <img 
-              src={clawCardHero} 
-              alt="CreditClaw Holographic Card" 
-              className="relative z-10 w-full h-auto drop-shadow-2xl animate-float"
-              style={{
-                animation: 'float 6s ease-in-out infinite'
-              }}
-            />
-            
-            {/* Decorative Code Overlay */}
-            <div className="absolute -bottom-10 -left-10 p-4 bg-black/80 backdrop-blur border border-primary/30 rounded font-mono text-xs text-primary/80 hidden md:block">
-              <p>{`> DETECTED_BOT: CLAW_V2`}</p>
-              <p>{`> AUTHENTICATING...`}</p>
-              <p className="text-green-400">{`> ACCESS_GRANTED`}</p>
-              <p>{`> CREDIT_LIMIT: $50.00`}</p>
+            <div className="relative w-full max-w-md aspect-[3/4] overflow-hidden bg-neutral-900/10">
+                 <img 
+                    src={heroImage} 
+                    alt="Minimal Abstract Card"
+                    className="object-cover w-full h-full opacity-80 mix-blend-screen grayscale contrast-125 hover:grayscale-0 transition-all duration-1000"
+                 />
+                 
+                 {/* Minimal HUD Overlay */}
+                 <div className="absolute inset-0 border border-white/5 p-6 flex flex-col justify-between pointer-events-none">
+                    <div className="flex justify-between font-mono text-[9px] text-white/30 uppercase tracking-widest">
+                        <span>CREDITCLAW INC.</span>
+                        <span>[SECURE]</span>
+                    </div>
+                    <div className="space-y-2">
+                         <div className="h-[1px] w-8 bg-[hsl(var(--accent))]" />
+                         <div className="font-mono text-[9px] text-white/50 uppercase tracking-widest">
+                            Auth_Key: 0x82...9F
+                         </div>
+                    </div>
+                 </div>
             </div>
-          </div>
         </motion.div>
 
       </div>
-      
-      {/* Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none -z-10" />
     </section>
   );
 }
-
-// Add keyframes for float animation to global CSS or component styles if needed, 
-// but inline style works for quick mockup.

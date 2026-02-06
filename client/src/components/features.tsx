@@ -1,78 +1,61 @@
 import { motion } from "framer-motion";
-import { Lock, Cpu, CreditCard, Globe, Zap, ShieldAlert } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-const features = [
+const specs = [
   {
-    icon: Cpu,
-    title: "Bot-First Design",
-    description: "Built specifically for OpenClaw bots. Issue cards programmatically via our REST API."
+    label: "Latency",
+    value: "< 50ms",
+    desc: "Global edge network transaction processing."
   },
   {
-    icon: Lock,
-    title: "Spending Controls",
-    description: "Set strict daily, weekly, or merchant-specific spending limits. Never overspend again."
+    label: "Security",
+    value: "AES-256",
+    desc: "Military-grade encryption for all token data."
   },
   {
-    icon: ShieldAlert,
-    title: "Fraud Protection",
-    description: "AI-driven fraud detection tuned for automated purchasing patterns."
-  },
-  {
-    icon: CreditCard,
-    title: "Instant Virtual Cards",
-    description: "Generate disposable virtual cards instantly for one-time purchases."
-  },
-  {
-    icon: Globe,
-    title: "Global Acceptance",
-    description: "Accepted anywhere major credit cards are processed. Works for SaaS, APIs, and cloud costs."
-  },
-  {
-    icon: Zap,
-    title: "Real-time Webhooks",
-    description: "Get notified instantly when a transaction occurs via webhooks to your bot controller."
+    label: "Uptime",
+    value: "99.99%",
+    desc: "Redundant architecture across 3 continents."
   }
 ];
 
 export function Features() {
   return (
-    <section id="features" className="py-24 relative bg-background/50">
-      <div className="container mx-auto px-4">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold mb-4 font-sans">
-            POWERED BY <span className="text-secondary">SECURE_CORE</span>
-          </h2>
-          <p className="text-muted-foreground">
-            The infrastructure layer for the autonomous economy. Designed for developers, built for bots.
-          </p>
+    <section id="features" className="py-32 bg-black text-white border-t border-white/5">
+      <div className="container mx-auto px-6">
+        
+        <div className="grid lg:grid-cols-2 gap-24 mb-32">
+            <div>
+                <h2 className="text-3xl font-light tracking-tight mb-8">
+                    Engineered for <span className="text-[hsl(var(--accent))]">Autonomy</span>.
+                </h2>
+            </div>
+            <div className="space-y-8">
+                <p className="text-neutral-400 font-light leading-relaxed">
+                    Traditional payment rails were built for humans with wallets. 
+                    CreditClaw is built for code. We provide the primitive financial layer 
+                    for autonomous agents to transact, budget, and settle value without human intervention.
+                </p>
+                <ul className="grid grid-cols-2 gap-y-4 font-mono text-xs text-neutral-500 uppercase tracking-wide">
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> REST API Access</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Real-time Webhooks</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> scoped keys</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Spend Limits</li>
+                </ul>
+            </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              viewport={{ once: true }}
-            >
-              <Card className="bg-card/50 border-white/5 backdrop-blur hover:border-primary/50 transition-colors duration-300 group h-full">
-                <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <feature.icon className="text-primary h-6 w-6" />
-                  </div>
-                  <CardTitle className="font-sans text-xl">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
+        <div className="grid md:grid-cols-3 border-t border-white/10">
+          {specs.map((spec, index) => (
+            <div key={index} className="pt-8 md:pt-12 md:pr-12 group">
+              <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 mb-4 group-hover:text-[hsl(var(--accent))] transition-colors">
+                0{index + 1} / {spec.label}
+              </div>
+              <div className="text-4xl font-light tracking-tighter mb-2">{spec.value}</div>
+              <div className="text-sm text-neutral-400 font-light">{spec.desc}</div>
+            </div>
           ))}
         </div>
+
       </div>
     </section>
   );
