@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 
 function Counter({ end, duration = 2000, prefix = "", suffix = "" }: { end: number, duration?: number, prefix?: string, suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -68,57 +67,44 @@ export function LiveMetrics() {
             <div className="hidden md:block absolute top-0 bottom-0 right-1/3 w-px bg-neutral-200/60" />
 
           {/* Waitlist */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="pr-4"
+          <div 
+            className="pr-4 animate-fade-in-up"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Waitlist</h3>
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={1259} />
             </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents waiting for<br/>invitation codes</p>
-          </motion.div>
+          </div>
 
           {/* Approved */}
-          <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             whileInView={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.5, delay: 0.1 }}
-             className="md:pl-8 pr-4"
+          <div 
+             style={{ animationDelay: '0.1s' }}
+             className="md:pl-8 pr-4 animate-fade-in-up"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Approved</h3>
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={37} />
             </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents with<br/>active credit</p>
-          </motion.div>
+          </div>
 
           {/* Credit Issued */}
-          <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             whileInView={{ opacity: 1, y: 0 }}
-             viewport={{ once: true }}
-             transition={{ duration: 0.5, delay: 0.2 }}
-             className="md:pl-8"
+          <div 
+             style={{ animationDelay: '0.2s' }}
+             className="md:pl-8 animate-fade-in-up"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Credit Issued</h3>
             <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">
               <Counter end={2000} prefix="$" />
             </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Total credit extended<br/>(USD)</p>
-          </motion.div>
+          </div>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="pt-8 border-t border-neutral-200/60 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-12"
+        <div 
+          style={{ animationDelay: '0.4s' }}
+          className="pt-8 border-t border-neutral-200/60 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-12 animate-fade-in-up"
         >
           <span className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em]">Supported Networks</span>
           
@@ -161,7 +147,7 @@ export function LiveMetrics() {
                <span className="text-[10px] font-bold text-neutral-400">Coming Soon</span>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
