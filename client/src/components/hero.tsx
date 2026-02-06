@@ -133,43 +133,6 @@ export function Hero() {
               transition={{ duration: 0.8, type: "spring" }}
               className="relative w-full max-w-[500px] z-10"
             >
-                <img 
-                    src={heroImage} 
-                    alt="Fun 3D Claw Card" 
-                    className="w-full h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-                />
-                 
-                 {/* Floating Badges */}
-                 <motion.div 
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 rotate-6"
-                 >
-                    <span className="text-2xl">🍕</span>
-                 </motion.div>
-                 <motion.div 
-                    animate={{ y: [0, 10, 0] }}
-                    transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-                    className="absolute bottom-10 -left-8 bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 -rotate-12"
-                 >
-                    <span className="text-2xl">🤖</span>
-                 </motion.div>
-
-                 {/* Floating Ledger Component */}
-                 <div className="absolute -bottom-12 right-0 md:-right-12">
-                    <TransactionLedger />
-                 </div>
-            </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }} 
-              className="mt-16 text-sm font-medium text-neutral-400"
-            >
-                Beta Launching on 8 February, 2026 <span className="text-neutral-300 mx-1">[</span> <span className="text-primary font-semibold">84 Bots already transacting</span> <span className="text-neutral-300 mx-1">]</span>
-            </motion.p>
-        </div>
 
       </div>
     </section>

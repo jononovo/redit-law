@@ -4,7 +4,7 @@ import logoClaw from "@/assets/images/logo-claw-chip.png";
 
 export function Nav() {
   return (
-    <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100">
+    <nav className="fixed top-8 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="group cursor-pointer flex items-center gap-2">
           <img src={logoClaw} alt="CreditClaw Logo" className="w-10 h-10 object-contain hover:rotate-12 transition-transform duration-300" />
