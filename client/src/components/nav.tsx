@@ -20,9 +20,11 @@ export function Nav() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="hidden md:flex font-bold text-neutral-600 hover:bg-neutral-50">
-            Log in
-          </Button>
+          <Link href="/app">
+            <Button variant="ghost" className="hidden md:flex font-bold text-neutral-600 hover:bg-neutral-50 cursor-pointer">
+                Log in
+            </Button>
+          </Link>
           <Button className="rounded-full h-10 px-6 bg-primary text-white hover:bg-primary/90 font-bold shadow-lg shadow-primary/20">
             Sign Up
           </Button>
