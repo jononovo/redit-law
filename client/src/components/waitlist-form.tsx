@@ -18,6 +18,8 @@ function Counter({ value }: { value: number }) {
   return <span>{value.toLocaleString()}</span>;
 }
 
+import logoClaw from "@/assets/images/logo-claw-chip.png";
+
 export function WaitlistForm() {
   const { toast } = useToast();
   const [count, setCount] = useState(14203);
@@ -100,7 +102,7 @@ export function WaitlistForm() {
         
         <div className="mt-24 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 font-medium">
             <div className="flex items-center gap-2">
-                <span className="text-2xl">🦞</span>
+                <img src={logoClaw} alt="CreditClaw Logo" className="w-8 h-8 object-contain" />
                 <span>© 2026 CreditClaw Inc.</span>
             </div>
             <div className="flex gap-8 mt-6 md:mt-0">
