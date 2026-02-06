@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --color-background: hsl(var(--background));
@@ -33,37 +33,36 @@
 }
 
 :root {
-  /* "Elegant Consumer Fintech" Theme */
-  --background: 240 5% 4%; /* Soft, rich charcoal black (not void black) */
-  --foreground: 0 0% 95%;
+  /* "Fun Consumer" Theme - Light Mode */
+  --background: 210 40% 98%; /* Very light blue-white */
+  --foreground: 222 47% 11%; /* Deep navy */
 
-  --card: 240 5% 7%;
-  --card-foreground: 0 0% 95%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
 
-  --popover: 240 5% 7%;
-  --popover-foreground: 0 0% 95%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary: 0 0% 100%;
-  --primary-foreground: 240 5% 4%;
+  --primary: 10 85% 55%; /* Lobster Orange */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 240 4% 16%;
+  --secondary: 200 95% 60%; /* Ocean Blue */
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 240 4% 16%;
-  --muted-foreground: 240 4% 60%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
 
-  /* Moving away from "Matrix Green" to a "Trust/Security Blue-Grey" or pure White accent */
-  --accent: 210 100% 60%; /* Elegant vivid blue, used very sparingly */
+  --accent: 260 90% 65%; /* Fun Purple */
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 240 4% 12%;
-  --input: 240 4% 12%;
-  --ring: 210 100% 60%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 10 85% 55%;
 
-  --radius: 0.75rem; /* Rounded corners are friendlier/more consumer */
+  --radius: 1rem; /* Very round, friendly corners */
 }
 
 @layer base {
@@ -75,7 +74,7 @@
   }
 }
 
-/* Typography refinement */
+/* Playful Typography */
 h1, h2, h3, h4, h5, h6 {
-  @apply tracking-tight;
+  @apply tracking-tight font-bold;
 }

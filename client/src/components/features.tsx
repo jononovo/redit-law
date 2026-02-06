@@ -1,41 +1,44 @@
 import { motion } from "framer-motion";
-import { CreditCard, ShieldCheck, Zap, Receipt } from "lucide-react";
+import { ShieldCheck, PiggyBank, ShoppingBag, Zap } from "lucide-react";
 
 const features = [
   {
-    icon: CreditCard,
-    title: "Instant Virtual Cards",
-    description: "Generate a unique card for every bot or vendor. Freeze or cancel instantly with one click."
+    icon: PiggyBank,
+    color: "bg-pink-100 text-pink-600",
+    title: "Allowance Mode",
+    description: "Set a weekly $50 budget. When it's gone, it's gone. No runaway API bills!"
   },
   {
     icon: ShieldCheck,
-    title: "Hard Spend Limits",
-    description: "Set daily, weekly, or monthly budgets. Your bots can never spend more than you authorize."
+    color: "bg-green-100 text-green-600",
+    title: "Safe & Secure",
+    description: "Your main credit card is never exposed. We use virtual numbers that lock to specific merchants."
   },
   {
     icon: Zap,
-    title: "OpenClaw Integration",
-    description: "Built-in 'Pay' skill for OpenClaw. Just install the plugin and your agent is ready to shop."
+    color: "bg-yellow-100 text-yellow-600",
+    title: "Instant Setup",
+    description: "Connect your OpenClaw agent in seconds. \"Hey Claw, here's your new card!\""
   },
   {
-    icon: Receipt,
-    title: "Auto-Receipt Matching",
-    description: "We automatically capture receipts and match them to transactions. Accounting, solved."
+    icon: ShoppingBag,
+    color: "bg-blue-100 text-blue-600",
+    title: "Smart Shopping",
+    description: "Your bot can buy software, domains, and data. We categorize everything for you."
   }
 ];
 
 export function Features() {
   return (
-    <section id="how-it-works" className="py-32 bg-background border-t border-white/5">
+    <section id="features" className="py-24 bg-white">
       <div className="container mx-auto px-6">
         
-        <div className="text-center max-w-3xl mx-auto mb-24">
-            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6">
-                Built for the <span className="text-blue-400">Autonomous Economy</span>.
+        <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-4xl font-extrabold tracking-tight text-neutral-900 mb-6">
+                Why bots <span className="text-primary">love</span> CreditClaw.
             </h2>
-            <p className="text-xl text-muted-foreground leading-relaxed">
-                Running a fleet of AI agents shouldn't mean sharing your personal credit card. 
-                CreditClaw provides secure, dedicated spending infrastructure for your digital workforce.
+            <p className="text-lg text-neutral-500 font-medium">
+                It's like giving your kid a debit card, but your kid is a super-intelligent AI that runs your business.
             </p>
         </div>
 
@@ -47,13 +50,13 @@ export function Features() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-colors group"
+              className="p-8 rounded-3xl bg-neutral-50 hover:bg-white hover:shadow-xl transition-all duration-300 border border-neutral-100 group"
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 text-blue-400 group-hover:scale-110 transition-transform">
-                <feature.icon size={24} />
+              <div className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition-transform shadow-sm`}>
+                <feature.icon size={28} />
               </div>
-              <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed text-sm">
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">{feature.title}</h3>
+              <p className="text-neutral-500 font-medium leading-relaxed">
                 {feature.description}
               </p>
             </motion.div>

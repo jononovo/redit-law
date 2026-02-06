@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   email: z.string().email({
-    message: "Please enter a valid email address.",
+    message: "That doesn't look like a valid email.",
   }),
 });
 
@@ -47,33 +47,38 @@ export function WaitlistForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     toast({
-      title: "Success",
-      description: "You've been added to the waitlist.",
+      title: "🎉 You're on the list!",
+      description: "We'll let you know when your bot can start spending.",
     });
     setCount(c => c + 1);
     console.log(values);
   }
 
   return (
-    <section className="py-32 relative overflow-hidden">
-      <div className="container mx-auto px-6 max-w-2xl text-center relative z-10">
+    <section className="py-24 bg-neutral-900 text-white relative overflow-hidden">
+      
+      {/* Background decoration */}
+      <div className="absolute top-0 right-0 w-full h-full bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="container mx-auto px-6 max-w-3xl text-center relative z-10">
         
-        {/* Waitlist Counter */}
-        <div className="mb-8 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            <div className="text-sm font-medium text-muted-foreground">
-                <span className="text-foreground font-semibold"><Counter value={count} /></span> people on the waitlist
+        <div className="inline-block mb-8">
+            <div className="px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 font-medium flex items-center gap-3">
+                 <div className="flex -space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-green-400 border-2 border-neutral-900" />
+                    <div className="w-6 h-6 rounded-full bg-blue-400 border-2 border-neutral-900" />
+                    <div className="w-6 h-6 rounded-full bg-orange-400 border-2 border-neutral-900" />
+                 </div>
+                 <span><Counter value={count} /> people waiting</span>
             </div>
         </div>
 
-        <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6">
-            Ready to upgrade your bots?
+        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
+            Ready to give your bot some purchasing power?
         </h2>
-        <p className="text-xl text-muted-foreground mb-12">
-            Join the waitlist to get early access to CreditClaw and start issuing cards to your AI agents.
+        <p className="text-xl text-neutral-400 mb-12 font-medium max-w-xl mx-auto">
+            Join the waitlist today and be the first to know when we launch CreditClaw public beta.
         </p>
 
         <Form {...form}>
@@ -85,27 +90,30 @@ export function WaitlistForm() {
                     <FormItem className="flex-1">
                     <FormControl>
                         <Input 
-                            placeholder="name@company.com" 
+                            placeholder="your@email.com" 
                             {...field} 
-                            className="h-12 px-4 bg-white/5 border-white/10 rounded-lg focus-visible:ring-blue-500 text-base" 
+                            className="h-14 px-6 bg-white text-neutral-900 border-transparent rounded-full focus-visible:ring-primary text-lg placeholder:text-neutral-400" 
                         />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-                <Button type="submit" className="h-12 px-8 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-base">
-                  Join Waitlist
+                <Button type="submit" className="h-14 px-8 rounded-full bg-primary text-white hover:bg-primary/90 font-bold text-lg shadow-lg shadow-primary/25">
+                  Join the List
                 </Button>
             </form>
         </Form>
         
-        <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
-            <div>© 2026 CreditClaw Inc. All rights reserved.</div>
-            <div className="flex gap-6 mt-4 md:mt-0">
-                <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-                <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+        <div className="mt-24 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 font-medium">
+            <div className="flex items-center gap-2">
+                <span className="text-2xl">🦞</span>
+                <span>© 2026 CreditClaw Inc.</span>
+            </div>
+            <div className="flex gap-8 mt-6 md:mt-0">
+                <a href="#" className="hover:text-white transition-colors">Twitter</a>
+                <a href="#" className="hover:text-white transition-colors">Instagram</a>
+                <a href="#" className="hover:text-white transition-colors">TikTok</a>
             </div>
         </div>
       </div>

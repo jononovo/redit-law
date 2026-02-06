@@ -1,50 +1,48 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, Check, Clock } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, ShoppingBag, Coffee, Server } from "lucide-react";
 
 const transactions = [
-  { id: 1, text: "OpenAI API Credits", amount: "-$40.00", type: "debit", status: "cleared", time: "2m ago" },
-  { id: 2, text: "Top-up from Main", amount: "+$100.00", type: "credit", status: "cleared", time: "15m ago" },
-  { id: 3, text: "AWS EC2 Spot", amount: "-$12.50", type: "debit", status: "pending", time: "1h ago" },
-  { id: 4, text: "Vercel Pro Seat", amount: "-$20.00", type: "debit", status: "cleared", time: "3h ago" },
+  { id: 1, text: "OpenAI Credits", amount: "-$20.00", icon: "🧠", type: "debit", time: "Just now" },
+  { id: 2, text: "Weekly Allowance", amount: "+$50.00", icon: "💰", type: "credit", time: "1h ago" },
+  { id: 3, text: "Vercel Hosting", amount: "-$12.00", icon: "▲", type: "debit", time: "Yesterday" },
 ];
 
 export function TransactionLedger() {
   return (
     <motion.div 
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.8, delay: 1, ease: "circOut" }}
-      className="absolute -right-12 bottom-12 z-20 w-80 bg-black/80 backdrop-blur-xl border border-white/10 p-0 shadow-2xl overflow-hidden rounded-sm"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.8 }}
+      className="w-72 bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-neutral-100 overflow-hidden"
     >
-      <div className="flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-400">Live_Ledger</div>
-        <div className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent))] animate-pulse" />
+      <div className="px-5 py-4 bg-neutral-50 border-b border-neutral-100 flex justify-between items-center">
+        <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Recent Activity</span>
+        <div className="flex gap-1">
+            <div className="w-2 h-2 rounded-full bg-red-400" />
+            <div className="w-2 h-2 rounded-full bg-yellow-400" />
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+        </div>
       </div>
       
-      <div className="divide-y divide-white/5">
+      <div className="p-2">
         {transactions.map((tx, i) => (
-          <motion.div 
+          <div 
             key={tx.id}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 1.2 + (i * 0.1) }}
-            className="flex items-center justify-between p-4 group hover:bg-white/5 transition-colors cursor-default"
+            className="flex items-center justify-between p-3 hover:bg-neutral-50 rounded-2xl transition-colors cursor-default"
           >
             <div className="flex items-center gap-3">
-              <div className={`p-1.5 rounded-full ${tx.type === 'credit' ? 'bg-[hsl(var(--accent))]/10 text-[hsl(var(--accent))]' : 'bg-white/5 text-neutral-400'}`}>
-                {tx.type === 'credit' ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+              <div className="w-10 h-10 rounded-full bg-white border border-neutral-100 flex items-center justify-center text-lg shadow-sm">
+                {tx.icon}
               </div>
               <div>
-                <div className="text-xs font-medium text-neutral-200">{tx.text}</div>
-                <div className="text-[10px] text-neutral-500 font-mono flex items-center gap-1">
-                  {tx.status === 'pending' ? <Clock size={8} /> : <Check size={8} />} {tx.time}
-                </div>
+                <div className="text-sm font-bold text-neutral-800">{tx.text}</div>
+                <div className="text-[10px] text-neutral-400 font-semibold">{tx.time}</div>
               </div>
             </div>
-            <div className={`text-xs font-mono tracking-tight ${tx.type === 'credit' ? 'text-[hsl(var(--accent))]' : 'text-white'}`}>
+            <div className={`text-sm font-bold ${tx.type === 'credit' ? 'text-green-600' : 'text-neutral-800'}`}>
               {tx.amount}
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </motion.div>
