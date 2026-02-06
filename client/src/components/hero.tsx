@@ -126,7 +126,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <div className="relative flex justify-center perspective-[1000px]">
+        <div className="relative flex flex-col items-center justify-center perspective-[1000px]">
             <motion.div 
               initial={{ opacity: 0, rotate: 10, scale: 0.8 }}
               animate={{ opacity: 1, rotate: -5, scale: 1 }}
@@ -160,6 +160,15 @@ export function Hero() {
                     <TransactionLedger />
                  </div>
             </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }} 
+              className="mt-16 text-sm font-medium text-neutral-400"
+            >
+                Beta Launching on 8 February, 2026 <span className="text-neutral-300 mx-1">[</span> <span className="text-primary font-semibold">84 Bots already transacting</span> <span className="text-neutral-300 mx-1">]</span>
+            </motion.p>
         </div>
 
       </div>
