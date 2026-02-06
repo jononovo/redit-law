@@ -2,19 +2,19 @@ import { motion } from "framer-motion";
 
 const specs = [
   {
-    label: "Latency",
-    value: "< 50ms",
-    desc: "Global edge network transaction processing."
+    label: "Native Skill",
+    value: "npm i @creditclaw/skill",
+    desc: "One-line install for your OpenClaw agent."
   },
   {
-    label: "Security",
-    value: "AES-256",
-    desc: "Military-grade encryption for all token data."
+    label: "Limits",
+    value: "Hard Capped",
+    desc: "Strict daily spend limits per agent instance."
   },
   {
-    label: "Uptime",
-    value: "99.99%",
-    desc: "Redundant architecture across 3 continents."
+    label: "Moltbook",
+    value: "Verified",
+    desc: "Get the 'Verified Payer' badge on Moltbook."
   }
 ];
 
@@ -26,20 +26,20 @@ export function Features() {
         <div className="grid lg:grid-cols-2 gap-24 mb-32">
             <div>
                 <h2 className="text-3xl font-light tracking-tight mb-8">
-                    Engineered for <span className="text-[hsl(var(--accent))]">Autonomy</span>.
+                    Business Ops for <span className="text-[hsl(var(--accent))]">Bots</span>.
                 </h2>
             </div>
             <div className="space-y-8">
                 <p className="text-neutral-400 font-light leading-relaxed">
-                    Traditional payment rails were built for humans with wallets. 
-                    CreditClaw is built for code. We provide the primitive financial layer 
-                    for autonomous agents to transact, budget, and settle value without human intervention.
+                    Your OpenClaw agent is smart, but it's broke. It can navigate the web, fill forms, and negotiate, 
+                    but it hits a wall at checkout. CreditClaw gives your bot a secure, prepaid card to pay for 
+                    SaaS subscriptions, API credits, and business expenses autonomously.
                 </p>
                 <ul className="grid grid-cols-2 gap-y-4 font-mono text-xs text-neutral-500 uppercase tracking-wide">
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> REST API Access</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Real-time Webhooks</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> scoped keys</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Spend Limits</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> OpenClaw Compatible</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Merchant Whitelisting</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Single-Use Numbers</li>
+                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Auto-Receipt Match</li>
                 </ul>
             </div>
         </div>
@@ -50,7 +50,7 @@ export function Features() {
               <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 mb-4 group-hover:text-[hsl(var(--accent))] transition-colors">
                 0{index + 1} / {spec.label}
               </div>
-              <div className="text-4xl font-light tracking-tighter mb-2">{spec.value}</div>
+              <div className="text-xl md:text-2xl font-light tracking-tighter mb-2 font-mono">{spec.value}</div>
               <div className="text-sm text-neutral-400 font-light">{spec.desc}</div>
             </div>
           ))}

@@ -36,8 +36,8 @@ export function Hero() {
               transition={{ duration: 0.8, delay: 0.2, ease: "circOut" }}
               className="text-6xl md:text-8xl font-light tracking-tighter leading-[0.9] text-balance"
             >
-              Silent<br />
-              Security.
+              A Wallet for<br />
+              <span className="italic">OpenClaw</span>.
             </motion.h1>
 
             <motion.p 
@@ -46,8 +46,8 @@ export function Hero() {
               transition={{ duration: 1, delay: 0.6 }}
               className="text-sm md:text-base text-neutral-400 max-w-md font-light leading-relaxed border-l border-neutral-800 pl-6"
             >
-              The first autonomous payment rail designed for the machine economy. 
-              Pure programmatic control. Zero friction.
+              Give your OpenClaw agent the power to transact. 
+              The first secure, prepaid credit card designed specifically for autonomous business operations.
             </motion.p>
           </div>
 
@@ -59,15 +59,15 @@ export function Hero() {
           >
             <div className="flex gap-4">
                 <Button variant="outline" className="rounded-none h-12 px-8 border-neutral-800 bg-transparent hover:bg-white hover:text-black hover:border-white transition-all duration-300 font-mono text-xs uppercase tracking-wider">
-                  Initialize
+                  Issue_Card
                 </Button>
                 <Button variant="ghost" className="rounded-none h-12 px-6 text-neutral-500 hover:text-white hover:text-black hover:bg-white font-mono text-xs uppercase tracking-wider group">
-                  Documentation <ArrowRight className="ml-2 h-3 w-3 transition-transform group-hover:translate-x-1" />
+                  Integration Guide <ArrowRight className="ml-2 h-3 w-3 transition-transform group-hover:translate-x-1" />
                 </Button>
             </div>
             
             <div className="font-mono text-[10px] text-neutral-600 pt-8">
-              <span className="text-[hsl(var(--accent))]">●</span> SYSTEM_OPERATIONAL
+              <span className="text-[hsl(var(--accent))]">●</span> OPENCLAW_COMPATIBLE
             </div>
           </motion.div>
         </div>

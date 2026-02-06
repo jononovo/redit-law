@@ -76,10 +76,10 @@ export function WaitlistForm() {
         </div>
 
         <h2 className="text-3xl font-light tracking-tight mb-6">
-            Join the <span className="italic">Protocol</span>.
+            Join the <span className="italic">Beta Launch</span>.
         </h2>
         <p className="text-neutral-500 mb-12 font-light">
-            Early access is limited to developers and qualified bot operators.
+            Secure your OpenClaw bot's financial future. Limited spots available for the pilot program.
         </p>
 
         <Form {...form}>
