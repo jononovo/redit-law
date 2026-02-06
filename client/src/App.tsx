@@ -9,7 +9,7 @@ import Home from "@/pages/home";
 function AnnouncementBar() {
   return (
     <div className="bg-neutral-900 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]">
-      <span>Launch: 11 February, 2026</span>
+      <span>Get ready for the launch party on 11 February, 2026</span>
     </div>
   );
 }
