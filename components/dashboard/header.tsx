@@ -1,0 +1,43 @@
+"use client";
+
+import { Bell, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+export function Header({ title }: { title: string }) {
+  return (
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-8 flex items-center justify-between">
+      <h1 className="text-xl font-bold text-neutral-900">{title}</h1>
+
+      <div className="flex items-center gap-4">
+        <div className="relative w-64 hidden md:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <Input 
+                placeholder="Search transactions..." 
+                className="pl-9 h-10 rounded-full bg-neutral-50 border-transparent focus-visible:bg-white focus-visible:ring-primary/20 transition-all"
+                data-testid="input-search"
+            />
+        </div>
+
+        <Button variant="ghost" size="icon" className="rounded-full relative text-neutral-500 hover:text-neutral-900" data-testid="button-notifications">
+            <Bell className="w-5 h-5" />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </Button>
+
+        <div className="h-8 w-px bg-neutral-200 mx-1" />
+
+        <div className="flex items-center gap-3 pl-1">
+            <div className="text-right hidden sm:block">
+                <p className="text-sm font-medium text-neutral-900">OpenClaw Agent</p>
+                <p className="text-xs text-neutral-500">Pro Plan</p>
+            </div>
+            <Avatar className="h-9 w-9 border-2 border-white shadow-sm cursor-pointer">
+                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarFallback>OC</AvatarFallback>
+            </Avatar>
+        </div>
+      </div>
+    </header>
+  );
+}
