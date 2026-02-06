@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import heroImage from "@/assets/images/credit-claw-minimal.png";
+import heroImage from "@/assets/images/credit-claw-etched.png";
 
 export function Hero() {
   return (
@@ -54,7 +54,7 @@ export function Hero() {
                 <Button variant="outline" className="rounded-none h-12 px-8 border-neutral-800 bg-transparent hover:bg-white hover:text-black hover:border-white transition-all duration-300 font-mono text-xs uppercase tracking-wider">
                   Initialize
                 </Button>
-                <Button variant="ghost" className="rounded-none h-12 px-6 text-neutral-500 hover:text-white hover:bg-transparent font-mono text-xs uppercase tracking-wider group">
+                <Button variant="ghost" className="rounded-none h-12 px-6 text-neutral-500 hover:text-white hover:text-black hover:bg-white font-mono text-xs uppercase tracking-wider group">
                   Documentation <ArrowRight className="ml-2 h-3 w-3 transition-transform group-hover:translate-x-1" />
                 </Button>
             </div>
@@ -69,23 +69,23 @@ export function Hero() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.2, delay: 0.4, ease: "circOut" }}
-          className="relative lg:h-[80vh] flex items-center justify-center lg:justify-end"
+          className="relative lg:h-[90vh] flex items-center justify-center lg:justify-end"
         >
-            <div className="relative w-full max-w-md aspect-[3/4] overflow-hidden bg-neutral-900/10">
+            <div className="relative w-full max-w-xl aspect-[3/4] overflow-hidden bg-neutral-900/10">
                  <img 
                     src={heroImage} 
-                    alt="Minimal Abstract Card"
-                    className="object-cover w-full h-full opacity-80 mix-blend-screen grayscale contrast-125 hover:grayscale-0 transition-all duration-1000"
+                    alt="Minimal Etched Card"
+                    className="object-cover w-full h-full opacity-90 mix-blend-normal contrast-110"
                  />
                  
                  {/* Minimal HUD Overlay */}
-                 <div className="absolute inset-0 border border-white/5 p-6 flex flex-col justify-between pointer-events-none">
+                 <div className="absolute inset-0 border border-white/5 p-8 flex flex-col justify-between pointer-events-none">
                     <div className="flex justify-between font-mono text-[9px] text-white/30 uppercase tracking-widest">
                         <span>CREDITCLAW INC.</span>
                         <span>[SECURE]</span>
                     </div>
                     <div className="space-y-2">
-                         <div className="h-[1px] w-8 bg-[hsl(var(--accent))]" />
+                         <div className="h-[1px] w-12 bg-[hsl(var(--accent))]" />
                          <div className="font-mono text-[9px] text-white/50 uppercase tracking-widest">
                             Auth_Key: 0x82...9F
                          </div>
