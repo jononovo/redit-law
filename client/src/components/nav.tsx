@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import logoClaw from "@/assets/images/logo-claw-over-card.png";
+import logoClaw from "@/assets/images/logo-claw-chip.png";
 
 export function Nav() {
   return (
