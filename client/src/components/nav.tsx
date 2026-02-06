@@ -11,7 +11,7 @@ export function Nav() {
             <Terminal size={20} />
           </div>
           <span className="font-mono font-bold text-lg tracking-tighter">
-            SECURE<span className="text-primary">CLAW</span>HUB
+            CREDIT<span className="text-primary">CLAW</span>
           </span>
         </Link>
 

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ShieldCheck, Cpu } from "lucide-react";
-import clawCardHero from "@/assets/images/claw-card-hero.png";
+import clawCardHero from "@/assets/images/credit-claw-hero.png";
 
 export function Hero() {
   return (
@@ -84,7 +84,7 @@ export function Hero() {
             <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full opacity-50 animate-pulse" />
             <img 
               src={clawCardHero} 
-              alt="SecureClaw Holographic Card" 
+              alt="CreditClaw Holographic Card" 
               className="relative z-10 w-full h-auto drop-shadow-2xl animate-float"
               style={{
                 animation: 'float 6s ease-in-out infinite'

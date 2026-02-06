@@ -16,7 +16,7 @@ export default function Home() {
       <footer className="border-t border-white/10 py-12 bg-black/20 backdrop-blur-sm">
         <div className="container mx-auto px-4 grid md:grid-cols-4 gap-8 text-sm">
           <div className="space-y-4">
-            <h3 className="font-mono font-bold text-lg">SECURE<span className="text-primary">CLAW</span>HUB</h3>
+            <h3 className="font-mono font-bold text-lg">CREDIT<span className="text-primary">CLAW</span></h3>
             <p className="text-muted-foreground">
               Secure financial infrastructure for the autonomous future.
             </p>
@@ -34,7 +34,7 @@ export default function Home() {
             <h4 className="font-bold mb-4">Resources</h4>
             <ul className="space-y-2 text-muted-foreground">
               <li><a href="#" className="hover:text-primary">Documentation</a></li>
-              <li><a href="#" className="hover:text-primary">ClawHub Integration</a></li>
+              <li><a href="#" className="hover:text-primary">CreditClaw Integration</a></li>
               <li><a href="#" className="hover:text-primary">Status</a></li>
             </ul>
           </div>
@@ -47,7 +47,7 @@ export default function Home() {
           </div>
         </div>
         <div className="container mx-auto px-4 mt-12 pt-8 border-t border-white/5 text-center text-xs text-muted-foreground font-mono">
-          © 2024 SecureClawHub. All systems nominal.
+          © 2024 CreditClaw. All systems nominal.
         </div>
       </footer>
     </div>

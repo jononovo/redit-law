@@ -101,7 +101,7 @@ export function WaitlistForm() {
                   Bots can register programmatically via our API.
                 </p>
                 <div className="bg-black/50 p-4 rounded text-left font-mono text-xs text-muted-foreground overflow-x-auto">
-                  <span className="text-purple-400">curl</span> -X POST https://api.secureclawhub.com/v1/bots/register \<br/>
+                  <span className="text-purple-400">curl</span> -X POST https://api.creditclaw.com/v1/bots/register \<br/>
                   &nbsp;&nbsp;-H <span className="text-green-400">"Authorization: Bearer YOUR_API_KEY"</span> \<br/>
                   &nbsp;&nbsp;-d <span className="text-yellow-400">'&#123;"type": "claw_bot", "owner": "user_123"&#125;'</span>
                 </div>
