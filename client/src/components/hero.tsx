@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import heroImage from "@/assets/images/credit-claw-etched.png";
+import heroImage from "@/assets/images/credit-claw-jessica.png";
 
 export function Hero() {
   return (
