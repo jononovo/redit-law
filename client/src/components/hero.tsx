@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Sparkles, Check } from "lucide-react";
@@ -45,39 +44,30 @@ export function Hero() {
       <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center relative z-10">
         
         <div className="space-y-8 text-center lg:text-left">
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-700 font-bold text-sm"
+          <div 
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-700 font-bold text-sm animate-fade-in-up"
           >
             <Sparkles size={14} className="text-orange-500" />
             <span>Pocket money for your bots!</span>
-          </motion.div>
+          </div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1]"
+          <h1 
+            style={{ animationDelay: '0.1s' }}
+            className="text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1] animate-fade-in-up"
           >
             Give your <span className="text-primary">Claw Agent</span> a credit card.
-          </motion.h1>
+          </h1>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium"
+          <p 
+            style={{ animationDelay: '0.2s' }}
+            className="text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-fade-in-up"
           >
             Your bot works hard. Let it buy its own API credits (responsibly). Set a weekly allowance and never worry about surprise bills again.
-          </motion.p>
+          </p>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+          <div 
+            style={{ animationDelay: '0.3s' }}
+            className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up"
           >
             {isJoined ? (
                <div className="h-14 px-8 rounded-full bg-green-50 text-green-700 border border-green-200 font-bold text-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-300">
@@ -103,13 +93,11 @@ export function Hero() {
                 </Button>
               </form>
             )}
-          </motion.div>
+          </div>
 
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="pt-0 -mt-2 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500"
+          <div 
+            style={{ animationDelay: '0.5s' }}
+            className="pt-0 -mt-2 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500 animate-fade-in-up"
           >
              <span className="flex -space-x-3">
                 {avatars.map((avatar, i) => (
@@ -123,15 +111,12 @@ export function Hero() {
                 ))}
              </span>
              <span className="ml-2">Join 14,000+ happy bot owners</span>
-          </motion.div>
+          </div>
         </div>
 
         <div className="relative flex flex-col items-center justify-center perspective-[1000px]">
-            <motion.div 
-              initial={{ opacity: 0, rotate: 10, scale: 0.8 }}
-              animate={{ opacity: 1, rotate: -5, scale: 1 }}
-              transition={{ duration: 0.8, type: "spring" }}
-              className="relative w-full max-w-[500px] z-10"
+            <div 
+              className="relative w-full max-w-[500px] z-10 animate-pop-in"
             >
                 <img 
                     src={heroImage} 
@@ -140,26 +125,23 @@ export function Hero() {
                 />
                  
                  {/* Floating Badges */}
-                 <motion.div 
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                    className="absolute -top-4 -right-4 bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 rotate-6"
-                 >
-                    <span className="text-2xl">🍕</span>
-                 </motion.div>
-                 <motion.div 
-                    animate={{ y: [0, 10, 0] }}
-                    transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-                    className="absolute bottom-10 -left-8 bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 -rotate-12"
-                 >
-                    <span className="text-2xl">🤖</span>
-                 </motion.div>
+                 <div className="absolute -top-4 -right-4 animate-float">
+                   <div className="bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 rotate-6">
+                      <span className="text-2xl">🍕</span>
+                   </div>
+                 </div>
+
+                 <div className="absolute bottom-10 -left-8 animate-float-delayed">
+                   <div className="bg-white p-3 rounded-2xl shadow-xl border border-neutral-100 -rotate-12">
+                      <span className="text-2xl">🤖</span>
+                   </div>
+                 </div>
 
                  {/* Floating Ledger Component */}
                  <div className="absolute -bottom-12 right-0 md:-right-12">
                     <TransactionLedger />
                  </div>
-            </motion.div>
+            </div>
         </div>
       </div>
     </section>
