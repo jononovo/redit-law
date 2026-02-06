@@ -33,36 +33,37 @@
 }
 
 :root {
-  /* "Silent Security" Minimal Theme */
-  --background: 0 0% 0%; /* Pure Black */
-  --foreground: 0 0% 90%; /* Soft White */
+  /* "Elegant Consumer Fintech" Theme */
+  --background: 240 5% 4%; /* Soft, rich charcoal black (not void black) */
+  --foreground: 0 0% 95%;
 
-  --card: 0 0% 3%;
-  --card-foreground: 0 0% 90%;
+  --card: 240 5% 7%;
+  --card-foreground: 0 0% 95%;
 
-  --popover: 0 0% 3%;
-  --popover-foreground: 0 0% 90%;
+  --popover: 240 5% 7%;
+  --popover-foreground: 0 0% 95%;
 
-  --primary: 0 0% 100%; /* White Primary for stark contrast */
-  --primary-foreground: 0 0% 0%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 240 5% 4%;
 
-  --secondary: 0 0% 15%; /* Dark Grey Secondary */
+  --secondary: 240 4% 16%;
   --secondary-foreground: 0 0% 100%;
 
-  --muted: 0 0% 10%;
-  --muted-foreground: 0 0% 40%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 4% 60%;
 
-  --accent: 140 100% 50%; /* Single Laser Green Accent */
-  --accent-foreground: 0 0% 0%;
+  /* Moving away from "Matrix Green" to a "Trust/Security Blue-Grey" or pure White accent */
+  --accent: 210 100% 60%; /* Elegant vivid blue, used very sparingly */
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 12%;
-  --input: 0 0% 12%;
-  --ring: 0 0% 100%;
+  --border: 240 4% 12%;
+  --input: 240 4% 12%;
+  --ring: 210 100% 60%;
 
-  --radius: 0px; /* Sharp corners for technical feel */
+  --radius: 0.75rem; /* Rounded corners are friendlier/more consumer */
 }
 
 @layer base {
@@ -71,16 +72,10 @@
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
-    /* Subtle noise texture for material feel */
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
   }
 }
 
-/* Custom Minimal Utilities */
-.text-balance {
-  text-wrap: balance;
-}
-
-.mask-fade-b {
-  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+/* Typography refinement */
+h1, h2, h3, h4, h5, h6 {
+  @apply tracking-tight;
 }

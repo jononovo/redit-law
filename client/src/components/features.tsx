@@ -1,58 +1,62 @@
 import { motion } from "framer-motion";
+import { CreditCard, ShieldCheck, Zap, Receipt } from "lucide-react";
 
-const specs = [
+const features = [
   {
-    label: "Native Skill",
-    value: "npm i @creditclaw/skill",
-    desc: "One-line install for your OpenClaw agent."
+    icon: CreditCard,
+    title: "Instant Virtual Cards",
+    description: "Generate a unique card for every bot or vendor. Freeze or cancel instantly with one click."
   },
   {
-    label: "Limits",
-    value: "Hard Capped",
-    desc: "Strict daily spend limits per agent instance."
+    icon: ShieldCheck,
+    title: "Hard Spend Limits",
+    description: "Set daily, weekly, or monthly budgets. Your bots can never spend more than you authorize."
   },
   {
-    label: "Moltbook",
-    value: "Verified",
-    desc: "Get the 'Verified Payer' badge on Moltbook."
+    icon: Zap,
+    title: "OpenClaw Integration",
+    description: "Built-in 'Pay' skill for OpenClaw. Just install the plugin and your agent is ready to shop."
+  },
+  {
+    icon: Receipt,
+    title: "Auto-Receipt Matching",
+    description: "We automatically capture receipts and match them to transactions. Accounting, solved."
   }
 ];
 
 export function Features() {
   return (
-    <section id="features" className="py-32 bg-black text-white border-t border-white/5">
+    <section id="how-it-works" className="py-32 bg-background border-t border-white/5">
       <div className="container mx-auto px-6">
         
-        <div className="grid lg:grid-cols-2 gap-24 mb-32">
-            <div>
-                <h2 className="text-3xl font-light tracking-tight mb-8">
-                    Business Ops for <span className="text-[hsl(var(--accent))]">Bots</span>.
-                </h2>
-            </div>
-            <div className="space-y-8">
-                <p className="text-neutral-400 font-light leading-relaxed">
-                    Your OpenClaw agent is smart, but it's broke. It can navigate the web, fill forms, and negotiate, 
-                    but it hits a wall at checkout. CreditClaw gives your bot a secure, prepaid card to pay for 
-                    SaaS subscriptions, API credits, and business expenses autonomously.
-                </p>
-                <ul className="grid grid-cols-2 gap-y-4 font-mono text-xs text-neutral-500 uppercase tracking-wide">
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> OpenClaw Compatible</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Merchant Whitelisting</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Single-Use Numbers</li>
-                    <li className="flex items-center gap-2"><div className="w-1 h-1 bg-[hsl(var(--accent))]" /> Auto-Receipt Match</li>
-                </ul>
-            </div>
+        <div className="text-center max-w-3xl mx-auto mb-24">
+            <h2 className="text-3xl md:text-5xl font-semibold tracking-tight mb-6">
+                Built for the <span className="text-blue-400">Autonomous Economy</span>.
+            </h2>
+            <p className="text-xl text-muted-foreground leading-relaxed">
+                Running a fleet of AI agents shouldn't mean sharing your personal credit card. 
+                CreditClaw provides secure, dedicated spending infrastructure for your digital workforce.
+            </p>
         </div>
 
-        <div className="grid md:grid-cols-3 border-t border-white/10">
-          {specs.map((spec, index) => (
-            <div key={index} className="pt-8 md:pt-12 md:pr-12 group">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 mb-4 group-hover:text-[hsl(var(--accent))] transition-colors">
-                0{index + 1} / {spec.label}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className="p-6 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 hover:bg-white/10 transition-colors group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 text-blue-400 group-hover:scale-110 transition-transform">
+                <feature.icon size={24} />
               </div>
-              <div className="text-xl md:text-2xl font-light tracking-tighter mb-2 font-mono">{spec.value}</div>
-              <div className="text-sm text-neutral-400 font-light">{spec.desc}</div>
-            </div>
+              <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                {feature.description}
+              </p>
+            </motion.div>
           ))}
         </div>
 

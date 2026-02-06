@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 
 const formSchema = z.object({
   email: z.string().email({
-    message: "Invalid email.",
+    message: "Please enter a valid email address.",
   }),
 });
 
@@ -29,7 +29,6 @@ export function WaitlistForm() {
   const { toast } = useToast();
   const [count, setCount] = useState(14203);
 
-  // Simulate live updates
   useEffect(() => {
     const interval = setInterval(() => {
       if (Math.random() > 0.7) {
@@ -48,42 +47,37 @@ export function WaitlistForm() {
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     toast({
-      title: "REGISTERED",
-      description: "We will contact you shortly.",
+      title: "Success",
+      description: "You've been added to the waitlist.",
     });
     setCount(c => c + 1);
     console.log(values);
   }
 
   return (
-    <section className="py-32 bg-black text-white relative overflow-hidden">
-        {/* Subtle Gradient Spot */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[hsl(var(--accent))] opacity-[0.03] blur-[100px] pointer-events-none rounded-full" />
-
+    <section className="py-32 relative overflow-hidden">
       <div className="container mx-auto px-6 max-w-2xl text-center relative z-10">
         
         {/* Waitlist Counter */}
-        <div className="mb-12 flex flex-col items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--accent))] animate-pulse" />
-                <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-400">
-                    Humans_Waiting
-                </span>
-            </div>
-            <div className="font-mono text-5xl md:text-6xl font-light tracking-tighter text-white">
-                <Counter value={count} />
+        <div className="mb-8 inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            <div className="text-sm font-medium text-muted-foreground">
+                <span className="text-foreground font-semibold"><Counter value={count} /></span> people on the waitlist
             </div>
         </div>
 
-        <h2 className="text-3xl font-light tracking-tight mb-6">
-            Join the <span className="italic">Beta Launch</span>.
+        <h2 className="text-4xl md:text-5xl font-semibold tracking-tight mb-6">
+            Ready to upgrade your bots?
         </h2>
-        <p className="text-neutral-500 mb-12 font-light">
-            Secure your OpenClaw bot's financial future. Limited spots available for the pilot program.
+        <p className="text-xl text-muted-foreground mb-12">
+            Join the waitlist to get early access to CreditClaw and start issuing cards to your AI agents.
         </p>
 
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col md:flex-row gap-0 border border-white/10 p-1 bg-neutral-900/20 backdrop-blur-sm">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                 <FormField
                 control={form.control}
                 name="email"
@@ -91,26 +85,27 @@ export function WaitlistForm() {
                     <FormItem className="flex-1">
                     <FormControl>
                         <Input 
-                            placeholder="ENTER_EMAIL_ADDRESS" 
+                            placeholder="name@company.com" 
                             {...field} 
-                            className="bg-transparent border-none rounded-none h-12 px-4 font-mono text-sm placeholder:text-neutral-700 focus-visible:ring-0 text-white" 
+                            className="h-12 px-4 bg-white/5 border-white/10 rounded-lg focus-visible:ring-blue-500 text-base" 
                         />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-                <Button type="submit" className="rounded-none h-12 px-8 bg-white text-black hover:bg-neutral-200 font-mono text-xs uppercase tracking-wider">
-                Request_Access
+                <Button type="submit" className="h-12 px-8 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium text-base">
+                  Join Waitlist
                 </Button>
             </form>
         </Form>
         
-        <div className="mt-16 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-mono text-neutral-600 uppercase tracking-widest">
-            <div>© 2024 CREDITCLAW</div>
-            <div className="flex gap-4">
-                <a href="#" className="hover:text-white transition-colors">Privacy</a>
-                <a href="#" className="hover:text-white transition-colors">Terms</a>
+        <div className="mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-sm text-muted-foreground">
+            <div>© 2026 CreditClaw Inc. All rights reserved.</div>
+            <div className="flex gap-6 mt-4 md:mt-0">
+                <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
+                <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
         </div>
       </div>
