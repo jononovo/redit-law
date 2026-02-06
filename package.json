@@ -1,15 +1,10 @@
 {
-  "name": "rest-express",
+  "name": "creditclaw",
   "version": "1.0.0",
-  "type": "module",
-  "license": "MIT",
   "scripts": {
-    "dev:client": "vite dev --port 5000",
-    "dev": "NODE_ENV=development tsx server/index.ts",
-    "build": "tsx script/build.ts",
-    "start": "NODE_ENV=production node dist/index.cjs",
-    "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "dev": "next dev -p 5000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 5000 -H 0.0.0.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -72,7 +67,5 @@
     "tailwindcss": "^4.1.14",
     "typescript": "5.6.3"
   },
-  "optionalDependencies": {
-    "bufferutil": "^4.0.8"
-  }
+  "private": true
 }
