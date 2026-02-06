@@ -75,23 +75,21 @@ export function LiveMetrics() {
             </div>
 
             {/* MasterCard */}
-            <div className="flex items-center gap-3 group cursor-default">
+            <div className="flex items-center gap-3 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
               <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" 
                 alt="MasterCard" 
                 className="h-6 w-auto object-contain"
               />
-              <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Live</span>
             </div>
 
             {/* Stripe */}
-            <div className="flex items-center gap-3 group cursor-default">
+            <div className="flex items-center gap-3 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
               <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png" 
                 alt="Stripe" 
                 className="h-6 w-auto object-contain"
               />
-              <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Live</span>
             </div>
 
             {/* Amex (Coming Soon) */}
