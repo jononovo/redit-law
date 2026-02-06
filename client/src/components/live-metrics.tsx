@@ -1,4 +1,57 @@
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+
+function Counter({ end, duration = 2000, prefix = "", suffix = "" }: { end: number, duration?: number, prefix?: string, suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const elementRef = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          let startTime: number | null = null;
+          
+          const animate = (currentTime: number) => {
+            if (!startTime) startTime = currentTime;
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            
+            // Easing function: easeOutExpo
+            // 1 - Math.pow(2, -10 * progress)
+            const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+            
+            setCount(Math.floor(ease * end));
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+          
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current);
+    }
+
+    return () => {
+      if (elementRef.current) {
+        observer.unobserve(elementRef.current);
+      }
+    };
+  }, [end, duration]);
+
+  return (
+    <div ref={elementRef} className="inline-block">
+      {prefix}{count.toLocaleString()}{suffix}
+    </div>
+  );
+}
 
 export function LiveMetrics() {
   return (
@@ -23,7 +76,9 @@ export function LiveMetrics() {
             className="pr-4"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Waitlist</h3>
-            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">1,259</div>
+            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
+              <Counter end={1259} />
+            </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents waiting for<br/>invitation codes</p>
           </motion.div>
 
@@ -36,7 +91,9 @@ export function LiveMetrics() {
              className="md:pl-8 pr-4"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Approved</h3>
-            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">37</div>
+            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
+              <Counter end={37} />
+            </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents with<br/>active credit</p>
           </motion.div>
 
@@ -49,7 +106,9 @@ export function LiveMetrics() {
              className="md:pl-8"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Credit Issued</h3>
-            <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">$2k</div>
+            <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">
+              <Counter end={2000} prefix="$" />
+            </div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Total credit extended<br/>(USD)</p>
           </motion.div>
         </div>
