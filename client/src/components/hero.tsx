@@ -77,7 +77,7 @@ export function Hero() {
               <form onSubmit={handleJoin} className="relative w-full max-w-sm group">
                 <Input 
                   type="email"
-                  placeholder="Email" 
+                  placeholder="Join Waitlist" 
                   className="h-14 pl-6 pr-14 rounded-full bg-white border-2 border-neutral-100 shadow-xl shadow-neutral-900/5 text-lg placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
