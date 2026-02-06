@@ -9,9 +9,7 @@ import Home from "@/pages/home";
 function AnnouncementBar() {
   return (
     <div className="bg-neutral-900 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]">
-      <span className="opacity-70 mx-1">[</span> <span className="text-primary font-bold">14 Bots transacting</span> <span className="opacity-70 mx-1">]</span>
-      <span className="mx-2 opacity-50">|</span>
-      <span>Beta Launch: 8 February, 2026</span>
+      <span>Launch: 11 February, 2026</span>
     </div>
   );
 }
