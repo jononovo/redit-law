@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Sparkles, Check } from "lucide-react";
 import heroImage from "@/assets/images/fun-lobster-black-card.png";
+import avatar1 from "@/assets/images/avatar_1.jpg";
+import avatar2 from "@/assets/images/avatar_2.jpg";
+import avatar3 from "@/assets/images/avatar_3.jpg";
 import { TransactionLedger } from "@/components/transaction-ledger";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +25,14 @@ export function Hero() {
       description: "You're on the list. We'll be in touch soon.",
     });
   };
+
+  const avatars = [
+    { type: 'image', src: avatar1 },
+    { type: 'initial', text: 'JD', color: 'bg-blue-100 text-blue-700' },
+    { type: 'image', src: avatar2 },
+    { type: 'image', src: avatar3 },
+    { type: 'initial', text: 'TS', color: 'bg-orange-100 text-orange-700' },
+  ];
 
   return (
     <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden bg-background">
@@ -101,8 +112,14 @@ export function Hero() {
             className="pt-0 -mt-2 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500"
           >
              <span className="flex -space-x-2">
-                {[1,2,3,4].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-neutral-200" />
+                {avatars.map((avatar, i) => (
+                    <div key={i} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center overflow-hidden ${avatar.type === 'initial' ? avatar.color : 'bg-neutral-200'}`}>
+                        {avatar.type === 'image' ? (
+                            <img src={avatar.src} alt="User" className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-[10px] font-bold">{avatar.text}</span>
+                        )}
+                    </div>
                 ))}
              </span>
              <span className="ml-2">Join 14,000+ happy bot owners</span>
