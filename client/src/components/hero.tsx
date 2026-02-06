@@ -86,9 +86,9 @@ export function Hero() {
                 <Button 
                   type="submit" 
                   size="icon" 
-                  className="absolute right-1.5 top-1.5 h-11 w-11 rounded-full bg-transparent text-neutral-900 hover:bg-neutral-900 hover:text-white hover:scale-105 transition-all duration-200"
+                  className="absolute right-1.5 top-1.5 h-11 w-11 rounded-full bg-transparent text-neutral-400 hover:bg-neutral-900 hover:text-white hover:scale-105 transition-all duration-200"
                 >
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-6 w-6" />
                 </Button>
               </form>
             )}
