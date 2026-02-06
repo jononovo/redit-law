@@ -23,7 +23,7 @@ export function LiveMetrics() {
             className="pr-4"
           >
             <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Waitlist</h3>
-            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">18,259</div>
+            <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">1,259</div>
             <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents waiting for<br/>invitation codes</p>
           </motion.div>
 
