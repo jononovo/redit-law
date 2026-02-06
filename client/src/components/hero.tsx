@@ -1,10 +1,28 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Sparkles, Check } from "lucide-react";
 import heroImage from "@/assets/images/fun-lobster-black-card.png";
 import { TransactionLedger } from "@/components/transaction-ledger";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export function Hero() {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [isJoined, setIsJoined] = useState(false);
+
+  const handleJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    
+    setIsJoined(true);
+    toast({
+      title: "Welcome to the club! 🦞",
+      description: "You're on the list. We'll be in touch soon.",
+    });
+  };
+
   return (
     <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden bg-background">
       
@@ -50,12 +68,30 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
           >
-            <Button size="lg" className="rounded-full h-14 px-8 bg-neutral-900 text-white hover:bg-neutral-800 font-bold text-lg shadow-xl shadow-neutral-900/20 transform hover:-translate-y-1 transition-all duration-200">
-              Sign Up Now <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button size="lg" variant="secondary" className="rounded-full h-14 px-8 bg-white text-neutral-900 hover:bg-neutral-50 font-bold text-lg border border-neutral-200 shadow-sm">
-              See How It Works
-            </Button>
+            {isJoined ? (
+               <div className="h-14 px-8 rounded-full bg-green-50 text-green-700 border border-green-200 font-bold text-lg flex items-center gap-2 shadow-sm animate-in fade-in zoom-in duration-300">
+                 <Check className="w-5 h-5" />
+                 <span>You're on the list!</span>
+               </div>
+            ) : (
+              <form onSubmit={handleJoin} className="relative w-full max-w-sm group">
+                <Input 
+                  type="email"
+                  placeholder="Enter your email to join..." 
+                  className="h-14 pl-6 pr-14 rounded-full bg-white border-2 border-neutral-100 shadow-xl shadow-neutral-900/5 text-lg placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  className="absolute right-1.5 top-1.5 h-11 w-11 rounded-full bg-neutral-900 text-white hover:bg-primary hover:scale-105 transition-all duration-200 shadow-md"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </form>
+            )}
           </motion.div>
 
           <motion.div 
