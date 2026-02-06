@@ -98,7 +98,7 @@ export function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-            className="pt-4 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500"
+            className="pt-0 -mt-2 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500"
           >
              <span className="flex -space-x-2">
                 {[1,2,3,4].map(i => (
