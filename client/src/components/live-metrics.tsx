@@ -65,13 +65,13 @@ export function LiveMetrics() {
           
           <div className="flex flex-wrap items-center gap-8 md:gap-12">
             {/* Visa */}
-            <div className="flex items-center gap-3 group cursor-default">
+            <div className="flex items-center gap-2 group cursor-default">
               <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Visa_2021.svg/1200px-Visa_2021.svg.png" 
                 alt="Visa" 
                 className="h-4 w-auto object-contain"
               />
-              <span className="text-[10px] font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Live</span>
+              <span className="text-[10px] font-bold text-green-600">Live</span>
             </div>
 
             {/* MasterCard */}
@@ -93,13 +93,13 @@ export function LiveMetrics() {
             </div>
 
             {/* Amex (Coming Soon) */}
-            <div className="flex items-center gap-3 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="flex items-center gap-2 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
                <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" 
                 alt="American Express" 
                 className="h-6 w-auto object-contain"
               />
-               <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full border border-neutral-200">Coming Soon</span>
+               <span className="text-[10px] font-bold text-neutral-400">Coming Soon</span>
             </div>
           </div>
         </motion.div>
