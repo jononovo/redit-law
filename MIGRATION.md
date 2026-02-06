@@ -7,7 +7,7 @@ This project is currently built with Vite + React + TailwindCSS v4. Here is a gu
 Ensure you install the equivalent dependencies in your Next.js project:
 
 ```bash
-npm install framer-motion lucide-react clsx tailwind-merge date-fns react-hook-form zod @hookform/resolvers @tanstack/react-query
+npm install lucide-react clsx tailwind-merge date-fns react-hook-form zod @hookform/resolvers @tanstack/react-query
 # Install Radix UI primitives used in components/ui (check package.json for full list)
 npm install @radix-ui/react-slot @radix-ui/react-dialog @radix-ui/react-tooltip @radix-ui/react-toast @radix-ui/react-label
 ```
