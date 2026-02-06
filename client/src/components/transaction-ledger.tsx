@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { ArrowUpRight, ArrowDownLeft, ShoppingBag, Coffee, Server } from "lucide-react";
 
 const transactions = [
@@ -9,11 +8,9 @@ const transactions = [
 
 export function TransactionLedger() {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.8 }}
-      className="w-72 bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-neutral-100 overflow-hidden"
+    <div 
+      className="w-72 bg-white rounded-3xl shadow-2xl shadow-blue-900/10 border border-neutral-100 overflow-hidden animate-fade-in-up"
+      style={{ animationDelay: '0.8s' }}
     >
       <div className="px-5 py-4 bg-neutral-50 border-b border-neutral-100 flex justify-between items-center">
         <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Recent Activity</span>
@@ -45,6 +42,6 @@ export function TransactionLedger() {
           </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }

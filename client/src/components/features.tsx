@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { ShieldCheck, PiggyBank, ShoppingBag, Zap } from "lucide-react";
 
 const features = [
@@ -44,13 +43,10 @@ export function Features() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="p-8 rounded-3xl bg-neutral-50 hover:bg-white hover:shadow-xl transition-all duration-300 border border-neutral-100 group"
+              style={{ animationDelay: `${index * 0.1}s` }}
+              className="p-8 rounded-3xl bg-neutral-50 hover:bg-white hover:shadow-xl transition-all duration-300 border border-neutral-100 group animate-fade-in-up"
             >
               <div className={`w-14 h-14 rounded-2xl ${feature.color} flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition-transform shadow-sm`}>
                 <feature.icon size={28} />
@@ -59,7 +55,7 @@ export function Features() {
               <p className="text-neutral-500 font-medium leading-relaxed">
                 {feature.description}
               </p>
-            </motion.div>
+            </div>
           ))}
         </div>
 
