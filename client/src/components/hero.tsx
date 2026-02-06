@@ -121,7 +121,7 @@ export function Hero() {
                 <img 
                     src={heroImage} 
                     alt="Fun 3D Claw Card" 
-                    className="w-full h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                    className="w-full h-auto drop-shadow-2xl transition-transform duration-500"
                 />
                  
                  {/* Floating Badges */}
