@@ -78,7 +78,7 @@ export function Hero() {
                 <Input 
                   type="email"
                   placeholder="Join Waitlist" 
-                  className="h-16 pl-8 pr-20 rounded-full bg-white border-2 border-neutral-100 shadow-xl shadow-neutral-900/5 text-2xl md:text-2xl placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
+                  className="h-16 pl-8 pr-20 rounded-full bg-white border-2 border-neutral-100 shadow-xl shadow-neutral-900/5 text-xl md:text-xl placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
