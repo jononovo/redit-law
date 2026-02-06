@@ -111,7 +111,7 @@ export function Hero() {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="pt-0 -mt-2 flex items-center justify-center lg:justify-start gap-2 text-sm font-semibold text-neutral-500"
           >
-             <span className="flex -space-x-2">
+             <span className="flex -space-x-4">
                 {avatars.map((avatar, i) => (
                     <div key={i} className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center overflow-hidden ${avatar.type === 'initial' ? avatar.color : 'bg-neutral-200'}`}>
                         {avatar.type === 'image' ? (
