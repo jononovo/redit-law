@@ -3249,6 +3249,16 @@
     color: var(--color-white);
   }
 
+  .text-white\/60 {
+    color: #fff9;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-white\/60 {
+      color: color-mix(in oklab, var(--color-white) 60%, transparent);
+    }
+  }
+
   .text-yellow-600 {
     color: var(--color-yellow-600);
   }

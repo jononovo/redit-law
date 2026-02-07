@@ -38,14 +38,6 @@ export const metadata: Metadata = {
   },
 };
 
-function AnnouncementBar() {
-  return (
-    <div className="bg-neutral-800 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]">
-      <span>Get ready for the launch party on 11 February, 2026</span>
-    </div>
-  );
-}
-
 export default function RootLayout({
   children,
 }: {
@@ -57,7 +49,6 @@ export default function RootLayout({
         <QueryProvider>
           <TooltipProvider>
             <Toaster />
-            <AnnouncementBar />
             {children}
           </TooltipProvider>
         </QueryProvider>
