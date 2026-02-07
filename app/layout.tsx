@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryProvider } from "@/components/query-provider";
+import { Providers } from "@/app/providers";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -46,12 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakarta.variable} ${mono.variable}`}>
       <body>
-        <QueryProvider>
-          <TooltipProvider>
-            <Toaster />
-            {children}
-          </TooltipProvider>
-        </QueryProvider>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

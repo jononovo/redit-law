@@ -1550,6 +1550,14 @@
     width: calc(var(--spacing) * 14);
   }
 
+  .w-16 {
+    width: calc(var(--spacing) * 16);
+  }
+
+  .w-20 {
+    width: calc(var(--spacing) * 20);
+  }
+
   .w-64 {
     width: calc(var(--spacing) * 64);
   }
@@ -2001,6 +2009,12 @@
     --tw-space-y-reverse: 0;
     margin-block-start: calc(calc(var(--spacing) * 2) * var(--tw-space-y-reverse));
     margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - var(--tw-space-y-reverse)));
+  }
+
+  :where(.space-y-3 > :not(:last-child)) {
+    --tw-space-y-reverse: 0;
+    margin-block-start: calc(calc(var(--spacing) * 3) * var(--tw-space-y-reverse));
+    margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - var(--tw-space-y-reverse)));
   }
 
   :where(.space-y-4 > :not(:last-child)) {
@@ -2992,6 +3006,10 @@
     padding-block: calc(var(--spacing) * 6);
   }
 
+  .py-8 {
+    padding-block: calc(var(--spacing) * 8);
+  }
+
   .py-16 {
     padding-block: calc(var(--spacing) * 16);
   }
@@ -3054,6 +3072,10 @@
 
   .pr-20 {
     padding-right: calc(var(--spacing) * 20);
+  }
+
+  .pb-2 {
+    padding-bottom: calc(var(--spacing) * 2);
   }
 
   .pb-3 {
@@ -5765,6 +5787,12 @@
   @media (min-width: 40rem) {
     .sm\:flex {
       display: flex;
+    }
+  }
+
+  @media (min-width: 40rem) {
+    .sm\:max-w-md {
+      max-width: var(--container-md);
     }
   }
 

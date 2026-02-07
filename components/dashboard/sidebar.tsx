@@ -13,6 +13,8 @@ import {
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth/auth-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
@@ -23,6 +25,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="w-64 bg-white border-r border-neutral-100 h-screen fixed left-0 top-0 flex flex-col z-50">
@@ -58,14 +61,32 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-neutral-100">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-neutral-50 cursor-pointer transition-colors group">
-            <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-white group-hover:shadow-sm">
-                <LogOut className="w-4 h-4" />
-            </div>
+        {user && (
+          <div className="flex items-center gap-3 px-4 py-2 mb-2">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                {user.displayName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-neutral-900 truncate">Log Out</p>
+              <p className="text-sm font-medium text-neutral-900 truncate">{user.displayName || "User"}</p>
+              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
             </div>
-        </div>
+          </div>
+        )}
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-neutral-50 cursor-pointer transition-colors group w-full"
+          data-testid="button-logout"
+        >
+          <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-white group-hover:shadow-sm">
+            <LogOut className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-medium text-neutral-900 truncate">Log Out</p>
+          </div>
+        </button>
       </div>
     </aside>
   );
