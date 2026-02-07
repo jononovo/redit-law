@@ -13,7 +13,7 @@ const steps = [
   { num: "1", text: "Send this URL to your agent" },
   { num: "2", text: "They register & give you a claim token" },
   { num: "3", text: "Claim your bot and add a payment method" },
-  { num: "4", text: "Your bot gets a funded virtual Visa card" },
+  { num: "4", text: "Your bot gets a funded virtual credit card" },
 ];
 
 export function BotSignup() {
