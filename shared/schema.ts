@@ -158,6 +158,7 @@ export const pairingCodes = pgTable("pairing_codes", {
   status: text("status").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
+  claimedAt: timestamp("claimed_at"),
 }, (table) => [
   index("pairing_codes_code_idx").on(table.code),
   index("pairing_codes_owner_idx").on(table.ownerUid),
