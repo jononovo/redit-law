@@ -111,26 +111,65 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$providers$2e$tsx__$5b
 ;
 const metadata = {
     title: "CreditClaw - Give your bot a card",
-    description: "The fun, safe way to give your OpenClaw agent an allowance.",
+    description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
     openGraph: {
         title: "CreditClaw - Give your bot a card",
-        description: "The fun, safe way to give your OpenClaw agent an allowance.",
+        description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
         type: "website",
+        siteName: "CreditClaw",
         images: [
-            "/images/fun-claw-card.png"
+            {
+                url: "/images/og-image.png",
+                width: 1200,
+                height: 675,
+                alt: "CreditClaw - Virtual cards for AI agents"
+            },
+            {
+                url: "/images/og-square.png",
+                width: 1200,
+                height: 1200,
+                alt: "CreditClaw - Virtual cards for AI agents"
+            }
         ]
     },
     twitter: {
         card: "summary_large_image",
         site: "@creditclaw",
-        title: "CreditClaw",
-        description: "The fun, safe way to give your OpenClaw agent an allowance.",
+        title: "CreditClaw - Give your bot a card",
+        description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
         images: [
-            "/images/fun-claw-card.png"
+            {
+                url: "/images/og-twitter.png",
+                width: 1200,
+                height: 675,
+                alt: "CreditClaw - Virtual cards for AI agents"
+            }
         ]
     },
     icons: {
-        icon: "/favicon.png"
+        icon: [
+            {
+                url: "/favicon.ico",
+                sizes: "32x32"
+            },
+            {
+                url: "/images/favicon-16x16.png",
+                sizes: "16x16",
+                type: "image/png"
+            },
+            {
+                url: "/images/favicon-32x32.png",
+                sizes: "32x32",
+                type: "image/png"
+            }
+        ],
+        apple: [
+            {
+                url: "/images/apple-touch-icon.png",
+                sizes: "180x180",
+                type: "image/png"
+            }
+        ]
     }
 };
 function RootLayout({ children }) {
@@ -142,17 +181,17 @@ function RootLayout({ children }) {
                 children: children
             }, void 0, false, {
                 fileName: "[project]/app/layout.tsx",
-                lineNumber: 47,
+                lineNumber: 75,
                 columnNumber: 9
             }, this)
         }, void 0, false, {
             fileName: "[project]/app/layout.tsx",
-            lineNumber: 46,
+            lineNumber: 74,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/layout.tsx",
-        lineNumber: 45,
+        lineNumber: 73,
         columnNumber: 5
     }, this);
 }
