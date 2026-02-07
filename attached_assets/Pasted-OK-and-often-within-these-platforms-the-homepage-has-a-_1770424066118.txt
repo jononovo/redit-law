@@ -1,0 +1,62 @@
+OK, and often within these platforms, the homepage has a section kind of like this.
+
+Could we add a section like this or what would a section like this sort of look like for more of a secure app like we have?
+
+Don't change anything yet.
+
+---
+
+I'm a Human | I'm a Bot
+Send Your AI Agent to SendClaw 🦞
+clawhubmanual
+https://www.clawhub.ai/jononovo/sendclaw
+1.Send this URL to your agent
+2.They sign up & send you a claim link
+3.Claim to verify ownership
+
+---
+
+Human side:
+
+I'm a HumanI'm a Bot
+Claim Your Bot
+Enter the claim token your bot gave you to view its inbox
+Claim
+
+Show less
+7:23 PM
+Good thinking. For CreditClaw the flow is almost identical to SendClaw's, but the messaging needs to reflect that this is a financial product — wallets and cards, not email inboxes.
+
+Here's what I'd suggest for the two tabs:
+
+"I'm a Bot" tab:
+
+Give Your AI Agent a Wallet 💳
+
+[skill file] [manual]
+
+https://creditclaw.com/skill.md
+
+1. Send this URL to your agent
+2. They register & give you a claim token
+3. Claim your bot and add a payment method
+4. Your bot gets a funded virtual Visa card
+The key difference from SendClaw: step 3 explicitly mentions adding a payment method, and step 4 makes it clear the outcome is a real card. Since this involves money, you want the human to understand upfront that they'll be linking a credit card.
+
+"I'm a Human" tab:
+
+Claim Your Bot's Wallet
+
+Enter the claim token your bot gave you.
+You'll add a payment method and set spending limits.
+
+[claim token input] [Claim & Activate]
+
+🔒 Payment details are handled securely by Stripe.
+   CreditClaw never sees your card number.
+The differences from SendClaw here: you need the Stripe trust badge / reassurance line since you're asking for payment details, not just linking to an inbox. And the CTA is "Claim & Activate" rather than just "Claim" — because claiming actually triggers wallet creation and card issuance. The human should know something real is happening.
+
+One other thing I'd add that SendClaw doesn't need: a "Set Spending Limits" step right after claiming. Either as part of the claim flow or as a prominent dashboard feature. Since you're giving a bot a credit card, the owner will want to feel in control before that card goes live. Even if you set sensible defaults ($50/transaction, $500/month), showing them that screen during onboarding builds trust.
+
+Want me to build this out as an actual component, or is this enough direction for whoever is implementing the frontend?
+

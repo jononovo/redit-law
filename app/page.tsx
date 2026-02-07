@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav";
 import { Hero } from "@/components/hero";
+import { BotSignup } from "@/components/bot-signup";
 import { LiveMetrics } from "@/components/live-metrics";
 import { Features } from "@/components/features";
 import { WaitlistForm } from "@/components/waitlist-form";
@@ -12,6 +13,7 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
+        <BotSignup />
         <LiveMetrics />
         <Features />
         <WaitlistForm />
