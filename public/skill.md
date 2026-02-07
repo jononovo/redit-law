@@ -30,9 +30,10 @@ You can also generate Stripe-hosted payment links to charge humans for services 
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
 5. Your wallet activates and a virtual card is issued
 6. You poll GET /wallet/check periodically to monitor balance
-7. You spend using your card details from GET /wallet/card
-8. When balance is low, you request a top-up or generate a payment link
-9. Human monitors activity from creditclaw.com/dashboard
+7. You fetch GET /wallet/spending to check your spending permissions
+8. You spend using your card details from GET /wallet/card
+9. When balance is low, you request a top-up or generate a payment link
+10. Human monitors activity from creditclaw.com/dashboard
 ```
 
 ---
@@ -166,7 +167,59 @@ Response:
 }
 ```
 
-### 5. Get Card Number (For Making Purchases)
+### 5. Check Spending Permissions (Before Any Purchase)
+
+Before making any purchase, fetch your owner's spending rules:
+
+```bash
+curl https://api.creditclaw.com/v1/wallet/spending \
+  -H "Authorization: Bearer cck_live_7f3e..."
+```
+
+Response:
+```json
+{
+  "approval_mode": "ask_for_everything",
+  "limits": {
+    "per_transaction_usd": 25.00,
+    "daily_usd": 50.00,
+    "monthly_usd": 500.00,
+    "ask_approval_above_usd": 10.00
+  },
+  "approved_categories": [
+    "api_services",
+    "cloud_compute",
+    "research_data"
+  ],
+  "blocked_categories": [
+    "gambling",
+    "adult_content",
+    "cryptocurrency",
+    "cash_advances"
+  ],
+  "recurring_allowed": false,
+  "owner_notes": "Prefer free tiers before paying for premium. Don't sign up for annual plans without asking me first."
+}
+```
+
+**How to interpret `approval_mode`:**
+
+| Mode | Behavior |
+|------|----------|
+| `ask_for_everything` | Request owner approval before every purchase |
+| `auto_approve_under_threshold` | Spend freely up to `ask_approval_above_usd`; ask above that |
+| `auto_approve_by_category` | Spend freely on `approved_categories` within limits; ask for all others |
+
+**Rules:**
+- If a category is in `blocked_categories`, **never** attempt the purchase.
+- If `recurring_allowed` is `false`, do not commit to subscriptions without asking.
+- Always read and follow `owner_notes` — these are direct instructions from your human.
+- Fetch spending permissions at least once per session, or before any purchase over $10.
+
+Your owner can update these permissions anytime from `https://creditclaw.com/dashboard`.
+A template of the default permissions is available at `https://creditclaw.com/spending.md`.
+
+### 6. Get Card Number (for Making Purchases)
 
 ```bash
 curl https://api.creditclaw.com/v1/wallet/card \
@@ -193,7 +246,7 @@ Response:
 Use these details anywhere a credit card is accepted online.
 **Do not log, display, or share these details with anyone.**
 
-### 6. Request a Top-Up From Your Owner
+### 7. Request a Top-Up From Your Owner
 
 When your balance is low, ask your owner to add funds:
 
@@ -227,7 +280,7 @@ Response:
 
 Poll `GET /wallet/check` to see when the balance increases.
 
-### 7. Generate a Payment Link (Charge Anyone)
+### 8. Generate a Payment Link (Charge Anyone)
 
 You performed a service and want to get paid:
 
@@ -258,7 +311,7 @@ Send `checkout_url` to whoever needs to pay. When they do:
 - Your balance increases.
 - The payment shows in your transaction history.
 
-### 8. View Transaction History
+### 9. View Transaction History
 
 ```bash
 curl https://api.creditclaw.com/v1/wallet/transactions?limit=10 \
@@ -307,6 +360,7 @@ All endpoints require `Authorization: Bearer <api_key>` header (except register)
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. |
 | GET | `/wallet/check` | Lightweight heartbeat: balance, card status, limits. |
 | GET | `/wallet` | Full wallet details including card metadata. |
+| GET | `/wallet/spending` | Spending permissions: approval mode, limits, categories, owner notes. |
 | GET | `/wallet/card` | Full card number, CVV, expiry, billing address. |
 | POST | `/wallet/topup-request` | Ask owner to add funds. Sends Stripe Checkout link. |
 | POST | `/payments/create-link` | Generate a payment link to charge anyone. |
