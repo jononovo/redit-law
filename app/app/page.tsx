@@ -109,23 +109,23 @@ export default function DashboardOverview() {
           </div>
         ) : bots.length === 0 ? (
           <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center" data-testid="empty-bots">
-            <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-              <BotIcon className="w-8 h-8 text-neutral-400" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <BotIcon className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="font-bold text-neutral-900 text-lg mb-2">No bots yet</h3>
+            <h3 className="font-bold text-neutral-900 text-lg mb-2">Set up your first bot</h3>
             <p className="text-sm text-neutral-500 mb-6 max-w-sm mx-auto">
-              When your bots register via the API, you&apos;ll receive a claim token by email. Use it to link the bot to your account.
+              Get started with our guided setup wizard, or claim a bot if you already have a token.
             </p>
             <div className="flex items-center justify-center gap-3">
-              <Link href="/claim">
-                <Button variant="outline" className="rounded-xl gap-2" data-testid="button-claim-bot-empty">
+              <Link href="/onboarding">
+                <Button className="rounded-xl gap-2" data-testid="button-start-onboarding">
                   <Plus className="w-4 h-4" />
-                  Claim a Bot
+                  Get Started
                 </Button>
               </Link>
-              <Link href="/skill.md" target="_blank">
-                <Button variant="ghost" className="rounded-xl text-neutral-500" data-testid="link-api-docs">
-                  View API Docs
+              <Link href="/claim">
+                <Button variant="outline" className="rounded-xl gap-2" data-testid="button-claim-bot-empty">
+                  Claim a Bot
                 </Button>
               </Link>
             </div>

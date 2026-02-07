@@ -84,6 +84,18 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Owner dashboard: `GET /api/v1/payment-links` (session-auth), PaymentLinksPanel component with status badges and earnings total.
   - Reconciliation updated to count `payment_received` as credits alongside `topup`.
   - Key files: `app/api/v1/bot/payments/create-link/route.ts`, `app/api/v1/bot/payments/links/route.ts`, `app/api/v1/webhooks/stripe/route.ts`, `app/api/v1/payment-links/route.ts`, `components/dashboard/payment-links.tsx`.
+- **Onboarding Wizard (Phase 8):**
+  - Guided 12-screen wizard at `/onboarding` for new bot owners to complete full setup in one sitting.
+  - Two entry paths: "bot-first" (owner has claim token from bot registration) and "owner-first" (owner generates 6-digit pairing code for bot to use during registration).
+  - `pairing_codes` table with 6-digit numeric codes, 1-hour expiry, owner-scoped rate limiting (5/hr).
+  - Pairing code endpoints: `POST /api/v1/pairing-codes` (generate), `GET /api/v1/pairing-codes/status` (poll for bot connection).
+  - Register endpoint updated: optional `pairing_code` field auto-claims bot + creates wallet atomically in a DB transaction.
+  - Wizard steps: choose path → claim token / pairing code → approval mode → threshold (conditional) → spending limits → blocked categories → approved categories (conditional) → special instructions → connect bot (if not yet connected) → add payment → fund wallet (conditional) → complete.
+  - Dynamic step list with index clamping to prevent out-of-bounds navigation.
+  - Complete step saves spending permissions once via ref-guarded useEffect.
+  - CSS-only step transitions (no framer-motion).
+  - Entry points: "Get Started" CTA on landing page hero, dashboard banner for owners with no bots.
+  - Key files: `components/onboarding/onboarding-wizard.tsx`, `components/onboarding/wizard-step.tsx`, `components/onboarding/steps/*.tsx`, `app/onboarding/page.tsx`, `app/api/v1/pairing-codes/route.ts`, `app/api/v1/pairing-codes/status/route.ts`.
 
 ### Key Routes
 - `/` — Consumer landing page
@@ -92,6 +104,7 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
 - `/app/cards` — Card management
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
+- `/onboarding` — Guided setup wizard (authenticated)
 - `/payment/success` — Post-payment success page (public)
 - `/payment/cancelled` — Post-payment cancel page (public)
 

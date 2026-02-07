@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Sparkles, Check } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { TransactionLedger } from "@/components/transaction-ledger";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -73,25 +74,33 @@ export function Hero() {
                  <span>You&apos;re on the list!</span>
                </div>
             ) : (
-              <form onSubmit={handleJoin} className="relative w-full max-w-sm group">
-                <Input 
-                  type="email"
-                  placeholder="Join Waitlist" 
-                  className="h-16 pl-8 pr-20 rounded-full bg-white border-2 border-neutral-100 shadow-xl shadow-neutral-900/5 text-xl md:text-xl text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  data-testid="input-waitlist-email"
-                />
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  className="absolute right-1.5 top-2.5 h-11 w-11 rounded-full bg-transparent text-neutral-400 hover:bg-neutral-900 hover:text-white hover:scale-105 transition-all duration-200"
-                  data-testid="button-waitlist-submit"
-                >
-                  <ArrowRight className="h-6 w-6" />
-                </Button>
-              </form>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-sm">
+                <Link href="/onboarding" className="w-full sm:w-auto">
+                  <Button className="h-14 px-8 rounded-full text-lg font-bold w-full gap-2" data-testid="button-get-started">
+                    Get Started
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
+                <form onSubmit={handleJoin} className="relative w-full group">
+                  <Input 
+                    type="email"
+                    placeholder="or join waitlist" 
+                    className="h-14 pl-6 pr-14 rounded-full bg-white border-2 border-neutral-100 shadow-lg shadow-neutral-900/5 text-base text-neutral-900 placeholder:text-neutral-400 focus-visible:ring-primary focus-visible:border-primary transition-all duration-300"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    data-testid="input-waitlist-email"
+                  />
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    className="absolute right-1.5 top-1.5 h-11 w-11 rounded-full bg-transparent text-neutral-400 hover:bg-neutral-900 hover:text-white hover:scale-105 transition-all duration-200"
+                    data-testid="button-waitlist-submit"
+                  >
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </form>
+              </div>
             )}
           </div>
 
