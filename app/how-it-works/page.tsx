@@ -1,0 +1,157 @@
+import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
+import { CreditCard, SlidersHorizontal, ShoppingCart, Sparkles } from "lucide-react";
+
+const steps = [
+  {
+    num: "01",
+    icon: CreditCard,
+    color: "bg-orange-100 text-orange-600",
+    title: "Add your card",
+    description: "Connect any Visa, Mastercard, or Amex. Stripe handles the security — we never touch your card number. Setup takes under 60 seconds.",
+  },
+  {
+    num: "02",
+    icon: SlidersHorizontal,
+    color: "bg-blue-100 text-blue-600",
+    title: "Set the rules",
+    description: "Per-transaction caps, daily budgets, monthly limits, blocked categories. Your bot can only spend what you allow. Change the rules anytime from your dashboard.",
+  },
+  {
+    num: "03",
+    icon: ShoppingCart,
+    color: "bg-green-100 text-green-600",
+    title: "Your bot shops",
+    description: "Your AI agent buys what it needs within your guardrails. Every transaction is logged and visible in real time. You get notified on every purchase.",
+  },
+];
+
+export default function HowItWorksPage() {
+  return (
+    <div className="min-h-screen bg-background text-neutral-900 font-sans">
+      <div className="h-8 bg-neutral-800" />
+      <Nav />
+
+      <main>
+        <section className="pt-40 pb-24 bg-background relative overflow-hidden">
+          <div className="absolute top-20 right-20 w-[500px] h-[500px] bg-blue-200/30 rounded-full blur-[100px] pointer-events-none mix-blend-multiply" />
+          <div className="absolute bottom-20 left-20 w-[400px] h-[400px] bg-orange-200/30 rounded-full blur-[80px] pointer-events-none mix-blend-multiply" />
+
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-20">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 font-bold text-sm mb-6 animate-fade-in-up">
+                <CreditCard size={14} />
+                <span>Simple, powerful, transparent</span>
+              </div>
+              <h1
+                className="text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1] mb-6 animate-fade-in-up"
+                style={{ animationDelay: "0.1s" }}
+                data-testid="heading-how-it-works"
+              >
+                How <span className="text-primary">CreditClaw</span> works.
+              </h1>
+              <p
+                className="text-xl text-neutral-500 font-medium max-w-2xl mx-auto leading-relaxed animate-fade-in-up"
+                style={{ animationDelay: "0.2s" }}
+              >
+                You add your own credit card. You set strict spending limits. Your bot spends within those limits. Three steps, full control.
+              </p>
+            </div>
+
+            <div className="max-w-3xl mx-auto space-y-8">
+              {steps.map((step, index) => (
+                <div
+                  key={step.num}
+                  className="relative flex gap-8 items-start animate-fade-in-up"
+                  style={{ animationDelay: `${0.3 + index * 0.1}s` }}
+                  data-testid={`step-${step.num}`}
+                >
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className={`w-16 h-16 rounded-2xl ${step.color} flex items-center justify-center shadow-sm`}>
+                      <step.icon size={28} />
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className="w-px h-16 bg-neutral-200 mt-4" />
+                    )}
+                  </div>
+                  <div className="pt-1">
+                    <span className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em]">Step {step.num}</span>
+                    <h3 className="text-2xl font-extrabold text-neutral-900 mt-1 mb-3">{step.title}</h3>
+                    <p className="text-neutral-500 font-medium leading-relaxed text-lg">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-[#FDFBF7] border-y border-neutral-100">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto">
+              <div
+                className="bg-white rounded-3xl border border-neutral-100 shadow-xl shadow-neutral-900/5 p-8 md:p-12 animate-fade-in-up"
+                data-testid="card-virtual-coming-soon"
+              >
+                <div className="flex items-start gap-6">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-sm">
+                    <Sparkles size={28} />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-bold text-xs mb-3">
+                      Coming Soon
+                    </div>
+                    <h3 className="text-2xl font-extrabold text-neutral-900 mb-3">
+                      Virtual cards for your bots
+                    </h3>
+                    <p className="text-neutral-500 font-medium leading-relaxed mb-4">
+                      We&apos;re working on issuing dedicated virtual card numbers for each bot. Your bot will get its own card — no need to share yours. Powered by Stripe Issuing, each card will have its own number, expiry, and CVC.
+                    </p>
+                    <p className="text-neutral-500 font-medium leading-relaxed">
+                      Until then, you add your own card and we enforce strict spending controls on every transaction. Your bot can only spend what you allow, when you allow it.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-background">
+          <div className="container mx-auto px-6">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="text-3xl font-extrabold text-neutral-900 mb-4 animate-fade-in-up">
+                What happens under the hood
+              </h2>
+              <p className="text-neutral-500 font-medium mb-12 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+                Every purchase goes through multiple safety checks before money moves.
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6 text-left">
+                {[
+                  { title: "Wallet balance check", desc: "Does the bot have enough funds for this purchase?" },
+                  { title: "Spending limit enforcement", desc: "Is this within the per-transaction, daily, and monthly caps?" },
+                  { title: "Category filtering", desc: "Is this purchase in an allowed category, or is it blocked?" },
+                  { title: "Approval routing", desc: "Does this need owner approval, or is it auto-approved under the threshold?" },
+                  { title: "Atomic debit", desc: "Funds are deducted atomically — no double-spending, no race conditions." },
+                  { title: "Instant logging", desc: "Transaction recorded, webhook fired, owner notified — all in real time." },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="p-6 rounded-2xl bg-neutral-50 border border-neutral-100 animate-fade-in-up"
+                    style={{ animationDelay: `${0.2 + i * 0.05}s` }}
+                    data-testid={`check-${i}`}
+                  >
+                    <h4 className="font-bold text-neutral-900 mb-1">{item.title}</h4>
+                    <p className="text-sm text-neutral-500 font-medium">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

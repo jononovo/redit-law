@@ -8,7 +8,6 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Check, Rocket, Clock, X } from "lucide-react";
 
 const formSchema = z.object({
@@ -136,17 +135,6 @@ export function WaitlistForm() {
             </Form>
           )}
           
-          <div className="mt-24 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 font-medium">
-              <div className="flex items-center gap-2">
-                  <Image src="/images/logo-claw-chip.png" alt="CreditClaw Logo" width={32} height={32} className="object-contain" />
-                  <span>&copy; 2026 CreditClaw Inc.</span>
-              </div>
-              <div className="flex gap-8 mt-6 md:mt-0">
-                  <a href="#" className="hover:text-white transition-colors" data-testid="link-twitter">Twitter</a>
-                  <a href="#" className="hover:text-white transition-colors" data-testid="link-instagram">Instagram</a>
-                  <a href="#" className="hover:text-white transition-colors" data-testid="link-tiktok">TikTok</a>
-              </div>
-          </div>
         </div>
       </section>
 

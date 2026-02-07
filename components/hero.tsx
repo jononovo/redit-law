@@ -75,21 +75,21 @@ export function Hero() {
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-700 font-bold text-sm animate-fade-in-up"
             >
               <Sparkles size={14} className="text-orange-500" />
-              <span>Spending controls for your bots!</span>
+              <span>Pocket money for your bots!</span>
             </div>
 
             <h1 
               style={{ animationDelay: '0.1s' }}
               className="text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1] animate-fade-in-up"
             >
-              Let your <span className="text-primary">AI agent</span> spend safely.
+              Give your <span className="text-primary">Claw Agent</span> a credit card.
             </h1>
 
             <p 
               style={{ animationDelay: '0.2s' }}
               className="text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-fade-in-up"
             >
-              Add your credit card, set strict spending limits, and let your bot buy what it needs. You stay in full control.
+              Your bot works hard. Let it buy its own API credits (responsibly). Set a weekly allowance and never worry about surprise bills again.
             </p>
 
             <div 
