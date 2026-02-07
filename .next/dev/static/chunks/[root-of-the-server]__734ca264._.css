@@ -2122,6 +2122,10 @@
     --tw-divide-y-reverse: 1;
   }
 
+  :where(.divide-neutral-50 > :not(:last-child)) {
+    border-color: var(--color-neutral-50);
+  }
+
   .self-end {
     align-self: flex-end;
   }
@@ -3513,6 +3517,10 @@
     color: hsl(var(--muted-foreground));
   }
 
+  .text-neutral-300 {
+    color: var(--color-neutral-300);
+  }
+
   .text-neutral-400 {
     color: var(--color-neutral-400);
   }
@@ -3559,6 +3567,10 @@
 
   .text-primary-foreground {
     color: hsl(var(--primary-foreground));
+  }
+
+  .text-red-400 {
+    color: var(--color-red-400);
   }
 
   .text-red-500 {

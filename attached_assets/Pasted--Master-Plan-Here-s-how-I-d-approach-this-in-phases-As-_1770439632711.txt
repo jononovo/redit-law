@@ -1,0 +1,49 @@
+# Master Plan
+Here's how I'd approach this in phases. As you said, this may change after the first phase or two.
+Phase 1 — Bot Registration (the minimum to "talk to bots")
+The very first thing bots will do is POST /bots/register. We need to:
+1. Set up a database — Store registered bots (name, owner email, claim token, API key hash, status)
+2. Build POST /api/v1/bots/register — Accept the bot's name, owner email, and description. Return an API key, claim token, and verification URL. Store the API key as a bcrypt hash (per the security docs).
+3. Send a confirmation response to the bot — Acknowledge registration, give them the claim token to pass to their owner.
+4. Email the owner — Send a simple notification email saying "Your bot just registered on CreditClaw, here's how to claim it." (We'll need an email service for this.)
+5. Update the public skill.md — Apply the security improvements from the BUILD_NOTE (env var storage, rate limit notes, context hygiene rules, security section).  
+Phase 2 — Owner Claim Flow + Basic Dashboard
+Once bots can register, owners need to claim them:
+1. Build /claim page — Where owners enter the claim token to link a bot to their account
+2. Build basic owner dashboard for bots — Show registered bots, their status (pending/active), claim tokens, and registration dates
+3. Wallet status endpoint — GET /api/v1/wallet/check so bots can poll and see they're in "pending" status
+Phase 3 — Stripe Integration (Funding + Cards)
+This is where real money enters:
+1. Stripe Connect — Onboard owners as connected accounts
+2. Stripe Checkout — Let owners fund wallets via payment links
+3. Stripe Issuing — Issue virtual cards to bots
+4. Stripe Treasury — Financial accounts to hold funds
+5. Ledger table — Track all money movements
+Phase 4 — Spending Controls + Full API
+Build out the remaining API surface:
+1. Spending permissions — Owner-editable rules, GET /wallet/spending
+2. Card access — GET /wallet/card with rate limiting and access logging
+3. Top-up requests — POST /wallet/topup-request
+4. Payment links — POST /payments/create-link
+5. Transaction history — GET /wallet/transactions
+Phase 5 — Security Hardening
+Apply the security improvements from the analysis docs:
+1. Rate limiting on /wallet/card (3/hour per bot)
+2. Card access logging visible on owner dashboard
+3. Purchase intent pre-flight (POST /wallet/intent) — future consideration
+4. Scoped API keys — future consideration
+Phase 6 — Polish & Scale
+1. Webhooks for bots (wallet activated, balance low, etc.)
+2. Daily reconciliation cron
+3. Owner notifications and alerts
+4. Dashboard polish (transaction graphs, spending analytics)
+
+What We'd Tackle First
+Based on your instructions, Phase 1 is the priority — specifically items 1-4. This gets us to a state where:
+* A bot can call POST /bots/register and get a real response
+* The bot receives confirmation with an API key and claim token
+* The owner gets an email notification
+* Everything is stored in a database
+For the email piece, we'd need to decide on an email service (like SendGrid, Resend, or similar). For the database, we'd use the built-in PostgreSQL.
+Want me to move forward with Phase 1?
+

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BotCard } from "@/components/dashboard/bot-card";
 import { FundModal } from "@/components/dashboard/fund-modal";
+import { ActivityLog } from "@/components/dashboard/activity-log";
 import { Bot as BotIcon, Plus, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -142,6 +143,8 @@ export default function DashboardOverview() {
           </div>
         )}
       </div>
+
+      <ActivityLog />
 
       <FundModal
         open={fundOpen}

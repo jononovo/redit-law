@@ -39,11 +39,13 @@ export const transactions = pgTable("transactions", {
 
 export const paymentMethods = pgTable("payment_methods", {
   id: serial("id").primaryKey(),
-  ownerUid: text("owner_uid").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
   stripeCustomerId: text("stripe_customer_id").notNull(),
-  stripePmId: text("stripe_pm_id").notNull(),
+  stripePmId: text("stripe_pm_id").notNull().unique(),
   cardLast4: text("card_last4"),
   cardBrand: text("card_brand"),
+  isDefault: boolean("is_default").notNull().default(false),
+  label: text("label"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -68,6 +70,19 @@ export const topupRequests = pgTable("topup_requests", {
   amountCents: integer("amount_cents").notNull(),
   reason: text("reason"),
   status: text("status").notNull().default("sent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const apiAccessLogs = pgTable("api_access_logs", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code").notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  responseTimeMs: integer("response_time_ms"),
+  errorCode: text("error_code"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -122,3 +137,5 @@ export type SpendingPermission = typeof spendingPermissions.$inferSelect;
 export type InsertSpendingPermission = typeof spendingPermissions.$inferInsert;
 export type TopupRequest = typeof topupRequests.$inferSelect;
 export type InsertTopupRequest = typeof topupRequests.$inferInsert;
+export type ApiAccessLog = typeof apiAccessLogs.$inferSelect;
+export type InsertApiAccessLog = typeof apiAccessLogs.$inferInsert;

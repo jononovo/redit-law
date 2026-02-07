@@ -1,12 +1,13 @@
 import { db } from "@/server/db";
 import {
-  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests,
+  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
   type PaymentMethod, type InsertPaymentMethod,
   type SpendingPermission, type InsertSpendingPermission,
   type TopupRequest, type InsertTopupRequest,
+  type ApiAccessLog, type InsertApiAccessLog,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte } from "drizzle-orm";
 
@@ -28,6 +29,11 @@ export interface IStorage {
   getTransactionsByWalletId(walletId: number, limit?: number): Promise<Transaction[]>;
 
   getPaymentMethod(ownerUid: string): Promise<PaymentMethod | null>;
+  getPaymentMethods(ownerUid: string): Promise<PaymentMethod[]>;
+  getPaymentMethodById(id: number, ownerUid: string): Promise<PaymentMethod | null>;
+  addPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
+  deletePaymentMethodById(id: number, ownerUid: string): Promise<void>;
+  setDefaultPaymentMethod(id: number, ownerUid: string): Promise<PaymentMethod | null>;
   upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
   deletePaymentMethod(ownerUid: string): Promise<void>;
 
@@ -40,6 +46,9 @@ export interface IStorage {
   upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission>;
 
   createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest>;
+
+  createAccessLog(data: InsertApiAccessLog): Promise<void>;
+  getAccessLogsByBotIds(botIds: string[], limit?: number): Promise<ApiAccessLog[]>;
 }
 
 export const storage: IStorage = {
@@ -143,27 +152,65 @@ export const storage: IStorage = {
   },
 
   async getPaymentMethod(ownerUid: string): Promise<PaymentMethod | null> {
-    const [pm] = await db.select().from(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid)).limit(1);
+    const [pm] = await db.select().from(paymentMethods)
+      .where(and(eq(paymentMethods.ownerUid, ownerUid), eq(paymentMethods.isDefault, true)))
+      .limit(1);
+    if (pm) return pm;
+    const [any] = await db.select().from(paymentMethods)
+      .where(eq(paymentMethods.ownerUid, ownerUid))
+      .orderBy(desc(paymentMethods.createdAt))
+      .limit(1);
+    return any || null;
+  },
+
+  async getPaymentMethods(ownerUid: string): Promise<PaymentMethod[]> {
+    return db.select().from(paymentMethods)
+      .where(eq(paymentMethods.ownerUid, ownerUid))
+      .orderBy(desc(paymentMethods.isDefault), desc(paymentMethods.createdAt));
+  },
+
+  async getPaymentMethodById(id: number, ownerUid: string): Promise<PaymentMethod | null> {
+    const [pm] = await db.select().from(paymentMethods)
+      .where(and(eq(paymentMethods.id, id), eq(paymentMethods.ownerUid, ownerUid)))
+      .limit(1);
     return pm || null;
   },
 
-  async upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
-    const existing = await this.getPaymentMethod(data.ownerUid);
-    if (existing) {
-      const [updated] = await db
-        .update(paymentMethods)
-        .set({
-          stripeCustomerId: data.stripeCustomerId,
-          stripePmId: data.stripePmId,
-          cardLast4: data.cardLast4,
-          cardBrand: data.cardBrand,
-        })
-        .where(eq(paymentMethods.ownerUid, data.ownerUid))
-        .returning();
-      return updated;
-    }
-    const [created] = await db.insert(paymentMethods).values(data).returning();
+  async addPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
+    const existing = await this.getPaymentMethods(data.ownerUid);
+    const shouldBeDefault = existing.length === 0;
+    const [created] = await db.insert(paymentMethods).values({
+      ...data,
+      isDefault: shouldBeDefault,
+    }).returning();
     return created;
+  },
+
+  async deletePaymentMethodById(id: number, ownerUid: string): Promise<void> {
+    const pm = await this.getPaymentMethodById(id, ownerUid);
+    if (!pm) return;
+    await db.delete(paymentMethods).where(and(eq(paymentMethods.id, id), eq(paymentMethods.ownerUid, ownerUid)));
+    if (pm.isDefault) {
+      const [next] = await db.select().from(paymentMethods)
+        .where(eq(paymentMethods.ownerUid, ownerUid))
+        .orderBy(desc(paymentMethods.createdAt))
+        .limit(1);
+      if (next) {
+        await db.update(paymentMethods).set({ isDefault: true }).where(eq(paymentMethods.id, next.id));
+      }
+    }
+  },
+
+  async setDefaultPaymentMethod(id: number, ownerUid: string): Promise<PaymentMethod | null> {
+    const pm = await this.getPaymentMethodById(id, ownerUid);
+    if (!pm) return null;
+    await db.update(paymentMethods).set({ isDefault: false }).where(eq(paymentMethods.ownerUid, ownerUid));
+    const [updated] = await db.update(paymentMethods).set({ isDefault: true }).where(eq(paymentMethods.id, id)).returning();
+    return updated;
+  },
+
+  async upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
+    return this.addPaymentMethod(data);
   },
 
   async deletePaymentMethod(ownerUid: string): Promise<void> {
@@ -240,5 +287,21 @@ export const storage: IStorage = {
   async createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest> {
     const [req] = await db.insert(topupRequests).values(data).returning();
     return req;
+  },
+
+  async createAccessLog(data: InsertApiAccessLog): Promise<void> {
+    await db.insert(apiAccessLogs).values(data).catch((err) => {
+      console.error("Failed to write access log:", err);
+    });
+  },
+
+  async getAccessLogsByBotIds(botIds: string[], limit = 100): Promise<ApiAccessLog[]> {
+    if (botIds.length === 0) return [];
+    return db
+      .select()
+      .from(apiAccessLogs)
+      .where(sql`${apiAccessLogs.botId} IN (${sql.join(botIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(apiAccessLogs.createdAt))
+      .limit(limit);
   },
 };
