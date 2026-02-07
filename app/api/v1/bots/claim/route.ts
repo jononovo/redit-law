@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { claimBotRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
+import { fireWebhook } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +32,12 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    fireWebhook(bot, "wallet.activated", {
+      owner_uid: user.uid,
+      wallet_status: "active",
+      message: "Owner claimed bot and wallet is now live.",
+    }).catch((err) => console.error("Webhook fire failed:", err));
 
     return NextResponse.json({
       bot_id: bot.botId,

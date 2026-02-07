@@ -1,0 +1,35 @@
+===   Technical Plan for Phase 6B — Owner Notifications & Alerts
+This phase wires up the existing notification UI (bell icon, settings toggles) with real data and adds email alerts for key events.
+Step 1 — Database: Two new tables
+* notification_preferences — One row per owner. Columns: owner_uid (unique), transaction_alerts (bool), budget_warnings (bool), weekly_summary (bool), purchase_over_threshold_cents (int, e.g. 5000 = notify for purchases over $50), balance_low_cents (int, e.g. 500 = alert when balance drops below $5), email_enabled (bool), in_app_enabled (bool). Defaults match what the settings page already shows.
+* notifications — One row per notification. Columns: id, owner_uid, type (e.g. "purchase", "balance_low", "topup_request", "topup_completed", "suspicious"), title, body, bot_id (nullable), is_read (bool), created_at. Indexed on (owner_uid, created_at) for fast listing.
+Step 2 — Storage layer
+* getNotificationPreferences(ownerUid) / upsertNotificationPreferences(ownerUid, data)
+* createNotification(data) / getNotifications(ownerUid, limit, unreadOnly) / getUnreadCount(ownerUid) / markNotificationsRead(ids, ownerUid) / markAllNotificationsRead(ownerUid)
+Step 3 — API endpoints
+* GET /api/v1/notifications/preferences — fetch owner's notification settings
+* PUT /api/v1/notifications/preferences — update toggles and thresholds
+* GET /api/v1/notifications — list recent notifications (supports ?limit=20&unread_only=true)
+* GET /api/v1/notifications/unread-count — returns count for the bell badge
+* POST /api/v1/notifications/read — mark specific notifications as read
+* POST /api/v1/notifications/read-all — mark all as read
+Step 4 — Hook into existing flows (fire-and-forget, non-blocking)
+Event	Where it fires	In-app notification	Email alert
+Bot purchase approved	purchase/route.ts after wallet debit	Always (if in_app_enabled)	If amount >= threshold
+Balance drops low	purchase/route.ts after debit	Always	If budget_warnings enabled
+Bot requests top-up	topup-request/route.ts	Always	Already sends email
+Wallet funded	fund/route.ts after credit	If transaction_alerts enabled	If transaction_alerts + email_enabled
+Suspicious activity (purchase declined)	purchase/route.ts on rule violation	Always	Always (safety alert)
+All notification creation and email sending will be async (fire-and-forget with .catch()) so they never slow down the API response.
+Step 5 — Email templates
+Extend lib/email.ts with:
+* sendPurchaseAlertEmail — "{botName} just spent $X at {merchant}"
+* sendBalanceLowEmail — "Your bot's balance is below $Y"
+* sendSuspiciousActivityEmail — "A purchase by {botName} was declined"
+Step 6 — Frontend
+* Header bell dropdown: Replace the static bell icon with a popover showing recent notifications, unread count badge (live from API), and "Mark all read" action
+* Settings page: Wire the existing toggle switches to persist via the preferences API. Add threshold inputs (purchase alert threshold, low balance threshold)
+
+Want me to proceed with building Phase 6B, or would you like to adjust anything in this plan first?
+
+ 

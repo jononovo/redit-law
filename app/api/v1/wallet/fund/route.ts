@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { chargeCustomer } from "@/lib/stripe";
 import { fundWalletRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
+import { fireWebhook } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,6 +74,15 @@ export async function POST(request: NextRequest) {
       stripePaymentIntentId: paymentIntent.id,
       description: `Manual top-up: $${amountDollars}`,
     });
+
+    const bot = await storage.getBotByBotId(wallet.botId);
+    if (bot) {
+      fireWebhook(bot, "wallet.topup.completed", {
+        amount_usd: Number(amountDollars),
+        new_balance_usd: updatedWallet.balanceCents / 100,
+        funded_by: "owner",
+      }).catch((err) => console.error("Webhook fire failed:", err));
+    }
 
     return NextResponse.json({
       balance_cents: updatedWallet.balanceCents,

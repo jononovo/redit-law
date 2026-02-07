@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const bots = pgTable("bots", {
@@ -13,6 +13,7 @@ export const bots = pgTable("bots", {
   claimToken: text("claim_token").unique(),
   walletStatus: text("wallet_status").notNull().default("pending"),
   callbackUrl: text("callback_url"),
+  webhookSecret: text("webhook_secret"),
   claimedAt: timestamp("claimed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -86,6 +87,25 @@ export const apiAccessLogs = pgTable("api_access_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  eventType: text("event_type").notNull(),
+  callbackUrl: text("callback_url").notNull(),
+  payload: text("payload").notNull(),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  nextRetryAt: timestamp("next_retry_at"),
+  responseStatus: integer("response_status"),
+  responseBody: text("response_body"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("webhook_deliveries_bot_created_idx").on(table.botId, table.createdAt),
+  index("webhook_deliveries_status_retry_idx").on(table.status, table.nextRetryAt),
+]);
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -140,3 +160,5 @@ export type TopupRequest = typeof topupRequests.$inferSelect;
 export type InsertTopupRequest = typeof topupRequests.$inferInsert;
 export type ApiAccessLog = typeof apiAccessLogs.$inferSelect;
 export type InsertApiAccessLog = typeof apiAccessLogs.$inferInsert;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertWebhookDelivery = typeof webhookDeliveries.$inferInsert;

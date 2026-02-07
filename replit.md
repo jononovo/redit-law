@@ -48,6 +48,16 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Fund endpoint accepts optional `payment_method_id` to charge a specific card (falls back to default).
   - Setup Intent now includes `usage: 'off_session'` for better authorization rates and SCA compliance.
   - API routes: `GET /api/v1/billing/payment-method` returns list, `DELETE/PUT /api/v1/billing/payment-method/[id]` for per-card operations.
+- **Webhooks & Bot Notifications (Phase 6B):**
+  - `webhook_deliveries` table stores all outbound webhook events with status, attempts, retry scheduling.
+  - `webhook_secret` column on bots table (auto-generated at registration, returned to bot for HMAC verification).
+  - Fire-and-forget webhook delivery with HMAC-SHA256 signatures (`X-CreditClaw-Signature` header).
+  - Events: `wallet.activated`, `wallet.topup.completed`, `wallet.spend.authorized`, `wallet.spend.declined`, `wallet.balance.low`.
+  - Exponential backoff retries (1m, 5m, 15m, 1h, 6h) with max 5 attempts per delivery.
+  - Piggyback retry on bot API calls (throttled to once per 60s per bot via `withBotApi` middleware).
+  - Owner-facing API: `GET /api/v1/webhooks` lists deliveries, `POST /api/v1/webhooks/retry-pending` retries scoped to owner's bots.
+  - WebhookLog dashboard component showing delivery status, expandable details, and manual retry button.
+  - Key files: `lib/webhooks.ts`, `components/dashboard/webhook-log.tsx`.
 
 ### Key Routes
 - `/` — Consumer landing page

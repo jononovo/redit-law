@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateBot } from "@/lib/bot-auth";
 import { checkBotRateLimit } from "@/lib/rate-limit";
 import { storage } from "@/server/storage";
+import { retryPendingWebhooksForBot } from "@/lib/webhooks";
 import type { Bot } from "@/shared/schema";
+
+const lastRetryCheck = new Map<string, number>();
+const RETRY_CHECK_INTERVAL_MS = 60 * 1000;
 
 interface BotApiContext {
   bot: Bot;
@@ -74,6 +78,15 @@ export function withBotApi(endpoint: string, handler: BotApiHandler) {
         responseTimeMs,
         errorCode,
       });
+
+      if (botId !== "unknown") {
+        const now = Date.now();
+        const lastCheck = lastRetryCheck.get(botId) || 0;
+        if (now - lastCheck > RETRY_CHECK_INTERVAL_MS) {
+          lastRetryCheck.set(botId, now);
+          retryPendingWebhooksForBot(botId).catch(() => {});
+        }
+      }
     }
   };
 }

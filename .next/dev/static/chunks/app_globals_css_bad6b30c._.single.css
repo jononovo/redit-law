@@ -2555,6 +2555,10 @@
     background-color: var(--color-neutral-900);
   }
 
+  .bg-orange-50 {
+    background-color: var(--color-orange-50);
+  }
+
   .bg-orange-50\/50 {
     background-color: #fff7ed80;
   }
@@ -3297,6 +3301,10 @@
 
   .whitespace-nowrap {
     white-space: nowrap;
+  }
+
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
   }
 
   .text-\[\#FF6B6B\] {
