@@ -7,9 +7,10 @@ The platform has two main surfaces:
 - **Consumer landing page** — waitlist, features, live metrics, 3D clay lobster branding
 - **Dashboard application** — manage virtual cards, view transactions, control spending
 
-**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, and live bot registration API (`POST /api/v1/bots/register`).
+**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, live bot registration API, and owner claim flow.
 
 ## Recent Changes
+- **Feb 7, 2026:** Phase 2 — Owner Claim Flow built. `/claim` page with token input, auth gate, and success state. `POST /api/v1/bots/claim` links bot to Firebase UID, activates wallet, nullifies claim token. `GET /api/v1/bots/mine` returns authenticated user's bots. Dashboard overview now shows real bot data (total, active, pending counts + bot cards). AuthDrawer refactored to support controlled mode.
 - **Feb 7, 2026:** Phase 1 — Bot Registration API built. `POST /api/v1/bots/register` accepts bot name, owner email, description. Returns API key (bcrypt-hashed in DB), claim token, and verification URL. Sends owner notification email via SendGrid. PostgreSQL database with Drizzle ORM. Rate limiting (3 registrations/hour/IP).
 - **Feb 2026:** Moved OG/social images to dedicated `public/og/` folder, archived pink variants in `public/og/og-pink/`
 - **Feb 2026:** Set favicon to golden claw chip logo (`logo-claw-chip.png`)
@@ -54,6 +55,12 @@ app/                    # Next.js App Router
     route.ts
   api/v1/bots/register/ # Bot registration API (POST)
     route.ts
+  api/v1/bots/claim/    # Owner claim API (POST, authenticated)
+    route.ts
+  api/v1/bots/mine/     # Get user's bots (GET, authenticated)
+    route.ts
+  claim/                # Claim page (enter token, link bot to account)
+    page.tsx
   app/                  # Dashboard section (protected by auth)
     layout.tsx          # Dashboard layout (sidebar + header + auth guard)
     page.tsx            # Overview dashboard
@@ -75,6 +82,7 @@ components/             # Shared components
     sidebar.tsx         # Left sidebar navigation (auth-aware, logout)
     header.tsx          # Top header with search (shows user info)
     card-visual.tsx     # Credit card visual component
+    bot-card.tsx        # Bot card component (name, status, dates)
     transaction-ledger.tsx # Dashboard transaction table
 
 shared/                 # Shared types and schemas
@@ -115,16 +123,19 @@ tsconfig.json           # TypeScript configuration
 
 ### Key Routes
 - `/` — Consumer landing page (waitlist, features, metrics)
-- `/app` — Dashboard overview (stats, cards, transactions)
+- `/claim` — Claim page (enter token to link bot to account, requires auth)
+- `/app` — Dashboard overview (real bot stats + bot cards from DB)
 - `/app/cards` — Card management (create, freeze, limits)
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
 
-### API Endpoints (Bot-facing)
-- `POST /api/v1/bots/register` — Bot registration. Returns API key, claim token, verification URL. Sends owner email via SendGrid.
+### API Endpoints
+- `POST /api/v1/bots/register` — Bot registration (public). Returns API key, claim token, verification URL. Sends owner email via SendGrid.
+- `POST /api/v1/bots/claim` — Owner claims bot (authenticated). Accepts claim_token, links bot to Firebase UID, activates wallet.
+- `GET /api/v1/bots/mine` — Get authenticated user's bots. Returns array of bot objects.
 
 ### Database Schema
-- **bots** — Registered bots (bot_id, name, owner_email, api_key_hash, claim_token, wallet_status, etc.)
+- **bots** — Registered bots (bot_id, name, owner_email, owner_uid, api_key_hash, claim_token, wallet_status, claimed_at, etc.)
 
 ### Environment Variables (Secrets)
 - `SENDGRID_API_KEY` — SendGrid API key for transactional emails
