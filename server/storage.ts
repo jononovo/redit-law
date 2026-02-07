@@ -1,6 +1,12 @@
 import { db } from "@/server/db";
-import { bots, type InsertBot, type Bot } from "@/shared/schema";
-import { eq, and, isNull, isNotNull } from "drizzle-orm";
+import {
+  bots, wallets, transactions, paymentMethods,
+  type InsertBot, type Bot,
+  type Wallet, type InsertWallet,
+  type Transaction, type InsertTransaction,
+  type PaymentMethod, type InsertPaymentMethod,
+} from "@/shared/schema";
+import { eq, and, isNull, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   createBot(data: InsertBot): Promise<Bot>;
@@ -10,6 +16,18 @@ export interface IStorage {
   getBotsByOwnerUid(ownerUid: string): Promise<Bot[]>;
   claimBot(claimToken: string, ownerUid: string): Promise<Bot | null>;
   checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean>;
+
+  createWallet(data: InsertWallet): Promise<Wallet>;
+  getWalletByBotId(botId: string): Promise<Wallet | null>;
+  getWalletByOwnerUid(ownerUid: string): Promise<Wallet | null>;
+  creditWallet(walletId: number, amountCents: number): Promise<Wallet>;
+
+  createTransaction(data: InsertTransaction): Promise<Transaction>;
+  getTransactionsByWalletId(walletId: number, limit?: number): Promise<Transaction[]>;
+
+  getPaymentMethod(ownerUid: string): Promise<PaymentMethod | null>;
+  upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
+  deletePaymentMethod(ownerUid: string): Promise<void>;
 }
 
 export const storage: IStorage = {
@@ -52,7 +70,14 @@ export const storage: IStorage = {
       .where(and(eq(bots.claimToken, claimToken), isNull(bots.ownerUid)))
       .returning();
 
-    return updated || null;
+    if (!updated) return null;
+
+    await this.createWallet({
+      botId: updated.botId,
+      ownerUid,
+    });
+
+    return updated;
   },
 
   async checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean> {
@@ -62,5 +87,74 @@ export const storage: IStorage = {
       .where(and(eq(bots.botName, botName), eq(bots.ownerEmail, ownerEmail)))
       .limit(1);
     return !!existing;
+  },
+
+  async createWallet(data: InsertWallet): Promise<Wallet> {
+    const [wallet] = await db.insert(wallets).values(data).returning();
+    return wallet;
+  },
+
+  async getWalletByBotId(botId: string): Promise<Wallet | null> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.botId, botId)).limit(1);
+    return wallet || null;
+  },
+
+  async getWalletByOwnerUid(ownerUid: string): Promise<Wallet | null> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.ownerUid, ownerUid)).limit(1);
+    return wallet || null;
+  },
+
+  async creditWallet(walletId: number, amountCents: number): Promise<Wallet> {
+    const [updated] = await db
+      .update(wallets)
+      .set({
+        balanceCents: sql`${wallets.balanceCents} + ${amountCents}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(wallets.id, walletId))
+      .returning();
+    return updated;
+  },
+
+  async createTransaction(data: InsertTransaction): Promise<Transaction> {
+    const [tx] = await db.insert(transactions).values(data).returning();
+    return tx;
+  },
+
+  async getTransactionsByWalletId(walletId: number, limit = 50): Promise<Transaction[]> {
+    return db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.walletId, walletId))
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit);
+  },
+
+  async getPaymentMethod(ownerUid: string): Promise<PaymentMethod | null> {
+    const [pm] = await db.select().from(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid)).limit(1);
+    return pm || null;
+  },
+
+  async upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
+    const existing = await this.getPaymentMethod(data.ownerUid);
+    if (existing) {
+      const [updated] = await db
+        .update(paymentMethods)
+        .set({
+          stripeCustomerId: data.stripeCustomerId,
+          stripePmId: data.stripePmId,
+          cardLast4: data.cardLast4,
+          cardBrand: data.cardBrand,
+        })
+        .where(eq(paymentMethods.ownerUid, data.ownerUid))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(paymentMethods).values(data).returning();
+    return created;
+  },
+
+  async deletePaymentMethod(ownerUid: string): Promise<void> {
+    await db.delete(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid));
   },
 };

@@ -110,6 +110,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/billing/payment-method/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/billing/payment-method">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/billing/payment-method/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/billing/setup-intent/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/billing/setup-intent">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/billing/setup-intent/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/bots/claim/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bots/claim">> = Specific
@@ -132,6 +150,33 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bots/register">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/bots/register/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/wallet/balance/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallet/balance">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/wallet/balance/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/wallet/fund/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallet/fund">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/wallet/fund/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/wallet/transactions/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallet/transactions">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/wallet/transactions/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
