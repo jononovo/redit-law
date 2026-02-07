@@ -176,25 +176,25 @@ const features = [
         icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$piggy$2d$bank$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$export__default__as__PiggyBank$3e$__["PiggyBank"],
         color: "bg-pink-100 text-pink-600",
         title: "Allowance Mode",
-        description: "Set a weekly $50 budget. When it's gone, it's gone. No runaway API bills!"
+        description: "Set a daily, weekly, or monthly budget. When it's gone, it's gone. No runaway API bills!"
     },
     {
         icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shield$2d$check$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$export__default__as__ShieldCheck$3e$__["ShieldCheck"],
         color: "bg-green-100 text-green-600",
-        title: "Safe & Secure",
-        description: "Your main credit card is never exposed. We use virtual numbers that lock to specific merchants."
+        title: "Your Card, Your Rules",
+        description: "Add your own card and set strict spending limits. Block categories, require approvals — you're always in control."
     },
     {
         icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$zap$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$export__default__as__Zap$3e$__["Zap"],
         color: "bg-yellow-100 text-yellow-600",
         title: "Instant Setup",
-        description: "Connect your OpenClaw agent in seconds. \"Hey Claw, here's your new card!\""
+        description: "Connect your OpenClaw agent in seconds. Add a card, set limits, and you're live."
     },
     {
         icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$shopping$2d$bag$2e$js__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__$3c$export__default__as__ShoppingBag$3e$__["ShoppingBag"],
         color: "bg-blue-100 text-blue-600",
         title: "Smart Shopping",
-        description: "Your bot can buy software, domains, and data. We categorize everything for you."
+        description: "Your bot can buy software, domains, and data. We categorize everything and enforce your rules."
     }
 ];
 function Features() {

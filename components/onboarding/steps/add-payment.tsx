@@ -111,8 +111,8 @@ export function AddPayment({ currentStep, totalSteps, onBack, onNext }: AddPayme
 
   return (
     <WizardStep
-      title="Add a card to fund your bot's wallet"
-      subtitle="Your bot needs money in its wallet before it can spend."
+      title="Add your credit card"
+      subtitle="Your card is used to fund your bot's wallet. You set the limits — your bot can only spend what you allow."
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}

@@ -24,6 +24,7 @@ export const wallets = pgTable("wallets", {
   ownerUid: text("owner_uid").notNull(),
   balanceCents: integer("balance_cents").notNull().default(0),
   currency: text("currency").notNull().default("usd"),
+  isFrozen: boolean("is_frozen").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -242,6 +243,21 @@ export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
 export type PairingCode = typeof pairingCodes.$inferSelect;
 export type InsertPairingCode = typeof pairingCodes.$inferInsert;
+
+export const waitlistEntries = pgTable("waitlist_entries", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  source: text("source").notNull().default("hero"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type WaitlistEntry = typeof waitlistEntries.$inferSelect;
+export type InsertWaitlistEntry = typeof waitlistEntries.$inferInsert;
+
+export const waitlistEmailSchema = z.object({
+  email: z.string().email(),
+  source: z.string().optional(),
+});
 
 export const createPaymentLinkSchema = z.object({
   amount_usd: z.number().min(0.50).max(10000.00),

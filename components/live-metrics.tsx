@@ -70,29 +70,29 @@ export function LiveMetrics() {
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={1259} />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents waiting for<br/>invitation codes</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Waiting for virtual<br/>card issuance</p>
           </div>
 
           <div 
              style={{ animationDelay: '0.1s' }}
              className="md:pl-8 pr-4 animate-fade-in-up"
           >
-            <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Approved</h3>
+            <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Active Now</h3>
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={37} />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Wallets registered</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Bot wallets with<br/>spending controls</p>
           </div>
 
           <div 
              style={{ animationDelay: '0.2s' }}
              className="md:pl-8 animate-fade-in-up"
           >
-            <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Credit Issued</h3>
+            <h3 className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em] mb-4">Funds Managed</h3>
             <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">
               <Counter end={2000} prefix="$" />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Allowances/Payments Received<br/>(USD)</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Allowances &amp; payments<br/>(USD)</p>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export function LiveMetrics() {
           style={{ animationDelay: '0.4s' }}
           className="pt-8 border-t border-neutral-200/60 flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-12 animate-fade-in-up"
         >
-          <span className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em]">Supported Networks</span>
+          <span className="text-xs font-mono text-neutral-400 uppercase tracking-[0.2em]">Accepted Cards</span>
           
           <div className="flex flex-wrap items-center gap-8 md:gap-12">
             <div className="flex items-center gap-2 group cursor-default">
@@ -112,10 +112,9 @@ export function LiveMetrics() {
                 className="h-4 w-auto object-contain"
                 unoptimized
               />
-              <span className="text-[10px] font-bold text-green-600">Live</span>
             </div>
 
-            <div className="flex items-center gap-3 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="flex items-center gap-3 group cursor-default">
               <Image 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" 
                 alt="MasterCard" 
@@ -126,7 +125,7 @@ export function LiveMetrics() {
               />
             </div>
 
-            <div className="flex items-center gap-3 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="flex items-center gap-3 group cursor-default">
               <Image 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Stripe_Logo%2C_revised_2016.svg/2560px-Stripe_Logo%2C_revised_2016.svg.png" 
                 alt="Stripe" 
@@ -135,9 +134,10 @@ export function LiveMetrics() {
                 className="h-6 w-auto object-contain"
                 unoptimized
               />
+              <span className="text-[10px] font-bold text-green-600">Powered by</span>
             </div>
 
-            <div className="flex items-center gap-2 group cursor-default opacity-60 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="flex items-center gap-2 group cursor-default">
                <Image 
                 src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/American_Express_logo_%282018%29.svg/1200px-American_Express_logo_%282018%29.svg.png" 
                 alt="American Express" 
@@ -146,7 +146,6 @@ export function LiveMetrics() {
                 className="h-6 w-auto object-contain"
                 unoptimized
               />
-               <span className="text-[10px] font-bold text-neutral-400">Coming Soon</span>
             </div>
           </div>
         </div>

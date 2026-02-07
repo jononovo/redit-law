@@ -1,7 +1,7 @@
 # CreditClaw.com
 
 ## Overview
-CreditClaw is a prepaid virtual credit card platform for AI agents within the OpenClaw ecosystem. It allows bot owners to fund wallets with allowances, enabling their AI agents to spend responsibly using virtual Visa/Mastercard cards. Bots register first, receive API keys and claim tokens, and then access their wallets upon human activation. The platform features a consumer landing page for waitlists and marketing, and a dashboard application for managing virtual cards, transactions, and spending controls. The project aims to provide a secure and controlled financial environment for AI agents.
+CreditClaw is a prepaid spending controls platform for AI agents within the OpenClaw ecosystem. Owners add their own credit card, fund a bot wallet, and set strict spending limits (per-transaction, daily, monthly, category blocking, approval modes). The platform is open for immediate sign-up with a parallel waitlist for future virtual card issuance. It features a consumer landing page with waitlist + instant onboarding, and a dashboard for managing wallets, transactions, and spending controls. The project aims to provide a secure and controlled financial environment for AI agents.
 
 ## User Preferences
 - **Design theme:** "Fun Consumer" — 3D clay/claymation aesthetic, coral lobster mascot, bright pastels (orange/blue/purple)
@@ -84,6 +84,21 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Owner dashboard: `GET /api/v1/payment-links` (session-auth), PaymentLinksPanel component with status badges and earnings total.
   - Reconciliation updated to count `payment_received` as credits alongside `topup`.
   - Key files: `app/api/v1/bot/payments/create-link/route.ts`, `app/api/v1/bot/payments/links/route.ts`, `app/api/v1/webhooks/stripe/route.ts`, `app/api/v1/payment-links/route.ts`, `components/dashboard/payment-links.tsx`.
+- **Open Access & Waitlist (Phase 9):**
+  - `waitlist_entries` table with email (unique), source, createdAt.
+  - `POST /api/v1/waitlist` with validation, rate limiting (5/hr per IP), deduplication.
+  - Hero + footer waitlist forms submit to API, show decision modal with two paths: "Let me try it now" (→ onboarding) or "Keep me on the waitlist" (→ confirmation).
+  - All landing page and onboarding wizard copy updated to reflect "add your own card + spending controls" model, virtual cards = coming soon.
+  - Key files: `app/api/v1/waitlist/route.ts`, `components/hero.tsx`, `components/waitlist-form.tsx`.
+- **Wallet Freeze & Dynamic Cards (Phase 9B):**
+  - `is_frozen` boolean column on `wallets` table (default false).
+  - `freezeWallet`/`unfreezeWallet` storage methods (owner-scoped).
+  - `GET /api/v1/wallets` returns wallets+bot data for authenticated owner.
+  - `POST /api/v1/wallets/[id]/freeze` toggles frozen state (session-auth, owner-scoped).
+  - Purchase endpoint rejects spends on frozen wallets with `wallet_frozen` error, webhook, and owner alert.
+  - `CardVisual` component accepts `frozen` prop with grayscale + "FROZEN" badge overlay.
+  - Cards page now dynamic: fetches real wallets from API, Freeze button with optimistic toggle + toast, Limits button opens spending permissions dialog, "..." dropdown with View Transactions and Copy Bot ID.
+  - Key files: `app/api/v1/wallets/route.ts`, `app/api/v1/wallets/[id]/freeze/route.ts`, `app/app/cards/page.tsx`, `components/dashboard/card-visual.tsx`.
 - **Onboarding Wizard (Phase 8):**
   - Guided 12-screen wizard at `/onboarding` for new bot owners to complete full setup in one sitting.
   - Two entry paths: "bot-first" (owner has claim token from bot registration) and "owner-first" (owner generates 6-digit pairing code for bot to use during registration).

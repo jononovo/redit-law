@@ -3,7 +3,5 @@
   "/api/v1/notifications/unread-count/route": "app/api/v1/notifications/unread-count/route.js",
   "/api/v1/wallet/transactions/route": "app/api/v1/wallet/transactions/route.js",
   "/app/transactions/page": "app/app/transactions/page.js",
-  "/page": "app/page.js",
-  "/payment/cancelled/page": "app/payment/cancelled/page.js",
-  "/payment/success/page": "app/payment/success/page.js"
+  "/page": "app/page.js"
 }
