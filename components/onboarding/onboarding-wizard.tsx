@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import { ChoosePath } from "./steps/choose-path";
 import { ClaimToken } from "./steps/claim-token";
 import { PairingCode } from "./steps/pairing-code";
@@ -67,6 +69,7 @@ const initialState: WizardState = {
 };
 
 export function OnboardingWizard() {
+  const router = useRouter();
   const [state, setState] = useState<WizardState>(initialState);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [transitionClass, setTransitionClass] = useState("wizard-step-active");
@@ -354,8 +357,18 @@ export function OnboardingWizard() {
           transition: opacity 0.15s ease, transform 0.15s ease;
         }
       `}</style>
-      <div className={transitionClass}>
-        {renderStep()}
+      <div className="relative">
+        <button
+          onClick={() => router.push("/app")}
+          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/80 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors shadow-sm border border-neutral-200"
+          aria-label="Close wizard"
+          data-testid="button-close-wizard"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className={transitionClass}>
+          {renderStep()}
+        </div>
       </div>
     </>
   );
