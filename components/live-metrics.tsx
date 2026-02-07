@@ -81,7 +81,7 @@ export function LiveMetrics() {
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={37} />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Agents with<br/>active credit</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Wallets registered</p>
           </div>
 
           <div 
@@ -92,7 +92,7 @@ export function LiveMetrics() {
             <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">
               <Counter end={2000} prefix="$" />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Total credit extended<br/>(USD)</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Allowances/Payments Received<br/>(USD)</p>
           </div>
         </div>
 

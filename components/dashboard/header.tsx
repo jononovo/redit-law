@@ -4,8 +4,11 @@ import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export function Header({ title }: { title: string }) {
+  const { user } = useAuth();
+
   return (
     <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-8 flex items-center justify-between">
       <h1 className="text-xl font-bold text-neutral-900">{title}</h1>
@@ -29,12 +32,14 @@ export function Header({ title }: { title: string }) {
 
         <div className="flex items-center gap-3 pl-1">
             <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-neutral-900">OpenClaw Agent</p>
-                <p className="text-xs text-neutral-500">Pro Plan</p>
+                <p className="text-sm font-medium text-neutral-900">{user?.displayName || "User"}</p>
+                <p className="text-xs text-neutral-500">{user?.email || "Pro Plan"}</p>
             </div>
             <Avatar className="h-9 w-9 border-2 border-white shadow-sm cursor-pointer">
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback>OC</AvatarFallback>
+                <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || "User"} />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                  {user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
             </Avatar>
         </div>
       </div>
