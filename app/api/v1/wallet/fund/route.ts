@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { chargeCustomer } from "@/lib/stripe";
 import { fundWalletRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
+import { fireWebhook } from "@/lib/webhooks";
+import { notifyTopupCompleted } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { amount_cents } = parsed.data;
+    const { amount_cents, payment_method_id } = parsed.data;
 
     const wallet = await storage.getWalletByOwnerUid(user.uid);
     if (!wallet) {
@@ -30,7 +32,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pm = await storage.getPaymentMethod(user.uid);
+    let pm;
+    if (payment_method_id) {
+      pm = await storage.getPaymentMethodById(payment_method_id, user.uid);
+      if (!pm) {
+        return NextResponse.json(
+          { error: "Selected payment method not found." },
+          { status: 404 }
+        );
+      }
+    } else {
+      pm = await storage.getPaymentMethod(user.uid);
+    }
     if (!pm) {
       return NextResponse.json(
         { error: "No payment method on file. Please add a card first." },
@@ -62,6 +75,17 @@ export async function POST(request: NextRequest) {
       stripePaymentIntentId: paymentIntent.id,
       description: `Manual top-up: $${amountDollars}`,
     });
+
+    const bot = await storage.getBotByBotId(wallet.botId);
+    if (bot) {
+      fireWebhook(bot, "wallet.topup.completed", {
+        amount_usd: Number(amountDollars),
+        new_balance_usd: updatedWallet.balanceCents / 100,
+        funded_by: "owner",
+      }).catch((err) => console.error("Webhook fire failed:", err));
+
+      notifyTopupCompleted(user.uid, user.email || bot.ownerEmail, bot.botName, bot.botId, amount_cents, updatedWallet.balanceCents).catch(() => {});
+    }
 
     return NextResponse.json({
       balance_cents: updatedWallet.balanceCents,

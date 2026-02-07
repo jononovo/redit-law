@@ -1,6 +1,7 @@
 import { db } from "@/server/db";
 import {
-  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs,
+  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
+  notificationPreferences, notifications, reconciliationLogs,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -8,8 +9,12 @@ import {
   type SpendingPermission, type InsertSpendingPermission,
   type TopupRequest, type InsertTopupRequest,
   type ApiAccessLog, type InsertApiAccessLog,
+  type WebhookDelivery, type InsertWebhookDelivery,
+  type NotificationPreference, type InsertNotificationPreference,
+  type Notification, type InsertNotification,
+  type ReconciliationLog, type InsertReconciliationLog,
 } from "@/shared/schema";
-import { eq, and, isNull, desc, sql, gte } from "drizzle-orm";
+import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface IStorage {
   createBot(data: InsertBot): Promise<Bot>;
@@ -34,8 +39,6 @@ export interface IStorage {
   addPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
   deletePaymentMethodById(id: number, ownerUid: string): Promise<void>;
   setDefaultPaymentMethod(id: number, ownerUid: string): Promise<PaymentMethod | null>;
-  upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
-  deletePaymentMethod(ownerUid: string): Promise<void>;
 
   getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]>;
   debitWallet(walletId: number, amountCents: number): Promise<Wallet | null>;
@@ -49,6 +52,25 @@ export interface IStorage {
 
   createAccessLog(data: InsertApiAccessLog): Promise<void>;
   getAccessLogsByBotIds(botIds: string[], limit?: number): Promise<ApiAccessLog[]>;
+
+  createWebhookDelivery(data: InsertWebhookDelivery): Promise<WebhookDelivery>;
+  updateWebhookDelivery(id: number, data: Partial<InsertWebhookDelivery>): Promise<WebhookDelivery | null>;
+  getPendingWebhookRetries(now: Date, limit?: number): Promise<WebhookDelivery[]>;
+  getPendingWebhookRetriesForBot(botId: string, now: Date, limit?: number): Promise<WebhookDelivery[]>;
+  getWebhookDeliveriesByBotIds(botIds: string[], limit?: number): Promise<WebhookDelivery[]>;
+
+  getNotificationPreferences(ownerUid: string): Promise<NotificationPreference | null>;
+  upsertNotificationPreferences(ownerUid: string, data: Partial<InsertNotificationPreference>): Promise<NotificationPreference>;
+  createNotification(data: InsertNotification): Promise<Notification>;
+  getNotifications(ownerUid: string, limit?: number, unreadOnly?: boolean): Promise<Notification[]>;
+  getUnreadCount(ownerUid: string): Promise<number>;
+  markNotificationsRead(ids: number[], ownerUid: string): Promise<void>;
+  markAllNotificationsRead(ownerUid: string): Promise<void>;
+
+  getWalletsByOwnerUid(ownerUid: string): Promise<Wallet[]>;
+  getTransactionSumByWalletId(walletId: number): Promise<number>;
+  createReconciliationLog(data: InsertReconciliationLog): Promise<ReconciliationLog>;
+  getFailedWebhookCount24h(botIds: string[]): Promise<number>;
 }
 
 export const storage: IStorage = {
@@ -209,13 +231,6 @@ export const storage: IStorage = {
     return updated;
   },
 
-  async upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
-    return this.addPaymentMethod(data);
-  },
-
-  async deletePaymentMethod(ownerUid: string): Promise<void> {
-    await db.delete(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid));
-  },
 
   async getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]> {
     return db.select().from(bots).where(eq(bots.apiKeyPrefix, prefix));
@@ -303,5 +318,156 @@ export const storage: IStorage = {
       .where(sql`${apiAccessLogs.botId} IN (${sql.join(botIds.map(id => sql`${id}`), sql`, `)})`)
       .orderBy(desc(apiAccessLogs.createdAt))
       .limit(limit);
+  },
+
+  async createWebhookDelivery(data: InsertWebhookDelivery): Promise<WebhookDelivery> {
+    const [delivery] = await db.insert(webhookDeliveries).values(data).returning();
+    return delivery;
+  },
+
+  async updateWebhookDelivery(id: number, data: Partial<InsertWebhookDelivery>): Promise<WebhookDelivery | null> {
+    const [updated] = await db
+      .update(webhookDeliveries)
+      .set(data)
+      .where(eq(webhookDeliveries.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async getPendingWebhookRetries(now: Date, limit = 10): Promise<WebhookDelivery[]> {
+    return db
+      .select()
+      .from(webhookDeliveries)
+      .where(and(
+        eq(webhookDeliveries.status, "pending"),
+        lte(webhookDeliveries.nextRetryAt, now),
+      ))
+      .orderBy(webhookDeliveries.nextRetryAt)
+      .limit(limit);
+  },
+
+  async getPendingWebhookRetriesForBot(botId: string, now: Date, limit = 5): Promise<WebhookDelivery[]> {
+    return db
+      .select()
+      .from(webhookDeliveries)
+      .where(and(
+        eq(webhookDeliveries.botId, botId),
+        eq(webhookDeliveries.status, "pending"),
+        lte(webhookDeliveries.nextRetryAt, now),
+      ))
+      .orderBy(webhookDeliveries.nextRetryAt)
+      .limit(limit);
+  },
+
+  async getWebhookDeliveriesByBotIds(botIds: string[], limit = 50): Promise<WebhookDelivery[]> {
+    if (botIds.length === 0) return [];
+    return db
+      .select()
+      .from(webhookDeliveries)
+      .where(sql`${webhookDeliveries.botId} IN (${sql.join(botIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(webhookDeliveries.createdAt))
+      .limit(limit);
+  },
+
+  async getNotificationPreferences(ownerUid: string): Promise<NotificationPreference | null> {
+    const [pref] = await db.select().from(notificationPreferences).where(eq(notificationPreferences.ownerUid, ownerUid)).limit(1);
+    return pref || null;
+  },
+
+  async upsertNotificationPreferences(ownerUid: string, data: Partial<InsertNotificationPreference>): Promise<NotificationPreference> {
+    const existing = await this.getNotificationPreferences(ownerUid);
+    if (existing) {
+      const [updated] = await db
+        .update(notificationPreferences)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(notificationPreferences.ownerUid, ownerUid))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(notificationPreferences)
+      .values({ ownerUid, ...data })
+      .returning();
+    return created;
+  },
+
+  async createNotification(data: InsertNotification): Promise<Notification> {
+    const [notif] = await db.insert(notifications).values(data).returning();
+    return notif;
+  },
+
+  async getNotifications(ownerUid: string, limit = 20, unreadOnly = false): Promise<Notification[]> {
+    const conditions = [eq(notifications.ownerUid, ownerUid)];
+    if (unreadOnly) {
+      conditions.push(eq(notifications.isRead, false));
+    }
+    return db
+      .select()
+      .from(notifications)
+      .where(and(...conditions))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  },
+
+  async getUnreadCount(ownerUid: string): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(notifications)
+      .where(and(eq(notifications.ownerUid, ownerUid), eq(notifications.isRead, false)));
+    return Number(result[0]?.count || 0);
+  },
+
+  async markNotificationsRead(ids: number[], ownerUid: string): Promise<void> {
+    if (ids.length === 0) return;
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(
+        eq(notifications.ownerUid, ownerUid),
+        sql`${notifications.id} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`
+      ));
+  },
+
+  async markAllNotificationsRead(ownerUid: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(and(eq(notifications.ownerUid, ownerUid), eq(notifications.isRead, false)));
+  },
+
+  async getWalletsByOwnerUid(ownerUid: string): Promise<Wallet[]> {
+    return db.select().from(wallets).where(eq(wallets.ownerUid, ownerUid));
+  },
+
+  async getTransactionSumByWalletId(walletId: number): Promise<number> {
+    const result = await db
+      .select({
+        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'topup' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+        purchases: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'purchase' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+      })
+      .from(transactions)
+      .where(eq(transactions.walletId, walletId));
+    const topups = Number(result[0]?.topups || 0);
+    const purchases = Number(result[0]?.purchases || 0);
+    return topups - purchases;
+  },
+
+  async createReconciliationLog(data: InsertReconciliationLog): Promise<ReconciliationLog> {
+    const [log] = await db.insert(reconciliationLogs).values(data).returning();
+    return log;
+  },
+
+  async getFailedWebhookCount24h(botIds: string[]): Promise<number> {
+    if (botIds.length === 0) return 0;
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(webhookDeliveries)
+      .where(and(
+        inArray(webhookDeliveries.botId, botIds),
+        eq(webhookDeliveries.status, "failed"),
+        gte(webhookDeliveries.createdAt, oneDayAgo),
+      ));
+    return Number(result[0]?.count || 0);
   },
 };

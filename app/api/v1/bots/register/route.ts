@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { registerBotRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
-import { generateBotId, generateApiKey, generateClaimToken, hashApiKey, getApiKeyPrefix } from "@/lib/crypto";
+import { generateBotId, generateApiKey, generateClaimToken, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/crypto";
 import { sendOwnerRegistrationEmail } from "@/lib/email";
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
     const claimToken = generateClaimToken();
     const apiKeyHash = await hashApiKey(apiKey);
     const apiKeyPrefix = getApiKeyPrefix(apiKey);
+    const webhookSecret = callback_url ? generateWebhookSecret() : null;
 
     await storage.createBot({
       botId,
@@ -80,6 +81,7 @@ export async function POST(request: NextRequest) {
       claimToken,
       walletStatus: "pending",
       callbackUrl: callback_url || null,
+      webhookSecret,
       claimedAt: null,
     });
 
@@ -92,17 +94,21 @@ export async function POST(request: NextRequest) {
       console.error("Failed to send owner email:", err);
     });
 
-    return NextResponse.json(
-      {
-        bot_id: botId,
-        api_key: apiKey,
-        claim_token: claimToken,
-        status: "pending_owner_verification",
-        owner_verification_url: `https://creditclaw.com/claim?token=${claimToken}`,
-        important: "Save your api_key now — it cannot be retrieved later. Give the claim_token to your human so they can activate your wallet.",
-      },
-      { status: 201 }
-    );
+    const response: Record<string, unknown> = {
+      bot_id: botId,
+      api_key: apiKey,
+      claim_token: claimToken,
+      status: "pending_owner_verification",
+      owner_verification_url: `https://creditclaw.com/claim?token=${claimToken}`,
+      important: "Save your api_key now — it cannot be retrieved later. Give the claim_token to your human so they can activate your wallet.",
+    };
+
+    if (webhookSecret) {
+      response.webhook_secret = webhookSecret;
+      response.webhook_note = "Save your webhook_secret now — it cannot be retrieved later. Use it to verify HMAC signatures on incoming webhook payloads.";
+    }
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error: any) {
     console.error("Bot registration failed:", error?.message || error);
     return NextResponse.json(

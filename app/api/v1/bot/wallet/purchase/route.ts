@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { withBotApi } from "@/lib/bot-api";
 import { storage } from "@/server/storage";
 import { purchaseRequestSchema } from "@/shared/schema";
+import { fireWebhook } from "@/lib/webhooks";
+import { notifyPurchase, notifyBalanceLow, notifySuspicious } from "@/lib/notifications";
 
 export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -40,6 +42,16 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
   }
 
   if (wallet.balanceCents < amount_cents) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "insufficient_funds",
+      amount_usd: amount_cents / 100,
+      balance_usd: wallet.balanceCents / 100,
+      merchant,
+      category: category || null,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, "Insufficient funds", amount_cents, merchant).catch(() => {});
+    }
     return NextResponse.json(
       {
         error: "insufficient_funds",
@@ -58,6 +70,15 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
     : ["gambling", "adult_content", "cryptocurrency", "cash_advances"];
 
   if (category && blockedCategories.includes(category)) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "category_blocked",
+      amount_usd: amount_cents / 100,
+      merchant,
+      category,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, `Category "${category}" blocked`, amount_cents, merchant).catch(() => {});
+    }
     return NextResponse.json(
       { error: "category_blocked", message: `Spending category "${category}" is blocked by your owner.` },
       { status: 403 }
@@ -66,6 +87,16 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
 
   const perTxLimit = permissions?.perTransactionCents ?? 2500;
   if (amount_cents > perTxLimit) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "exceeds_per_transaction_limit",
+      amount_usd: amount_cents / 100,
+      limit_usd: perTxLimit / 100,
+      merchant,
+      category: category || null,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, "Exceeds per-transaction limit", amount_cents, merchant).catch(() => {});
+    }
     return NextResponse.json(
       {
         error: "exceeds_per_transaction_limit",
@@ -80,6 +111,16 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
   const dailySpent = await storage.getDailySpend(wallet.id);
   const dailyLimit = permissions?.dailyCents ?? 5000;
   if (dailySpent + amount_cents > dailyLimit) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "exceeds_daily_limit",
+      amount_usd: amount_cents / 100,
+      daily_limit_usd: dailyLimit / 100,
+      merchant,
+      category: category || null,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, "Exceeds daily spending limit", amount_cents, merchant).catch(() => {});
+    }
     return NextResponse.json(
       {
         error: "exceeds_daily_limit",
@@ -95,6 +136,16 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
   const monthlySpent = await storage.getMonthlySpend(wallet.id);
   const monthlyLimit = permissions?.monthlyCents ?? 50000;
   if (monthlySpent + amount_cents > monthlyLimit) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "exceeds_monthly_limit",
+      amount_usd: amount_cents / 100,
+      monthly_limit_usd: monthlyLimit / 100,
+      merchant,
+      category: category || null,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, "Exceeds monthly spending limit", amount_cents, merchant).catch(() => {});
+    }
     return NextResponse.json(
       {
         error: "exceeds_monthly_limit",
@@ -157,6 +208,31 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
     amountCents: amount_cents,
     description: purchaseDesc,
   });
+
+  fireWebhook(bot, "wallet.spend.authorized", {
+    transaction_id: tx.id,
+    amount_usd: amount_cents / 100,
+    merchant,
+    category: category || null,
+    description: purchaseDesc,
+    new_balance_usd: updated.balanceCents / 100,
+  }).catch(() => {});
+
+  if (bot.ownerUid) {
+    notifyPurchase(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, amount_cents, merchant, updated.balanceCents).catch(() => {});
+  }
+
+  const LOW_BALANCE_THRESHOLD_CENTS = 500;
+  if (updated.balanceCents < LOW_BALANCE_THRESHOLD_CENTS && updated.balanceCents + amount_cents >= LOW_BALANCE_THRESHOLD_CENTS) {
+    fireWebhook(bot, "wallet.balance.low", {
+      balance_usd: updated.balanceCents / 100,
+      threshold_usd: LOW_BALANCE_THRESHOLD_CENTS / 100,
+      message: "Balance dropped below $5.00. Request a top-up from your owner.",
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifyBalanceLow(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, updated.balanceCents).catch(() => {});
+    }
+  }
 
   return NextResponse.json({
     status: "approved",

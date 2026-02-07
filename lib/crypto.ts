@@ -37,3 +37,7 @@ export async function verifyApiKey(apiKey: string, hash: string): Promise<boolea
 export function getApiKeyPrefix(apiKey: string): string {
   return apiKey.substring(0, 12);
 }
+
+export function generateWebhookSecret(): string {
+  return "whsec_" + randomBytes(24).toString("hex");
+}

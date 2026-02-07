@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const bots = pgTable("bots", {
@@ -13,6 +13,7 @@ export const bots = pgTable("bots", {
   claimToken: text("claim_token").unique(),
   walletStatus: text("wallet_status").notNull().default("pending"),
   callbackUrl: text("callback_url"),
+  webhookSecret: text("webhook_secret"),
   claimedAt: timestamp("claimed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -86,6 +87,62 @@ export const apiAccessLogs = pgTable("api_access_logs", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  eventType: text("event_type").notNull(),
+  callbackUrl: text("callback_url").notNull(),
+  payload: text("payload").notNull(),
+  status: text("status").notNull().default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  nextRetryAt: timestamp("next_retry_at"),
+  responseStatus: integer("response_status"),
+  responseBody: text("response_body"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("webhook_deliveries_bot_created_idx").on(table.botId, table.createdAt),
+  index("webhook_deliveries_status_retry_idx").on(table.status, table.nextRetryAt),
+]);
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull().unique(),
+  transactionAlerts: boolean("transaction_alerts").notNull().default(true),
+  budgetWarnings: boolean("budget_warnings").notNull().default(true),
+  weeklySummary: boolean("weekly_summary").notNull().default(false),
+  purchaseOverThresholdCents: integer("purchase_over_threshold_cents").notNull().default(5000),
+  balanceLowCents: integer("balance_low_cents").notNull().default(500),
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  botId: text("bot_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("notifications_owner_created_idx").on(table.ownerUid, table.createdAt),
+]);
+
+export const reconciliationLogs = pgTable("reconciliation_logs", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  botId: text("bot_id").notNull(),
+  expectedCents: integer("expected_cents").notNull(),
+  actualCents: integer("actual_cents").notNull(),
+  diffCents: integer("diff_cents").notNull(),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -99,6 +156,7 @@ export const claimBotRequestSchema = z.object({
 
 export const fundWalletRequestSchema = z.object({
   amount_cents: z.number().int().min(100).max(100000),
+  payment_method_id: z.number().int().optional(),
 });
 
 export const purchaseRequestSchema = z.object({
@@ -139,3 +197,21 @@ export type TopupRequest = typeof topupRequests.$inferSelect;
 export type InsertTopupRequest = typeof topupRequests.$inferInsert;
 export type ApiAccessLog = typeof apiAccessLogs.$inferSelect;
 export type InsertApiAccessLog = typeof apiAccessLogs.$inferInsert;
+export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
+export type InsertWebhookDelivery = typeof webhookDeliveries.$inferInsert;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
+export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
+
+export const updateNotificationPreferencesSchema = z.object({
+  transaction_alerts: z.boolean().optional(),
+  budget_warnings: z.boolean().optional(),
+  weekly_summary: z.boolean().optional(),
+  purchase_over_threshold_usd: z.number().min(0).max(100000).optional(),
+  balance_low_usd: z.number().min(0).max(100000).optional(),
+  email_enabled: z.boolean().optional(),
+  in_app_enabled: z.boolean().optional(),
+});

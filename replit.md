@@ -40,6 +40,40 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Access logging via `api_access_logs` table capturing bot_id, endpoint, method, status_code, IP, user_agent, response_time_ms, and error_code.
   - Reusable `withBotApi` middleware (`lib/bot-api.ts`) wrapping auth + rate limiting + access logging for all 5 bot endpoints.
   - Activity Log component on dashboard overview showing recent bot API calls.
+- **Multiple Payment Methods (Phase 6A):**
+  - Owners can save multiple cards per account (removed unique constraint on `owner_uid` in `payment_methods` table).
+  - `is_default` flag on each payment method; first card added is auto-default.
+  - Dashboard payment setup shows a list of all saved cards with add/remove/set-default controls.
+  - Fund modal includes a card picker dropdown when multiple cards are on file.
+  - Fund endpoint accepts optional `payment_method_id` to charge a specific card (falls back to default).
+  - Setup Intent now includes `usage: 'off_session'` for better authorization rates and SCA compliance.
+  - API routes: `GET /api/v1/billing/payment-method` returns list, `DELETE/PUT /api/v1/billing/payment-method/[id]` for per-card operations.
+- **Webhooks & Bot Notifications (Phase 6B):**
+  - `webhook_deliveries` table stores all outbound webhook events with status, attempts, retry scheduling.
+  - `webhook_secret` column on bots table (auto-generated at registration, returned to bot for HMAC verification).
+  - Fire-and-forget webhook delivery with HMAC-SHA256 signatures (`X-CreditClaw-Signature` header).
+  - Events: `wallet.activated`, `wallet.topup.completed`, `wallet.spend.authorized`, `wallet.spend.declined`, `wallet.balance.low`.
+  - Exponential backoff retries (1m, 5m, 15m, 1h, 6h) with max 5 attempts per delivery.
+  - Piggyback retry on bot API calls (throttled to once per 60s per bot via `withBotApi` middleware).
+  - Owner-facing API: `GET /api/v1/webhooks` lists deliveries, `POST /api/v1/webhooks/retry-pending` retries scoped to owner's bots.
+  - WebhookLog dashboard component showing delivery status, expandable details, and manual retry button.
+  - Key files: `lib/webhooks.ts`, `components/dashboard/webhook-log.tsx`.
+- **Owner Notifications & Alerts (Phase 6C):**
+  - `notification_preferences` table stores per-owner settings: transaction_alerts, budget_warnings, weekly_summary, thresholds, email/in-app toggles.
+  - `notifications` table stores in-app notifications with type, title, body, bot_id, is_read flag.
+  - Notification library (`lib/notifications.ts`) with preference-based routing: `notifyPurchase`, `notifyBalanceLow`, `notifySuspicious`, `notifyTopupCompleted`, `notifyWalletActivated`.
+  - Three email templates: purchase alerts (above threshold), balance low warnings, suspicious activity (always sent).
+  - Notifications wired into purchase (success + all decline reasons), fund (topup completed), and claim (wallet activated) routes.
+  - API endpoints: `GET/PUT /api/v1/notifications/preferences`, `GET /api/v1/notifications`, `POST /api/v1/notifications/read`, `POST /api/v1/notifications/read-all`, `GET /api/v1/notifications/unread-count`.
+  - Live notification bell popover in dashboard header with unread badge, mark-read, mark-all-read, auto-polling.
+  - Settings page notification section wired to preferences API with toggles for in-app, email, transaction alerts, budget warnings, weekly summary, and dollar thresholds.
+  - Key files: `lib/notifications.ts`, `components/dashboard/notification-popover.tsx`, `app/api/v1/notifications/`.
+- **Operational Safety Net (Phase 6D):**
+  - Daily wallet reconciliation: sums all transactions per wallet (topups - purchases) and compares against stored `balance_cents`. Logs results to `reconciliation_logs` table. Triggered manually via `POST /api/v1/admin/reconciliation/run` (owner-scoped).
+  - Health check endpoint: `GET /api/v1/health` — pings DB, returns uptime and connection status. No auth required.
+  - Failed webhook delivery alerting: `GET /api/v1/webhooks/health` — returns count of failed deliveries in last 24h, scoped to owner's bots.
+  - Operational Health panel on dashboard overview with webhook health indicator (green/amber) and manual reconciliation button with inline results.
+  - Key files: `components/dashboard/ops-health.tsx`, `app/api/v1/health/route.ts`, `app/api/v1/admin/reconciliation/run/route.ts`, `app/api/v1/webhooks/health/route.ts`.
 
 ### Key Routes
 - `/` — Consumer landing page
