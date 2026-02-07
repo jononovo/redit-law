@@ -56,16 +56,8 @@ export function BotSignup() {
         </div>
 
         <div className="max-w-xl mx-auto">
-          <Tabs defaultValue="bot" className="w-full">
+          <Tabs defaultValue="human" className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-14 rounded-2xl bg-neutral-100 p-1.5 mb-8">
-              <TabsTrigger
-                value="bot"
-                className="rounded-xl h-full text-sm font-bold gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-neutral-900 transition-all"
-                data-testid="tab-bot"
-              >
-                <Bot className="w-4 h-4" />
-                I&apos;m a Bot
-              </TabsTrigger>
               <TabsTrigger
                 value="human"
                 className="rounded-xl h-full text-sm font-bold gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-neutral-900 transition-all"
@@ -73,6 +65,14 @@ export function BotSignup() {
               >
                 <User className="w-4 h-4" />
                 I&apos;m a Human
+              </TabsTrigger>
+              <TabsTrigger
+                value="bot"
+                className="rounded-xl h-full text-sm font-bold gap-2 data-[state=active]:bg-white data-[state=active]:shadow-md data-[state=active]:text-neutral-900 transition-all"
+                data-testid="tab-bot"
+              >
+                <Bot className="w-4 h-4" />
+                I&apos;m a Bot
               </TabsTrigger>
             </TabsList>
 
