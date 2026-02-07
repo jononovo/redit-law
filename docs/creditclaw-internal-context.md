@@ -1,0 +1,283 @@
+---
+name: creditclaw-dev
+description: >
+  Internal context for agents building and maintaining the CreditClaw platform.
+  Use this to understand the OpenClaw ecosystem, what CreditClaw does, how the
+  application is architected, and the conventions to follow when writing code.
+  Read this before making any changes to the CreditClaw codebase.
+---
+
+# CreditClaw — Developer Context
+
+> **Note for agents working on this codebase:** Section 3 (Architecture) describes
+> the target Stripe Connect + Issuing + Treasury architecture. This is the design
+> we are building toward, not the current implementation. The current app is a
+> Next.js 16 frontend with mock data. Check `replit.md` for the current state.
+
+## 1. The OpenClaw Ecosystem (What World We Live In)
+
+### What Is OpenClaw?
+
+OpenClaw is an open-source autonomous AI agent framework created by Peter Steinberger.
+It runs locally on a user's machine, connects to LLMs (Claude, GPT, DeepSeek, etc.),
+and performs real tasks: managing email, browsing the web, writing code, controlling
+apps — all through messaging platforms like WhatsApp, Telegram, and Discord.
+
+As of early February 2026, OpenClaw has 145,000+ GitHub stars, 20,000+ forks, and is
+one of the fastest-growing open-source projects in history. It has spawned an entire
+ecosystem of services built specifically for AI agents.
+
+### The Ecosystem — Services for Bots
+
+OpenClaw bots are autonomous. They run 24/7, make decisions, and interact with the
+world. A wave of startups and projects now provide services *to* these bots:
+
+| Service | What It Does |
+|---------|-------------|
+| **ClawHub** | Skills marketplace — bots install plugins to gain new capabilities |
+| **Moltbook** | Social network exclusively for AI agents (Reddit for bots) |
+| **SendClaw** | Email service — bots get their own email address and can send/receive |
+| **ClawCredit** | Credit line service — bots access x402 services on credit |
+| **CreditClaw (us)** | Virtual wallet + Visa card — bots get funded cards to spend anywhere |
+| **Moltroad** | Marketplace where agents buy/sell services from each other |
+| **Openwork** | Gig economy for agents — bots hire humans or other bots |
+| **Bankrbot** | AI crypto banking on Base |
+| **Stripe ACP** | Agentic Commerce Protocol — agents buy from merchants via Stripe |
+
+### Why This Matters
+
+These bots need money. They need to pay for API calls, buy services, hire humans,
+and transact with each other. But they don't have bank accounts or credit cards.
+That's the gap CreditClaw fills.
+
+### Key Terms
+
+- **Skill file** — A markdown document (SKILL.md) that teaches an agent how to use
+  a service. Follows the Agent Skills open standard (Anthropic). Bots discover and
+  read these to learn new capabilities.
+- **ClawHub** — The public registry where skills are published and installed.
+- **Heartbeat** — A periodic check-in routine bots run to poll for updates.
+- **Claim token** — A one-time code a bot gives its human owner to link accounts.
+- **Agent Skills standard** — Open spec adopted by Anthropic, Microsoft, OpenAI,
+  GitHub, Cursor, and others. YAML frontmatter + markdown instructions.
+
+---
+
+## 2. What CreditClaw Is
+
+### The Thesis
+
+AI agents need to spend money but can't get bank accounts or credit cards.
+CreditClaw bridges this gap by issuing real virtual Visa/Mastercards to bots,
+funded by their human owners. The bot gets a card. The human controls the wallet.
+
+### What We Do
+
+1. **Issue virtual cards** — Real Visa/Mastercard numbers that work at any merchant online
+2. **Wallet management** — Human owners fund wallets, set spending limits
+3. **Payment links** — Bots can generate Stripe Checkout links to charge anyone
+4. **Spending permissions** — A `spending.md` framework that gives owners granular control
+5. **Bot-first registration** — Bots sign up before their human, get a claim token
+
+### What We Don't Do
+
+- We are NOT a credit line (that's ClawCredit — different product)
+- We don't handle crypto or blockchain
+- We don't process payments between bots directly (they use their cards)
+- We don't store any credit card details (Stripe does)
+
+### Domain
+
+- Website: `https://creditclaw.com`
+- API: `https://api.creditclaw.com/v1`
+- Skill file: `https://creditclaw.com/skill.md`
+
+---
+
+## 3. Architecture (Target Design)
+
+### Stack
+
+- **Stripe Connect** — Each bot owner is a Custom connected account
+- **Stripe Financial Accounts** — The "wallet" that holds funds (formerly Treasury)
+- **Stripe Issuing** — Virtual Visa/Mastercard cards linked to wallets
+- **Stripe Checkout** — Hosted payment pages for top-ups and bot-generated invoices
+
+### Core Entities
+
+```
+Platform (CreditClaw)
+  └── User (bot owner, Stripe Customer + Connected Account)
+       └── Financial Account (their wallet)
+            ├── Bot A → Cardholder → Virtual Card
+            ├── Bot B → Cardholder → Virtual Card
+            └── Bot C → Cardholder → Virtual Card
+```
+
+### Money Flow
+
+```
+Top-up:
+  Human's credit card
+    → Stripe Checkout (hosted by Stripe)
+      → CreditClaw platform account
+        → Transfer to owner's Connected Account
+          → Financial Account / Issuing Balance
+            → Bot's card can now spend
+
+Bot gets paid:
+  Anyone's credit card
+    → Stripe Checkout (payment link bot generated)
+      → CreditClaw platform account
+        → Transfer to owner's Connected Account
+          → Bot's wallet balance increases
+
+Bot spends:
+  Bot uses card at online merchant
+    → Stripe Issuing authorization webhook fires
+      → CreditClaw evaluates spending permissions
+        → Approve or decline in real time
+          → Issuing balance debited
+```
+
+### Database Schema
+
+**users** — Bot owners
+
+| Column | Purpose |
+|--------|---------|
+| id | Primary key |
+| email | Owner email |
+| stripe_customer_id | For saved payment methods |
+| stripe_account_id | Connected Account |
+| financial_account_id | Their wallet |
+
+**bots** — Registered bots
+
+| Column | Purpose |
+|--------|---------|
+| id | Primary key |
+| user_id | FK → users (nullable until claimed) |
+| name | Bot display name |
+| description | What the bot does |
+| owner_email | Provided at registration |
+| api_key | `cck_live_...` (unique, non-retrievable) |
+| claim_token | One-time code for owner claiming (nullified after use) |
+| wallet_status | `pending` / `active` / `suspended` / `empty` |
+| stripe_card_id | The issued virtual card |
+| card_last4 | For display |
+| card_status | `none` / `active` / `frozen` / `cancelled` |
+| spending_limit_per_txn | In cents |
+| spending_limit_monthly | In cents |
+| claimed_at | When owner claimed |
+| created_at | Registration time |
+
+**spending_permissions** — Owner-configured rules per bot
+
+| Column | Purpose |
+|--------|---------|
+| bot_id | FK → bots |
+| approval_mode | `ask_for_everything` / `auto_approve_under_threshold` / `auto_approve_by_category` |
+| per_transaction_max | Cents |
+| daily_max | Cents |
+| monthly_max | Cents |
+| ask_approval_above | Cents |
+| approved_categories | Text array |
+| blocked_categories | Text array |
+| recurring_allowed | Boolean |
+| notes | Freeform owner instructions |
+
+**ledger** — Source of truth for all money movement
+
+| Column | Purpose |
+|--------|---------|
+| id | Primary key |
+| event_id | Stripe event ID (for deduplication) |
+| bot_id | FK → bots |
+| user_id | FK → users |
+| type | `TOPUP` / `SPEND` / `PAYMENT_RECEIVED` / `REFUND` |
+| amount | Positive = credit, negative = debit |
+| status | `PAYMENT_RECEIVED` / `TRANSFER_INITIATED` / `TRANSFER_COMPLETE` / `BALANCE_CREDITED` / `SPEND_SETTLED` / `FAILED` |
+| stripe_transfer_id | |
+| stripe_checkout_session_id | |
+| created_at | |
+
+### Critical Webhooks
+
+| Event | What to do |
+|-------|-----------|
+| `checkout.session.completed` | Payment received — initiate transfer to owner's wallet |
+| `transfer.created` | Funds landed in connected account — update ledger |
+| `issuing_authorization.request` | Bot trying to spend — evaluate permissions, approve/decline |
+| `issuing_transaction.created` | Purchase settled — record spend in ledger |
+
+### Ledger State Machine
+
+Every top-up follows this sequence. If any step stalls, alert and retry.
+
+```
+PAYMENT_RECEIVED → TRANSFER_INITIATED → TRANSFER_COMPLETE → BALANCE_CREDITED
+```
+
+Every spend:
+```
+AUTHORIZATION_REQUESTED → APPROVED/DECLINED → SPEND_SETTLED
+```
+
+---
+
+## 4. API Endpoints
+
+All endpoints require `Authorization: Bearer <api_key>` except registration.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/bots/register` | Bot registers, gets API key + claim token |
+| GET | `/wallet/check` | Lightweight heartbeat: balance, status, limits |
+| GET | `/wallet` | Full wallet + card metadata |
+| GET | `/wallet/card` | Full card number, CVV, expiry, billing address |
+| GET | `/wallet/spending` | Spending permissions set by owner |
+| POST | `/wallet/topup-request` | Bot requests funds from owner |
+| POST | `/payments/create-link` | Bot generates payment link to charge anyone |
+| GET | `/wallet/transactions` | Transaction history with `?limit=` and `?cursor=` |
+
+---
+
+## 5. Key Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `skill.md` | `public/skill.md` → `creditclaw.com/skill.md` | Public skill file — bots read this to learn the API |
+| `heartbeat.md` | `public/heartbeat.md` → `creditclaw.com/heartbeat.md` | Polling routine for balance and spending checks |
+| `spending.md` | `public/spending.md` → `creditclaw.com/spending.md` | Default spending permissions template (owner-editable) |
+| `brand.md` | `docs/brand.md` | Brand identity guidelines |
+| This file | `docs/creditclaw-internal-context.md` | Internal developer context (you are reading it) |
+| `replit.md` | `replit.md` | Current project state, architecture, and preferences |
+
+---
+
+## 6. Security Principles
+
+- **API keys are non-retrievable.** Once issued, we store only a hash. Bot must save it.
+- **Card details are sensitive.** The `GET /wallet/card` endpoint returns full PAN/CVV.
+  Never log these. Never include in error responses. Rate limit this endpoint.
+- **Claim tokens are single-use.** Nullify immediately after successful claim.
+- **Idempotency keys on every Stripe call.** Webhooks can fire multiple times.
+  Deduplicate using Stripe event IDs in the ledger.
+- **Blocked categories are enforced at two levels.** Both in our `evaluateSpend()`
+  logic AND as Stripe Issuing spending controls on the card itself. Defense in depth.
+- **Owner's credit card details never touch our servers.** Stripe Checkout handles
+  all payment collection. We reference Stripe Customer IDs and payment method IDs only.
+- **Daily reconciliation.** Cron job compares our ledger totals against Stripe
+  balances. Any mismatch > $0.01 triggers an alert.
+
+---
+
+## 7. Conventions
+
+- All money amounts are stored in **cents** in the database, converted to dollars in API responses.
+- Stripe account IDs, card IDs, and financial account IDs are stored as-is from Stripe.
+- Bot API keys follow the format `cck_live_` + 48 hex chars.
+- Claim tokens follow the format `word-XXXX` (e.g., `coral-X9K2`).
+- Wallet status transitions: `pending` → `active` → `empty` (can cycle) → `suspended` (terminal until manual review).
+- The spending permissions default to `ask_for_everything` for new bots. Owners relax over time.

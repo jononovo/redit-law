@@ -67,6 +67,13 @@ lib/                    # Utilities
   utils.ts              # cn() helper
 
 public/images/          # Static assets (logos, avatars, card images)
+public/skill.md         # Bot-facing API skill file
+public/heartbeat.md     # Bot polling routine
+public/spending.md      # Default spending permissions template
+
+docs/                   # Internal documentation
+  brand.md              # Brand identity guidelines
+  creditclaw-internal-context.md  # Full developer context (ecosystem, architecture, schema, conventions)
 
 next.config.ts          # Next.js configuration
 postcss.config.mjs      # PostCSS with @tailwindcss/postcss
