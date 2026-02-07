@@ -34,8 +34,6 @@ export interface IStorage {
   addPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
   deletePaymentMethodById(id: number, ownerUid: string): Promise<void>;
   setDefaultPaymentMethod(id: number, ownerUid: string): Promise<PaymentMethod | null>;
-  upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
-  deletePaymentMethod(ownerUid: string): Promise<void>;
 
   getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]>;
   debitWallet(walletId: number, amountCents: number): Promise<Wallet | null>;
@@ -209,13 +207,6 @@ export const storage: IStorage = {
     return updated;
   },
 
-  async upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod> {
-    return this.addPaymentMethod(data);
-  },
-
-  async deletePaymentMethod(ownerUid: string): Promise<void> {
-    await db.delete(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid));
-  },
 
   async getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]> {
     return db.select().from(bots).where(eq(bots.apiKeyPrefix, prefix));

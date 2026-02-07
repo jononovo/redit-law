@@ -17,7 +17,7 @@ interface PaymentMethodInfo {
   created_at: string;
 }
 
-function SetupForm({ onSuccess }: { onSuccess: () => void }) {
+function SetupForm({ onSuccess, customerId }: { onSuccess: () => void; customerId: string | null }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ function SetupForm({ onSuccess }: { onSuccess: () => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           payment_method_id: pmId,
-          customer_id: (result.setupIntent as any).customer || "",
+          customer_id: customerId || "",
         }),
       });
 
@@ -187,6 +187,8 @@ export function PaymentSetup() {
     fetchPaymentMethods();
   }, []);
 
+  const [customerId, setCustomerId] = useState<string | null>(null);
+
   async function startSetup() {
     setSetupMode(true);
     try {
@@ -194,6 +196,7 @@ export function PaymentSetup() {
       if (res.ok) {
         const data = await res.json();
         setClientSecret(data.client_secret);
+        setCustomerId(data.customer_id);
       }
     } catch {}
   }
@@ -246,7 +249,7 @@ export function PaymentSetup() {
       {setupMode && clientSecret ? (
         <div className="space-y-4">
           <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-            <SetupForm onSuccess={handleSuccess} />
+            <SetupForm onSuccess={handleSuccess} customerId={customerId} />
           </Elements>
           <Button
             variant="ghost"
