@@ -21,9 +21,9 @@ export function Nav() {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-neutral-500">
-          <a href="#how-it-works" className="hover:text-primary transition-colors">How it Works</a>
-          <a href="#allowance" className="hover:text-primary transition-colors">Allowance</a>
-          <a href="#safety" className="hover:text-primary transition-colors">Safety</a>
+          <Link href="/how-it-works" className="hover:text-primary transition-colors" data-testid="nav-link-how-it-works">How it Works</Link>
+          <Link href="/allowance" className="hover:text-primary transition-colors" data-testid="nav-link-allowance">Allowance</Link>
+          <Link href="/safety" className="hover:text-primary transition-colors" data-testid="nav-link-safety">Safety</Link>
         </div>
 
         <div className="flex items-center gap-4">

@@ -5,6 +5,7 @@ import { LiveMetrics } from "@/components/live-metrics";
 import { Features } from "@/components/features";
 import { WaitlistForm } from "@/components/waitlist-form";
 import { AnnouncementBar } from "@/components/announcement-bar";
+import { Footer } from "@/components/footer";
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
         <Features />
         <WaitlistForm />
       </main>
+      <Footer />
     </div>
   );
 }
