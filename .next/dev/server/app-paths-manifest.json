@@ -1,5 +1,12 @@
 {
   "/api/auth/session/route": "app/api/auth/session/route.js",
+  "/api/v1/bot/wallet/check/route": "app/api/v1/bot/wallet/check/route.js",
+  "/api/v1/bot/wallet/purchase/route": "app/api/v1/bot/wallet/purchase/route.js",
+  "/api/v1/bot/wallet/spending/route": "app/api/v1/bot/wallet/spending/route.js",
+  "/api/v1/bot/wallet/topup-request/route": "app/api/v1/bot/wallet/topup-request/route.js",
+  "/api/v1/bot/wallet/transactions/route": "app/api/v1/bot/wallet/transactions/route.js",
+  "/api/v1/bots/register/route": "app/api/v1/bots/register/route.js",
+  "/api/v1/bots/spending/route": "app/api/v1/bots/spending/route.js",
   "/claim/page": "app/claim/page.js",
   "/page": "app/page.js"
 }
