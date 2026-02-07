@@ -119,13 +119,13 @@ const metadata = {
         siteName: "CreditClaw",
         images: [
             {
-                url: "/images/og-image.png",
+                url: "/og/og-image.png",
                 width: 1200,
                 height: 675,
                 alt: "CreditClaw - Virtual cards for AI agents"
             },
             {
-                url: "/images/og-square.png",
+                url: "/og/og-square.png",
                 width: 1200,
                 height: 1200,
                 alt: "CreditClaw - Virtual cards for AI agents"
@@ -139,7 +139,7 @@ const metadata = {
         description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
         images: [
             {
-                url: "/images/og-twitter.png",
+                url: "/og/og-twitter.png",
                 width: 1200,
                 height: 675,
                 alt: "CreditClaw - Virtual cards for AI agents"

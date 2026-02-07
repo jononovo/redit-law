@@ -13,13 +13,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, Chrome, Github } from "lucide-react";
 
-export function AuthDrawer({ children }: { children: React.ReactNode }) {
+interface AuthDrawerProps {
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function AuthDrawer({ children, open: controlledOpen, onOpenChange }: AuthDrawerProps) {
   const { signInWithGoogle, signInWithGithub, sendMagicLink } = useAuth();
   const [email, setEmail] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
   const handleGoogle = async () => {
     setError(null);
@@ -64,7 +73,7 @@ export function AuthDrawer({ children }: { children: React.ReactNode }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>{children}</SheetTrigger>
+      {children && <SheetTrigger asChild>{children}</SheetTrigger>}
       <SheetContent side="right" className="w-full sm:max-w-md p-0">
         <div className="flex flex-col h-full">
           <SheetHeader className="p-6 pb-2">
