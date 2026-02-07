@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       const response: Record<string, unknown> = {
         bot_id: botId,
         api_key: apiKey,
+        claim_token: null,
         status: "active",
         paired: true,
         owner_uid: pairingCodeRecord.ownerUid,
