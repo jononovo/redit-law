@@ -149,7 +149,12 @@ tsconfig.json           # TypeScript configuration
 
 ### Key Concepts
 - **Prepaid model** — not a credit line; wallets are funded by humans with allowances
+- **One bot per user, one wallet per bot** — simple 1:1:1 model
+- **Wallet created at claim time** — when owner claims a bot, the wallet row is created automatically (not a separate step)
 - **Bot-registers-first** — bots get API keys and claim tokens before human activation
 - **REST API only** — no SDK, bots interact via standard HTTP
 - **Spending permissions** — humans set allowances via checkbox format in spending.md that bots can parse
 - **Heartbeat polling** — bots check balance/spending every 30 minutes via heartbeat.md routine
+
+### Phase 4 Notes (flagged for future)
+- **Bot spending endpoint:** Use `POST /wallet/purchase` (intent pre-flight from v2), NOT the old `GET /wallet/card`. This is the correct pattern for bot-initiated purchases.
