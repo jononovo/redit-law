@@ -10,7 +10,7 @@ export function AnnouncementBar() {
 
   return (
     <div className="bg-neutral-800 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]">
-      <span>Get ready for the launch party on 11 February, 2026</span>
+      <span>Now open! Add your card and set spending limits for your bot. Virtual cards coming soon.</span>
       <button
         onClick={() => setVisible(false)}
         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"

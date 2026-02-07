@@ -71,7 +71,7 @@ export function FundWallet({ currentStep, totalSteps, onBack, onNext }: FundWall
   return (
     <WizardStep
       title="How much should your bot start with?"
-      subtitle="You can always add more later."
+      subtitle="This is a prepaid wallet — your bot can only spend what you add. Top up anytime."
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}

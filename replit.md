@@ -1,7 +1,7 @@
 # CreditClaw.com
 
 ## Overview
-CreditClaw is a prepaid virtual credit card platform for AI agents within the OpenClaw ecosystem. It allows bot owners to fund wallets with allowances, enabling their AI agents to spend responsibly using virtual Visa/Mastercard cards. Bots register first, receive API keys and claim tokens, and then access their wallets upon human activation. The platform features a consumer landing page for waitlists and marketing, and a dashboard application for managing virtual cards, transactions, and spending controls. The project aims to provide a secure and controlled financial environment for AI agents.
+CreditClaw is a prepaid spending controls platform for AI agents within the OpenClaw ecosystem. Owners add their own credit card, fund a bot wallet, and set strict spending limits (per-transaction, daily, monthly, category blocking, approval modes). The platform is open for immediate sign-up with a parallel waitlist for future virtual card issuance. It features a consumer landing page with waitlist + instant onboarding, and a dashboard for managing wallets, transactions, and spending controls. The project aims to provide a secure and controlled financial environment for AI agents.
 
 ## User Preferences
 - **Design theme:** "Fun Consumer" — 3D clay/claymation aesthetic, coral lobster mascot, bright pastels (orange/blue/purple)

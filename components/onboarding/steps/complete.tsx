@@ -59,7 +59,7 @@ export function Complete({ currentStep, totalSteps, state }: CompleteProps) {
 
   return (
     <WizardStep
-      title="Your bot is ready!"
+      title="You're all set!"
       currentStep={currentStep}
       totalSteps={totalSteps}
       showBack={false}
@@ -69,7 +69,7 @@ export function Complete({ currentStep, totalSteps, state }: CompleteProps) {
           <CheckCircle className="w-10 h-10 text-green-500 flex-shrink-0" />
           <div>
             <p className="font-bold text-green-900">Setup complete</p>
-            <p className="text-sm text-green-700">Your preferences have been saved.</p>
+            <p className="text-sm text-green-700">Your card and spending controls are active. Your bot can only spend what you allow.</p>
           </div>
         </div>
 

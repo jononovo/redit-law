@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
-  notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes,
+  notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes, waitlistEntries,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -15,6 +15,7 @@ import {
   type PaymentLink, type InsertPaymentLink,
   type ReconciliationLog, type InsertReconciliationLog,
   type PairingCode, type InsertPairingCode,
+  type WaitlistEntry, type InsertWaitlistEntry,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -86,6 +87,9 @@ export interface IStorage {
   getPairingCodeByCode(code: string): Promise<PairingCode | null>;
   claimPairingCode(code: string, botId: string): Promise<PairingCode | null>;
   getRecentPairingCodeCount(ownerUid: string): Promise<number>;
+
+  addWaitlistEntry(data: InsertWaitlistEntry): Promise<WaitlistEntry>;
+  getWaitlistEntryByEmail(email: string): Promise<WaitlistEntry | null>;
 }
 
 export const storage: IStorage = {
@@ -588,5 +592,21 @@ export const storage: IStorage = {
         gte(pairingCodes.createdAt, oneHourAgo),
       ));
     return Number(result[0]?.count || 0);
+  },
+
+  async addWaitlistEntry(data: InsertWaitlistEntry): Promise<WaitlistEntry> {
+    const [entry] = await db
+      .insert(waitlistEntries)
+      .values(data)
+      .onConflictDoNothing({ target: waitlistEntries.email })
+      .returning();
+    if (entry) return entry;
+    const existing = await this.getWaitlistEntryByEmail(data.email);
+    return existing!;
+  },
+
+  async getWaitlistEntryByEmail(email: string): Promise<WaitlistEntry | null> {
+    const [entry] = await db.select().from(waitlistEntries).where(eq(waitlistEntries.email, email)).limit(1);
+    return entry || null;
   },
 };

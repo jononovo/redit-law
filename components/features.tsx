@@ -5,25 +5,25 @@ const features = [
     icon: PiggyBank,
     color: "bg-pink-100 text-pink-600",
     title: "Allowance Mode",
-    description: "Set a weekly $50 budget. When it's gone, it's gone. No runaway API bills!"
+    description: "Set a daily, weekly, or monthly budget. When it's gone, it's gone. No runaway API bills!"
   },
   {
     icon: ShieldCheck,
     color: "bg-green-100 text-green-600",
-    title: "Safe & Secure",
-    description: "Your main credit card is never exposed. We use virtual numbers that lock to specific merchants."
+    title: "Your Card, Your Rules",
+    description: "Add your own card and set strict spending limits. Block categories, require approvals — you're always in control."
   },
   {
     icon: Zap,
     color: "bg-yellow-100 text-yellow-600",
     title: "Instant Setup",
-    description: "Connect your OpenClaw agent in seconds. \"Hey Claw, here's your new card!\""
+    description: "Connect your OpenClaw agent in seconds. Add a card, set limits, and you're live."
   },
   {
     icon: ShoppingBag,
     color: "bg-blue-100 text-blue-600",
     title: "Smart Shopping",
-    description: "Your bot can buy software, domains, and data. We categorize everything for you."
+    description: "Your bot can buy software, domains, and data. We categorize everything and enforce your rules."
   }
 ];
 
