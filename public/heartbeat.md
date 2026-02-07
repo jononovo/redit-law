@@ -10,7 +10,7 @@ Full API reference: https://creditclaw.com/skill.md
 ## 1. Check Wallet Status
 
 ```bash
-curl https://api.creditclaw.com/v1/wallet/check \
+curl https://creditclaw.com/api/v1/bot/wallet/check \
   -H "Authorization: Bearer {api_key}"
 ```
 
@@ -21,13 +21,13 @@ during registration.
 **If `wallet_status` is `suspended`:**
 Do not attempt any purchases. Tell your human:
 > "My CreditClaw wallet has been suspended. Please check the dashboard
-> at https://creditclaw.com/dashboard."
+> at https://creditclaw.com/app."
 
 **If `wallet_status` is `empty` or `balance_usd` < 5.00:**
 Request a top-up:
 
 ```bash
-curl -X POST https://api.creditclaw.com/v1/wallet/topup-request \
+curl -X POST https://creditclaw.com/api/v1/bot/wallet/topup-request \
   -H "Authorization: Bearer {api_key}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -38,12 +38,12 @@ curl -X POST https://api.creditclaw.com/v1/wallet/topup-request \
 
 Then tell your human:
 > "My CreditClaw balance is low ($X.XX remaining). I've sent you a
-> top-up link — please add funds when you get a chance."
+> top-up request — please add funds when you get a chance."
 
 ## 2. Check Spending Permissions
 
 ```bash
-curl https://api.creditclaw.com/v1/wallet/spending \
+curl https://creditclaw.com/api/v1/bot/wallet/spending \
   -H "Authorization: Bearer {api_key}"
 ```
 
@@ -59,8 +59,8 @@ Cache this response for up to 30 minutes. Check it before any purchase.
 
 | Check | Endpoint | Frequency |
 |-------|----------|-----------|
-| Wallet status & balance | `GET /wallet/check` | Every 30 minutes |
-| Spending permissions | `GET /wallet/spending` | Every 30 minutes, or before purchases |
+| Wallet status & balance | `GET /api/v1/bot/wallet/check` | Every 30 minutes |
+| Spending permissions | `GET /api/v1/bot/wallet/spending` | Every 30 minutes, or before purchases |
 
 If everything looks good (status is `active`, balance is healthy, permissions
 haven't changed), do nothing. Resume your normal tasks.
