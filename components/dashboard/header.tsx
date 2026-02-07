@@ -1,10 +1,10 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-context";
+import { NotificationPopover } from "./notification-popover";
 
 export function Header({ title }: { title: string }) {
   const { user } = useAuth();
@@ -23,10 +23,7 @@ export function Header({ title }: { title: string }) {
             />
         </div>
 
-        <Button variant="ghost" size="icon" className="rounded-full relative text-neutral-500 hover:text-neutral-900" data-testid="button-notifications">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </Button>
+        <NotificationPopover />
 
         <div className="h-8 w-px bg-neutral-200 mx-1" />
 

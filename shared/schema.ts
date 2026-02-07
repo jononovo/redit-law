@@ -106,6 +106,32 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   index("webhook_deliveries_status_retry_idx").on(table.status, table.nextRetryAt),
 ]);
 
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull().unique(),
+  transactionAlerts: boolean("transaction_alerts").notNull().default(true),
+  budgetWarnings: boolean("budget_warnings").notNull().default(true),
+  weeklySummary: boolean("weekly_summary").notNull().default(false),
+  purchaseOverThresholdCents: integer("purchase_over_threshold_cents").notNull().default(5000),
+  balanceLowCents: integer("balance_low_cents").notNull().default(500),
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  botId: text("bot_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("notifications_owner_created_idx").on(table.ownerUid, table.createdAt),
+]);
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -162,3 +188,17 @@ export type ApiAccessLog = typeof apiAccessLogs.$inferSelect;
 export type InsertApiAccessLog = typeof apiAccessLogs.$inferInsert;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type InsertWebhookDelivery = typeof webhookDeliveries.$inferInsert;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+
+export const updateNotificationPreferencesSchema = z.object({
+  transaction_alerts: z.boolean().optional(),
+  budget_warnings: z.boolean().optional(),
+  weekly_summary: z.boolean().optional(),
+  purchase_over_threshold_usd: z.number().min(0).max(100000).optional(),
+  balance_low_usd: z.number().min(0).max(100000).optional(),
+  email_enabled: z.boolean().optional(),
+  in_app_enabled: z.boolean().optional(),
+});

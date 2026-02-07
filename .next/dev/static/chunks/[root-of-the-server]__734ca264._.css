@@ -770,6 +770,10 @@
     inset-block: calc(var(--spacing) * 0);
   }
 
+  .-top-0\.5 {
+    top: calc(var(--spacing) * -.5);
+  }
+
   .-top-4 {
     top: calc(var(--spacing) * -4);
   }
@@ -838,6 +842,10 @@
     top: 100%;
   }
 
+  .-right-0\.5 {
+    right: calc(var(--spacing) * -.5);
+  }
+
   .-right-4 {
     right: calc(var(--spacing) * -4);
   }
@@ -864,10 +872,6 @@
 
   .right-2 {
     right: calc(var(--spacing) * 2);
-  }
-
-  .right-2\.5 {
-    right: calc(var(--spacing) * 2.5);
   }
 
   .right-3 {
@@ -1102,6 +1106,10 @@
     margin-block: calc(var(--spacing) * 1);
   }
 
+  .my-2 {
+    margin-block: calc(var(--spacing) * 2);
+  }
+
   .-mt-2 {
     margin-top: calc(var(--spacing) * -2);
   }
@@ -1144,6 +1152,10 @@
 
   .mt-auto {
     margin-top: auto;
+  }
+
+  .mr-1 {
+    margin-right: calc(var(--spacing) * 1);
   }
 
   .mr-2 {
@@ -1414,6 +1426,10 @@
     height: 1px;
   }
 
+  .h-\[18px\] {
+    height: 18px;
+  }
+
   .h-\[300\%\] {
     height: 300%;
   }
@@ -1456,6 +1472,10 @@
 
   .h-svh {
     height: 100svh;
+  }
+
+  .max-h-80 {
+    max-height: calc(var(--spacing) * 80);
   }
 
   .max-h-\[--radix-context-menu-content-available-height\] {
@@ -1598,6 +1618,10 @@
     width: calc(var(--spacing) * 72);
   }
 
+  .w-96 {
+    width: calc(var(--spacing) * 96);
+  }
+
   .w-\[--cell-size\] {
     width: --cell-size;
   }
@@ -1666,6 +1690,10 @@
     max-width: var(--container-7xl);
   }
 
+  .max-w-32 {
+    max-width: calc(var(--spacing) * 32);
+  }
+
   .max-w-\[500px\] {
     max-width: 500px;
   }
@@ -1724,6 +1752,10 @@
 
   .min-w-\[12rem\] {
     min-width: 12rem;
+  }
+
+  .min-w-\[18px\] {
+    min-width: 18px;
   }
 
   .min-w-\[var\(--radix-select-trigger-width\)\] {
@@ -2754,6 +2786,16 @@
   @supports (color: color-mix(in lab, red, red)) {
     .bg-primary\/20 {
       background-color: color-mix(in oklab, hsl(var(--primary)) 20%, transparent);
+    }
+  }
+
+  .bg-primary\/\[0\.03\] {
+    background-color: hsl(var(--primary));
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-primary\/\[0\.03\] {
+      background-color: color-mix(in oklab, hsl(var(--primary)) 3%, transparent);
     }
   }
 
@@ -5077,6 +5119,18 @@
   @media (hover: hover) {
     .hover\:text-primary:hover {
       color: hsl(var(--primary));
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:text-primary\/80:hover {
+      color: hsl(var(--primary));
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:text-primary\/80:hover {
+        color: color-mix(in oklab, hsl(var(--primary)) 80%, transparent);
+      }
     }
   }
 

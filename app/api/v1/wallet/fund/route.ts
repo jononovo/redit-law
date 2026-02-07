@@ -4,6 +4,7 @@ import { chargeCustomer } from "@/lib/stripe";
 import { fundWalletRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
 import { fireWebhook } from "@/lib/webhooks";
+import { notifyTopupCompleted } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,6 +83,8 @@ export async function POST(request: NextRequest) {
         new_balance_usd: updatedWallet.balanceCents / 100,
         funded_by: "owner",
       }).catch((err) => console.error("Webhook fire failed:", err));
+
+      notifyTopupCompleted(user.uid, user.email || bot.ownerEmail, bot.botName, bot.botId, amount_cents, updatedWallet.balanceCents).catch(() => {});
     }
 
     return NextResponse.json({

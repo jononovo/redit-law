@@ -58,6 +58,16 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Owner-facing API: `GET /api/v1/webhooks` lists deliveries, `POST /api/v1/webhooks/retry-pending` retries scoped to owner's bots.
   - WebhookLog dashboard component showing delivery status, expandable details, and manual retry button.
   - Key files: `lib/webhooks.ts`, `components/dashboard/webhook-log.tsx`.
+- **Owner Notifications & Alerts (Phase 6C):**
+  - `notification_preferences` table stores per-owner settings: transaction_alerts, budget_warnings, weekly_summary, thresholds, email/in-app toggles.
+  - `notifications` table stores in-app notifications with type, title, body, bot_id, is_read flag.
+  - Notification library (`lib/notifications.ts`) with preference-based routing: `notifyPurchase`, `notifyBalanceLow`, `notifySuspicious`, `notifyTopupCompleted`, `notifyWalletActivated`.
+  - Three email templates: purchase alerts (above threshold), balance low warnings, suspicious activity (always sent).
+  - Notifications wired into purchase (success + all decline reasons), fund (topup completed), and claim (wallet activated) routes.
+  - API endpoints: `GET/PUT /api/v1/notifications/preferences`, `GET /api/v1/notifications`, `POST /api/v1/notifications/read`, `POST /api/v1/notifications/read-all`, `GET /api/v1/notifications/unread-count`.
+  - Live notification bell popover in dashboard header with unread badge, mark-read, mark-all-read, auto-polling.
+  - Settings page notification section wired to preferences API with toggles for in-app, email, transaction alerts, budget warnings, weekly summary, and dollar thresholds.
+  - Key files: `lib/notifications.ts`, `components/dashboard/notification-popover.tsx`, `app/api/v1/notifications/`.
 
 ### Key Routes
 - `/` — Consumer landing page

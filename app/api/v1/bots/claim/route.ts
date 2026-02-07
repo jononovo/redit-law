@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { claimBotRequestSchema } from "@/shared/schema";
 import { storage } from "@/server/storage";
 import { fireWebhook } from "@/lib/webhooks";
+import { notifyWalletActivated } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,6 +39,8 @@ export async function POST(request: NextRequest) {
       wallet_status: "active",
       message: "Owner claimed bot and wallet is now live.",
     }).catch((err) => console.error("Webhook fire failed:", err));
+
+    notifyWalletActivated(user.uid, bot.botName, bot.botId).catch(() => {});
 
     return NextResponse.json({
       bot_id: bot.botId,

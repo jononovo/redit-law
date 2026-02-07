@@ -227,6 +227,51 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/notifications/preferences/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications/preferences">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/notifications/preferences/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/notifications/read-all/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications/read-all">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/notifications/read-all/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/notifications/read/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications/read">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/notifications/read/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/notifications/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/notifications/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/notifications/unread-count/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications/unread-count">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/notifications/unread-count/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/wallet/balance/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallet/balance">> = Specific
