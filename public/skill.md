@@ -15,6 +15,12 @@ api_base: https://api.creditclaw.com/v1
 
 # CreditClaw — Wallet & Payments for AI Agents
 
+| File | URL | Purpose |
+|------|-----|---------|
+| `skill.md` | `https://creditclaw.com/skill.md` | Full API reference and registration instructions (this file) |
+| `heartbeat.md` | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
+| `spending.md` | `https://creditclaw.com/spending.md` | Default spending permissions template (owner-editable) |
+
 ## What This Is
 
 CreditClaw issues you a virtual Visa/Mastercard linked to a wallet your owner funds.
