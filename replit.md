@@ -7,9 +7,10 @@ The platform has two main surfaces:
 - **Consumer landing page** — waitlist, features, live metrics, 3D clay lobster branding
 - **Dashboard application** — manage virtual cards, view transactions, control spending
 
-**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, and bot-facing skill files.
+**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, and live bot registration API (`POST /api/v1/bots/register`).
 
 ## Recent Changes
+- **Feb 7, 2026:** Phase 1 — Bot Registration API built. `POST /api/v1/bots/register` accepts bot name, owner email, description. Returns API key (bcrypt-hashed in DB), claim token, and verification URL. Sends owner notification email via SendGrid. PostgreSQL database with Drizzle ORM. Rate limiting (3 registrations/hour/IP).
 - **Feb 2026:** Moved OG/social images to dedicated `public/og/` folder, archived pink variants in `public/og/og-pink/`
 - **Feb 2026:** Set favicon to golden claw chip logo (`logo-claw-chip.png`)
 - **Feb 2026:** Generated black card OG images matching landing page style
@@ -33,6 +34,8 @@ The platform has two main surfaces:
 ### Stack
 - **Framework:** Next.js 16 with App Router
 - **Auth:** Firebase Auth (client SDK) + Firebase Admin SDK (server) + httpOnly session cookies (5-day expiry)
+- **Database:** PostgreSQL (Replit built-in) + Drizzle ORM
+- **Email:** SendGrid (@sendgrid/mail)
 - **Styling:** Tailwind CSS v4 with PostCSS
 - **UI Components:** shadcn/ui (Radix primitives)
 - **Fonts:** Plus Jakarta Sans + JetBrains Mono (via next/font/google)
@@ -48,6 +51,8 @@ app/                    # Next.js App Router
   globals.css           # Global styles, theme variables, animations
   not-found.tsx         # 404 page
   api/auth/session/     # Auth API route (POST create, GET check, DELETE destroy)
+    route.ts
+  api/v1/bots/register/ # Bot registration API (POST)
     route.ts
   app/                  # Dashboard section (protected by auth)
     layout.tsx          # Dashboard layout (sidebar + header + auth guard)
@@ -72,12 +77,21 @@ components/             # Shared components
     card-visual.tsx     # Credit card visual component
     transaction-ledger.tsx # Dashboard transaction table
 
+shared/                 # Shared types and schemas
+  schema.ts             # Drizzle ORM schema (bots table) + Zod validation schemas
+
+server/                 # Server-side data layer
+  db.ts                 # Drizzle database connection (PostgreSQL)
+  storage.ts            # IStorage interface + DatabaseStorage implementation
+
 hooks/                  # Custom React hooks
   use-toast.ts          # Toast notification hook
   use-mobile.tsx        # Mobile breakpoint hook
 
 lib/                    # Utilities and services
   utils.ts              # cn() helper
+  crypto.ts             # API key generation, claim token generation, bcrypt hashing
+  email.ts              # SendGrid email helper (owner notification on bot registration)
   firebase/client.ts    # Firebase client SDK init (public env vars)
   firebase/admin.ts     # Firebase Admin SDK init (private env vars, server-only)
   auth/auth-context.tsx # AuthProvider + useAuth() hook
@@ -105,6 +119,16 @@ tsconfig.json           # TypeScript configuration
 - `/app/cards` — Card management (create, freeze, limits)
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
+
+### API Endpoints (Bot-facing)
+- `POST /api/v1/bots/register` — Bot registration. Returns API key, claim token, verification URL. Sends owner email via SendGrid.
+
+### Database Schema
+- **bots** — Registered bots (bot_id, name, owner_email, api_key_hash, claim_token, wallet_status, etc.)
+
+### Environment Variables (Secrets)
+- `SENDGRID_API_KEY` — SendGrid API key for transactional emails
+- `SENDGRID_FROM_EMAIL` — Verified sender email address (defaults to noreply@creditclaw.com)
 
 ### Design Tokens (CSS Variables)
 - `--primary`: Orange (10 85% 55%)
