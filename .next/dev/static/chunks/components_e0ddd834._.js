@@ -1246,7 +1246,7 @@ function Hero() {
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                children: "Spending controls for your bots!"
+                                                children: "Pocket money for your bots!"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/hero.tsx",
                                                 lineNumber: 78,
@@ -1264,16 +1264,16 @@ function Hero() {
                                         },
                                         className: "text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1] animate-fade-in-up",
                                         children: [
-                                            "Let your ",
+                                            "Give your ",
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                 className: "text-primary",
-                                                children: "AI agent"
+                                                children: "Claw Agent"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/hero.tsx",
                                                 lineNumber: 85,
-                                                columnNumber: 24
+                                                columnNumber: 25
                                             }, this),
-                                            " spend safely."
+                                            " a credit card."
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/hero.tsx",
@@ -1285,7 +1285,7 @@ function Hero() {
                                             animationDelay: '0.2s'
                                         },
                                         className: "text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-fade-in-up",
-                                        children: "Add your credit card, set strict spending limits, and let your bot buy what it needs. You stay in full control."
+                                        children: "Your bot works hard. Let it buy its own API credits (responsibly). Set a weekly allowance and never worry about surprise bills again."
                                     }, void 0, false, {
                                         fileName: "[project]/components/hero.tsx",
                                         lineNumber: 88,
