@@ -7,9 +7,10 @@ The platform has two main surfaces:
 - **Consumer landing page** — waitlist, features, live metrics, 3D clay lobster branding
 - **Dashboard application** — manage virtual cards, view transactions, control spending
 
-**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, live bot registration API, and owner claim flow.
+**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, live bot registration API, owner claim flow, Stripe wallet funding, and real transaction history.
 
 ## Recent Changes
+- **Feb 7, 2026:** Phase 3 — Stripe Wallet Funding. Added wallets, transactions, payment_methods tables. Stripe integration for payment setup (SetupIntent + Elements). Billing API (setup-intent, payment-method CRUD). Wallet API (fund via PaymentIntent, balance, transaction history). FundModal with preset/custom amounts. Dashboard shows wallet balance, Add Funds card. Transactions page wired to real data. Settings page has Stripe card setup.
 - **Feb 7, 2026:** Phase 2 — Owner Claim Flow built. `/claim` page with token input, auth gate, and success state. `POST /api/v1/bots/claim` links bot to Firebase UID, activates wallet, nullifies claim token. `GET /api/v1/bots/mine` returns authenticated user's bots. Dashboard overview now shows real bot data (total, active, pending counts + bot cards). AuthDrawer refactored to support controlled mode.
 - **Feb 7, 2026:** Phase 1 — Bot Registration API built. `POST /api/v1/bots/register` accepts bot name, owner email, description. Returns API key (bcrypt-hashed in DB), claim token, and verification URL. Sends owner notification email via SendGrid. PostgreSQL database with Drizzle ORM. Rate limiting (3 registrations/hour/IP).
 - **Feb 2026:** Moved OG/social images to dedicated `public/og/` folder, archived pink variants in `public/og/og-pink/`
@@ -36,6 +37,7 @@ The platform has two main surfaces:
 - **Framework:** Next.js 16 with App Router
 - **Auth:** Firebase Auth (client SDK) + Firebase Admin SDK (server) + httpOnly session cookies (5-day expiry)
 - **Database:** PostgreSQL (Replit built-in) + Drizzle ORM
+- **Payments:** Stripe (stripe, @stripe/stripe-js, @stripe/react-stripe-js)
 - **Email:** SendGrid (@sendgrid/mail)
 - **Styling:** Tailwind CSS v4 with PostCSS
 - **UI Components:** shadcn/ui (Radix primitives)
@@ -58,6 +60,16 @@ app/                    # Next.js App Router
   api/v1/bots/claim/    # Owner claim API (POST, authenticated)
     route.ts
   api/v1/bots/mine/     # Get user's bots (GET, authenticated)
+    route.ts
+  api/v1/billing/setup-intent/ # Stripe SetupIntent (POST, authenticated)
+    route.ts
+  api/v1/billing/payment-method/ # Payment method CRUD (GET/POST/DELETE, authenticated)
+    route.ts
+  api/v1/wallet/fund/   # Fund wallet (POST, authenticated)
+    route.ts
+  api/v1/wallet/balance/ # Wallet balance (GET, authenticated)
+    route.ts
+  api/v1/wallet/transactions/ # Transaction history (GET, authenticated)
     route.ts
   claim/                # Claim page (enter token, link bot to account)
     page.tsx
@@ -84,9 +96,11 @@ components/             # Shared components
     card-visual.tsx     # Credit card visual component
     bot-card.tsx        # Bot card component (name, status, dates)
     transaction-ledger.tsx # Dashboard transaction table
+    payment-setup.tsx   # Stripe Elements card setup (SetupIntent flow)
+    fund-modal.tsx      # Fund wallet modal (preset/custom amounts)
 
 shared/                 # Shared types and schemas
-  schema.ts             # Drizzle ORM schema (bots table) + Zod validation schemas
+  schema.ts             # Drizzle ORM schema (bots, wallets, transactions, payment_methods) + Zod validation
 
 server/                 # Server-side data layer
   db.ts                 # Drizzle database connection (PostgreSQL)
@@ -100,6 +114,7 @@ lib/                    # Utilities and services
   utils.ts              # cn() helper
   crypto.ts             # API key generation, claim token generation, bcrypt hashing
   email.ts              # SendGrid email helper (owner notification on bot registration)
+  stripe.ts             # Stripe server-side helper (init, setupIntent, charge)
   firebase/client.ts    # Firebase client SDK init (public env vars)
   firebase/admin.ts     # Firebase Admin SDK init (private env vars, server-only)
   auth/auth-context.tsx # AuthProvider + useAuth() hook
@@ -133,13 +148,25 @@ tsconfig.json           # TypeScript configuration
 - `POST /api/v1/bots/register` — Bot registration (public). Returns API key, claim token, verification URL. Sends owner email via SendGrid.
 - `POST /api/v1/bots/claim` — Owner claims bot (authenticated). Accepts claim_token, links bot to Firebase UID, activates wallet.
 - `GET /api/v1/bots/mine` — Get authenticated user's bots. Returns array of bot objects.
+- `POST /api/v1/billing/setup-intent` — Create Stripe SetupIntent for saving a card (authenticated).
+- `GET /api/v1/billing/payment-method` — Get saved payment method (authenticated).
+- `POST /api/v1/billing/payment-method` — Save payment method from SetupIntent (authenticated).
+- `DELETE /api/v1/billing/payment-method` — Remove saved payment method (authenticated).
+- `POST /api/v1/wallet/fund` — Fund wallet via Stripe PaymentIntent (authenticated). Accepts amount_cents.
+- `GET /api/v1/wallet/balance` — Get wallet balance (authenticated).
+- `GET /api/v1/wallet/transactions` — Get transaction history (authenticated).
 
 ### Database Schema
 - **bots** — Registered bots (bot_id, name, owner_email, owner_uid, api_key_hash, claim_token, wallet_status, claimed_at, etc.)
+- **wallets** — Bot wallets (wallet_id, bot_id, owner_uid, balance_cents, currency, created_at, updated_at)
+- **transactions** — Wallet transactions (id, wallet_id, type [topup/purchase/refund], amount_cents, description, stripe_payment_intent_id, created_at)
+- **payment_methods** — Saved Stripe payment methods (id, owner_uid, stripe_payment_method_id, card_brand, card_last4, is_default, created_at)
 
 ### Environment Variables (Secrets)
 - `SENDGRID_API_KEY` — SendGrid API key for transactional emails
 - `SENDGRID_FROM_EMAIL` — Verified sender email address (defaults to noreply@creditclaw.com)
+- `STRIPE_SECRET_KEY` — Stripe secret key for server-side operations
+- `STRIPE_PUBLISHABLE_KEY` — Stripe publishable key (exposed to client via next.config.ts env)
 
 ### Design Tokens (CSS Variables)
 - `--primary`: Orange (10 85% 55%)
