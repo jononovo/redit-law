@@ -39,11 +39,13 @@ export const transactions = pgTable("transactions", {
 
 export const paymentMethods = pgTable("payment_methods", {
   id: serial("id").primaryKey(),
-  ownerUid: text("owner_uid").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
   stripeCustomerId: text("stripe_customer_id").notNull(),
-  stripePmId: text("stripe_pm_id").notNull(),
+  stripePmId: text("stripe_pm_id").notNull().unique(),
   cardLast4: text("card_last4"),
   cardBrand: text("card_brand"),
+  isDefault: boolean("is_default").notNull().default(false),
+  label: text("label"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

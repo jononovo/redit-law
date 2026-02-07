@@ -30,6 +30,7 @@ export async function createSetupIntent(customerId: string): Promise<Stripe.Setu
   return stripe.setupIntents.create({
     customer: customerId,
     payment_method_types: ["card"],
+    usage: "off_session",
   });
 }
 
