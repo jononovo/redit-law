@@ -40,6 +40,14 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Access logging via `api_access_logs` table capturing bot_id, endpoint, method, status_code, IP, user_agent, response_time_ms, and error_code.
   - Reusable `withBotApi` middleware (`lib/bot-api.ts`) wrapping auth + rate limiting + access logging for all 5 bot endpoints.
   - Activity Log component on dashboard overview showing recent bot API calls.
+- **Multiple Payment Methods (Phase 6A):**
+  - Owners can save multiple cards per account (removed unique constraint on `owner_uid` in `payment_methods` table).
+  - `is_default` flag on each payment method; first card added is auto-default.
+  - Dashboard payment setup shows a list of all saved cards with add/remove/set-default controls.
+  - Fund modal includes a card picker dropdown when multiple cards are on file.
+  - Fund endpoint accepts optional `payment_method_id` to charge a specific card (falls back to default).
+  - Setup Intent now includes `usage: 'off_session'` for better authorization rates and SCA compliance.
+  - API routes: `GET /api/v1/billing/payment-method` returns list, `DELETE/PUT /api/v1/billing/payment-method/[id]` for per-card operations.
 
 ### Key Routes
 - `/` — Consumer landing page
