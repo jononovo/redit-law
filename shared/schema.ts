@@ -71,6 +71,19 @@ export const topupRequests = pgTable("topup_requests", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const apiAccessLogs = pgTable("api_access_logs", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  endpoint: text("endpoint").notNull(),
+  method: text("method").notNull(),
+  statusCode: integer("status_code").notNull(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+  responseTimeMs: integer("response_time_ms"),
+  errorCode: text("error_code"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -122,3 +135,5 @@ export type SpendingPermission = typeof spendingPermissions.$inferSelect;
 export type InsertSpendingPermission = typeof spendingPermissions.$inferInsert;
 export type TopupRequest = typeof topupRequests.$inferSelect;
 export type InsertTopupRequest = typeof topupRequests.$inferInsert;
+export type ApiAccessLog = typeof apiAccessLogs.$inferSelect;
+export type InsertApiAccessLog = typeof apiAccessLogs.$inferInsert;

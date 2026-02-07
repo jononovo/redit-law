@@ -1,12 +1,13 @@
 import { db } from "@/server/db";
 import {
-  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests,
+  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
   type PaymentMethod, type InsertPaymentMethod,
   type SpendingPermission, type InsertSpendingPermission,
   type TopupRequest, type InsertTopupRequest,
+  type ApiAccessLog, type InsertApiAccessLog,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte } from "drizzle-orm";
 
@@ -40,6 +41,9 @@ export interface IStorage {
   upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission>;
 
   createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest>;
+
+  createAccessLog(data: InsertApiAccessLog): Promise<void>;
+  getAccessLogsByBotIds(botIds: string[], limit?: number): Promise<ApiAccessLog[]>;
 }
 
 export const storage: IStorage = {
@@ -240,5 +244,21 @@ export const storage: IStorage = {
   async createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest> {
     const [req] = await db.insert(topupRequests).values(data).returning();
     return req;
+  },
+
+  async createAccessLog(data: InsertApiAccessLog): Promise<void> {
+    await db.insert(apiAccessLogs).values(data).catch((err) => {
+      console.error("Failed to write access log:", err);
+    });
+  },
+
+  async getAccessLogsByBotIds(botIds: string[], limit = 100): Promise<ApiAccessLog[]> {
+    if (botIds.length === 0) return [];
+    return db
+      .select()
+      .from(apiAccessLogs)
+      .where(sql`${apiAccessLogs.botId} IN (${sql.join(botIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(apiAccessLogs.createdAt))
+      .limit(limit);
   },
 };
