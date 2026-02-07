@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
-  notificationPreferences, notifications, reconciliationLogs, paymentLinks,
+  notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -14,6 +14,7 @@ import {
   type Notification, type InsertNotification,
   type PaymentLink, type InsertPaymentLink,
   type ReconciliationLog, type InsertReconciliationLog,
+  type PairingCode, type InsertPairingCode,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -80,6 +81,11 @@ export interface IStorage {
   getPaymentLinksByOwnerUid(ownerUid: string, limit?: number): Promise<PaymentLink[]>;
   updatePaymentLinkStatus(id: number, status: string, paidAt?: Date): Promise<PaymentLink | null>;
   completePaymentLink(id: number): Promise<PaymentLink | null>;
+
+  createPairingCode(data: InsertPairingCode): Promise<PairingCode>;
+  getPairingCodeByCode(code: string): Promise<PairingCode | null>;
+  claimPairingCode(code: string, botId: string): Promise<PairingCode | null>;
+  getRecentPairingCodeCount(ownerUid: string): Promise<number>;
 }
 
 export const storage: IStorage = {
@@ -546,5 +552,41 @@ export const storage: IStorage = {
       .where(and(eq(paymentLinks.id, id), eq(paymentLinks.status, "pending")))
       .returning();
     return updated || null;
+  },
+
+  async createPairingCode(data: InsertPairingCode): Promise<PairingCode> {
+    const [code] = await db.insert(pairingCodes).values(data).returning();
+    return code;
+  },
+
+  async getPairingCodeByCode(code: string): Promise<PairingCode | null> {
+    const [pc] = await db.select().from(pairingCodes).where(eq(pairingCodes.code, code)).limit(1);
+    return pc || null;
+  },
+
+  async claimPairingCode(code: string, botId: string): Promise<PairingCode | null> {
+    const now = new Date();
+    const [updated] = await db
+      .update(pairingCodes)
+      .set({ botId, status: "paired" })
+      .where(and(
+        eq(pairingCodes.code, code),
+        eq(pairingCodes.status, "pending"),
+        gte(pairingCodes.expiresAt, now),
+      ))
+      .returning();
+    return updated || null;
+  },
+
+  async getRecentPairingCodeCount(ownerUid: string): Promise<number> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pairingCodes)
+      .where(and(
+        eq(pairingCodes.ownerUid, ownerUid),
+        gte(pairingCodes.createdAt, oneHourAgo),
+      ));
+    return Number(result[0]?.count || 0);
   },
 };

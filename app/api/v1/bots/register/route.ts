@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerBotRequestSchema } from "@/shared/schema";
+import { registerBotRequestSchema, bots, wallets, pairingCodes } from "@/shared/schema";
 import { storage } from "@/server/storage";
+import { db } from "@/server/db";
+import { eq, and } from "drizzle-orm";
 import { generateBotId, generateApiKey, generateClaimToken, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/crypto";
 import { sendOwnerRegistrationEmail } from "@/lib/email";
+import { fireWebhook } from "@/lib/webhooks";
+import { notifyWalletActivated } from "@/lib/notifications";
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 3;
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { bot_name, owner_email, description, callback_url } = parsed.data;
+    const { bot_name, owner_email, description, callback_url, pairing_code } = parsed.data;
 
     const isDuplicate = await storage.checkDuplicateRegistration(bot_name, owner_email);
     if (isDuplicate) {
@@ -64,14 +68,91 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let pairingCodeRecord = null;
+    if (pairing_code) {
+      pairingCodeRecord = await storage.getPairingCodeByCode(pairing_code);
+      if (!pairingCodeRecord || pairingCodeRecord.status !== "pending" || pairingCodeRecord.expiresAt < new Date()) {
+        return NextResponse.json(
+          { error: "invalid_pairing_code", message: "Pairing code is invalid, expired, or already used." },
+          { status: 400 }
+        );
+      }
+    }
+
     const botId = generateBotId();
     const apiKey = generateApiKey();
-    const claimToken = generateClaimToken();
+    const claimToken = pairing_code ? null : generateClaimToken();
     const apiKeyHash = await hashApiKey(apiKey);
     const apiKeyPrefix = getApiKeyPrefix(apiKey);
     const webhookSecret = callback_url ? generateWebhookSecret() : null;
 
-    await storage.createBot({
+    if (pairingCodeRecord && pairing_code) {
+      const result = await db.transaction(async (tx) => {
+        const [bot] = await tx.insert(bots).values({
+          botId,
+          botName: bot_name,
+          description: description || null,
+          ownerEmail: owner_email,
+          apiKeyHash,
+          apiKeyPrefix,
+          claimToken: null,
+          walletStatus: "active",
+          callbackUrl: callback_url || null,
+          webhookSecret,
+          ownerUid: pairingCodeRecord.ownerUid,
+          claimedAt: new Date(),
+        }).returning();
+
+        const [claimed] = await tx
+          .update(pairingCodes)
+          .set({ status: "claimed", botId, claimedAt: new Date() })
+          .where(
+            and(
+              eq(pairingCodes.code, pairing_code),
+              eq(pairingCodes.status, "pending")
+            )
+          )
+          .returning();
+
+        if (!claimed) {
+          throw new Error("PAIRING_RACE");
+        }
+
+        await tx.insert(wallets).values({
+          botId,
+          ownerUid: pairingCodeRecord.ownerUid,
+          balanceCents: 0,
+        }).returning();
+
+        return bot;
+      });
+
+      fireWebhook(result, "wallet.activated", {
+        owner_uid: pairingCodeRecord.ownerUid,
+        wallet_status: "active",
+        message: "Owner paired bot via pairing code and wallet is now live.",
+      }).catch((err) => console.error("Webhook fire failed:", err));
+
+      notifyWalletActivated(pairingCodeRecord.ownerUid, result.botName, result.botId).catch(() => {});
+
+      const response: Record<string, unknown> = {
+        bot_id: botId,
+        api_key: apiKey,
+        status: "active",
+        paired: true,
+        owner_uid: pairingCodeRecord.ownerUid,
+        important: "Save your api_key now — it cannot be retrieved later. Your wallet is already active via pairing code.",
+      };
+
+      if (webhookSecret) {
+        response.webhook_secret = webhookSecret;
+        response.webhook_note = "Save your webhook_secret now — it cannot be retrieved later. Use it to verify HMAC signatures on incoming webhook payloads.";
+      }
+
+      return NextResponse.json(response, { status: 201 });
+    }
+
+    const bot = await storage.createBot({
       botId,
       botName: bot_name,
       description: description || null,
@@ -82,13 +163,14 @@ export async function POST(request: NextRequest) {
       walletStatus: "pending",
       callbackUrl: callback_url || null,
       webhookSecret,
+      ownerUid: null,
       claimedAt: null,
     });
 
     sendOwnerRegistrationEmail({
       ownerEmail: owner_email,
       botName: bot_name,
-      claimToken,
+      claimToken: claimToken!,
       description,
     }).catch((err) => {
       console.error("Failed to send owner email:", err);
@@ -110,6 +192,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response, { status: 201 });
   } catch (error: any) {
+    if (error?.message === "PAIRING_RACE") {
+      return NextResponse.json(
+        { error: "pairing_failed", message: "Pairing code was claimed by another request. Please try again." },
+        { status: 409 }
+      );
+    }
     console.error("Bot registration failed:", error?.message || error);
     return NextResponse.json(
       { error: "internal_error", message: "Registration failed. Please try again." },

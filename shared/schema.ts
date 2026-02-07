@@ -150,6 +150,19 @@ export const paymentLinks = pgTable("payment_links", {
   index("payment_links_stripe_session_idx").on(table.stripeCheckoutSessionId),
 ]);
 
+export const pairingCodes = pgTable("pairing_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  botId: text("bot_id"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+}, (table) => [
+  index("pairing_codes_code_idx").on(table.code),
+  index("pairing_codes_owner_idx").on(table.ownerUid),
+]);
+
 export const reconciliationLogs = pgTable("reconciliation_logs", {
   id: serial("id").primaryKey(),
   walletId: integer("wallet_id").notNull(),
@@ -166,6 +179,7 @@ export const registerBotRequestSchema = z.object({
   owner_email: z.string().email(),
   description: z.string().max(500).optional(),
   callback_url: z.string().url().optional(),
+  pairing_code: z.string().length(6).regex(/^\d{6}$/).optional(),
 });
 
 export const claimBotRequestSchema = z.object({
@@ -225,6 +239,8 @@ export type PaymentLink = typeof paymentLinks.$inferSelect;
 export type InsertPaymentLink = typeof paymentLinks.$inferInsert;
 export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
+export type PairingCode = typeof pairingCodes.$inferSelect;
+export type InsertPairingCode = typeof pairingCodes.$inferInsert;
 
 export const createPaymentLinkSchema = z.object({
   amount_usd: z.number().min(0.50).max(10000.00),
