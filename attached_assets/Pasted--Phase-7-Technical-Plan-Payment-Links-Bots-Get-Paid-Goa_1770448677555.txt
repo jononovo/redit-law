@@ -1,0 +1,330 @@
+# Phase 7 Technical Plan: Payment Links (Bots Get Paid)
+
+## Goal
+
+A bot calls `POST /api/v1/bot/payments/create-link` with an amount and description.
+CreditClaw creates a Stripe Checkout Session and returns a URL. The bot sends that
+URL to whoever owes them. When the person pays, the funds land in the bot's wallet
+and the bot gets a `wallet.payment.received` webhook.
+
+This completes the money loop: owners fund bots (top-ups) AND bots can earn money
+from anyone (payment links).
+
+---
+
+## What Already Exists
+
+- Stripe is integrated (keys, customer creation, payment intents for top-ups)
+- Bot authentication middleware (`withBotApi` in `lib/bot-api.ts`)
+- Wallet crediting logic (`creditWallet` + transaction recording in storage)
+- Webhook delivery system (`fireWebhook` in `lib/webhooks.ts`)
+- Owner notification system (`lib/notifications.ts`)
+- The skill.md already describes this endpoint and its response format
+
+---
+
+## 1. Database: `payment_links` Table
+
+New table to track bot-generated payment links:
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | serial PK | |
+| payment_link_id | text, unique | Format: `pl_` + 8 random hex chars |
+| bot_id | text, not null | FK → bots.bot_id |
+| amount_cents | integer, not null | Amount in cents |
+| description | text, not null | What the payment is for |
+| payer_email | text, nullable | Optional — who should pay |
+| stripe_checkout_session_id | text, nullable | Stripe Session ID once created |
+| checkout_url | text | The URL the bot sends to the payer |
+| status | text, default 'pending' | `pending` / `completed` / `expired` |
+| paid_at | timestamp, nullable | When payment was received |
+| expires_at | timestamp, not null | 24 hours after creation |
+| created_at | timestamp, default now | |
+
+Index on `(bot_id, created_at)` for listing and `(stripe_checkout_session_id)` for
+webhook lookup.
+
+---
+
+## 2. Bot-Facing Endpoint: `POST /api/v1/bot/payments/create-link`
+
+Uses `withBotApi` middleware (auth + rate limiting + access logging already handled).
+
+**Rate limit:** 10 per hour (add to rate limiter config).
+
+**Request body (validated with Zod):**
+```json
+{
+  "amount_usd": 10.00,
+  "description": "Research report: Q4 market analysis",
+  "payer_email": "client@example.com"
+}
+```
+
+**Validation:**
+- `amount_usd` required, number, min 0.50, max 10000.00
+- `description` required, string, min 1, max 500 chars
+- `payer_email` optional, valid email format if provided
+
+**Server logic:**
+1. Validate request body
+2. Generate `payment_link_id` (`pl_` + 8 hex chars)
+3. Create Stripe Checkout Session:
+   ```javascript
+   const session = await stripe.checkout.sessions.create({
+     line_items: [{
+       price_data: {
+         currency: 'usd',
+         product_data: {
+           name: `Payment to ${bot.bot_name}`,
+           description: intent.description,
+         },
+         unit_amount: amountCents,
+       },
+       quantity: 1,
+     }],
+     mode: 'payment',
+     customer_email: intent.payer_email || undefined,
+     metadata: {
+       payment_link_id: paymentLinkId,
+       bot_id: bot.bot_id,
+       purpose: 'bot_payment_link',
+     },
+     success_url: `https://creditclaw.com/payment/success?pl=${paymentLinkId}`,
+     cancel_url: `https://creditclaw.com/payment/cancelled?pl=${paymentLinkId}`,
+   });
+   ```
+4. Insert row into `payment_links` table
+5. Return response
+
+**Response (201):**
+```json
+{
+  "payment_link_id": "pl_q7r8s9",
+  "checkout_url": "https://checkout.stripe.com/c/pay/cs_live_...",
+  "amount_usd": 10.00,
+  "status": "pending",
+  "expires_at": "2026-02-08T15:00:00Z"
+}
+```
+
+---
+
+## 3. Bot-Facing Endpoint: `GET /api/v1/bot/payments/links`
+
+List the bot's payment links with status.
+
+**Rate limit:** 12 per hour.
+
+**Query params:** `?limit=10&status=pending` (optional filters)
+
+**Response:**
+```json
+{
+  "payment_links": [
+    {
+      "payment_link_id": "pl_q7r8s9",
+      "amount_usd": 10.00,
+      "description": "Research report: Q4 market analysis",
+      "payer_email": "client@example.com",
+      "status": "pending",
+      "checkout_url": "https://checkout.stripe.com/c/pay/cs_live_...",
+      "created_at": "2026-02-07T15:00:00Z",
+      "expires_at": "2026-02-08T15:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+## 4. Stripe Webhook: `checkout.session.completed`
+
+**File:** New or extend existing Stripe webhook handler.
+
+**Route:** `POST /api/v1/webhooks/stripe`
+
+This is the critical piece. When someone pays a bot's payment link:
+
+1. Stripe sends `checkout.session.completed` event to your webhook endpoint
+2. Verify the webhook signature using your Stripe webhook secret
+3. Check `session.metadata.purpose === 'bot_payment_link'`
+4. Look up the `payment_link` by `session.metadata.payment_link_id`
+5. If not found or already completed → ignore (idempotency)
+6. Credit the bot's wallet: `creditWallet(wallet.id, amountCents)`
+7. Record a transaction with `type: 'payment_received'`
+8. Update `payment_links` row: `status → 'completed'`, `paid_at → now`
+9. Fire webhook to bot: `wallet.payment.received`
+10. Fire owner notification: "Your bot received a $10.00 payment"
+
+```javascript
+async function handleStripeWebhook(req) {
+  const sig = req.headers['stripe-signature'];
+  const event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+
+    // Distinguish between top-ups and payment links
+    if (session.metadata.purpose === 'bot_payment_link') {
+      await handlePaymentLinkCompleted(session);
+    } else if (session.metadata.purpose === 'bot_topup') {
+      // existing top-up logic (if any)
+    }
+  }
+}
+
+async function handlePaymentLinkCompleted(session) {
+  const paymentLink = await storage.getPaymentLinkByStripeSession(
+    session.id
+  );
+  if (!paymentLink || paymentLink.status === 'completed') return; // idempotent
+
+  const bot = await storage.getBotByBotId(paymentLink.bot_id);
+  const wallet = await storage.getWalletByBotId(bot.bot_id);
+
+  // Credit wallet
+  await storage.creditWallet(wallet.id, paymentLink.amount_cents);
+
+  // Record transaction
+  await storage.createTransaction({
+    wallet_id: wallet.id,
+    type: 'payment_received',
+    amount_cents: paymentLink.amount_cents,
+    description: paymentLink.description,
+    stripe_payment_intent_id: session.payment_intent,
+  });
+
+  // Mark payment link as completed
+  await storage.updatePaymentLinkStatus(paymentLink.id, 'completed');
+
+  // Fire bot webhook
+  await fireWebhook(bot, 'wallet.payment.received', {
+    payment_link_id: paymentLink.payment_link_id,
+    amount_usd: paymentLink.amount_cents / 100,
+    description: paymentLink.description,
+    payer_email: paymentLink.payer_email,
+    new_balance_usd: (wallet.balance_cents + paymentLink.amount_cents) / 100,
+  });
+
+  // Notify owner
+  const owner = await storage.getOwnerByBotId(bot.bot_id);
+  if (owner) {
+    await notifyPaymentReceived(owner.owner_uid, bot, paymentLink);
+  }
+}
+```
+
+**Important:** The webhook endpoint must NOT require authentication (Stripe calls it).
+Instead, verify the `stripe-signature` header against your webhook signing secret.
+Return 200 quickly — do the wallet credit and notifications synchronously but keep
+it fast. Stripe retries on timeout.
+
+---
+
+## 5. Stripe Webhook Registration
+
+In the Stripe Dashboard (or via CLI), register your webhook endpoint:
+
+- **URL:** `https://creditclaw.com/api/v1/webhooks/stripe`
+- **Events:** `checkout.session.completed`
+- **Copy the webhook signing secret** → store as `STRIPE_WEBHOOK_SECRET` env var
+
+---
+
+## 6. Simple Success/Cancel Pages
+
+Two lightweight pages for after the payer completes (or cancels) checkout:
+
+**`/payment/success`** — "Payment received! The bot has been credited."
+Shows the payment amount and description. No auth required (public page).
+
+**`/payment/cancelled`** — "Payment was cancelled. You can try again using the
+same link." No auth required.
+
+Both read the `?pl=` param to look up the payment link for display purposes.
+
+---
+
+## 7. Owner Dashboard: Payment Links Section
+
+Add a "Payments Received" section to the dashboard (or a new tab):
+
+- Lists all payment links created by the owner's bots
+- Shows: bot name, amount, description, payer email, status (pending/completed/expired),
+  date created, date paid
+- Status badges: green for completed, amber for pending, grey for expired
+
+**API endpoint:** `GET /api/v1/payment-links` (owner-authenticated, session cookie)
+Returns all payment links for the owner's bots.
+
+---
+
+## 8. Expiry Handling
+
+Payment links expire after 24 hours. Two approaches (do the simple one):
+
+**Simple:** When listing payment links (bot or owner), check if `expires_at < now`
+and `status === 'pending'` → return as `expired` in the response. No cron needed.
+The Stripe Checkout Session also expires naturally.
+
+**Optional later:** A cleanup query that marks expired links in the DB periodically.
+
+---
+
+## 9. Storage Methods
+
+Add to the storage interface:
+
+- `createPaymentLink(data)` — insert new payment link row
+- `getPaymentLinksByBotId(botId, limit, status?)` — for bot's own listing
+- `getPaymentLinkByStripeSession(sessionId)` — for webhook lookup
+- `getPaymentLinksByOwnerUid(ownerUid, limit)` — for dashboard
+- `updatePaymentLinkStatus(id, status)` — mark completed/expired
+
+---
+
+## 10. Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `shared/schema.ts` | Modify | Add `payment_links` table |
+| `server/storage.ts` | Modify | Add payment link CRUD methods |
+| `lib/bot-api.ts` or `lib/rate-limit.ts` | Modify | Add rate limit for new endpoints |
+| `app/api/v1/bot/payments/create-link/route.ts` | Create | Bot creates payment link |
+| `app/api/v1/bot/payments/links/route.ts` | Create | Bot lists their payment links |
+| `app/api/v1/webhooks/stripe/route.ts` | Create | Stripe webhook handler |
+| `app/api/v1/payment-links/route.ts` | Create | Owner dashboard: list payment links |
+| `app/payment/success/page.tsx` | Create | Public success page after payment |
+| `app/payment/cancelled/page.tsx` | Create | Public cancel page |
+| `components/dashboard/payment-links.tsx` | Create | Dashboard payment links panel |
+| `app/app/page.tsx` | Modify | Add payment links section to dashboard |
+| `lib/notifications.ts` | Modify | Add `notifyPaymentReceived` |
+
+---
+
+## What This Does NOT Include
+
+- No recurring/subscription payment links (single payment only)
+- No refund handling (payer disputes go through Stripe's normal flow)
+- No CreditClaw fee/commission on payments (all funds go to bot wallet — you can add
+  a platform fee later via Stripe's `application_fee_amount` on the Checkout Session)
+- No multi-currency (USD only for now)
+
+---
+
+## Summary
+
+| Step | What | Effort |
+|------|------|--------|
+| 1 | `payment_links` table + storage methods | Small |
+| 2 | `POST /bot/payments/create-link` endpoint | Medium |
+| 3 | `GET /bot/payments/links` endpoint | Small |
+| 4 | Stripe webhook handler (`checkout.session.completed`) | Medium |
+| 5 | Register webhook in Stripe Dashboard | Small (manual) |
+| 6 | Success/cancel pages | Small |
+| 7 | Owner dashboard payment links panel | Medium |
+| 8 | Expiry handling (lazy check on read) | Small |
+| 9 | Wire up bot webhook + owner notification | Small |
+| 10 | End-to-end testing | Small |

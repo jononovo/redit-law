@@ -11,6 +11,8 @@ export const BOT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   "/api/v1/bot/wallet/purchase": { maxRequests: 30, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/wallet/topup-request": { maxRequests: 3, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/wallet/transactions": { maxRequests: 12, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/payments/create-link": { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/payments/links": { maxRequests: 12, windowMs: 60 * 60 * 1000 },
 };
 
 export function checkBotRateLimit(botId: string, endpoint: string): { allowed: boolean; retryAfterSeconds?: number } {

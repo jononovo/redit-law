@@ -132,6 +132,24 @@ export const notifications = pgTable("notifications", {
   index("notifications_owner_created_idx").on(table.ownerUid, table.createdAt),
 ]);
 
+export const paymentLinks = pgTable("payment_links", {
+  id: serial("id").primaryKey(),
+  paymentLinkId: text("payment_link_id").notNull().unique(),
+  botId: text("bot_id").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  description: text("description").notNull(),
+  payerEmail: text("payer_email"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+  checkoutUrl: text("checkout_url").notNull(),
+  status: text("status").notNull().default("pending"),
+  paidAt: timestamp("paid_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("payment_links_bot_created_idx").on(table.botId, table.createdAt),
+  index("payment_links_stripe_session_idx").on(table.stripeCheckoutSessionId),
+]);
+
 export const reconciliationLogs = pgTable("reconciliation_logs", {
   id: serial("id").primaryKey(),
   walletId: integer("wallet_id").notNull(),
@@ -203,8 +221,16 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+export type PaymentLink = typeof paymentLinks.$inferSelect;
+export type InsertPaymentLink = typeof paymentLinks.$inferInsert;
 export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
 export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
+
+export const createPaymentLinkSchema = z.object({
+  amount_usd: z.number().min(0.50).max(10000.00),
+  description: z.string().min(1).max(500),
+  payer_email: z.string().email().optional(),
+});
 
 export const updateNotificationPreferencesSchema = z.object({
   transaction_alerts: z.boolean().optional(),

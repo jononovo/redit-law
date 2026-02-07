@@ -6,6 +6,7 @@ import { FundModal } from "@/components/dashboard/fund-modal";
 import { ActivityLog } from "@/components/dashboard/activity-log";
 import { WebhookLog } from "@/components/dashboard/webhook-log";
 import { OpsHealth } from "@/components/dashboard/ops-health";
+import { PaymentLinksPanel } from "@/components/dashboard/payment-links";
 import { Bot as BotIcon, Plus, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -145,6 +146,8 @@ export default function DashboardOverview() {
           </div>
         )}
       </div>
+
+      <PaymentLinksPanel />
 
       <OpsHealth />
 

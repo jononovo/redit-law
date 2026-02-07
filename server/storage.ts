@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
-  notificationPreferences, notifications, reconciliationLogs,
+  notificationPreferences, notifications, reconciliationLogs, paymentLinks,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -12,6 +12,7 @@ import {
   type WebhookDelivery, type InsertWebhookDelivery,
   type NotificationPreference, type InsertNotificationPreference,
   type Notification, type InsertNotification,
+  type PaymentLink, type InsertPaymentLink,
   type ReconciliationLog, type InsertReconciliationLog,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
@@ -71,6 +72,14 @@ export interface IStorage {
   getTransactionSumByWalletId(walletId: number): Promise<number>;
   createReconciliationLog(data: InsertReconciliationLog): Promise<ReconciliationLog>;
   getFailedWebhookCount24h(botIds: string[]): Promise<number>;
+
+  createPaymentLink(data: InsertPaymentLink): Promise<PaymentLink>;
+  getPaymentLinksByBotId(botId: string, limit?: number, status?: string): Promise<PaymentLink[]>;
+  getPaymentLinkByStripeSession(sessionId: string): Promise<PaymentLink | null>;
+  getPaymentLinkByPaymentLinkId(paymentLinkId: string): Promise<PaymentLink | null>;
+  getPaymentLinksByOwnerUid(ownerUid: string, limit?: number): Promise<PaymentLink[]>;
+  updatePaymentLinkStatus(id: number, status: string, paidAt?: Date): Promise<PaymentLink | null>;
+  completePaymentLink(id: number): Promise<PaymentLink | null>;
 }
 
 export const storage: IStorage = {
@@ -442,7 +451,7 @@ export const storage: IStorage = {
   async getTransactionSumByWalletId(walletId: number): Promise<number> {
     const result = await db
       .select({
-        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'topup' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} IN ('topup', 'payment_received') THEN ${transactions.amountCents} ELSE 0 END), 0)`,
         purchases: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'purchase' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
       })
       .from(transactions)
@@ -469,5 +478,73 @@ export const storage: IStorage = {
         gte(webhookDeliveries.createdAt, oneDayAgo),
       ));
     return Number(result[0]?.count || 0);
+  },
+
+  async createPaymentLink(data: InsertPaymentLink): Promise<PaymentLink> {
+    const [link] = await db.insert(paymentLinks).values(data).returning();
+    return link;
+  },
+
+  async getPaymentLinksByBotId(botId: string, limit = 20, status?: string): Promise<PaymentLink[]> {
+    const conditions = [eq(paymentLinks.botId, botId)];
+    if (status) {
+      conditions.push(eq(paymentLinks.status, status));
+    }
+    return db
+      .select()
+      .from(paymentLinks)
+      .where(and(...conditions))
+      .orderBy(desc(paymentLinks.createdAt))
+      .limit(limit);
+  },
+
+  async getPaymentLinkByStripeSession(sessionId: string): Promise<PaymentLink | null> {
+    const [link] = await db
+      .select()
+      .from(paymentLinks)
+      .where(eq(paymentLinks.stripeCheckoutSessionId, sessionId))
+      .limit(1);
+    return link || null;
+  },
+
+  async getPaymentLinkByPaymentLinkId(paymentLinkId: string): Promise<PaymentLink | null> {
+    const [link] = await db
+      .select()
+      .from(paymentLinks)
+      .where(eq(paymentLinks.paymentLinkId, paymentLinkId))
+      .limit(1);
+    return link || null;
+  },
+
+  async getPaymentLinksByOwnerUid(ownerUid: string, limit = 50): Promise<PaymentLink[]> {
+    const ownerBots = await this.getBotsByOwnerUid(ownerUid);
+    if (ownerBots.length === 0) return [];
+    const botIds = ownerBots.map(b => b.botId);
+    return db
+      .select()
+      .from(paymentLinks)
+      .where(inArray(paymentLinks.botId, botIds))
+      .orderBy(desc(paymentLinks.createdAt))
+      .limit(limit);
+  },
+
+  async updatePaymentLinkStatus(id: number, status: string, paidAt?: Date): Promise<PaymentLink | null> {
+    const updateData: Record<string, unknown> = { status };
+    if (paidAt) updateData.paidAt = paidAt;
+    const [updated] = await db
+      .update(paymentLinks)
+      .set(updateData)
+      .where(eq(paymentLinks.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async completePaymentLink(id: number): Promise<PaymentLink | null> {
+    const [updated] = await db
+      .update(paymentLinks)
+      .set({ status: "completed", paidAt: new Date() })
+      .where(and(eq(paymentLinks.id, id), eq(paymentLinks.status, "pending")))
+      .returning();
+    return updated || null;
   },
 };
