@@ -35,6 +35,11 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
 - **Prepaid Model:** Emphasizes a prepaid system where humans fund bot wallets, rather than credit lines.
 - **Atomic Transactions:** Wallet debits are atomic, ensuring data integrity.
 - **No Virtual Card Issuance (yet):** Current purchases are direct wallet debits; Stripe Issuing for virtual cards is a future feature.
+- **Security Hardening (Phase 5):**
+  - Per-bot rate limiting with endpoint-specific limits (6/hr check/spending, 30/hr purchase, 3/hr topup-request, 12/hr transactions) using in-memory token bucket with auto-cleanup.
+  - Access logging via `api_access_logs` table capturing bot_id, endpoint, method, status_code, IP, user_agent, response_time_ms, and error_code.
+  - Reusable `withBotApi` middleware (`lib/bot-api.ts`) wrapping auth + rate limiting + access logging for all 5 bot endpoints.
+  - Activity Log component on dashboard overview showing recent bot API calls.
 
 ### Key Routes
 - `/` — Consumer landing page
