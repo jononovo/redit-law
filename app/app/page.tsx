@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { BotCard } from "@/components/dashboard/bot-card";
-import { Bot as BotIcon, Plus, Loader2 } from "lucide-react";
+import { FundModal } from "@/components/dashboard/fund-modal";
+import { Bot as BotIcon, Plus, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -15,24 +16,39 @@ interface BotData {
   claimed_at: string | null;
 }
 
+interface BalanceData {
+  balance_cents: number;
+  balance: string;
+  has_wallet: boolean;
+}
+
 export default function DashboardOverview() {
   const [bots, setBots] = useState<BotData[]>([]);
+  const [balance, setBalance] = useState<BalanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fundOpen, setFundOpen] = useState(false);
+
+  async function fetchData() {
+    try {
+      const [botsRes, balanceRes] = await Promise.all([
+        fetch("/api/v1/bots/mine"),
+        fetch("/api/v1/wallet/balance"),
+      ]);
+      if (botsRes.ok) {
+        const data = await botsRes.json();
+        setBots(data.bots || []);
+      }
+      if (balanceRes.ok) {
+        const data = await balanceRes.json();
+        setBalance(data);
+      }
+    } catch {} finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function fetchBots() {
-      try {
-        const res = await fetch("/api/v1/bots/mine");
-        if (res.ok) {
-          const data = await res.json();
-          setBots(data.bots || []);
-        }
-      } catch {
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchBots();
+    fetchData();
   }, []);
 
   const activeBots = bots.filter((b) => b.wallet_status === "active");
@@ -47,10 +63,10 @@ export default function DashboardOverview() {
             {loading ? "—" : bots.length}
           </h3>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-active-bots">
-          <span className="text-sm font-medium text-neutral-500">Active Wallets</span>
+        <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-wallet-balance">
+          <span className="text-sm font-medium text-neutral-500">Wallet Balance</span>
           <h3 className="text-2xl font-bold text-green-600 tracking-tight mt-2">
-            {loading ? "—" : activeBots.length}
+            {loading ? "—" : balance?.balance || "$0.00"}
           </h3>
         </div>
         <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-pending-bots">
@@ -60,6 +76,23 @@ export default function DashboardOverview() {
           </h3>
         </div>
       </div>
+
+      {balance?.has_wallet && (
+        <div
+          onClick={() => setFundOpen(true)}
+          className="bg-neutral-900 text-white p-6 rounded-2xl flex items-center justify-between relative overflow-hidden group cursor-pointer"
+          data-testid="card-add-funds"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <h4 className="font-bold">Add Funds</h4>
+            <p className="text-sm text-neutral-400">Top up your bot&apos;s wallet instantly</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative z-10 group-hover:bg-white/20 transition-colors">
+            <Wallet className="w-5 h-5 text-white" />
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="flex items-center justify-between mb-6">
@@ -109,6 +142,12 @@ export default function DashboardOverview() {
           </div>
         )}
       </div>
+
+      <FundModal
+        open={fundOpen}
+        onOpenChange={setFundOpen}
+        onSuccess={() => fetchData()}
+      />
     </div>
   );
 }
