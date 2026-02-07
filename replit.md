@@ -68,6 +68,12 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Live notification bell popover in dashboard header with unread badge, mark-read, mark-all-read, auto-polling.
   - Settings page notification section wired to preferences API with toggles for in-app, email, transaction alerts, budget warnings, weekly summary, and dollar thresholds.
   - Key files: `lib/notifications.ts`, `components/dashboard/notification-popover.tsx`, `app/api/v1/notifications/`.
+- **Operational Safety Net (Phase 6D):**
+  - Daily wallet reconciliation: sums all transactions per wallet (topups - purchases) and compares against stored `balance_cents`. Logs results to `reconciliation_logs` table. Triggered manually via `POST /api/v1/admin/reconciliation/run` (owner-scoped).
+  - Health check endpoint: `GET /api/v1/health` — pings DB, returns uptime and connection status. No auth required.
+  - Failed webhook delivery alerting: `GET /api/v1/webhooks/health` — returns count of failed deliveries in last 24h, scoped to owner's bots.
+  - Operational Health panel on dashboard overview with webhook health indicator (green/amber) and manual reconciliation button with inline results.
+  - Key files: `components/dashboard/ops-health.tsx`, `app/api/v1/health/route.ts`, `app/api/v1/admin/reconciliation/run/route.ts`, `app/api/v1/webhooks/health/route.ts`.
 
 ### Key Routes
 - `/` — Consumer landing page

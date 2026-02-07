@@ -132,6 +132,17 @@ export const notifications = pgTable("notifications", {
   index("notifications_owner_created_idx").on(table.ownerUid, table.createdAt),
 ]);
 
+export const reconciliationLogs = pgTable("reconciliation_logs", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  botId: text("bot_id").notNull(),
+  expectedCents: integer("expected_cents").notNull(),
+  actualCents: integer("actual_cents").notNull(),
+  diffCents: integer("diff_cents").notNull(),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -192,6 +203,8 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+export type ReconciliationLog = typeof reconciliationLogs.$inferSelect;
+export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
 
 export const updateNotificationPreferencesSchema = z.object({
   transaction_alerts: z.boolean().optional(),

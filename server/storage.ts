@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
-  notificationPreferences, notifications,
+  notificationPreferences, notifications, reconciliationLogs,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -12,6 +12,7 @@ import {
   type WebhookDelivery, type InsertWebhookDelivery,
   type NotificationPreference, type InsertNotificationPreference,
   type Notification, type InsertNotification,
+  type ReconciliationLog, type InsertReconciliationLog,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -65,6 +66,11 @@ export interface IStorage {
   getUnreadCount(ownerUid: string): Promise<number>;
   markNotificationsRead(ids: number[], ownerUid: string): Promise<void>;
   markAllNotificationsRead(ownerUid: string): Promise<void>;
+
+  getWalletsByOwnerUid(ownerUid: string): Promise<Wallet[]>;
+  getTransactionSumByWalletId(walletId: number): Promise<number>;
+  createReconciliationLog(data: InsertReconciliationLog): Promise<ReconciliationLog>;
+  getFailedWebhookCount24h(botIds: string[]): Promise<number>;
 }
 
 export const storage: IStorage = {
@@ -427,5 +433,41 @@ export const storage: IStorage = {
       .update(notifications)
       .set({ isRead: true })
       .where(and(eq(notifications.ownerUid, ownerUid), eq(notifications.isRead, false)));
+  },
+
+  async getWalletsByOwnerUid(ownerUid: string): Promise<Wallet[]> {
+    return db.select().from(wallets).where(eq(wallets.ownerUid, ownerUid));
+  },
+
+  async getTransactionSumByWalletId(walletId: number): Promise<number> {
+    const result = await db
+      .select({
+        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'topup' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+        purchases: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'purchase' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+      })
+      .from(transactions)
+      .where(eq(transactions.walletId, walletId));
+    const topups = Number(result[0]?.topups || 0);
+    const purchases = Number(result[0]?.purchases || 0);
+    return topups - purchases;
+  },
+
+  async createReconciliationLog(data: InsertReconciliationLog): Promise<ReconciliationLog> {
+    const [log] = await db.insert(reconciliationLogs).values(data).returning();
+    return log;
+  },
+
+  async getFailedWebhookCount24h(botIds: string[]): Promise<number> {
+    if (botIds.length === 0) return 0;
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(webhookDeliveries)
+      .where(and(
+        inArray(webhookDeliveries.botId, botIds),
+        eq(webhookDeliveries.status, "failed"),
+        gte(webhookDeliveries.createdAt, oneDayAgo),
+      ));
+    return Number(result[0]?.count || 0);
   },
 };
