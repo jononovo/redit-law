@@ -919,7 +919,7 @@ const steps = [
     },
     {
         num: "4",
-        text: "Your bot gets a funded virtual Visa card"
+        text: "Your bot gets a funded virtual credit card"
     }
 ];
 function BotSignup() {

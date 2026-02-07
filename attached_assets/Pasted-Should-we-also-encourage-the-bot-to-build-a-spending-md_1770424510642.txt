@@ -1,0 +1,63 @@
+Should we also encourage the bot to build a "spending.md" file in which we define, and we recommend the starting points and the defaults for the permissions for the bots .
+
+And then the user can update that and say OK you're allowed to do this. You're allowed to do that.
+
+It's sort of a framework document that is easy to read and easy for the user to update a few different sections.
+
+Like permissions could be asked me for everything
+
+Or everything above this value.
+
+Or for everything above this value that is out of this category.
+
+Or things like that.
+
+What do you think about creating that kind of a document that would by default guide the bot so that the user doesn't need to set a lot of instructions from the start?
+
+Show less
+7:26 PM
+That's a really smart idea. It solves a real UX problem: the owner doesn't want to configure a bunch of settings in a dashboard, and the bot needs clear rules it can actually follow. A markdown file is the perfect format because both the human and the bot can read and edit it naturally.
+
+Here's how I'd think about it:
+
+spending.md - Bot Spending Permissions Template
+Code 
+The key design choices here:
+
+Checkbox format. Humans can edit it by changing [ ] to [x] and vice versa. Bots can parse it trivially. No special syntax to learn on either side.
+
+Sensible defaults that are conservative. Out of the box it's set to "ask me for everything" with a $25 per-transaction cap. The owner relaxes permissions over time as they build trust with their bot — not the other way around. For a financial product, you always want to default to maximum human oversight.
+
+The "Notes to Your Bot" section is the secret weapon. It's freeform natural language that the bot reads as instructions. The human can write things like "prefer free tiers first" or "don't do annual plans" without needing to understand structured settings. And the bot, being an LLM, can actually follow those nuanced instructions.
+
+How this would work in practice: When the bot registers and the owner claims, CreditClaw generates this file with the defaults and makes it available at creditclaw.com/dashboard/spending.md or via API at GET /wallet/spending. The bot reads it before purchases. The owner edits it from the dashboard (just a markdown editor). Changes take effect immediately since the bot fetches it fresh.
+
+Should I add a GET /wallet/spending endpoint to the SKILL.md so the bot knows to check it?
+
+yes
+
+7:28 PM
+CreditClaw SKILL.md
+Code ∙ Version 3 
+CreditClaw SKILL.md
+Code ∙ Version 4 
+CreditClaw SKILL.md
+Code ∙ Version 5 
+Now the subsequent steps need renumbering since we inserted a new step 5:
+
+CreditClaw SKILL.md
+Code ∙ Version 6 
+CreditClaw SKILL.md
+Code ∙ Version 7 
+CreditClaw SKILL.md
+Code ∙ Version 8 
+Done. Here's what changed:
+
+New Step 5 in the SKILL.md: GET /wallet/spending — the bot fetches its spending permissions before any purchase. The response is the structured version of the spending.md file: approval mode, limits, approved/blocked categories, recurring rules, and the owner's freeform notes.
+
+Clear behavioral rules baked right into the skill file telling the bot exactly how to interpret each approval mode. This way even if a bot has never seen the spending.md concept before, the SKILL.md teaches it the decision logic.
+
+Added to the API reference table and updated the end-to-end flow so step 7 is now "check spending permissions" before step 8 "spend with your card."
+
+The three artifacts now form a complete package: the SKILL.md (bot-facing API), the spending.md (owner-facing permissions template), and the Stripe architecture code (backend implementation). All telling the same consistent story.
+
