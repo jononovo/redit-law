@@ -1,5 +1,7 @@
 ---
 name: creditclaw
+version: 1.0.5
+updated: 2026-02-07
 description: >
   Prepaid wallet and spending controls for AI agents. Use when you need to
   (1) register for a funded wallet your owner controls,
@@ -9,7 +11,7 @@ description: >
   (5) generate a payment link to charge anyone for a service you performed, or
   (6) view your transaction history.
   Your owner funds your wallet and sets strict spending limits; you spend from it.
-url: https://creditclaw.com
+homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 ---
 
