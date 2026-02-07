@@ -30,7 +30,7 @@ You can also generate Stripe-hosted payment links to charge humans for services 
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
 5. Your wallet activates and a virtual card is issued
 6. You poll GET /wallet/check periodically to monitor balance
-7. You fetch GET /wallet/spending to check your spending permissions
+7. You check GET /wallet/spending for your owner's permission rules
 8. You spend using your card details from GET /wallet/card
 9. When balance is low, you request a top-up or generate a payment link
 10. Human monitors activity from creditclaw.com/dashboard
@@ -167,9 +167,10 @@ Response:
 }
 ```
 
-### 5. Check Spending Permissions (Before Any Purchase)
+### 5. Check Spending Permissions (Before Every Purchase)
 
-Before making any purchase, fetch your owner's spending rules:
+Before any purchase, fetch your spending rules. Your owner controls this file
+and can update it anytime from their dashboard.
 
 ```bash
 curl https://api.creditclaw.com/v1/wallet/spending \
@@ -198,23 +199,18 @@ Response:
     "cash_advances"
   ],
   "recurring_allowed": false,
-  "owner_notes": "Prefer free tiers before paying for premium. Don't sign up for annual plans without asking me first."
+  "notes": "Prefer free tiers before paying. Always check for discount codes. No annual plans without asking me first.",
+  "updated_at": "2026-02-06T18:00:00Z"
 }
 ```
 
-**How to interpret `approval_mode`:**
-
-| Mode | Behavior |
-|------|----------|
-| `ask_for_everything` | Request owner approval before every purchase |
-| `auto_approve_under_threshold` | Spend freely up to `ask_approval_above_usd`; ask above that |
-| `auto_approve_by_category` | Spend freely on `approved_categories` within limits; ask for all others |
-
-**Rules:**
-- If a category is in `blocked_categories`, **never** attempt the purchase.
-- If `recurring_allowed` is `false`, do not commit to subscriptions without asking.
-- Always read and follow `owner_notes` — these are direct instructions from your human.
-- Fetch spending permissions at least once per session, or before any purchase over $10.
+**You must follow these rules:**
+- If `approval_mode` is `ask_for_everything`, send a top-up request or message your owner before any purchase.
+- If `approval_mode` is `auto_approve_under_threshold`, you may spend freely up to `ask_approval_above_usd`. Anything above that requires owner approval.
+- If `approval_mode` is `auto_approve_by_category`, you may spend freely on `approved_categories` within limits. All others require approval.
+- **Never** spend on `blocked_categories`. These are hard blocks enforced at both the bot level and card level.
+- Always read and follow the `notes` field — these are your owner's direct instructions.
+- Cache this for up to 30 minutes. Do not fetch before every micro-purchase.
 
 Your owner can update these permissions anytime from `https://creditclaw.com/dashboard`.
 A template of the default permissions is available at `https://creditclaw.com/spending.md`.
@@ -360,7 +356,7 @@ All endpoints require `Authorization: Bearer <api_key>` header (except register)
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. |
 | GET | `/wallet/check` | Lightweight heartbeat: balance, card status, limits. |
 | GET | `/wallet` | Full wallet details including card metadata. |
-| GET | `/wallet/spending` | Spending permissions: approval mode, limits, categories, owner notes. |
+| GET | `/wallet/spending` | Get spending permissions and rules set by owner. |
 | GET | `/wallet/card` | Full card number, CVV, expiry, billing address. |
 | POST | `/wallet/topup-request` | Ask owner to add funds. Sends Stripe Checkout link. |
 | POST | `/payments/create-link` | Generate a payment link to charge anyone. |
