@@ -7,6 +7,7 @@ export const bots = pgTable("bots", {
   botName: text("bot_name").notNull(),
   description: text("description"),
   ownerEmail: text("owner_email").notNull(),
+  ownerUid: text("owner_uid"),
   apiKeyHash: text("api_key_hash").notNull(),
   apiKeyPrefix: text("api_key_prefix").notNull(),
   claimToken: text("claim_token").unique(),
@@ -21,6 +22,10 @@ export const registerBotRequestSchema = z.object({
   owner_email: z.string().email(),
   description: z.string().max(500).optional(),
   callback_url: z.string().url().optional(),
+});
+
+export const claimBotRequestSchema = z.object({
+  claim_token: z.string().min(1),
 });
 
 export type Bot = typeof bots.$inferSelect;
