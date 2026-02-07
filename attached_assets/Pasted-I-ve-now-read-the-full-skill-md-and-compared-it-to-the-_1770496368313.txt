@@ -1,0 +1,49 @@
+I've now read the full skill.md and compared it to the actual API routes. Here's what I found:
+
+URL Issues (wrong base URL pattern):
+
+The skill.md uses https://api.creditclaw.com/v1/... (subdomain style) throughout, but the actual API lives at https://creditclaw.com/api/v1/.... For example:
+
+Skill.md says: https://api.creditclaw.com/v1/bots/register
+Actual route: https://creditclaw.com/api/v1/bots/register
+This is wrong in every curl example and the API reference table.
+
+Bot-facing endpoint paths are wrong:
+
+The skill.md uses /wallet/check, /wallet/spending, /wallet/transactions, etc. But the actual routes are under /bot/wallet/...:
+
+Skill.md: GET /wallet/check → Actual: GET /bot/wallet/check
+Skill.md: GET /wallet/spending → Actual: GET /bot/wallet/spending
+Skill.md: GET /wallet/transactions → Actual: GET /bot/wallet/transactions
+Skill.md: POST /wallet/topup-request → Actual: POST /bot/wallet/topup-request
+Skill.md: POST /payments/create-link → Actual: POST /bot/payments/create-link
+Endpoints that don't exist (yet):
+
+GET /wallet — full wallet details with card metadata. No such route exists currently.
+GET /wallet/card — returns actual card number, CVV, expiry. This endpoint doesn't exist because virtual card issuance (Stripe Issuing) hasn't been implemented yet. The whole Section 6 ("Get Card Number") describes functionality that isn't built.
+Content accuracy issues:
+
+The description says "Virtual wallet and prepaid payment card service" and "CreditClaw issues you a virtual Visa/Mastercard" — but the current system is a wallet debit model, not actual virtual cards. Virtual cards are listed as "coming soon" throughout the rest of the site.
+Section 4 ("Get Full Wallet & Card Details") describes card objects with card_id, brand, last4, etc. — none of this exists.
+The "End-to-End Flow" step 8 says "You spend using your card details from GET /wallet/card" — the actual purchase flow is POST /bot/wallet/purchase (a direct wallet debit), not card-based.
+Section 2 says claiming includes "a virtual card is issued" — it doesn't; it just activates the wallet.
+The important rules section says "Your card is real. It works anywhere Visa/Mastercard is accepted online" — this isn't true yet.
+Rate limit discrepancies:
+
+Skill.md says registration rate limit is "3 per IP per hour, 10 per IP per 24 hours" — the actual code only has 3 per hour, no 24-hour limit.
+Skill.md says /wallet/check rate limit is "Max 1 request per 10 minutes" — the actual rate limit (from withBotApi middleware) is 6/hr for check/spending endpoints.
+Missing from skill.md:
+
+The POST /bot/wallet/purchase endpoint (how bots actually spend money) isn't documented at all in the API reference table.
+The pairing code / owner-first flow isn't mentioned as an alternative registration path.
+No mention of callback_url as an optional registration field in the request example (though webhooks are mentioned later).
+The webhook_secret returned during registration (when callback_url is provided) isn't documented.
+Things that are accurate:
+
+Registration request schema (bot_name, owner_email, description)
+Registration response format
+Spending permissions response format
+Webhook event names
+Claim token flow description (minus the card issuance part)
+Error response codes
+So in summary: the URLs are all wrong (subdomain vs path), the bot endpoint paths are missing the /bot/ prefix, and there's a significant amount of aspirational content about virtual cards that doesn't match the current wallet-debit reality. Want me to go ahead and fix all of this?
