@@ -41,6 +41,22 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
     );
   }
 
+  if (wallet.isFrozen) {
+    fireWebhook(bot, "wallet.spend.declined", {
+      reason: "wallet_frozen",
+      amount_usd: amount_cents / 100,
+      merchant,
+      category: category || null,
+    }).catch(() => {});
+    if (bot.ownerUid) {
+      notifySuspicious(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, "Wallet is frozen", amount_cents, merchant).catch(() => {});
+    }
+    return NextResponse.json(
+      { error: "wallet_frozen", message: "This wallet is frozen by the owner. No spending is allowed until it is unfrozen." },
+      { status: 403 }
+    );
+  }
+
   if (wallet.balanceCents < amount_cents) {
     fireWebhook(bot, "wallet.spend.declined", {
       reason: "insufficient_funds",

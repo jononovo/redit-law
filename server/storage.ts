@@ -90,6 +90,10 @@ export interface IStorage {
 
   addWaitlistEntry(data: InsertWaitlistEntry): Promise<WaitlistEntry>;
   getWaitlistEntryByEmail(email: string): Promise<WaitlistEntry | null>;
+
+  freezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
+  unfreezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
+  getWalletsWithBotsByOwnerUid(ownerUid: string): Promise<(Wallet & { botName: string; botId: string })[]>;
 }
 
 export const storage: IStorage = {
@@ -608,5 +612,43 @@ export const storage: IStorage = {
   async getWaitlistEntryByEmail(email: string): Promise<WaitlistEntry | null> {
     const [entry] = await db.select().from(waitlistEntries).where(eq(waitlistEntries.email, email)).limit(1);
     return entry || null;
+  },
+
+  async freezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null> {
+    const [updated] = await db
+      .update(wallets)
+      .set({ isFrozen: true, updatedAt: new Date() })
+      .where(and(eq(wallets.id, walletId), eq(wallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async unfreezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null> {
+    const [updated] = await db
+      .update(wallets)
+      .set({ isFrozen: false, updatedAt: new Date() })
+      .where(and(eq(wallets.id, walletId), eq(wallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async getWalletsWithBotsByOwnerUid(ownerUid: string): Promise<(Wallet & { botName: string; botId: string })[]> {
+    const results = await db
+      .select({
+        id: wallets.id,
+        botId: wallets.botId,
+        ownerUid: wallets.ownerUid,
+        balanceCents: wallets.balanceCents,
+        currency: wallets.currency,
+        isFrozen: wallets.isFrozen,
+        createdAt: wallets.createdAt,
+        updatedAt: wallets.updatedAt,
+        botName: bots.botName,
+      })
+      .from(wallets)
+      .innerJoin(bots, eq(wallets.botId, bots.botId))
+      .where(eq(wallets.ownerUid, ownerUid))
+      .orderBy(desc(wallets.createdAt));
+    return results;
   },
 };

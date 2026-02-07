@@ -84,6 +84,21 @@ CreditClaw is a prepaid spending controls platform for AI agents within the Open
   - Owner dashboard: `GET /api/v1/payment-links` (session-auth), PaymentLinksPanel component with status badges and earnings total.
   - Reconciliation updated to count `payment_received` as credits alongside `topup`.
   - Key files: `app/api/v1/bot/payments/create-link/route.ts`, `app/api/v1/bot/payments/links/route.ts`, `app/api/v1/webhooks/stripe/route.ts`, `app/api/v1/payment-links/route.ts`, `components/dashboard/payment-links.tsx`.
+- **Open Access & Waitlist (Phase 9):**
+  - `waitlist_entries` table with email (unique), source, createdAt.
+  - `POST /api/v1/waitlist` with validation, rate limiting (5/hr per IP), deduplication.
+  - Hero + footer waitlist forms submit to API, show decision modal with two paths: "Let me try it now" (→ onboarding) or "Keep me on the waitlist" (→ confirmation).
+  - All landing page and onboarding wizard copy updated to reflect "add your own card + spending controls" model, virtual cards = coming soon.
+  - Key files: `app/api/v1/waitlist/route.ts`, `components/hero.tsx`, `components/waitlist-form.tsx`.
+- **Wallet Freeze & Dynamic Cards (Phase 9B):**
+  - `is_frozen` boolean column on `wallets` table (default false).
+  - `freezeWallet`/`unfreezeWallet` storage methods (owner-scoped).
+  - `GET /api/v1/wallets` returns wallets+bot data for authenticated owner.
+  - `POST /api/v1/wallets/[id]/freeze` toggles frozen state (session-auth, owner-scoped).
+  - Purchase endpoint rejects spends on frozen wallets with `wallet_frozen` error, webhook, and owner alert.
+  - `CardVisual` component accepts `frozen` prop with grayscale + "FROZEN" badge overlay.
+  - Cards page now dynamic: fetches real wallets from API, Freeze button with optimistic toggle + toast, Limits button opens spending permissions dialog, "..." dropdown with View Transactions and Copy Bot ID.
+  - Key files: `app/api/v1/wallets/route.ts`, `app/api/v1/wallets/[id]/freeze/route.ts`, `app/app/cards/page.tsx`, `components/dashboard/card-visual.tsx`.
 - **Onboarding Wizard (Phase 8):**
   - Guided 12-screen wizard at `/onboarding` for new bot owners to complete full setup in one sitting.
   - Two entry paths: "bot-first" (owner has claim token from bot registration) and "owner-first" (owner generates 6-digit pairing code for bot to use during registration).

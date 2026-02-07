@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Snowflake } from "lucide-react";
 
 interface CardVisualProps {
   color?: "primary" | "dark" | "blue" | "purple";
@@ -6,6 +7,7 @@ interface CardVisualProps {
   expiry?: string;
   holder?: string;
   balance?: string;
+  frozen?: boolean;
   className?: string;
 }
 
@@ -15,6 +17,7 @@ export function CardVisual({
   expiry = "12/28", 
   holder = "OPENCLAW AGENT 01",
   balance = "$5,000.00",
+  frozen = false,
   className 
 }: CardVisualProps) {
   
@@ -27,12 +30,23 @@ export function CardVisual({
 
   return (
     <div className={cn(
-      "relative aspect-[1.586/1] rounded-2xl p-6 text-white shadow-xl overflow-hidden flex flex-col justify-between select-none transition-transform hover:scale-[1.02]",
+      "relative aspect-[1.586/1] rounded-2xl p-6 text-white shadow-xl overflow-hidden flex flex-col justify-between select-none transition-all",
       gradients[color],
+      frozen && "grayscale opacity-70",
+      !frozen && "hover:scale-[1.02]",
       className
     )}>
       <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
       <div className="absolute -top-[100%] -left-[100%] w-[300%] h-[300%] bg-gradient-to-br from-white/20 via-transparent to-transparent rotate-45 pointer-events-none" />
+
+      {frozen && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+          <div className="flex items-center gap-2 bg-white/90 text-neutral-800 px-4 py-2 rounded-full shadow-lg font-bold text-sm">
+            <Snowflake className="w-4 h-4 text-blue-500" />
+            FROZEN
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex justify-between items-start">
         <div className="flex flex-col">

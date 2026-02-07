@@ -407,6 +407,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/wallets/[id]/freeze/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallets/[id]/freeze">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/wallets/[id]/freeze/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/wallets/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallets">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/wallets/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/webhooks/health/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/webhooks/health">> = Specific

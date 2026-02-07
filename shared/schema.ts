@@ -24,6 +24,7 @@ export const wallets = pgTable("wallets", {
   ownerUid: text("owner_uid").notNull(),
   balanceCents: integer("balance_cents").notNull().default(0),
   currency: text("currency").notNull().default("usd"),
+  isFrozen: boolean("is_frozen").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
