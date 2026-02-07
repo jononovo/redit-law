@@ -7,7 +7,8 @@ export type NotificationType =
   | "topup_request"
   | "topup_completed"
   | "suspicious"
-  | "wallet_activated";
+  | "wallet_activated"
+  | "payment_received";
 
 interface NotifyOwnerOpts {
   ownerUid: string;
@@ -152,6 +153,29 @@ export async function notifyTopupCompleted(
     botId,
     shouldNotify: (prefs) => prefs.inAppEnabled && prefs.transactionAlerts,
     shouldEmail: () => false,
+  });
+}
+
+export async function notifyPaymentReceived(
+  ownerUid: string,
+  ownerEmail: string,
+  botName: string,
+  botId: string,
+  amountCents: number,
+  description: string,
+): Promise<void> {
+  const amountUsd = (amountCents / 100).toFixed(2);
+
+  await notifyOwner({
+    ownerUid,
+    ownerEmail,
+    type: "payment_received",
+    title: `${botName} received $${amountUsd}`,
+    body: `${botName} received a $${amountUsd} payment for: ${description}.`,
+    botId,
+    shouldNotify: (prefs) => prefs.inAppEnabled && prefs.transactionAlerts,
+    shouldEmail: (prefs) => prefs.emailEnabled && prefs.transactionAlerts,
+    emailFn: async () => {},
   });
 }
 

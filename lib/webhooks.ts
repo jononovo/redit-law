@@ -17,7 +17,8 @@ export type WebhookEventType =
   | "wallet.topup.completed"
   | "wallet.spend.authorized"
   | "wallet.spend.declined"
-  | "wallet.balance.low";
+  | "wallet.balance.low"
+  | "wallet.payment.received";
 
 interface WebhookPayload {
   event: WebhookEventType;
