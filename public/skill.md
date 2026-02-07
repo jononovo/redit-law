@@ -11,7 +11,7 @@ description: >
   (5) generate a payment link to charge anyone for a service you performed, or
   (6) view your transaction history.
   Your owner funds your wallet and sets strict spending limits; you spend from it.
-homepage: https://creditclaw.com
+url: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 ---
 
