@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -31,14 +32,94 @@ interface SpendingLimits {
 
 const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["primary", "blue", "purple", "dark"];
 
+function LimitsPopover({ botId, cardId }: { botId: string; cardId: number }) {
+  const [limits, setLimits] = useState<SpendingLimits | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  async function loadLimits() {
+    if (fetched) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/bots/spending?bot_id=${botId}`);
+      if (res.ok) {
+        setLimits(await res.json());
+      }
+    } catch {
+    } finally {
+      setLoading(false);
+      setFetched(true);
+    }
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          className="flex-1 text-xs gap-2 text-neutral-600"
+          onClick={loadLimits}
+          data-testid={`button-limits-${cardId}`}
+        >
+          <Shield className="w-4 h-4" /> Limits
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" side="top" align="start">
+        {loading ? (
+          <div className="flex justify-center py-6" data-testid="loading-limits">
+            <Loader2 className="w-5 h-5 animate-spin text-neutral-400" />
+          </div>
+        ) : limits ? (
+          <div className="p-4 space-y-3" data-testid="limits-details">
+            <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider">Spending Limits</p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-neutral-500">Per transaction</span>
+                <span className="text-sm font-bold text-neutral-900" data-testid="text-limit-per-tx">${limits.per_transaction_usd.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-neutral-500">Daily</span>
+                <span className="text-sm font-bold text-neutral-900" data-testid="text-limit-daily">${limits.daily_usd.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-neutral-500">Monthly</span>
+                <span className="text-sm font-bold text-neutral-900" data-testid="text-limit-monthly">${limits.monthly_usd.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-neutral-100 pt-2 flex justify-between items-center">
+                <span className="text-xs text-neutral-500">Approval</span>
+                <span className="text-xs font-semibold text-neutral-700" data-testid="text-approval-mode">
+                  {limits.approval_mode === "ask_for_everything" ? "Ask every time" :
+                   limits.approval_mode === "auto_approve_under_threshold" ? "Auto under threshold" :
+                   "Auto by category"}
+                </span>
+              </div>
+            </div>
+            {limits.blocked_categories.length > 0 && (
+              <div className="border-t border-neutral-100 pt-2">
+                <p className="text-xs text-neutral-400 mb-1.5">Blocked</p>
+                <div className="flex flex-wrap gap-1">
+                  {limits.blocked_categories.map((cat) => (
+                    <span key={cat} className="bg-red-50 text-red-600 text-[10px] font-medium px-2 py-0.5 rounded-full" data-testid={`badge-blocked-${cat}`}>
+                      {cat.replace(/_/g, " ")}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-neutral-400 text-xs p-4" data-testid="text-limits-error">Could not load limits.</p>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function CardsPage() {
   const { toast } = useToast();
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [freezingIds, setFreezingIds] = useState<Set<number>>(new Set());
-  const [limitsModal, setLimitsModal] = useState<{ open: boolean; botId: string; botName: string }>({ open: false, botId: "", botName: "" });
-  const [limits, setLimits] = useState<SpendingLimits | null>(null);
-  const [limitsLoading, setLimitsLoading] = useState(false);
 
   const fetchCards = useCallback(async () => {
     try {
@@ -87,21 +168,6 @@ export default function CardsPage() {
         next.delete(card.id);
         return next;
       });
-    }
-  }
-
-  async function handleOpenLimits(botId: string, botName: string) {
-    setLimitsModal({ open: true, botId, botName });
-    setLimitsLoading(true);
-    setLimits(null);
-    try {
-      const res = await fetch(`/api/v1/bots/spending?bot_id=${botId}`);
-      if (res.ok) {
-        setLimits(await res.json());
-      }
-    } catch {
-    } finally {
-      setLimitsLoading(false);
     }
   }
 
@@ -175,14 +241,7 @@ export default function CardsPage() {
                 frozen={card.isFrozen}
               />
               <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
-                <Button
-                  variant="ghost"
-                  className="flex-1 text-xs gap-2 text-neutral-600"
-                  onClick={() => handleOpenLimits(card.botId, card.botName)}
-                  data-testid={`button-limits-${card.id}`}
-                >
-                  <Shield className="w-4 h-4" /> Limits
-                </Button>
+                <LimitsPopover botId={card.botId} cardId={card.id} />
                 <div className="w-px bg-neutral-100 my-1" />
                 <Button
                   variant="ghost"
@@ -218,61 +277,6 @@ export default function CardsPage() {
           ))}
         </div>
       )}
-
-      <Dialog open={limitsModal.open} onOpenChange={(open) => setLimitsModal((s) => ({ ...s, open }))}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Spending Limits — {limitsModal.botName}</DialogTitle>
-            <DialogDescription>
-              Current spending rules for this bot. Edit them from the dashboard overview.
-            </DialogDescription>
-          </DialogHeader>
-          {limitsLoading ? (
-            <div className="flex justify-center py-8" data-testid="loading-limits">
-              <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
-            </div>
-          ) : limits ? (
-            <div className="space-y-4 py-2" data-testid="limits-details">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-neutral-50 rounded-xl p-4">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-1">Per Transaction</p>
-                  <p className="text-lg font-bold text-neutral-900" data-testid="text-limit-per-tx">${limits.per_transaction_usd.toFixed(2)}</p>
-                </div>
-                <div className="bg-neutral-50 rounded-xl p-4">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-1">Daily Limit</p>
-                  <p className="text-lg font-bold text-neutral-900" data-testid="text-limit-daily">${limits.daily_usd.toFixed(2)}</p>
-                </div>
-                <div className="bg-neutral-50 rounded-xl p-4">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-1">Monthly Limit</p>
-                  <p className="text-lg font-bold text-neutral-900" data-testid="text-limit-monthly">${limits.monthly_usd.toFixed(2)}</p>
-                </div>
-                <div className="bg-neutral-50 rounded-xl p-4">
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-1">Approval Mode</p>
-                  <p className="text-sm font-semibold text-neutral-900" data-testid="text-approval-mode">
-                    {limits.approval_mode === "ask_for_everything" ? "Ask every time" :
-                     limits.approval_mode === "auto_approve_under_threshold" ? "Auto under threshold" :
-                     "Auto by category"}
-                  </p>
-                </div>
-              </div>
-              {limits.blocked_categories.length > 0 && (
-                <div>
-                  <p className="text-xs text-neutral-400 uppercase tracking-wider mb-2">Blocked Categories</p>
-                  <div className="flex flex-wrap gap-2">
-                    {limits.blocked_categories.map((cat) => (
-                      <span key={cat} className="bg-red-50 text-red-600 text-xs font-medium px-3 py-1 rounded-full" data-testid={`badge-blocked-${cat}`}>
-                        {cat.replace(/_/g, " ")}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-neutral-400 text-sm py-4" data-testid="text-limits-error">Could not load spending limits.</p>
-          )}
-        </DialogContent>
-      </Dialog>
 
     </div>
   );
