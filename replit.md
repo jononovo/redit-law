@@ -1,26 +1,9 @@
 # CreditClaw.com
 
 ## Overview
-CreditClaw is a prepaid virtual credit card platform for AI agents, built for the OpenClaw ecosystem. Bot owners fund wallets with allowances, and their AI agents spend responsibly using virtual Visa/Mastercard cards. Bots register before their humans, receive API keys and claim tokens, then access their wallets after human activation.
+CreditClaw is a prepaid virtual credit card platform for AI agents within the OpenClaw ecosystem. It enables bot owners to fund wallets, allowing their AI agents to make controlled expenditures using virtual Visa/Mastercard cards. The platform supports bot registration, API key issuance, and a human activation process to link agents to their funded wallets.
 
-The platform has two main surfaces:
-- **Consumer landing page** — waitlist, features, live metrics, 3D clay lobster branding
-- **Dashboard application** — manage virtual cards, view transactions, control spending
-
-**Current State:** Production Next.js 16 app with App Router, deployed on Replit. Firebase authentication (Google, GitHub, magic link), protected dashboard, bot-facing skill files, live bot registration API, owner claim flow, Stripe wallet funding, and real transaction history.
-
-## Recent Changes
-- **Feb 7, 2026:** Phase 3 — Stripe Wallet Funding. Added wallets, transactions, payment_methods tables. Stripe integration for payment setup (SetupIntent + Elements). Billing API (setup-intent, payment-method CRUD). Wallet API (fund via PaymentIntent, balance, transaction history). FundModal with preset/custom amounts. Dashboard shows wallet balance, Add Funds card. Transactions page wired to real data. Settings page has Stripe card setup.
-- **Feb 7, 2026:** Phase 2 — Owner Claim Flow built. `/claim` page with token input, auth gate, and success state. `POST /api/v1/bots/claim` links bot to Firebase UID, activates wallet, nullifies claim token. `GET /api/v1/bots/mine` returns authenticated user's bots. Dashboard overview now shows real bot data (total, active, pending counts + bot cards). AuthDrawer refactored to support controlled mode.
-- **Feb 7, 2026:** Phase 1 — Bot Registration API built. `POST /api/v1/bots/register` accepts bot name, owner email, description. Returns API key (bcrypt-hashed in DB), claim token, and verification URL. Sends owner notification email via SendGrid. PostgreSQL database with Drizzle ORM. Rate limiting (3 registrations/hour/IP).
-- **Feb 2026:** Moved OG/social images to dedicated `public/og/` folder, archived pink variants in `public/og/og-pink/`
-- **Feb 2026:** Set favicon to golden claw chip logo (`logo-claw-chip.png`)
-- **Feb 2026:** Generated black card OG images matching landing page style
-- **Feb 2026:** Fixed deployment config — changed run command from old Express (`node ./dist/index.cjs`) to Next.js (`npm run start`)
-- **Feb 2026:** Implemented Firebase authentication with server-side session cookies
-- **Feb 2026:** Converted from Vite/React to Next.js 16 with App Router
-- **Feb 2026:** Created dashboard (Overview, Cards, Transactions, Settings)
-- **Feb 2026:** Added bot-facing docs: skill.md, heartbeat.md, spending.md
+The platform provides two main interfaces: a consumer-facing landing page featuring a waitlist and project branding, and a dashboard application for owners to manage virtual cards, monitor transactions, and control agent spending. The project aims to provide a robust and secure spending mechanism for AI agents.
 
 ## User Preferences
 - **Design theme:** "Fun Consumer" — 3D clay/claymation aesthetic, coral lobster mascot, bright pastels (orange/blue/purple)
@@ -31,157 +14,36 @@ The platform has two main surfaces:
 - **No Vite, no standalone React** — everything runs through Next.js
 - All interactive components marked with `"use client"` directive
 
-## Project Architecture
+## System Architecture
 
-### Stack
-- **Framework:** Next.js 16 with App Router
-- **Auth:** Firebase Auth (client SDK) + Firebase Admin SDK (server) + httpOnly session cookies (5-day expiry)
-- **Database:** PostgreSQL (Replit built-in) + Drizzle ORM
-- **Payments:** Stripe (stripe, @stripe/stripe-js, @stripe/react-stripe-js)
-- **Email:** SendGrid (@sendgrid/mail)
-- **Styling:** Tailwind CSS v4 with PostCSS
-- **UI Components:** shadcn/ui (Radix primitives)
-- **Fonts:** Plus Jakarta Sans + JetBrains Mono (via next/font/google)
-- **State:** React Query (@tanstack/react-query)
-- **Deployment:** Replit (build: `npm run build`, run: `npm run start`)
+CreditClaw is built as a Next.js 16 application utilizing the App Router. It follows a robust architectural pattern to manage both consumer-facing and bot-facing functionalities.
 
-### File Structure
-```
-app/                    # Next.js App Router
-  layout.tsx            # Root layout (fonts, providers, metadata/OG tags)
-  providers.tsx         # Client providers wrapper (Auth, Query, Tooltip, Toaster)
-  page.tsx              # Landing page (/, consumer-facing)
-  globals.css           # Global styles, theme variables, animations
-  not-found.tsx         # 404 page
-  api/auth/session/     # Auth API route (POST create, GET check, DELETE destroy)
-    route.ts
-  api/v1/bots/register/ # Bot registration API (POST)
-    route.ts
-  api/v1/bots/claim/    # Owner claim API (POST, authenticated)
-    route.ts
-  api/v1/bots/mine/     # Get user's bots (GET, authenticated)
-    route.ts
-  api/v1/billing/setup-intent/ # Stripe SetupIntent (POST, authenticated)
-    route.ts
-  api/v1/billing/payment-method/ # Payment method CRUD (GET/POST/DELETE, authenticated)
-    route.ts
-  api/v1/wallet/fund/   # Fund wallet (POST, authenticated)
-    route.ts
-  api/v1/wallet/balance/ # Wallet balance (GET, authenticated)
-    route.ts
-  api/v1/wallet/transactions/ # Transaction history (GET, authenticated)
-    route.ts
-  claim/                # Claim page (enter token, link bot to account)
-    page.tsx
-  app/                  # Dashboard section (protected by auth)
-    layout.tsx          # Dashboard layout (sidebar + header + auth guard)
-    page.tsx            # Overview dashboard
-    cards/page.tsx      # Card management
-    transactions/page.tsx # Transaction history
-    settings/page.tsx   # Account settings
+**Core Technologies:**
+-   **Frontend Framework:** Next.js 16 (App Router)
+-   **Authentication:** Firebase Auth (client SDK) and Firebase Admin SDK (server) with httpOnly session cookies.
+-   **Database:** PostgreSQL with Drizzle ORM for schema management.
+-   **Payments:** Stripe integration for wallet funding and payment method management.
+-   **Email Services:** SendGrid for transactional emails.
+-   **Styling:** Tailwind CSS v4 with PostCSS for a "Fun Consumer" design theme, featuring 3D clay aesthetics, a coral lobster mascot, and bright pastel colors. UI components are built using shadcn/ui (Radix primitives).
+-   **State Management:** React Query for server state.
+-   **Deployment:** Replit.
 
-components/             # Shared components
-  nav.tsx               # Landing page navigation (auth-aware)
-  auth-drawer.tsx       # Sign-in drawer (Google, GitHub, magic link)
-  hero.tsx              # Hero section with waitlist
-  features.tsx          # Feature cards section
-  live-metrics.tsx      # Animated counters section
-  waitlist-form.tsx     # Footer waitlist form
-  transaction-ledger.tsx # Landing page mini transaction list
-  query-provider.tsx    # React Query provider (client component)
-  ui/                   # shadcn/ui components
-  dashboard/            # Dashboard-specific components
-    sidebar.tsx         # Left sidebar navigation (auth-aware, logout)
-    header.tsx          # Top header with search (shows user info)
-    card-visual.tsx     # Credit card visual component
-    bot-card.tsx        # Bot card component (name, status, dates)
-    transaction-ledger.tsx # Dashboard transaction table
-    payment-setup.tsx   # Stripe Elements card setup (SetupIntent flow)
-    fund-modal.tsx      # Fund wallet modal (preset/custom amounts)
+**Key Features and Implementations:**
+-   **Bot Registration & Claim:** Bots register first, receiving API keys and claim tokens. Owners then use a `/claim` flow to link bots to their accounts.
+-   **Wallet System:** Owners fund wallets via Stripe. Each bot has a dedicated wallet, created upon owner claim.
+-   **Spending Control:** Owners define granular spending permissions (per-transaction, daily, monthly limits, category blocking, approval modes) via a dashboard editor. These rules are enforced server-side.
+-   **Transaction Management:** Comprehensive transaction history is available for both owners and bots.
+-   **API Design:** A dual API structure is used:
+    -   **Owner-facing APIs:** Secured by Firebase session authentication for managing bots, wallets, and spending rules.
+    -   **Bot-facing APIs:** Secured by Bearer API token authentication for actions like balance checks, spending requests, purchases, and top-up requests. API keys are bcrypt-hashed and use prefix-based lookup for security.
+-   **UI/UX:** The application features a clean, intuitive dashboard for owners and a consumer landing page. The design incorporates a "Fun Consumer" aesthetic with a coral lobster mascot and a specific color palette (`--primary`: Orange, `--secondary`: Blue, `--accent`: Purple). Global border-radius is set to 1rem.
 
-shared/                 # Shared types and schemas
-  schema.ts             # Drizzle ORM schema (bots, wallets, transactions, payment_methods) + Zod validation
+## External Dependencies
 
-server/                 # Server-side data layer
-  db.ts                 # Drizzle database connection (PostgreSQL)
-  storage.ts            # IStorage interface + DatabaseStorage implementation
-
-hooks/                  # Custom React hooks
-  use-toast.ts          # Toast notification hook
-  use-mobile.tsx        # Mobile breakpoint hook
-
-lib/                    # Utilities and services
-  utils.ts              # cn() helper
-  crypto.ts             # API key generation, claim token generation, bcrypt hashing
-  email.ts              # SendGrid email helper (owner notification on bot registration)
-  stripe.ts             # Stripe server-side helper (init, setupIntent, charge)
-  firebase/client.ts    # Firebase client SDK init (public env vars)
-  firebase/admin.ts     # Firebase Admin SDK init (private env vars, server-only)
-  auth/auth-context.tsx # AuthProvider + useAuth() hook
-  auth/session.ts       # Server-side session cookie helpers
-
-public/og/              # Social sharing images (OG, Twitter, square)
-  og-pink/              # Archived pink card variants
-public/images/          # Static assets (logos, avatars, card images)
-public/skill.md         # Bot-facing API skill file
-public/heartbeat.md     # Bot polling routine
-public/spending.md      # Default spending permissions template
-
-docs/                   # Internal documentation
-  brand.md              # Brand identity guidelines
-  creditclaw-internal-context.md  # Full developer context (ecosystem, architecture, schema)
-
-next.config.ts          # Next.js configuration
-postcss.config.mjs      # PostCSS with @tailwindcss/postcss
-tsconfig.json           # TypeScript configuration
-```
-
-### Key Routes
-- `/` — Consumer landing page (waitlist, features, metrics)
-- `/claim` — Claim page (enter token to link bot to account, requires auth)
-- `/app` — Dashboard overview (real bot stats + bot cards from DB)
-- `/app/cards` — Card management (create, freeze, limits)
-- `/app/transactions` — Transaction history
-- `/app/settings` — Account settings
-
-### API Endpoints
-- `POST /api/v1/bots/register` — Bot registration (public). Returns API key, claim token, verification URL. Sends owner email via SendGrid.
-- `POST /api/v1/bots/claim` — Owner claims bot (authenticated). Accepts claim_token, links bot to Firebase UID, activates wallet.
-- `GET /api/v1/bots/mine` — Get authenticated user's bots. Returns array of bot objects.
-- `POST /api/v1/billing/setup-intent` — Create Stripe SetupIntent for saving a card (authenticated).
-- `GET /api/v1/billing/payment-method` — Get saved payment method (authenticated).
-- `POST /api/v1/billing/payment-method` — Save payment method from SetupIntent (authenticated).
-- `DELETE /api/v1/billing/payment-method` — Remove saved payment method (authenticated).
-- `POST /api/v1/wallet/fund` — Fund wallet via Stripe PaymentIntent (authenticated). Accepts amount_cents.
-- `GET /api/v1/wallet/balance` — Get wallet balance (authenticated).
-- `GET /api/v1/wallet/transactions` — Get transaction history (authenticated).
-
-### Database Schema
-- **bots** — Registered bots (bot_id, name, owner_email, owner_uid, api_key_hash, claim_token, wallet_status, claimed_at, etc.)
-- **wallets** — Bot wallets (wallet_id, bot_id, owner_uid, balance_cents, currency, created_at, updated_at)
-- **transactions** — Wallet transactions (id, wallet_id, type [topup/purchase/refund], amount_cents, description, stripe_payment_intent_id, created_at)
-- **payment_methods** — Saved Stripe payment methods (id, owner_uid, stripe_payment_method_id, card_brand, card_last4, is_default, created_at)
-
-### Environment Variables (Secrets)
-- `SENDGRID_API_KEY` — SendGrid API key for transactional emails
-- `SENDGRID_FROM_EMAIL` — Verified sender email address (defaults to noreply@creditclaw.com)
-- `STRIPE_SECRET_KEY` — Stripe secret key for server-side operations
-- `STRIPE_PUBLISHABLE_KEY` — Stripe publishable key (exposed to client via next.config.ts env)
-
-### Design Tokens (CSS Variables)
-- `--primary`: Orange (10 85% 55%)
-- `--secondary`: Blue (200 95% 60%)
-- `--accent`: Purple (260 90% 65%)
-- `--radius`: 1rem
-
-### Key Concepts
-- **Prepaid model** — not a credit line; wallets are funded by humans with allowances
-- **One bot per user, one wallet per bot** — simple 1:1:1 model
-- **Wallet created at claim time** — when owner claims a bot, the wallet row is created automatically (not a separate step)
-- **Bot-registers-first** — bots get API keys and claim tokens before human activation
-- **REST API only** — no SDK, bots interact via standard HTTP
-- **Spending permissions** — humans set allowances via checkbox format in spending.md that bots can parse
-- **Heartbeat polling** — bots check balance/spending every 30 minutes via heartbeat.md routine
-
-### Phase 4 Notes (flagged for future)
-- **Bot spending endpoint:** Use `POST /wallet/purchase` (intent pre-flight from v2), NOT the old `GET /wallet/card`. This is the correct pattern for bot-initiated purchases.
+-   **Firebase:** For user authentication (Google, GitHub, magic link) and managing user sessions.
+-   **Stripe:** Used for handling all payment processing, including setting up payment methods (SetupIntents) and funding wallets (PaymentIntents).
+-   **SendGrid:** Utilized for sending transactional emails, such as owner notifications during bot registration and top-up requests initiated by bots.
+-   **PostgreSQL:** The primary database solution for storing all application data, including bot information, wallets, transactions, payment methods, and spending permissions.
+-   **Drizzle ORM:** Used as the Object-Relational Mapper for interacting with the PostgreSQL database.
+-   **React Query (@tanstack/react-query):** For managing and caching server state.
+-   **shadcn/ui:** Provides pre-built, accessible UI components based on Radix UI primitives.
