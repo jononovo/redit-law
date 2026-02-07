@@ -1,66 +1,114 @@
 "use client";
 
-import { CardVisual } from "@/components/dashboard/card-visual";
-import { DashboardTransactionLedger } from "@/components/dashboard/transaction-ledger";
-import { ArrowUpRight, ArrowDownLeft, Wallet } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BotCard } from "@/components/dashboard/bot-card";
+import { Bot as BotIcon, Plus, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
-function StatCard({ label, value, trend, trendUp }: { label: string, value: string, trend: string, trendUp?: boolean }) {
-  return (
-    <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow" data-testid={`stat-${label.toLowerCase().replace(/\s/g, '-')}`}>
-      <div className="flex justify-between items-start">
-        <span className="text-sm font-medium text-neutral-500">{label}</span>
-        <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-            {trendUp ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
-        </div>
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-neutral-900 tracking-tight">{value}</h3>
-        <p className={`text-xs font-medium mt-1 ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-            {trend} <span className="text-neutral-400 font-normal">vs last month</span>
-        </p>
-      </div>
-    </div>
-  );
+interface BotData {
+  bot_id: string;
+  bot_name: string;
+  description: string | null;
+  wallet_status: string;
+  created_at: string;
+  claimed_at: string | null;
 }
 
 export default function DashboardOverview() {
+  const [bots, setBots] = useState<BotData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchBots() {
+      try {
+        const res = await fetch("/api/v1/bots/mine");
+        if (res.ok) {
+          const data = await res.json();
+          setBots(data.bots || []);
+        }
+      } catch {
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBots();
+  }, []);
+
+  const activeBots = bots.filter((b) => b.wallet_status === "active");
+  const pendingBots = bots.filter((b) => b.wallet_status === "pending");
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
-      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatCard label="Total Balance" value="$12,450.00" trend="+12%" trendUp={true} />
-          <StatCard label="Monthly Spend" value="$3,240.50" trend="+5%" trendUp={false} />
-          <StatCard label="Active Cards" value="3 Active" trend="+1" trendUp={true} />
+        <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-total-bots">
+          <span className="text-sm font-medium text-neutral-500">Total Bots</span>
+          <h3 className="text-2xl font-bold text-neutral-900 tracking-tight mt-2">
+            {loading ? "—" : bots.length}
+          </h3>
+        </div>
+        <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-active-bots">
+          <span className="text-sm font-medium text-neutral-500">Active Wallets</span>
+          <h3 className="text-2xl font-bold text-green-600 tracking-tight mt-2">
+            {loading ? "—" : activeBots.length}
+          </h3>
+        </div>
+        <div className="bg-white p-6 rounded-xl border border-neutral-100 shadow-sm" data-testid="stat-pending-bots">
+          <span className="text-sm font-medium text-neutral-500">Pending Claim</span>
+          <h3 className="text-2xl font-bold text-amber-600 tracking-tight mt-2">
+            {loading ? "—" : pendingBots.length}
+          </h3>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          <div className="lg:col-span-1 flex flex-col gap-6">
-              <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-lg text-neutral-900">My Cards</h3>
-                  <button className="text-sm font-medium text-primary hover:text-primary/80" data-testid="link-view-all-cards">View All</button>
-              </div>
-              
-              <CardVisual className="w-full shadow-2xl shadow-primary/20" />
-              
-              <div className="bg-neutral-900 text-white p-6 rounded-2xl flex items-center justify-between relative overflow-hidden group cursor-pointer" data-testid="card-add-funds">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="relative z-10">
-                      <h4 className="font-bold">Add Funds</h4>
-                      <p className="text-sm text-neutral-400">Top up your balance instantly</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative z-10 group-hover:bg-white/20 transition-colors">
-                      <Wallet className="w-5 h-5 text-white" />
-                  </div>
-              </div>
-          </div>
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-neutral-900">My Bots</h2>
+        </div>
 
-          <div className="lg:col-span-2">
-              <DashboardTransactionLedger />
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
           </div>
-
+        ) : bots.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center" data-testid="empty-bots">
+            <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+              <BotIcon className="w-8 h-8 text-neutral-400" />
+            </div>
+            <h3 className="font-bold text-neutral-900 text-lg mb-2">No bots yet</h3>
+            <p className="text-sm text-neutral-500 mb-6 max-w-sm mx-auto">
+              When your bots register via the API, you&apos;ll receive a claim token by email. Use it to link the bot to your account.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Link href="/claim">
+                <Button variant="outline" className="rounded-xl gap-2" data-testid="button-claim-bot-empty">
+                  <Plus className="w-4 h-4" />
+                  Claim a Bot
+                </Button>
+              </Link>
+              <Link href="/skill.md" target="_blank">
+                <Button variant="ghost" className="rounded-xl text-neutral-500" data-testid="link-api-docs">
+                  View API Docs
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {bots.map((bot) => (
+              <BotCard
+                key={bot.bot_id}
+                botName={bot.bot_name}
+                botId={bot.bot_id}
+                description={bot.description}
+                walletStatus={bot.wallet_status}
+                createdAt={bot.created_at}
+                claimedAt={bot.claimed_at}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
     </div>
   );
 }

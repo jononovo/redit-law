@@ -309,14 +309,16 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-function AuthDrawer({ children }) {
+function AuthDrawer({ children, open: controlledOpen, onOpenChange }) {
     _s();
     const { signInWithGoogle, signInWithGithub, sendMagicLink } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$auth$2f$auth$2d$context$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"])();
     const [email, setEmail] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [magicLinkSent, setMagicLinkSent] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    const [open, setOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [internalOpen, setInternalOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+    const setOpen = onOpenChange || setInternalOpen;
     const handleGoogle = async ()=>{
         setError(null);
         setLoading(true);
@@ -359,13 +361,13 @@ function AuthDrawer({ children }) {
         open: open,
         onOpenChange: setOpen,
         children: [
-            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$sheet$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SheetTrigger"], {
+            children && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$sheet$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SheetTrigger"], {
                 asChild: true,
                 children: children
             }, void 0, false, {
                 fileName: "[project]/components/auth-drawer.tsx",
-                lineNumber: 67,
-                columnNumber: 7
+                lineNumber: 76,
+                columnNumber: 20
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$sheet$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SheetContent"], {
                 side: "right",
@@ -381,7 +383,7 @@ function AuthDrawer({ children }) {
                                     children: "Welcome to CreditClaw"
                                 }, void 0, false, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 71,
+                                    lineNumber: 80,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -389,13 +391,13 @@ function AuthDrawer({ children }) {
                                     children: "Sign in to manage your bots, wallets, and spending"
                                 }, void 0, false, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 72,
+                                    lineNumber: 81,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/auth-drawer.tsx",
-                            lineNumber: 70,
+                            lineNumber: 79,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -415,14 +417,14 @@ function AuthDrawer({ children }) {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/auth-drawer.tsx",
-                                                    lineNumber: 86,
+                                                    lineNumber: 95,
                                                     columnNumber: 17
                                                 }, this),
                                                 "Continue with Google"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 79,
+                                            lineNumber: 88,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -436,20 +438,20 @@ function AuthDrawer({ children }) {
                                                     className: "w-5 h-5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/auth-drawer.tsx",
-                                                    lineNumber: 97,
+                                                    lineNumber: 106,
                                                     columnNumber: 17
                                                 }, this),
                                                 "Continue with GitHub"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 90,
+                                            lineNumber: 99,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 78,
+                                    lineNumber: 87,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -461,12 +463,12 @@ function AuthDrawer({ children }) {
                                                 className: "w-full border-t border-neutral-200"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/auth-drawer.tsx",
-                                                lineNumber: 104,
+                                                lineNumber: 113,
                                                 columnNumber: 17
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 103,
+                                            lineNumber: 112,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -476,18 +478,18 @@ function AuthDrawer({ children }) {
                                                 children: "or"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/auth-drawer.tsx",
-                                                lineNumber: 107,
+                                                lineNumber: 116,
                                                 columnNumber: 17
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 106,
+                                            lineNumber: 115,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 102,
+                                    lineNumber: 111,
                                     columnNumber: 13
                                 }, this),
                                 magicLinkSent ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -499,12 +501,12 @@ function AuthDrawer({ children }) {
                                                 className: "w-8 h-8 text-green-600"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/auth-drawer.tsx",
-                                                lineNumber: 114,
+                                                lineNumber: 123,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 113,
+                                            lineNumber: 122,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -512,7 +514,7 @@ function AuthDrawer({ children }) {
                                             children: "Check your email"
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 116,
+                                            lineNumber: 125,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -524,13 +526,13 @@ function AuthDrawer({ children }) {
                                                     children: email
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/auth-drawer.tsx",
-                                                    lineNumber: 118,
+                                                    lineNumber: 127,
                                                     columnNumber: 45
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 117,
+                                            lineNumber: 126,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -540,13 +542,13 @@ function AuthDrawer({ children }) {
                                             children: "Use a different email"
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 120,
+                                            lineNumber: 129,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 112,
+                                    lineNumber: 121,
                                     columnNumber: 15
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                                     onSubmit: handleMagicLink,
@@ -562,7 +564,7 @@ function AuthDrawer({ children }) {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 130,
+                                            lineNumber: 139,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -575,20 +577,20 @@ function AuthDrawer({ children }) {
                                                     className: "w-4 h-4 mr-2"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/auth-drawer.tsx",
-                                                    lineNumber: 145,
+                                                    lineNumber: 154,
                                                     columnNumber: 19
                                                 }, this),
                                                 "Send Magic Link"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/auth-drawer.tsx",
-                                            lineNumber: 139,
+                                            lineNumber: 148,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 129,
+                                    lineNumber: 138,
                                     columnNumber: 15
                                 }, this),
                                 error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -597,7 +599,7 @@ function AuthDrawer({ children }) {
                                     children: error
                                 }, void 0, false, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 152,
+                                    lineNumber: 161,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -605,34 +607,34 @@ function AuthDrawer({ children }) {
                                     children: "By signing in, you agree to our Terms of Service and Privacy Policy. No passwords — we use secure sign-in only."
                                 }, void 0, false, {
                                     fileName: "[project]/components/auth-drawer.tsx",
-                                    lineNumber: 155,
+                                    lineNumber: 164,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/auth-drawer.tsx",
-                            lineNumber: 77,
+                            lineNumber: 86,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/components/auth-drawer.tsx",
-                    lineNumber: 69,
+                    lineNumber: 78,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/components/auth-drawer.tsx",
-                lineNumber: 68,
+                lineNumber: 77,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/auth-drawer.tsx",
-        lineNumber: 66,
+        lineNumber: 75,
         columnNumber: 5
     }, this);
 }
-_s(AuthDrawer, "SUQ77BeISHW6X9zUlOBI5sWdkRA=", false, function() {
+_s(AuthDrawer, "Ebivu/94EZXUYzXFpSauSFhAmIs=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$auth$2f$auth$2d$context$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"]
     ];
