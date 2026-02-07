@@ -1,0 +1,52 @@
+How CreditClaw Uses Firebase Auth
+
+Architecture: Firebase + Server-Side Session Cookies
+
+This isn't just a simple client-side Firebase setup. It uses a two-layer approach that's considered best practice for security:
+
+Client-side: Firebase handles the actual sign-in (Google popup, GitHub popup, or email magic link). Firebase never exposes passwords — it uses OAuth and passwordless flows only.
+
+Server-side: After Firebase authenticates the user on the client, we immediately exchange the Firebase ID token for a server-side httpOnly session cookie. This is the key security step — the session lives in a secure cookie that JavaScript can't access, which protects against XSS attacks.
+
+The Flow:
+
+User clicks "Sign in with Google/GitHub" or enters email for magic link
+Firebase client SDK handles the OAuth popup or sends the email link
+On successful sign-in, the client gets a Firebase ID token
+Client sends that token to /api/auth/session (POST)
+Server verifies the token using Firebase Admin SDK, creates a session cookie (5-day expiry), and returns the user record
+All subsequent requests use the httpOnly cookie — no tokens stored in localStorage
+Key Files & What They Do:
+
+File	Purpose
+lib/firebase/client.ts	Initializes Firebase client SDK using public env vars (NEXT_PUBLIC_FIREBASE_*)
+lib/firebase/admin.ts	Initializes Firebase Admin SDK using private env vars (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY) — server-side only
+lib/auth/auth-context.tsx	React context/provider with useAuth() hook — exposes signInWithGoogle(), signInWithGithub(), sendMagicLink(), logout(), user state
+lib/auth/session.ts	Server-side helper: getCurrentUser() reads the session cookie & verifies it, createSessionCookie() mints new cookies
+app/api/auth/session/route.ts	API route — POST creates session, DELETE destroys it
+components/auth-drawer.tsx	The UI — right-side drawer with login/register tabs
+app/providers.tsx	Wraps the entire app with AuthProvider so useAuth() works everywhere
+Environment Variables Needed (6 total):
+
+Public (safe for client):
+
+NEXT_PUBLIC_FIREBASE_API_KEY
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+NEXT_PUBLIC_FIREBASE_PROJECT_ID
+NEXT_PUBLIC_FIREBASE_APP_ID
+Private (server only):
+
+FIREBASE_PROJECT_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY
+Is It the Most Secure Option?
+
+It's very solid. Here's why:
+
+No passwords stored — uses OAuth (Google/GitHub) and passwordless magic links only, so there's nothing to leak in a breach
+httpOnly session cookies — the session can't be stolen by malicious JavaScript (XSS protection)
+Server-side verification — every session is verified against Firebase Admin SDK, not just trusted from the client
+Short-lived sessions — 5-day expiry with automatic refresh
+Firebase handles the hard parts — rate limiting, brute force protection, account lockout, and email verification are all built in
+The main thing that would make it even more secure would be adding CSRF protection on the session endpoint, but for most applications this setup is well above industry standard.
+
