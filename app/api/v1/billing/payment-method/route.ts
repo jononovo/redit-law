@@ -10,21 +10,21 @@ export async function GET() {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const pm = await storage.getPaymentMethod(user.uid);
-    if (!pm) {
-      return NextResponse.json({ payment_method: null });
-    }
+    const methods = await storage.getPaymentMethods(user.uid);
 
     return NextResponse.json({
-      payment_method: {
+      payment_methods: methods.map((pm) => ({
+        id: pm.id,
         card_last4: pm.cardLast4,
         card_brand: pm.cardBrand,
+        is_default: pm.isDefault,
+        label: pm.label,
         created_at: pm.createdAt,
-      },
+      })),
     });
   } catch (error) {
-    console.error("Get payment method error:", error);
-    return NextResponse.json({ error: "Failed to get payment method" }, { status: 500 });
+    console.error("Get payment methods error:", error);
+    return NextResponse.json({ error: "Failed to get payment methods" }, { status: 500 });
   }
 }
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const details = await getPaymentMethodDetails(payment_method_id);
 
-    const pm = await storage.upsertPaymentMethod({
+    const pm = await storage.addPaymentMethod({
       ownerUid: user.uid,
       stripeCustomerId: customer_id,
       stripePmId: payment_method_id,
@@ -54,35 +54,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       payment_method: {
+        id: pm.id,
         card_last4: pm.cardLast4,
         card_brand: pm.cardBrand,
+        is_default: pm.isDefault,
       },
       message: "Payment method saved successfully",
     });
   } catch (error) {
     console.error("Save payment method error:", error);
     return NextResponse.json({ error: "Failed to save payment method" }, { status: 500 });
-  }
-}
-
-export async function DELETE() {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
-
-    const pm = await storage.getPaymentMethod(user.uid);
-    if (pm) {
-      try {
-        await detachPaymentMethod(pm.stripePmId);
-      } catch {}
-      await storage.deletePaymentMethod(user.uid);
-    }
-
-    return NextResponse.json({ message: "Payment method removed" });
-  } catch (error) {
-    console.error("Delete payment method error:", error);
-    return NextResponse.json({ error: "Failed to remove payment method" }, { status: 500 });
   }
 }

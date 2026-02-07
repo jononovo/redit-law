@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { amount_cents } = parsed.data;
+    const { amount_cents, payment_method_id } = parsed.data;
 
     const wallet = await storage.getWalletByOwnerUid(user.uid);
     if (!wallet) {
@@ -30,7 +30,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pm = await storage.getPaymentMethod(user.uid);
+    let pm;
+    if (payment_method_id) {
+      pm = await storage.getPaymentMethodById(payment_method_id, user.uid);
+      if (!pm) {
+        return NextResponse.json(
+          { error: "Selected payment method not found." },
+          { status: 404 }
+        );
+      }
+    } else {
+      pm = await storage.getPaymentMethod(user.uid);
+    }
     if (!pm) {
       return NextResponse.json(
         { error: "No payment method on file. Please add a card first." },

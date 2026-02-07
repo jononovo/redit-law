@@ -99,6 +99,7 @@ export const claimBotRequestSchema = z.object({
 
 export const fundWalletRequestSchema = z.object({
   amount_cents: z.number().int().min(100).max(100000),
+  payment_method_id: z.number().int().optional(),
 });
 
 export const purchaseRequestSchema = z.object({
