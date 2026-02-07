@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const bots = pgTable("bots", {
@@ -47,6 +47,30 @@ export const paymentMethods = pgTable("payment_methods", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const spendingPermissions = pgTable("spending_permissions", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull().unique(),
+  approvalMode: text("approval_mode").notNull().default("ask_for_everything"),
+  perTransactionCents: integer("per_transaction_cents").notNull().default(2500),
+  dailyCents: integer("daily_cents").notNull().default(5000),
+  monthlyCents: integer("monthly_cents").notNull().default(50000),
+  askApprovalAboveCents: integer("ask_approval_above_cents").notNull().default(1000),
+  approvedCategories: text("approved_categories").array().notNull().default([]),
+  blockedCategories: text("blocked_categories").array().notNull().default([]),
+  recurringAllowed: boolean("recurring_allowed").notNull().default(false),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const topupRequests = pgTable("topup_requests", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  reason: text("reason"),
+  status: text("status").notNull().default("sent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const registerBotRequestSchema = z.object({
   bot_name: z.string().min(1).max(100),
   owner_email: z.string().email(),
@@ -62,6 +86,30 @@ export const fundWalletRequestSchema = z.object({
   amount_cents: z.number().int().min(100).max(100000),
 });
 
+export const purchaseRequestSchema = z.object({
+  amount_cents: z.number().int().min(1).max(10000000),
+  merchant: z.string().min(1).max(200),
+  description: z.string().max(500).optional(),
+  category: z.string().max(100).optional(),
+});
+
+export const topupRequestSchema = z.object({
+  amount_usd: z.number().min(1).max(10000),
+  reason: z.string().max(500).optional(),
+});
+
+export const updateSpendingPermissionsSchema = z.object({
+  approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).optional(),
+  per_transaction_usd: z.number().min(0).max(100000).optional(),
+  daily_usd: z.number().min(0).max(100000).optional(),
+  monthly_usd: z.number().min(0).max(1000000).optional(),
+  ask_approval_above_usd: z.number().min(0).max(100000).optional(),
+  approved_categories: z.array(z.string()).optional(),
+  blocked_categories: z.array(z.string()).optional(),
+  recurring_allowed: z.boolean().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+
 export type Bot = typeof bots.$inferSelect;
 export type InsertBot = typeof bots.$inferInsert;
 export type Wallet = typeof wallets.$inferSelect;
@@ -70,3 +118,7 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = typeof transactions.$inferInsert;
 export type PaymentMethod = typeof paymentMethods.$inferSelect;
 export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
+export type SpendingPermission = typeof spendingPermissions.$inferSelect;
+export type InsertSpendingPermission = typeof spendingPermissions.$inferInsert;
+export type TopupRequest = typeof topupRequests.$inferSelect;
+export type InsertTopupRequest = typeof topupRequests.$inferInsert;

@@ -1,12 +1,14 @@
 import { db } from "@/server/db";
 import {
-  bots, wallets, transactions, paymentMethods,
+  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
   type PaymentMethod, type InsertPaymentMethod,
+  type SpendingPermission, type InsertSpendingPermission,
+  type TopupRequest, type InsertTopupRequest,
 } from "@/shared/schema";
-import { eq, and, isNull, desc, sql } from "drizzle-orm";
+import { eq, and, isNull, desc, sql, gte } from "drizzle-orm";
 
 export interface IStorage {
   createBot(data: InsertBot): Promise<Bot>;
@@ -28,6 +30,16 @@ export interface IStorage {
   getPaymentMethod(ownerUid: string): Promise<PaymentMethod | null>;
   upsertPaymentMethod(data: InsertPaymentMethod): Promise<PaymentMethod>;
   deletePaymentMethod(ownerUid: string): Promise<void>;
+
+  getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]>;
+  debitWallet(walletId: number, amountCents: number): Promise<Wallet | null>;
+  getDailySpend(walletId: number): Promise<number>;
+  getMonthlySpend(walletId: number): Promise<number>;
+
+  getSpendingPermissions(botId: string): Promise<SpendingPermission | null>;
+  upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission>;
+
+  createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest>;
 }
 
 export const storage: IStorage = {
@@ -156,5 +168,77 @@ export const storage: IStorage = {
 
   async deletePaymentMethod(ownerUid: string): Promise<void> {
     await db.delete(paymentMethods).where(eq(paymentMethods.ownerUid, ownerUid));
+  },
+
+  async getBotsByApiKeyPrefix(prefix: string): Promise<Bot[]> {
+    return db.select().from(bots).where(eq(bots.apiKeyPrefix, prefix));
+  },
+
+  async debitWallet(walletId: number, amountCents: number): Promise<Wallet | null> {
+    const [updated] = await db
+      .update(wallets)
+      .set({
+        balanceCents: sql`${wallets.balanceCents} - ${amountCents}`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(wallets.id, walletId), gte(wallets.balanceCents, amountCents)))
+      .returning();
+    return updated || null;
+  },
+
+  async getDailySpend(walletId: number): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result = await db
+      .select({ total: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
+      .from(transactions)
+      .where(and(
+        eq(transactions.walletId, walletId),
+        eq(transactions.type, "purchase"),
+        gte(transactions.createdAt, today)
+      ));
+    return Number(result[0]?.total || 0);
+  },
+
+  async getMonthlySpend(walletId: number): Promise<number> {
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1);
+    firstOfMonth.setHours(0, 0, 0, 0);
+    const result = await db
+      .select({ total: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
+      .from(transactions)
+      .where(and(
+        eq(transactions.walletId, walletId),
+        eq(transactions.type, "purchase"),
+        gte(transactions.createdAt, firstOfMonth)
+      ));
+    return Number(result[0]?.total || 0);
+  },
+
+  async getSpendingPermissions(botId: string): Promise<SpendingPermission | null> {
+    const [perm] = await db.select().from(spendingPermissions).where(eq(spendingPermissions.botId, botId)).limit(1);
+    return perm || null;
+  },
+
+  async upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission> {
+    const existing = await this.getSpendingPermissions(botId);
+    if (existing) {
+      const [updated] = await db
+        .update(spendingPermissions)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(spendingPermissions.botId, botId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(spendingPermissions)
+      .values({ botId, ...data })
+      .returning();
+    return created;
+  },
+
+  async createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest> {
+    const [req] = await db.insert(topupRequests).values(data).returning();
+    return req;
   },
 };
