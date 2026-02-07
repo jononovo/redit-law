@@ -326,6 +326,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/payment-links/[id]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/payment-links/[id]">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/payment-links/[id]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/payment-links/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/payment-links">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/payment-links/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/wallet/balance/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/wallet/balance">> = Specific

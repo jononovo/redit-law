@@ -74,6 +74,16 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
   - Failed webhook delivery alerting: `GET /api/v1/webhooks/health` — returns count of failed deliveries in last 24h, scoped to owner's bots.
   - Operational Health panel on dashboard overview with webhook health indicator (green/amber) and manual reconciliation button with inline results.
   - Key files: `components/dashboard/ops-health.tsx`, `app/api/v1/health/route.ts`, `app/api/v1/admin/reconciliation/run/route.ts`, `app/api/v1/webhooks/health/route.ts`.
+- **Payment Links — Bots Get Paid (Phase 7):**
+  - `payment_links` table tracks bot-generated payment links with Stripe Checkout Sessions.
+  - Bot endpoints: `POST /api/v1/bot/payments/create-link` (creates Stripe Checkout Session, returns URL), `GET /api/v1/bot/payments/links` (list with status/limit filters).
+  - Stripe webhook handler: `POST /api/v1/webhooks/stripe` — verifies `stripe-signature`, handles `checkout.session.completed` with `purpose: bot_payment_link` metadata. Idempotent (ignores already-completed links).
+  - On payment completion: credits bot wallet, records `payment_received` transaction, fires `wallet.payment.received` bot webhook, sends owner notification.
+  - Lazy expiry: payment links expire after 24h; status computed on read (no cron needed).
+  - Public pages: `/payment/success` and `/payment/cancelled` for post-checkout redirect.
+  - Owner dashboard: `GET /api/v1/payment-links` (session-auth), PaymentLinksPanel component with status badges and earnings total.
+  - Reconciliation updated to count `payment_received` as credits alongside `topup`.
+  - Key files: `app/api/v1/bot/payments/create-link/route.ts`, `app/api/v1/bot/payments/links/route.ts`, `app/api/v1/webhooks/stripe/route.ts`, `app/api/v1/payment-links/route.ts`, `components/dashboard/payment-links.tsx`.
 
 ### Key Routes
 - `/` — Consumer landing page
@@ -82,6 +92,8 @@ CreditClaw is a prepaid virtual credit card platform for AI agents within the Op
 - `/app/cards` — Card management
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
+- `/payment/success` — Post-payment success page (public)
+- `/payment/cancelled` — Post-payment cancel page (public)
 
 ## External Dependencies
 - **Firebase Auth:** User authentication and authorization.

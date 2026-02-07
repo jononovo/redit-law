@@ -1496,6 +1496,10 @@
     max-height: 300px;
   }
 
+  .max-h-\[400px\] {
+    max-height: 400px;
+  }
+
   .max-h-\[var\(--radix-dropdown-menu-content-available-height\)\] {
     max-height: var(--radix-dropdown-menu-content-available-height);
   }

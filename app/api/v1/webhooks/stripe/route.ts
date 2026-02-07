@@ -49,11 +49,16 @@ export async function POST(request: NextRequest) {
 }
 
 async function handlePaymentLinkCompleted(session: Stripe.Checkout.Session) {
+  if (session.payment_status !== "paid") return;
+
   const paymentLinkId = session.metadata?.payment_link_id;
   if (!paymentLinkId) return;
 
   const paymentLink = await storage.getPaymentLinkByStripeSession(session.id);
   if (!paymentLink || paymentLink.status === "completed") return;
+
+  const completed = await storage.completePaymentLink(paymentLink.id);
+  if (!completed) return;
 
   const bot = await storage.getBotByBotId(paymentLink.botId);
   if (!bot) return;
@@ -70,8 +75,6 @@ async function handlePaymentLinkCompleted(session: Stripe.Checkout.Session) {
     description: paymentLink.description,
     stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
   });
-
-  await storage.updatePaymentLinkStatus(paymentLink.id, "completed", new Date());
 
   await fireWebhook(bot, "wallet.payment.received", {
     payment_link_id: paymentLink.paymentLinkId,

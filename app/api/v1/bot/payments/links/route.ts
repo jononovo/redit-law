@@ -14,10 +14,11 @@ export const GET = withBotApi("/api/v1/bot/payments/links", async (request, { bo
     );
   }
 
-  const links = await storage.getPaymentLinksByBotId(bot.botId, limit, statusFilter);
+  const dbStatus = statusFilter === "expired" ? "pending" : statusFilter;
+  const links = await storage.getPaymentLinksByBotId(bot.botId, limit, dbStatus);
   const now = new Date();
 
-  const paymentLinks = links.map((link) => {
+  let paymentLinks = links.map((link) => {
     const effectiveStatus = link.status === "pending" && link.expiresAt < now ? "expired" : link.status;
     return {
       payment_link_id: link.paymentLinkId,
@@ -31,6 +32,12 @@ export const GET = withBotApi("/api/v1/bot/payments/links", async (request, { bo
       paid_at: link.paidAt?.toISOString() || null,
     };
   });
+
+  if (statusFilter === "expired") {
+    paymentLinks = paymentLinks.filter(l => l.status === "expired");
+  } else if (statusFilter === "pending") {
+    paymentLinks = paymentLinks.filter(l => l.status === "pending");
+  }
 
   return NextResponse.json({ payment_links: paymentLinks });
 });

@@ -79,6 +79,7 @@ export interface IStorage {
   getPaymentLinkByPaymentLinkId(paymentLinkId: string): Promise<PaymentLink | null>;
   getPaymentLinksByOwnerUid(ownerUid: string, limit?: number): Promise<PaymentLink[]>;
   updatePaymentLinkStatus(id: number, status: string, paidAt?: Date): Promise<PaymentLink | null>;
+  completePaymentLink(id: number): Promise<PaymentLink | null>;
 }
 
 export const storage: IStorage = {
@@ -450,7 +451,7 @@ export const storage: IStorage = {
   async getTransactionSumByWalletId(walletId: number): Promise<number> {
     const result = await db
       .select({
-        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'topup' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
+        topups: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} IN ('topup', 'payment_received') THEN ${transactions.amountCents} ELSE 0 END), 0)`,
         purchases: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'purchase' THEN ${transactions.amountCents} ELSE 0 END), 0)`,
       })
       .from(transactions)
@@ -534,6 +535,15 @@ export const storage: IStorage = {
       .update(paymentLinks)
       .set(updateData)
       .where(eq(paymentLinks.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async completePaymentLink(id: number): Promise<PaymentLink | null> {
+    const [updated] = await db
+      .update(paymentLinks)
+      .set({ status: "completed", paidAt: new Date() })
+      .where(and(eq(paymentLinks.id, id), eq(paymentLinks.status, "pending")))
       .returning();
     return updated || null;
   },
