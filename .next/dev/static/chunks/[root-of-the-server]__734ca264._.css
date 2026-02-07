@@ -5074,6 +5074,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:border-primary:hover {
+      border-color: hsl(var(--primary));
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:border-primary\/30:hover {
       border-color: hsl(var(--primary));
     }
@@ -5148,6 +5154,18 @@
   @media (hover: hover) {
     .hover\:bg-neutral-900:hover {
       background-color: var(--color-neutral-900);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-primary\/5:hover {
+      background-color: hsl(var(--primary));
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-primary\/5:hover {
+        background-color: color-mix(in oklab, hsl(var(--primary)) 5%, transparent);
+      }
     }
   }
 
