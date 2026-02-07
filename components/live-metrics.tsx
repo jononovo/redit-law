@@ -92,7 +92,7 @@ export function LiveMetrics() {
             <div className="text-6xl font-bold text-[#FF6B6B] mb-3 tracking-tight">
               <Counter end={2000} prefix="$" />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Allowances & Payments<br/>(USD)</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Allowances/Payments Received<br/>(USD)</p>
           </div>
         </div>
 
