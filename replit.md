@@ -112,6 +112,16 @@ CreditClaw is a prepaid spending controls platform for AI agents within the Open
   - Entry points: "Get Started" CTA on landing page hero, dashboard banner for owners with no bots.
   - Key files: `components/onboarding/onboarding-wizard.tsx`, `components/onboarding/wizard-step.tsx`, `components/onboarding/steps/*.tsx`, `app/onboarding/page.tsx`, `app/api/v1/pairing-codes/route.ts`, `app/api/v1/pairing-codes/status/route.ts`.
 
+- **Rail 4: Split-Knowledge Card Model (Phase 1 — Data Model + Core Setup API):**
+  - `rail4_cards` table stores all Rail 4 data per bot: decoy filename, real profile index, 3 missing digit positions, missing digits value, expiry, owner name/zip/IP, status, and 5 fake profiles as JSON.
+  - Single-table design — Rail 4 is an add-on to existing bots, not a separate registration flow. Uses `bot_id` FK back to `bots` table.
+  - Decoy file generator (`lib/rail4.ts`): generates randomized filename from unusual words, picks random profile index (1-6), random consecutive digit positions (start 7-10, ensuring at least 2 within positions 7-12), generates 5 fake profiles with plausible card numbers/CVVs/addresses, builds markdown decoy file with 6 profiles (5 fake pre-filled, 1 empty for owner).
+  - Storage methods: `createRail4Card`, `getRail4CardByBotId`, `updateRail4Card`, `deleteRail4Card`.
+  - Owner-auth API endpoints: `POST /api/v1/rail4/initialize` (generates setup, returns decoy file), `POST /api/v1/rail4/submit-owner-data` (owner submits 3 missing digits, expiry, name, zip; IP recorded automatically; status set to active), `GET /api/v1/rail4/status` (check Rail 4 config status).
+  - Zod validation schemas: `initializeRail4Schema`, `submitRail4OwnerDataSchema`.
+  - PCI scope: CreditClaw stores only 3 middle digits (not cardholder data per PCI truncation rules), expiry (not cardholder data without PAN), and standard user data (name, zip, IP). Out of PCI scope by design.
+  - Key files: `shared/schema.ts`, `server/storage.ts`, `lib/rail4.ts`, `app/api/v1/rail4/initialize/route.ts`, `app/api/v1/rail4/submit-owner-data/route.ts`, `app/api/v1/rail4/status/route.ts`.
+
 ### Key Routes
 - `/` — Consumer landing page
 - `/claim` — Bot claim page
