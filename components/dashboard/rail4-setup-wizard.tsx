@@ -236,7 +236,7 @@ export function Rail4SetupWizard({ open, onOpenChange, onComplete }: Rail4SetupW
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span>No eligible bots found. Either all your bots already have active self-hosted cards, or you haven't connected any bots yet.</span>
+                    <span>No eligible bots found. Either all your bots already have active self-hosted cards, or you haven&apos;t connected any bots yet. Add new bots in the Overview page <a href="/app" className="underline font-semibold hover:text-amber-900">here</a>.</span>
                   </div>
                 </div>
               ) : (
