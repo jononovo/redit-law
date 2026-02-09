@@ -42,20 +42,43 @@ CreditClaw is a prepaid spending controls platform designed for AI agents within
 - **Wallet State Management:** Allows freezing/unfreezing of wallets, impacting bot spending capabilities and visually represented on the dashboard.
 - **Open Access & Waitlist:** Features a waitlist system for future virtual card issuance alongside immediate onboarding for current functionalities.
 - **Rail 4: Split-Knowledge Card Model:** An add-on feature that generates a "split-knowledge" card configuration for bots, designed to be out of PCI scope by not storing full cardholder data directly. It involves generating decoy files with partial card information and fake profiles for enhanced security and privacy.
+- **Card Type System:** The "+ Create New Card" button on the Cards page opens a card type picker modal with three options: "Self-Hosted" (active, launches Rail 4 setup wizard), "Virtual Card" (Coming Soon), and "Stripe ASP — For Agentic Checkout" (Coming Soon). Self-hosted cards appear in the card grid with a "Self-Hosted" badge and dark card visual.
+
+### Recent Changes
+- **Rail 4 Phase 1 — Data Model + Core Setup API:**
+  - `rail4_cards` table stores all Rail 4 data per bot: decoy filename, real profile index, 3 missing digit positions, missing digits value, expiry, owner name/zip/IP, status, and 5 fake profiles as JSON.
+  - Single-table design — Rail 4 is an add-on to existing bots, not a separate registration flow. Uses `bot_id` FK back to `bots` table.
+  - Decoy file generator (`lib/rail4.ts`): generates randomized filename from unusual words, picks random profile index (1-6), random consecutive digit positions (start 7-10, ensuring at least 2 within positions 7-12), generates 5 fake profiles with plausible card numbers/CVVs/addresses, builds markdown decoy file with 6 profiles (5 fake pre-filled, 1 empty for owner).
+  - Storage methods: `createRail4Card`, `getRail4CardByBotId`, `updateRail4Card`, `deleteRail4Card`.
+  - Owner-auth API endpoints: `POST /api/v1/rail4/initialize` (generates setup, returns decoy file), `POST /api/v1/rail4/submit-owner-data` (owner submits 3 missing digits, expiry, name, zip; IP recorded automatically; status set to active), `GET /api/v1/rail4/status` (check Rail 4 config status), `DELETE /api/v1/rail4` (delete config for a bot).
+  - PCI scope: CreditClaw stores only 3 middle digits (not cardholder data per PCI truncation rules), expiry (not cardholder data without PAN), and standard user data (name, zip, IP). Out of PCI scope by design.
+  - Key files: `shared/schema.ts`, `server/storage.ts`, `lib/rail4.ts`, `app/api/v1/rail4/initialize/route.ts`, `app/api/v1/rail4/submit-owner-data/route.ts`, `app/api/v1/rail4/status/route.ts`, `app/api/v1/rail4/route.ts`.
+
+- **Rail 4 Phase 2 — Owner UI for Setup:**
+  - Card type picker modal (`components/dashboard/card-type-picker.tsx`): replaces old "Issue New Card" dialog. Three card types: Self-Hosted (active), Virtual Card (Coming Soon), Stripe ASP (Coming Soon).
+  - Rail 4 setup wizard (`components/dashboard/rail4-setup-wizard.tsx`): 4-step multi-modal flow: (1) select bot, (2) initialize + download decoy file via blob, (3) confirmation checklist, (4) submit missing digits/expiry/name/zip. Shows success state on completion.
+  - Cards page updated: shows self-hosted cards in the card grid with dark card visual, "Self-Hosted" emerald badge, and dropdown with Copy ID and Remove Card actions. Delete includes confirmation dialog.
+  - Self-Hosted management page (`app/app/self-hosted/page.tsx`): dedicated hub at `/app/self-hosted` with overview stats (active/pending/not configured counts), "How it works" explainer section, per-bot status list with configure/continue/copy/delete actions, and "Set Up New Bot" button that opens the shared wizard.
+  - Sidebar updated: "Self-Hosted" nav item with ShieldCheck icon added between Transactions and Settings.
+  - Key files: `components/dashboard/card-type-picker.tsx`, `components/dashboard/rail4-setup-wizard.tsx`, `app/app/cards/page.tsx`, `app/app/self-hosted/page.tsx`, `components/dashboard/sidebar.tsx`.
 
 ### Key Routes
 - `/` — Consumer landing page
 - `/claim` — Bot claim page
-- `/app` — Dashboard application
-- `/onboarding` — Guided setup wizard
-- `/payment/success` — Public payment success page
-- `/payment/cancelled` — Public payment cancellation page
+- `/app` — Dashboard overview
+- `/app/cards` — Card management (all card types)
+- `/app/self-hosted` — Self-hosted card management hub
+- `/app/transactions` — Transaction history
+- `/app/settings` — Account settings
+- `/onboarding` — Guided setup wizard (authenticated)
+- `/payment/success` — Post-payment success page (public)
+- `/payment/cancelled` — Post-payment cancel page (public)
 
 ## External Dependencies
 - **Firebase Auth:** User authentication and authorization.
-- **PostgreSQL:** Primary database.
-- **Drizzle ORM:** Database interaction.
-- **Stripe:** Payment processing and payment method management.
-- **SendGrid:** Transactional email services.
-- **shadcn/ui:** UI component library.
-- **React Query (@tanstack/react-query):** Server state management and data fetching.
+- **PostgreSQL:** Primary database for all application data.
+- **Drizzle ORM:** Object-Relational Mapper for database interactions.
+- **Stripe:** For payment processing, including SetupIntents, PaymentIntents, and managing payment methods.
+- **SendGrid:** For sending transactional emails (e.g., bot registration notifications, top-up requests).
+- **shadcn/ui:** UI component library built on Radix primitives.
+- **React Query (@tanstack/react-query):** For server state management and data fetching.
