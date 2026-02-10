@@ -244,6 +244,89 @@ export type InsertReconciliationLog = typeof reconciliationLogs.$inferInsert;
 export type PairingCode = typeof pairingCodes.$inferSelect;
 export type InsertPairingCode = typeof pairingCodes.$inferInsert;
 
+export const rail4Cards = pgTable("rail4_cards", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull().unique(),
+  decoyFilename: text("decoy_filename").notNull(),
+  realProfileIndex: integer("real_profile_index").notNull(),
+  missingDigitPositions: integer("missing_digit_positions").array().notNull(),
+  missingDigitsValue: text("missing_digits_value").notNull(),
+  expiryMonth: integer("expiry_month"),
+  expiryYear: integer("expiry_year"),
+  ownerName: text("owner_name"),
+  ownerZip: text("owner_zip"),
+  ownerIp: text("owner_ip"),
+  status: text("status").notNull().default("pending_setup"),
+  fakeProfilesJson: text("fake_profiles_json").notNull(),
+  profilePermissions: text("profile_permissions"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("rail4_cards_bot_id_idx").on(table.botId),
+  index("rail4_cards_status_idx").on(table.status),
+]);
+
+export const obfuscationEvents = pgTable("obfuscation_events", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  profileIndex: integer("profile_index").notNull(),
+  merchantName: text("merchant_name").notNull(),
+  merchantSlug: text("merchant_slug").notNull(),
+  itemName: text("item_name").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  status: text("status").notNull().default("pending"),
+  confirmationId: text("confirmation_id"),
+  occurredAt: timestamp("occurred_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("obfuscation_events_bot_id_idx").on(table.botId),
+  index("obfuscation_events_bot_status_idx").on(table.botId, table.status),
+]);
+
+export const obfuscationState = pgTable("obfuscation_state", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull().unique(),
+  phase: text("phase").notNull().default("warmup"),
+  active: boolean("active").notNull().default(true),
+  activatedAt: timestamp("activated_at").notNull().defaultNow(),
+  lastOrganicAt: timestamp("last_organic_at"),
+  lastObfuscationAt: timestamp("last_obfuscation_at"),
+  organicCount: integer("organic_count").notNull().default(0),
+  obfuscationCount: integer("obfuscation_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const profileAllowanceUsage = pgTable("profile_allowance_usage", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  profileIndex: integer("profile_index").notNull(),
+  windowStart: timestamp("window_start").notNull(),
+  spentCents: integer("spent_cents").notNull().default(0),
+  exemptUsed: boolean("exempt_used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("profile_allowance_bot_profile_idx").on(table.botId, table.profileIndex),
+]);
+
+export const checkoutConfirmations = pgTable("checkout_confirmations", {
+  id: serial("id").primaryKey(),
+  confirmationId: text("confirmation_id").notNull().unique(),
+  botId: text("bot_id").notNull(),
+  profileIndex: integer("profile_index").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  merchantName: text("merchant_name").notNull(),
+  merchantUrl: text("merchant_url").notNull(),
+  itemName: text("item_name").notNull(),
+  category: text("category"),
+  status: text("status").notNull().default("pending"),
+  decidedAt: timestamp("decided_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("checkout_confirmations_bot_idx").on(table.botId),
+  index("checkout_confirmations_confirmation_idx").on(table.confirmationId),
+]);
+
 export const waitlistEntries = pgTable("waitlist_entries", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -253,6 +336,53 @@ export const waitlistEntries = pgTable("waitlist_entries", {
 
 export type WaitlistEntry = typeof waitlistEntries.$inferSelect;
 export type InsertWaitlistEntry = typeof waitlistEntries.$inferInsert;
+
+export type Rail4Card = typeof rail4Cards.$inferSelect;
+export type InsertRail4Card = typeof rail4Cards.$inferInsert;
+export type ObfuscationEvent = typeof obfuscationEvents.$inferSelect;
+export type InsertObfuscationEvent = typeof obfuscationEvents.$inferInsert;
+export type ObfuscationState = typeof obfuscationState.$inferSelect;
+export type InsertObfuscationState = typeof obfuscationState.$inferInsert;
+export type ProfileAllowanceUsage = typeof profileAllowanceUsage.$inferSelect;
+export type InsertProfileAllowanceUsage = typeof profileAllowanceUsage.$inferInsert;
+export type CheckoutConfirmation = typeof checkoutConfirmations.$inferSelect;
+export type InsertCheckoutConfirmation = typeof checkoutConfirmations.$inferInsert;
+
+export const profilePermissionSchema = z.object({
+  profile_index: z.number().int().min(1).max(6),
+  allowance_duration: z.enum(["day", "week", "month"]),
+  allowance_currency: z.string().default("USD"),
+  allowance_value: z.number().min(0),
+  confirmation_exempt_limit: z.number().min(0),
+  human_permission_required: z.enum(["all", "above_exempt", "none"]),
+  creditclaw_permission_required: z.literal("all"),
+});
+
+export type ProfilePermission = z.infer<typeof profilePermissionSchema>;
+
+export const rail4InitializeSchema = z.object({
+  bot_id: z.string().min(1),
+});
+
+export const rail4SubmitOwnerDataSchema = z.object({
+  bot_id: z.string().min(1),
+  missing_digits: z.string().length(3).regex(/^\d{3}$/),
+  expiry_month: z.number().int().min(1).max(12),
+  expiry_year: z.number().int().min(2025).max(2040),
+  owner_name: z.string().min(1).max(200),
+  owner_zip: z.string().min(3).max(20),
+  profile_permissions: profilePermissionSchema.optional(),
+});
+
+export const unifiedCheckoutSchema = z.object({
+  profile_index: z.number().int().min(1).max(6),
+  merchant_name: z.string().min(1).max(200),
+  merchant_url: z.string().min(1).max(2000),
+  item_name: z.string().min(1).max(500),
+  amount_cents: z.number().int().min(1).max(10000000),
+  category: z.string().max(100).optional(),
+  task_id: z.string().optional(),
+});
 
 export const waitlistEmailSchema = z.object({
   email: z.string().email(),
