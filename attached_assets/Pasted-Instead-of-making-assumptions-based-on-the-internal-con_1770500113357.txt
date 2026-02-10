@@ -1,0 +1,216 @@
+Instead of making assumptions based on the internal content docs, and the rate limiting, you should look into the repo directly.
+
+And confirm all of your assumptions directly from the code base.
+
+Double check everything that you're suggesting ( from the codebase)  and then tell me what your thoughts are.
+
+Ultra think
+
+4:12 PM
+You're right — let me go directly to the codebase and verify everything against the actual source code rather than relying on the internal docs.
+
+
+Look at the project structure
+The repo isn't uploaded as files — it's in project knowledge. Let me search for the actual source files systematically.
+
+
+Searched project for “rate-limit.ts BOT_RATE_LIMITS maxRequests windowMs full file”
+
+
+
+
+
+
+
+
+
+
+
+Good, I have the actual lib/rate-limit.ts source. Now let me verify each bot-facing route file directly.
+
+
+Searched memory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Now let me check the webhooks source and the schema for the registration request:
+
+
+Searched memory
+
+
+
+
+
+
+
+
+
+
+
+Now let me also check the bot/payments/links route:
+
+
+Searched project for “bot payments links route.ts GET withBotApi list payment links status filtering”
+
+
+
+
+Now let me check the transactions route response format more carefully — specifically whether it returns amount_cents or amount_usd:
+
+
+Searched project for “bot wallet transactions route.ts response map amount_usd amountCents description created_at”
+
+
+
+
+Now let me check whether the wallet check route returns daily_usd in the spending_limits or not — comparing against what the updated skill file claims:
+
+
+Searched project for “wallet check route spending_limits per_transaction_usd daily_usd monthly_usd response format”
+
+
+
+
+Good. Now I have every actual source file I need. Let me compile my findings systematically against the updated skill file, line by line.
+
+Alright, I've now verified everything directly against the actual source code files in the repo — lib/rate-limit.ts, lib/bot-api.ts, lib/webhooks.ts, shared/schema.ts, and every individual route file (register, check, spending, purchase, topup-request, transactions, create-link, links). Here's exactly what I found:
+
+Confirmed Correct (verified against source code)
+URLs — All curl examples in the updated file use https://creditclaw.com/api/v1/... ✓ (matches the Next.js App Router path structure app/api/v1/bot/...)
+
+Endpoint paths — All bot-facing paths include /bot/:
+
+GET /api/v1/bot/wallet/check — matches withBotApi("/api/v1/bot/wallet/check", ...) in check/route.ts ✓
+GET /api/v1/bot/wallet/spending — matches spending/route.ts ✓
+POST /api/v1/bot/wallet/purchase — matches purchase/route.ts ✓
+POST /api/v1/bot/wallet/topup-request — matches topup-request/route.ts ✓
+GET /api/v1/bot/wallet/transactions — matches transactions/route.ts ✓
+POST /api/v1/bot/payments/create-link — matches create-link/route.ts ✓
+Registration rate limit — Updated file says "3 per hour." Source code in register/route.ts confirms: RATE_LIMIT = 3, RATE_WINDOW = 60 * 60 * 1000. No 24-hour limit exists. ✓
+
+Registration schema — Updated file documents bot_name, owner_email, description, callback_url, pairing_code. Source code registerBotRequestSchema in shared/schema.ts confirms exactly these fields with matching constraints (bot_name 1-100 chars, description max 500, pairing_code 6 digits). ✓
+
+Registration response — Updated file shows bot_id, api_key, claim_token, status, owner_verification_url, important. Matches register/route.ts response object. ✓
+
+Pairing code flow — Updated file correctly describes that providing pairing_code returns "status": "active", "paired": true, "claim_token": null. Verified against the pairing code branch in register/route.ts. ✓
+
+Webhook secret — Updated file says it's returned when callback_url is provided. Source: const webhookSecret = callback_url ? generateWebhookSecret() : null; in register/route.ts. ✓
+
+Wallet check response — Updated file shows wallet_status, balance_usd, card_status, spending_limits (with per_transaction_usd, monthly_usd, monthly_spent_usd, monthly_remaining_usd), pending_topups. Matches check/route.ts exactly. ✓
+
+Spending response — Updated file shows approval_mode, limits, approved_categories, blocked_categories, recurring_allowed, notes, updated_at. Matches spending/route.ts output exactly. ✓
+
+Purchase request schema — Updated file shows amount_cents (required, integer), merchant (required, string), description (optional), category (optional). Matches purchaseRequestSchema in shared/schema.ts: amount_cents: z.number().int().min(1).max(10000000), merchant: z.string().min(1).max(200), description: z.string().max(500).optional(), category: z.string().max(100).optional(). ✓
+
+Purchase response — Updated file shows status: "approved", transaction_id, amount_usd, merchant, description, new_balance_usd, message. Matches the success response in purchase/route.ts exactly. ✓
+
+Purchase decline reasons — Updated file lists 8 decline errors. All verified in purchase/route.ts:
+
+insufficient_funds (402) ✓
+wallet_frozen (403) ✓
+wallet_not_active (403) ✓
+category_blocked (403) ✓
+exceeds_per_transaction_limit (403) ✓
+exceeds_daily_limit (403) ✓
+exceeds_monthly_limit (403) ✓
+requires_owner_approval (403) ✓
+Topup-request response — Updated file shows topup_request_id: 7 (integer), status: "sent", amount_usd, owner_notified: true, message. Matches topup-request/route.ts exactly. Correctly removed the checkout_url field that the old skill.md had — the actual route sends an email, it doesn't return a Stripe checkout URL. ✓
+
+Payment link create response — Updated file matches create-link/route.ts output: payment_link_id, checkout_url, amount_usd, status: "pending", expires_at. ✓
+
+Webhook events — Updated file lists: wallet.activated, wallet.topup.completed, wallet.payment.received, wallet.spend.authorized, wallet.spend.declined, wallet.balance.low. Source lib/webhooks.ts defines the WebhookEventType union as exactly these 6 events. ✓
+
+Webhook HMAC-SHA256 + retry schedule — Updated file says X-CreditClaw-Signature header, exponential backoff (1m, 5m, 15m, 1h, 6h), max 5 attempts. Source lib/webhooks.ts confirms: RETRY_DELAYS_MS = [60*1000, 5*60*1000, 15*60*1000, 60*60*1000, 6*60*60*1000], header "X-CreditClaw-Signature": sha256=${signature}, maxAttempts: 5. ✓
+
+Issues Found (verified against source code)
+1. create-link rate limit is wrong — Updated file says 3/hr, actual code says 10/hr
+
+The API reference table on line 447 of the updated file:
+
+| POST | `/bot/payments/create-link` | Generate a Stripe payment link to charge anyone. | 3/hr |
+But lib/rate-limit.ts says:
+
+javascript
+"/api/v1/bot/payments/create-link": { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+This should be 10/hr, not 3/hr.
+
+2. GET /bot/payments/links endpoint is missing from the API reference table
+
+This endpoint exists in the codebase (app/api/v1/bot/payments/links/route.ts), is wrapped in withBotApi, has a 12/hr rate limit in lib/rate-limit.ts, and lets bots list their payment links with ?status= and ?limit= filters. The updated skill file doesn't document it at all — not in the API reference table, and not in the Quick Start section. A bot that creates payment links would have no way to check on their status later without knowing about this endpoint.
+
+3. Transaction response format mismatch — Updated file shows amount_cents + amount but actual code returns amount_usd
+
+The updated file (lines 396-419) shows transactions like:
+
+json
+{
+  "id": 1,
+  "type": "topup",
+  "amount_cents": 2500,
+  "amount": "$25.00",
+  ...
+}
+But the actual transactions/route.ts returns:
+
+javascript
+{
+  id: tx.id,
+  type: tx.type,
+  amount_usd: tx.amountCents / 100,
+  description: tx.description,
+  created_at: tx.createdAt.toISOString(),
+}
+So the real response has amount_usd: 25.00 (a number) — not amount_cents + amount (string). The updated file invented fields that don't exist in the actual response.
+
+4. Transaction response is also missing ?cursor= support — but the updated file correctly omits it
+
+The old skill.md claimed ?limit= and ?cursor=. The actual transactions/route.ts only supports ?limit=. The updated file correctly shows only ?limit=N in the API reference table. Good. But worth noting the default is 50 and max is 100 (from Math.min(parseInt(searchParams.get("limit") || "50"), 100)), and the updated file doesn't mention the default/max.
+
+5. Wallet check status values table includes "inactive" in some places but the status table on line 200-205 doesn't list it
+
+The actual check/route.ts has three possible wallet_status values:
+
+"pending" — when bot.walletStatus === "pending"
+"active" — when wallet.balanceCents > 0
+"empty" — when wallet.balanceCents === 0
+"inactive" — when wallet is null (no wallet record)
+The updated file's status table (lines 200-205) lists pending, active, empty but omits inactive. Also the code doesn't return "suspended" (which was in the old skill.md) — frozen wallets still return "active" or "empty" from the check endpoint; the frozen check happens only at purchase time. The updated file correctly removed suspended, but missed inactive.
+
+6. card_status field in wallet check response — slightly misleading
+
+The actual code sets card_status to wallet.balanceCents > 0 ? "active" : "empty" — it mirrors wallet_status exactly. The updated file shows "card_status": "active" in the active response and "card_status": "inactive" in the pending response, which is correct per the code. But since there are no actual cards, this field is a vestigial artifact. The updated file doesn't explain this, which could confuse a bot. Not a blocker, but a note like "this field is reserved for future virtual card support" would help.
+
+7. Wallet check response doesn't include daily_usd in spending_limits
+
+The updated file (line 179) shows per_transaction_usd and monthly_usd in the check response but not daily_usd. This matches the actual code — check/route.ts only returns per_transaction and monthly, not daily. So this is correct. Just confirming.
+
+8. The per_transaction_usd in the example response differs from the default
+
+The updated file shows "per_transaction_usd": 25.00 in the wallet check example (line 181). The actual code defaults to 25.0 when no permissions exist. ✓ matches. (The old skill.md showed 50.00, which was wrong.)
+
+Summary: What needs to change in the updated file
+#	Issue	Severity	Fix
+1	create-link rate limit says 3/hr, actual code is 10/hr	Must fix — a bot would unnecessarily self-throttle	Change line 447 from 3/hr to 10/hr
+2	GET /bot/payments/links endpoint completely missing	Should fix — bots can't check payment link status without it	Add row to API reference table and brief usage section
+3	Transaction response shows amount_cents + amount string, actual returns amount_usd number	Must fix — a bot parsing the response would fail	Change example to match actual: "amount_usd": 25.00 and remove amount_cents/amount
+4	inactive status missing from wallet check status table	Minor — edge case when wallet record doesn't exist	Add inactive to status table
+5	card_status field unexplained	Nice to have — not blocking but potentially confusing	Add one-line note about future virtual card support
+6	Transaction ?limit= default (50) and max (100) not mentioned	Nice to have — helpful for bots	Add note
+Issues 1 and 3 are real bugs that would cause bot behavior problems. Issue 2 is a meaningful omission of a working endpoint. The rest are polish.
+

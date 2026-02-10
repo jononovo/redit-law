@@ -1,0 +1,81 @@
+Edit Plan: 6 changes
+Edit 1: Add callback_url to registration curl example
+Why: A bot that wants webhooks won't know to include this field. It's the only way to opt in.
+Before (lines 68-72):
+  -d '{
+    "bot_name": "my-research-bot",
+    "owner_email": "jonathan@example.com",
+    "description": "Performs web research tasks for hire"
+  }'
+After:
+  -d '{
+    "bot_name": "my-research-bot",
+    "owner_email": "jonathan@example.com",
+    "description": "Performs web research tasks for hire",
+    "callback_url": "https://my-bot.example.com/webhook"
+  }'
++1 line
+
+Edit 2: Add webhook_secret / pairing_code notes after registration response
+Why: A bot needs to know webhook_secret comes back with callback_url, and that pairing_code is an option. Currently neither is mentioned anywhere.
+Before (lines 85-87):
+
+**⚠️ Save your `api_key` immediately.** It cannot be retrieved again.
+After:
+
+Optional fields: `callback_url` (HTTPS, enables webhooks), `pairing_code` (6-digit code from owner — skips claim step, wallet activates instantly). If you provided a `callback_url`, the response includes a `webhook_secret` for verifying signatures.
+
+**⚠️ Save your `api_key` immediately.** It cannot be retrieved again.
++2 lines
+
+Edit 3: Fix "fund my card" to "fund my wallet"
+Why: There are no cards. This is a leftover from the old version.
+Before (line 117):
+> "I've registered for a CreditClaw wallet. To activate it and fund my card,
+After:
+> "I've registered for a CreditClaw wallet. To activate it and fund my wallet,
++0 lines
+
+Edit 4: Add purchase request fields note
+Why: amount_cents being in cents (not dollars) is the most likely integration error. A bot sending 5.99 instead of 599 will get a validation error.
+Before (lines 237-238):
+
+Response (approved):
+After:
+
+`amount_cents` is in **cents** (integer) — e.g. $5.99 = `599`. `merchant` is required (1-200 chars). `description` and `category` are optional.
+
+Response (approved):
++2 lines
+
+Edit 5: Add HMAC signature line to webhooks section
+Why: Without this, a bot receiving webhooks has no idea how to verify them or what webhook_secret is for.
+Before (lines 385-387):
+## Webhooks (Optional)
+
+Provide a `callback_url` during registration to receive POST events:
+After:
+## Webhooks (Optional)
+
+Provide a `callback_url` during registration to receive POST events. Webhooks are signed
+with HMAC-SHA256 via the `X-CreditClaw-Signature` header — verify using your `webhook_secret`.
++1 line
+
+Edit 6: Add 400 and 409 to error table
+Why: A bot sending malformed JSON or registering a duplicate name gets these. Without them in the table it has no reference for what went wrong.
+Before (lines 378-383):
+| `401` | Invalid or missing API key | `{"error": "unauthorized", "message": "Invalid API key"}` |
+| `402` | Insufficient funds for purchase | `{"error": "insufficient_funds", "balance_usd": 2.50, "required_usd": 10.00}` |
+| `403` | Wallet frozen, not active, or spending rule violation | `{"error": "wallet_frozen", "message": "This wallet is frozen by the owner."}` |
+| `429` | Rate limit exceeded | `{"error": "rate_limited", "retry_after_seconds": 600}` |
+After:
+| `400` | Invalid request body or parameters | `{"error": "validation_error", "message": "Invalid request body"}` |
+| `401` | Invalid or missing API key | `{"error": "unauthorized", "message": "Invalid API key"}` |
+| `402` | Insufficient funds for purchase | `{"error": "insufficient_funds", "balance_usd": 2.50, "required_usd": 10.00}` |
+| `403` | Wallet frozen, not active, or spending rule violation | `{"error": "wallet_frozen", "message": "This wallet is frozen by the owner."}` |
+| `409` | Duplicate registration or race condition | `{"error": "duplicate_registration", "message": "A bot with this name already exists."}` |
+| `429` | Rate limit exceeded | `{"error": "rate_limited", "retry_after_seconds": 600}` |
++2 lines
+
+Total: +8 lines (408 → ~416). No sections removed, no restructuring, no new sections. Just filling the gaps that would cause a bot to fail at registration, webhook verification, or purchase formatting.
+Want me to apply these?

@@ -1,0 +1,116 @@
+026-02-07 17:55:42.43
+bbaed429
+User
+▲ Next.js 16.1.6
+2026-02-07 17:55:42.43
+bbaed429
+User
+- Network: http://0.0.0.0:5000
+2026-02-07 17:55:42.43
+bbaed429
+User
+- Local: http://localhost:5000
+2026-02-07 17:55:42.43
+bbaed429
+User
+✓ Starting...
+2026-02-07 17:55:48.76
+bbaed429
+User
+✓ Ready in 7.6s
+2026-02-07 17:55:53.85
+bbaed429
+User
+To prepare for this change:
+2026-02-07 17:55:53.85
+bbaed429
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-02-07 17:55:53.85
+bbaed429
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-02-07 17:55:53.85
+bbaed429
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-02-07 17:55:53.85
+bbaed429
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+2026-02-07 17:55:53.85
+bbaed429
+User
+(node:29) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-02-07 17:55:53.85
+bbaed429
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-02-07 19:43:59.58
+97c68c01
+System
+starting up user application
+2026-02-07 19:43:59.58
+97c68c01
+System
+metasidecar: loaded enterprise status from environment is_enterprise=false
+2026-02-07 19:43:59.58
+97c68c01
+System
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2026-02-07 19:44:06.19
+97c68c01
+User
+> next start -p 5000 -H 0.0.0.0
+2026-02-07 19:44:06.19
+97c68c01
+User
+> creditclaw@1.0.0 start
+2026-02-07 19:44:11.56
+97c68c01
+User
+▲ Next.js 16.1.6
+2026-02-07 19:44:11.56
+97c68c01
+User
+- Local: http://localhost:5000
+2026-02-07 19:44:11.56
+97c68c01
+User
+- Network: http://0.0.0.0:5000
+2026-02-07 19:44:11.56
+97c68c01
+User
+✓ Starting...
+2026-02-07 19:44:18.49
+97c68c01
+User
+✓ Ready in 8.6s
+2026-02-07 19:44:32.61
+97c68c01
+User
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+2026-02-07 19:44:32.61
+97c68c01
+User
+(node:29) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+2026-02-07 19:44:32.61
+97c68c01
+User
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-02-07 19:44:32.61
+97c68c01
+User
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-02-07 19:44:32.61
+97c68c01
+User
+To prepare for this change:
+2026-02-07 19:44:32.61
+97c68c01
+User
+(Use `node --trace-warnings ...` to show where the warning was created)
+2026-02-07 19:44:32.61
+97c68c01
+User
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
