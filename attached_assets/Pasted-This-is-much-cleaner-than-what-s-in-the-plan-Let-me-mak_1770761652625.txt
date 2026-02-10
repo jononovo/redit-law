@@ -1,0 +1,34 @@
+This is much cleaner than what's in the plan. Let me make sure I understand the model:
+
+Allowance system:
+
+Each profile gets a budget that renews on a cycle (week, month, etc.)
+allowance-value: 50 means $50 per week to spend
+confirmation_exempt_limit: 10 means purchases under $10 go through automatically without asking anyone — but still count against the $50 allowance
+Two-tier permission gates:
+
+human_permission_required — does the owner need to approve? (all = every purchase, none = never, and presumably something in between like above_exempt_limit)
+creditclaw_permission_required — does CreditClaw need to approve? (all = every purchase runs through CreditClaw's spending controls)
+How this makes fake profiles indistinguishable:
+
+The real profile (Profile #3) has human_permission_required: all — the owner gets notified and approves every purchase. CreditClaw also checks it.
+
+The fake profile (Profile #4) has human_permission_required: none — no human is ever contacted. But creditclaw_permission_required: all — CreditClaw still runs its checks (allowance balance, exempt limit). So the fake profile isn't just a free pass — it has real spending controls, they just don't involve the human.
+
+From the bot's perspective, every profile has an allowance, an exempt limit, and two permission layers. Some profiles approve faster (because the human isn't involved), some take longer (because the human needs to confirm). That's just how different profiles work.
+
+What's different from the current plan:
+
+The existing spending_permissions table with approval_mode, per_transaction_cents, daily_cents, monthly_cents gets replaced by this simpler allowance model. Instead of separate daily/monthly/per-transaction limits, it's one allowance with a renewal period plus an exempt limit. That's cleaner and easier for owners to understand.
+
+And you're right — all 6 profiles live in the same document/structure. There's no separate lookup for the real profile. CreditClaw reads the same permission format for all of them, the only difference is that when human_permission_required is all or above_exempt_limit, CreditClaw routes to the human. When it's none, CreditClaw handles it alone.
+
+A couple of questions before I update anything:
+
+The confirmation_exempt_limit — is this per-transaction or per-allowance-window? Your note says "once per allowance window" which would mean only one purchase under $10 gets auto-approved per week. Or did you mean any purchase under $10 goes through without confirmation, unlimited times within the window, as long as there's allowance remaining?
+What are the valid values for human_permission_required? I'm assuming: all (every purchase), none (never), and maybe above_exempt_limit (only purchases above the exempt limit need human approval)?
+Does creditclaw_permission_required: all mean CreditClaw checks the allowance balance and exempt limit? Or is there a scenario where it would be none for CreditClaw too?
+both.
+all, above_exempt & none.
+Never. The bot ALWAYS checks with credit claw on every transaction.
+And regarding previous questions: The owner never instructs the bot to use a fake profile.

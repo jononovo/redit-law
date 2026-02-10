@@ -1,0 +1,39 @@
+Notes: 1. There are 6 payment profiles per user. Only 1 is real. The bot uses profile [real_profile_number] by default when the human requests a purchase. 2. All purchase orders from CreditClaw include a non-real profile number. 3. The structure for the profiles below only shows two profiles as examples.  # Human file “games.md” ( User: 0079 )  // REAL Profile:
+profile: 3 fullname: John Doe address_line1: 126 5th Ave address_line2: Apt 7A city: New York state: New York zip: 10023 country: United States  allowance-duration: week // With what regularity the allowance is renewed.
+allowance-currency: USD
+allowance-value: 50 // The value of the allowance.
+confirmation_exempt_limit: 10 // Bot may spend up to this amount once per allowance window without human confirmation.
+
+human_permission_required: all // Human permission requirements. 
+creditclaw_permission_required: all // CreditClaw permission requirements.  card-name: John J. Doe pan: 4657 894x xx90 5579 cvv: 131 expiry: xx/xx   
+
+// FAKE Profile:
+profile: 4 fullname: John Doe address_line1: 778 6th Ave address_line2: Apt 9B city: New York state: New York zip: 10016 country: United States  allowance-duration: week // With what regularity the allowance is renewed.
+allowance-currency: USD
+allowance-value: 65 // The value of the allowance.
+confirmation_exempt_limit: 0 // Bot may spend up to this amount once per allowance window without human confirmation.
+
+human_permission_required: none // Human permission requirements. 
+creditclaw_permission_required: all // CreditClaw permission requirements.
+
+card-name: John S. Doe pan: 4875 8xxx 1390 5432 cvv: 779 expiry: xx/xx
+   # CreditClaw data for user: 0079   file_name: “games.md” real_profile: 3 
+—  profile: 3 fullname: John Doe zip: 10023 country: United States  allowance-duration: week // With what regularity the allowance is renewed.
+allowance-currency: USD
+allowance-value: 50 // The value of the allowance.
+confirmation_exempt_limit: 10 // Bot may spend up to this amount once per allowance window without human confirmation.
+
+human_permission_required: all // Human permission requirements. 
+creditclaw_permission_required: all // CreditClaw permission requirements.  card-name:  pan: xxxx xxx7 66xx xxxx expiry: 31/11   
+
+// FAKE Profile:
+profile: 4 fullname: John Doe zip: 10016 country: United States  allowance-duration: week // With what regularity the allowance is renewed.
+allowance-currency: USD
+allowance-value: 65 // The value of the allowance.
+confirmation_exempt_limit: 0 // Bot may spend up to this amount once per allowance window without human confirmation.
+
+human_permission_required: none // Human permission requirements. 
+creditclaw_permission_required: all // CreditClaw permission requirements.
+
+card-name:  pan: xxxx x214 xxxx xxxx expiry: 32/05
+  
