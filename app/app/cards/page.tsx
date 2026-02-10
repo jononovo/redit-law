@@ -1,6 +1,7 @@
 "use client";
 
 import { CardVisual } from "@/components/dashboard/card-visual";
+import { Rail4CardManager } from "@/components/dashboard/rail4-card-manager";
 import { Button } from "@/components/ui/button";
 import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -275,6 +276,17 @@ export default function CardsPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {!loading && cards.length > 0 && (
+        <div className="space-y-6 mt-4">
+          <h2 className="text-lg font-bold text-neutral-900">Self-Hosted Card (Rail 4)</h2>
+          <div className="grid grid-cols-1 gap-6">
+            {cards.map((card) => (
+              <Rail4CardManager key={`rail4-${card.botId}`} botId={card.botId} />
+            ))}
+          </div>
         </div>
       )}
 

@@ -320,6 +320,8 @@ export const checkoutConfirmations = pgTable("checkout_confirmations", {
   itemName: text("item_name").notNull(),
   category: text("category"),
   status: text("status").notNull().default("pending"),
+  hmacToken: text("hmac_token"),
+  expiresAt: timestamp("expires_at"),
   decidedAt: timestamp("decided_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [

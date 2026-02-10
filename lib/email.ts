@@ -315,3 +315,88 @@ To add funds, visit your dashboard: ${dashboardUrl}
     return { sent: false, reason: "send_failed" };
   }
 }
+
+export async function sendCheckoutApprovalEmail({
+  ownerEmail,
+  botName,
+  merchantName,
+  itemName,
+  amountUsd,
+  confirmationId,
+  hmacToken,
+}: {
+  ownerEmail: string;
+  botName: string;
+  merchantName: string;
+  itemName: string;
+  amountUsd: number;
+  confirmationId: string;
+  hmacToken: string;
+}) {
+  if (!SENDGRID_API_KEY) {
+    console.warn("SENDGRID_API_KEY not set — skipping approval email");
+    return { sent: false, reason: "no_api_key" };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://creditclaw.com";
+  const approvalUrl = `${baseUrl}/api/v1/rail4/confirm/${confirmationId}?token=${hmacToken}`;
+
+  const msg = {
+    to: ownerEmail,
+    from: {
+      email: FROM_EMAIL,
+      name: "CreditClaw",
+    },
+    subject: `🦞 ${botName} needs your approval — $${amountUsd.toFixed(2)} at ${merchantName}`,
+    html: `<div style="max-width: 480px; margin: 0 auto; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: #333;">
+  <div style="text-align: center; padding: 24px 0;">
+    <span style="font-size: 40px;">🦞</span>
+    <h1 style="font-size: 22px; font-weight: 800; color: #1a1a2e; margin: 8px 0 0;">CreditClaw</h1>
+    <p style="color: #888; font-size: 14px; margin-top: 4px;">Purchase Approval Required</p>
+  </div>
+
+  <div style="background: #f9fafb; border-radius: 16px; padding: 32px; border: 1px solid #e5e7eb;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="font-size: 36px; font-weight: 800; color: #1a1a2e; margin: 0;">$${amountUsd.toFixed(2)}</p>
+    </div>
+
+    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Bot</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${botName}</td>
+        </tr>
+        <tr style="border-top: 1px solid #f0f0f0;">
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Merchant</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${merchantName}</td>
+        </tr>
+        <tr style="border-top: 1px solid #f0f0f0;">
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Item</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${itemName}</td>
+        </tr>
+      </table>
+    </div>
+
+    <a href="${approvalUrl}" style="display: block; background: #22c55e; color: white; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; margin-bottom: 12px;">
+      Review &amp; Approve &rarr;
+    </a>
+
+    <p style="color: #888; font-size: 12px; text-align: center; margin: 0;">
+      This link expires in 15 minutes. You can also manage approvals from your dashboard.
+    </p>
+  </div>
+
+  <p style="color: #aaa; font-size: 12px; text-align: center; margin-top: 24px; line-height: 1.5;">
+    You received this because your bot's spending permissions require your approval.
+  </p>
+</div>`,
+  };
+
+  try {
+    await sgMail.send(msg);
+    return { sent: true };
+  } catch (error: any) {
+    console.error("SendGrid approval email failed:", error?.response?.body || error?.message);
+    return { sent: false, reason: "send_failed" };
+  }
+}
