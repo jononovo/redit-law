@@ -1,0 +1,12 @@
+The plan is solid. It tracks with everything we discussed. A few observations:
+1B (Allowance Tracking) — good call using a dedicated table instead of calculating on the fly. The earlier plan suggested computing spend by summing transactions per window at checkout time. This profile_allowance_usage table with spent_cents that gets incremented is simpler and faster — one row lookup instead of an aggregate query across potentially many transactions. The tradeoff is you need to handle window expiry (check if window_start is within the current period, reset if not), but that's straightforward.
+1C (Permission Logic) — the flow is correct. Allowance check first, then CreditClaw gate, then human gate. The ordering matters — no point asking the human to approve a purchase that exceeds the allowance. Fail fast on the cheapest checks.
+1D (Pending Confirmation) — this is the one piece that adds real complexity. When the real profile has human_permission_required: all or above_exempt, the endpoint can't return digits immediately. It returns pending_confirmation with a confirmation_id, the owner gets notified, and then... the bot needs to check back. This means:
+
+The bot needs to know to poll for the result (the skill file handles this)
+There needs to be a GET /bot/merchant/checkout/:confirmation_id or similar endpoint to check status
+When the owner approves, that confirmation record gets updated, and the next poll returns the digits
+
+I don't see that polling/status-check endpoint in the plan. It's implied but not explicitly listed. Worth adding to the build order — it's not complex but it's necessary for the real-profile flow to work end-to-end when human approval is required.
+One other thing: The confirmation_exempt_limit exemption being once per window — is that tracked in the profile_allowance_usage table? I'd add an exempt_used boolean to that table so you can check whether the one-time exemption has been consumed this window.
+Otherwise this is ready to build. The agent who wrote it understood the model correctly.
