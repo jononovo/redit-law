@@ -1,13 +1,13 @@
 "use client";
 
 import { CardVisual } from "@/components/dashboard/card-visual";
+import { CardTypePicker } from "@/components/dashboard/card-type-picker";
+import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
 import { Button } from "@/components/ui/button";
-import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2, ShieldCheck, Trash2, Download, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useCallback } from "react";
 
@@ -18,6 +18,16 @@ interface CardData {
   balanceCents: number;
   currency: string;
   isFrozen: boolean;
+  createdAt: string;
+}
+
+interface SelfHostedCard {
+  botId: string;
+  botName: string;
+  status: string;
+  decoyFilename: string;
+  realProfileIndex: number;
+  missingDigitPositions: number[];
   createdAt: string;
 }
 
@@ -118,8 +128,13 @@ function LimitsPopover({ botId, cardId }: { botId: string; cardId: number }) {
 export default function CardsPage() {
   const { toast } = useToast();
   const [cards, setCards] = useState<CardData[]>([]);
+  const [selfHostedCards, setSelfHostedCards] = useState<SelfHostedCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [freezingIds, setFreezingIds] = useState<Set<number>>(new Set());
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [deleteConfirmBotId, setDeleteConfirmBotId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchCards = useCallback(async () => {
     try {
@@ -134,9 +149,45 @@ export default function CardsPage() {
     }
   }, []);
 
+  const fetchSelfHostedCards = useCallback(async () => {
+    try {
+      const botsRes = await fetch("/api/v1/bots/mine");
+      if (!botsRes.ok) return;
+      const botsData = await botsRes.json();
+      const botsList = botsData.bots || [];
+
+      const rail4Cards: SelfHostedCard[] = [];
+
+      await Promise.all(
+        botsList.map(async (bot: any) => {
+          try {
+            const statusRes = await fetch(`/api/v1/rail4/status?bot_id=${bot.bot_id}`);
+            if (statusRes.ok) {
+              const data = await statusRes.json();
+              if (data.configured) {
+                rail4Cards.push({
+                  botId: bot.bot_id,
+                  botName: bot.bot_name,
+                  status: data.status,
+                  decoyFilename: data.decoy_filename,
+                  realProfileIndex: data.real_profile_index,
+                  missingDigitPositions: data.missing_digit_positions,
+                  createdAt: data.created_at,
+                });
+              }
+            }
+          } catch {}
+        })
+      );
+
+      setSelfHostedCards(rail4Cards);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchCards();
-  }, [fetchCards]);
+    fetchSelfHostedCards();
+  }, [fetchCards, fetchSelfHostedCards]);
 
   async function handleFreeze(card: CardData) {
     const newFrozen = !card.isFrozen;
@@ -176,61 +227,148 @@ export default function CardsPage() {
     toast({ title: "Copied", description: "Bot ID copied to clipboard." });
   }
 
+  async function handleDeleteRail4(botId: string) {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/v1/rail4?bot_id=${botId}`, { method: "DELETE" });
+      if (res.ok) {
+        toast({ title: "Card removed", description: "Self-hosted card configuration has been deleted." });
+        setSelfHostedCards((prev) => prev.filter((c) => c.botId !== botId));
+      } else {
+        const err = await res.json();
+        toast({ title: "Failed to delete", description: err.message || "Please try again.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmBotId(null);
+    }
+  }
+
   function formatUsd(cents: number) {
     return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
+
+  const hasAnyCards = cards.length > 0 || selfHostedCards.length > 0;
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
       
       <div className="flex justify-between items-center">
           <p className="text-neutral-500">Manage your virtual and physical cards.</p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="rounded-full bg-primary hover:bg-primary/90 gap-2" data-testid="button-create-card">
-                  <Plus className="w-4 h-4" />
-                  Create New Card
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Issue New Card</DialogTitle>
-                <DialogDescription>
-                  Create a new virtual card for an agent or specific purpose.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Card Name
-                  </Label>
-                  <Input id="name" placeholder="e.g. AWS Billing" className="col-span-3" data-testid="input-card-name" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="limit" className="text-right">
-                    Limit ($)
-                  </Label>
-                  <Input id="limit" placeholder="1000" className="col-span-3" data-testid="input-card-limit" />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit" data-testid="button-submit-card">Create Card</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button
+            className="rounded-full bg-primary hover:bg-primary/90 gap-2"
+            onClick={() => setTypePickerOpen(true)}
+            data-testid="button-create-card"
+          >
+            <Plus className="w-4 h-4" />
+            Create New Card
+          </Button>
       </div>
+
+      <CardTypePicker
+        open={typePickerOpen}
+        onOpenChange={setTypePickerOpen}
+        onSelectSelfHosted={() => setWizardOpen(true)}
+      />
+
+      <Rail4SetupWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onComplete={() => {
+          fetchCards();
+          fetchSelfHostedCards();
+        }}
+      />
+
+      <Dialog open={!!deleteConfirmBotId} onOpenChange={(open) => !open && setDeleteConfirmBotId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Self-Hosted Card</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the Rail 4 configuration for this bot. The decoy file on your bot's filesystem will remain, but it will no longer work. You can set up a new one at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmBotId(null)} data-testid="button-cancel-delete">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmBotId && handleDeleteRail4(deleteConfirmBotId)}
+              disabled={deleting}
+              data-testid="button-confirm-delete"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-24" data-testid="loading-cards">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
-      ) : cards.length === 0 ? (
+      ) : !hasAnyCards ? (
         <div className="text-center py-24" data-testid="text-no-cards">
-          <p className="text-lg text-neutral-400 font-medium">No wallets yet.</p>
-          <p className="text-sm text-neutral-400 mt-2">Connect a bot and fund its wallet to see it here.</p>
+          <p className="text-lg text-neutral-400 font-medium">No cards yet.</p>
+          <p className="text-sm text-neutral-400 mt-2">Create a card to get started.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {selfHostedCards.map((shCard, index) => (
+            <div className="flex flex-col gap-4" key={`sh-${shCard.botId}`} data-testid={`card-self-hosted-${shCard.botId}`}>
+              <div className="relative">
+                <CardVisual
+                  color="dark"
+                  balance={shCard.status === "active" ? "ACTIVE" : "PENDING"}
+                  last4={shCard.botId.slice(-4)}
+                  holder={shCard.botName.toUpperCase()}
+                  expiry="XX/XX"
+                />
+                <div className="absolute top-3 right-3 z-30">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-emerald-500 text-white shadow-lg">
+                    <ShieldCheck className="w-3 h-3" />
+                    Self-Hosted
+                  </span>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
+                <Button
+                  variant="ghost"
+                  className="flex-1 text-xs gap-2 text-neutral-600"
+                  onClick={() => handleCopyBotId(shCard.botId)}
+                  data-testid={`button-copy-sh-${shCard.botId}`}
+                >
+                  <Copy className="w-4 h-4" /> Copy ID
+                </Button>
+                <div className="w-px bg-neutral-100 my-1" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600" data-testid={`button-more-sh-${shCard.botId}`}>
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleCopyBotId(shCard.botId)} data-testid={`menu-copy-sh-${shCard.botId}`}>
+                      <Copy className="w-4 h-4 mr-2" /> Copy Bot ID
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => setDeleteConfirmBotId(shCard.botId)}
+                      className="text-red-600 focus:text-red-600"
+                      data-testid={`menu-delete-sh-${shCard.botId}`}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> Remove Card
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ))}
+
           {cards.map((card, index) => (
             <div className="flex flex-col gap-4" key={card.id} data-testid={`card-wallet-${card.id}`}>
               <CardVisual

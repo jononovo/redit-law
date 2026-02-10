@@ -8,7 +8,8 @@ import {
   Activity, 
   Settings, 
   LogOut,
-  Plus
+  Plus,
+  ShieldCheck
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: CreditCard, label: "Cards", href: "/app/cards" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
+  { icon: ShieldCheck, label: "Self-Hosted", href: "/app/self-hosted" },
   { icon: Settings, label: "Settings", href: "/app/settings" },
 ];
 
