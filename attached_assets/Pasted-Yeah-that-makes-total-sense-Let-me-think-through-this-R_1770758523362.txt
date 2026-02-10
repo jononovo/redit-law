@@ -1,0 +1,53 @@
+Yeah that makes total sense. Let me think through this.
+Right now there are two separate flows — the bot calls /bot/merchant/queue to get obfuscation tasks, and /bot/wallet/purchase to make real purchases. You're saying these should be the same pipeline from the bot's perspective. The bot just gets "go buy this thing" — and it doesn't matter whether it came from the human owner or from CreditClaw.
+So the question is: how does CreditClaw currently send the obfuscation instruction to the bot? Because right now it looks like the bot has to poll /bot/merchant/queue to ask "do you have a task for me?" That's a pull model — the bot checks in and gets work. But a real purchase originates differently — the human tells the bot "buy me X from Y" in conversation.
+For these to be indistinguishable, the delivery mechanism needs to look the same. Which raises the real question: how does CreditClaw push an instruction to the bot?
+Options I can think of:
+Option A: Webhook/callback. CreditClaw sends a POST to the bot's registered callback URL with the purchase instruction. The bot receives it the same way it might receive any other task. But does the bot have a callback URL registered? I'd need to check the data model.
+Option B: The bot polls a unified task queue. Instead of separate endpoints, there's one endpoint — something like /bot/tasks/next — that returns the next thing the bot should do. That could be an obfuscation purchase, a security briefing, or nothing. The bot checks periodically. But this still feels different from how a human-initiated purchase works.
+Option C: The instruction is injected into the bot's conversation context. CreditClaw's skill file tells the bot to periodically check in with CreditClaw, and CreditClaw responds with instructions that look like natural purchase requests. The bot treats them the same as if the owner said "buy me padthai."
+I think the answer depends on how the bot's skill file is structured and how it currently receives instructions. But you're right that the payload should be identical regardless of origin. Every purchase instruction — real or fake — should include:
+A. Payment profile number — "Use Profile #2" which maps to the decoy file
+B. What to buy and where — "Purchase Spicy Coconut PadThai from SpicyThai Kitchen at [URL]"
+C. The checkout URL — either a real merchant URL (for real purchases) or a CreditClaw merchant page URL (for obfuscation)
+And the checkout/verification flow after that is identical — the bot calls the same endpoint to get the missing digits and expiry for whatever profile it was told to use, enters them at checkout, and reports completion.
+So really the only difference between a real and fake transaction is:
+
+Who originated it (human vs CreditClaw)
+Which profile gets used (real vs fake)
+Where the checkout URL points (real merchant vs sendclaw merchant page)
+
+The bot doesn't know any of these distinctions. It just follows instructions.
+Before I update anything — how IS the bot currently receiving CreditClaw's obfuscation instructions? Is it polling, or is there a push mechanism? And how does the human's purchase request currently flow — does the human tell the bot in conversation, and then the bot calls the wallet purchase API?skill.md can direct to heartbeat.md which can instruct the bot to check in twice per day for security audits and tasks.bot polls bot/tasks/next and received either security or new transaction order.When the bot goes to the merchant and checks out, on check out, it requests the A. confirmation and B. the missing payment details for the assigned profile. - But this request ( confirmation & details) is using the exact same API and format as it does when completing a real transaction. ( does that make sense?)4:20 PMThat makes perfect sense. The whole flow is unified:
+The heartbeat: The skill file points to heartbeat.md which tells the bot to check in with CreditClaw twice a day. On check-in, the bot polls /bot/tasks/next. CreditClaw returns either a security briefing task, a purchase order (obfuscation), or nothing.
+The purchase flow — identical for real and fake:
+When the bot needs to buy something — whether the human said "buy me shoes from Zappos" or CreditClaw's task queue said "buy padthai from SpicyThai Kitchen" — the checkout completion step is the same API call. The bot hits one endpoint with "I'm checking out, here's the profile I'm using, give me the missing digits and expiry, and confirm this purchase."
+For a real purchase: CreditClaw returns the real missing digits and real expiry from the rail4_cards row, debits the wallet.
+For an obfuscation purchase: CreditClaw returns the fake profile's fakeMissingDigits and fakeExpiryMonth/Year, no wallet debit.
+But the bot sees the exact same request and response shape both times. Same endpoint, same fields, same flow. It has no way to distinguish them.
+So the unified checkout endpoint would be something like:
+POST /api/v1/bot/merchant/checkout
+Bot sends:
+{
+  "profile_index": 2,
+  "merchant_name": "SpicyThai Kitchen",
+  "merchant_url": "https://sendclaw.com/merchant/spicythai",
+  "item_name": "Spicy Coconut PadThai",
+  "amount_cents": 1549
+}
+CreditClaw checks: is this profile the real one?
+
+If fake profile: Looks up fakeMissingDigits and fakeExpiry from the stored fake profile data, returns them, logs an obfuscation event. No wallet debit, no owner approval needed.
+If real profile: Runs spending controls, debits wallet (or requests owner approval depending on approval mode), and if approved, returns the real missing_digits_value and expiry_month/year. Logs a real transaction.
+
+The bot gets back the same response either way:
+{
+  "approved": true,
+  "missing_digits": "472",
+  "expiry_month": 3,
+  "expiry_year": 2027,
+  "confirmation_id": "txn_abc123"
+}
+This collapses three existing endpoints into one. Instead of separate /merchant/queue, /merchant/verify, /merchant/complete for obfuscation and /wallet/purchase + a future /merchant/real-checkout for real purchases — it's all one endpoint. The bot calls the same thing every time it's at a checkout page.
+And this means Phase 1 and Phase 2 from the technical plan kind of merge. You're not building a "real checkout endpoint" separately from the obfuscation flow — you're extending the existing checkout endpoint to handle both real and fake profiles through the same interface.
+Does that match what you're thinking? Want me to revise the technical plan to reflect this unified checkout model?
