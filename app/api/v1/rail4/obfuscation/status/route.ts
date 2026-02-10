@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { getObfuscationStatus } from "@/lib/obfuscation-engine/state-machine";
 
