@@ -67,15 +67,15 @@ CreditClaw is a prepaid spending controls platform designed for AI agents within
   - **Merchant Catalog:** 12 fake merchants under `lib/obfuscation-merchants/catalog.ts` with deliberately confusing names (e.g., "The Real Etsy Checkout", "Amazon Verified Merchant"). Realistic price generator in `lib/obfuscation-merchants/generator.ts` with per-merchant price ranges ($2-$85).
   - **State Machine:** `lib/obfuscation-engine/state-machine.ts` — warmup phase (2 events/day for 2 days), active phase (3:1 obfuscation-to-organic ratio), idle phase (after 24h without organic events). Transitions: warmup → idle after 2 days, idle → active on organic purchase, active → idle after 24h inactivity.
   - **Event Engine:** `lib/obfuscation-engine/events.ts` creates fake purchase events using random decoy profiles (never the real one), random merchants, and realistic amounts.
-  - **Scheduler:** `lib/obfuscation-engine/scheduler.ts` ticks all active bots, creating events per state machine decisions. Endpoint at `POST /api/v1/rail4/obfuscation/tick`.
-  - **Bot-Facing API:** Three endpoints under `/api/v1/bot/obfuscation/`: `POST next` (get next pending event), `POST verify` (submit fake card data for verification), `POST complete` (mark event completed). Bot sees merged real+fake transactions in wallet transactions endpoint.
+  - **Scheduler:** `lib/obfuscation-engine/scheduler.ts` ticks all active bots, creating events per state machine decisions. Endpoint at `POST /api/v1/rail4/obfuscation/tick` (secured with `CRON_SECRET` Bearer token).
+  - **Bot-Facing API:** Three endpoints under `/api/v1/bot/merchant/` (neutral naming to avoid revealing obfuscation to bots): `POST queue` (get next pending event), `POST verify` (submit fake card data for verification), `POST complete` (mark event completed). Bot sees merged real+fake transactions in wallet transactions endpoint.
   - **Owner API:** `GET /api/v1/rail4/obfuscation/status` (phase, counts, timestamps), `GET /api/v1/rail4/obfuscation/history` (recent fake events list).
   - **Fake Merchant Pages:** Dynamic routes at `/merchant/[slug]` with realistic checkout page UIs for each of the 12 fake merchants.
   - **Dashboard Panel:** Obfuscation Engine panel on Self-Hosted page showing phase, real/fake purchase counts, 3:1 ratio, activation timestamps, and recent fake activity feed with profile index, merchant, item, amount, and status badges.
   - **Auto-Initialization:** Obfuscation state automatically initialized when Rail 4 card status goes active (on owner data submission).
   - **Organic Tracking:** Real purchases automatically recorded to obfuscation state for ratio enforcement.
   - **Design Decisions:** Obfuscation events are separate from real transactions (no real money moves), don't debit wallet, don't count toward spending limits, don't trigger notifications. Scheduler is event-driven (organic purchases + periodic tick), not heavy cron.
-  - Key files: `lib/obfuscation-engine/`, `lib/obfuscation-merchants/`, `app/api/v1/bot/obfuscation/`, `app/api/v1/rail4/obfuscation/`, `app/merchant/[slug]/page.tsx`, `app/app/self-hosted/page.tsx`.
+  - Key files: `lib/obfuscation-engine/`, `lib/obfuscation-merchants/`, `app/api/v1/bot/merchant/`, `app/api/v1/rail4/obfuscation/`, `app/merchant/[slug]/page.tsx`, `app/app/self-hosted/page.tsx`.
 
 ### Key Routes
 - `/` — Consumer landing page
