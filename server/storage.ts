@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
   notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes, waitlistEntries, rail4Cards,
+  obfuscationEvents, obfuscationState,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -17,6 +18,8 @@ import {
   type PairingCode, type InsertPairingCode,
   type WaitlistEntry, type InsertWaitlistEntry,
   type Rail4Card, type InsertRail4Card,
+  type ObfuscationEvent, type InsertObfuscationEvent,
+  type ObfuscationState, type InsertObfuscationState,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -100,6 +103,15 @@ export interface IStorage {
   getRail4CardByBotId(botId: string): Promise<Rail4Card | null>;
   updateRail4Card(botId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null>;
   deleteRail4Card(botId: string): Promise<void>;
+
+  createObfuscationEvent(data: InsertObfuscationEvent): Promise<ObfuscationEvent>;
+  getObfuscationEventsByBotId(botId: string, limit?: number): Promise<ObfuscationEvent[]>;
+  getPendingObfuscationEvents(botId: string): Promise<ObfuscationEvent[]>;
+  completeObfuscationEvent(id: number, occurredAt: Date): Promise<ObfuscationEvent | null>;
+
+  getObfuscationState(botId: string): Promise<ObfuscationState | null>;
+  createObfuscationState(data: InsertObfuscationState): Promise<ObfuscationState>;
+  updateObfuscationState(botId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null>;
 }
 
 export const storage: IStorage = {
@@ -679,5 +691,54 @@ export const storage: IStorage = {
 
   async deleteRail4Card(botId: string): Promise<void> {
     await db.delete(rail4Cards).where(eq(rail4Cards.botId, botId));
+  },
+
+  async createObfuscationEvent(data: InsertObfuscationEvent): Promise<ObfuscationEvent> {
+    const [event] = await db.insert(obfuscationEvents).values(data).returning();
+    return event;
+  },
+
+  async getObfuscationEventsByBotId(botId: string, limit = 50): Promise<ObfuscationEvent[]> {
+    return db
+      .select()
+      .from(obfuscationEvents)
+      .where(eq(obfuscationEvents.botId, botId))
+      .orderBy(desc(obfuscationEvents.createdAt))
+      .limit(limit);
+  },
+
+  async getPendingObfuscationEvents(botId: string): Promise<ObfuscationEvent[]> {
+    return db
+      .select()
+      .from(obfuscationEvents)
+      .where(and(eq(obfuscationEvents.botId, botId), eq(obfuscationEvents.status, "pending")));
+  },
+
+  async completeObfuscationEvent(id: number, occurredAt: Date): Promise<ObfuscationEvent | null> {
+    const [updated] = await db
+      .update(obfuscationEvents)
+      .set({ status: "completed", occurredAt })
+      .where(eq(obfuscationEvents.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async getObfuscationState(botId: string): Promise<ObfuscationState | null> {
+    const [state] = await db.select().from(obfuscationState).where(eq(obfuscationState.botId, botId)).limit(1);
+    return state || null;
+  },
+
+  async createObfuscationState(data: InsertObfuscationState): Promise<ObfuscationState> {
+    const [state] = await db.insert(obfuscationState).values(data).returning();
+    return state;
+  },
+
+  async updateObfuscationState(botId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null> {
+    const [updated] = await db
+      .update(obfuscationState)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(obfuscationState.botId, botId))
+      .returning();
+    return updated || null;
   },
 };

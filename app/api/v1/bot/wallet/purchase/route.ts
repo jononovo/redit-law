@@ -4,6 +4,7 @@ import { storage } from "@/server/storage";
 import { purchaseRequestSchema } from "@/shared/schema";
 import { fireWebhook } from "@/lib/webhooks";
 import { notifyPurchase, notifyBalanceLow, notifySuspicious } from "@/lib/notifications";
+import { recordOrganicEvent } from "@/lib/obfuscation-engine/state-machine";
 
 export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -237,6 +238,8 @@ export const POST = withBotApi("/api/v1/bot/wallet/purchase", async (request, { 
   if (bot.ownerUid) {
     notifyPurchase(bot.ownerUid, bot.ownerEmail, bot.botName, bot.botId, amount_cents, merchant, updated.balanceCents).catch(() => {});
   }
+
+  recordOrganicEvent(bot.botId).catch(() => {});
 
   const LOW_BALANCE_THRESHOLD_CENTS = 500;
   if (updated.balanceCents < LOW_BALANCE_THRESHOLD_CENTS && updated.balanceCents + amount_cents >= LOW_BALANCE_THRESHOLD_CENTS) {

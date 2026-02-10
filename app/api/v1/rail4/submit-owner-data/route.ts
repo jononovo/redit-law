@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { submitRail4OwnerDataSchema } from "@/shared/schema";
+import { initializeObfuscationState } from "@/lib/obfuscation-engine/state-machine";
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,10 @@ export async function POST(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: "update_failed", message: "Failed to save owner data" }, { status: 500 });
     }
+
+    initializeObfuscationState(bot_id).catch((err) => {
+      console.error("Failed to initialize obfuscation state:", err);
+    });
 
     return NextResponse.json({
       status: "active",

@@ -265,6 +265,36 @@ export const rail4Cards = pgTable("rail4_cards", {
   index("rail4_cards_status_idx").on(table.status),
 ]);
 
+export const obfuscationEvents = pgTable("obfuscation_events", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  profileIndex: integer("profile_index").notNull(),
+  merchantName: text("merchant_name").notNull(),
+  merchantSlug: text("merchant_slug").notNull(),
+  itemName: text("item_name").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  status: text("status").notNull().default("pending"),
+  occurredAt: timestamp("occurred_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("obfuscation_events_bot_id_idx").on(table.botId),
+  index("obfuscation_events_bot_status_idx").on(table.botId, table.status),
+]);
+
+export const obfuscationState = pgTable("obfuscation_state", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull().unique(),
+  phase: text("phase").notNull().default("warmup"),
+  active: boolean("active").notNull().default(true),
+  activatedAt: timestamp("activated_at").notNull().defaultNow(),
+  lastOrganicAt: timestamp("last_organic_at"),
+  lastObfuscationAt: timestamp("last_obfuscation_at"),
+  organicCount: integer("organic_count").notNull().default(0),
+  obfuscationCount: integer("obfuscation_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const waitlistEntries = pgTable("waitlist_entries", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -288,6 +318,11 @@ export const createPaymentLinkSchema = z.object({
 
 export type Rail4Card = typeof rail4Cards.$inferSelect;
 export type InsertRail4Card = typeof rail4Cards.$inferInsert;
+
+export type ObfuscationEvent = typeof obfuscationEvents.$inferSelect;
+export type InsertObfuscationEvent = typeof obfuscationEvents.$inferInsert;
+export type ObfuscationState = typeof obfuscationState.$inferSelect;
+export type InsertObfuscationState = typeof obfuscationState.$inferInsert;
 
 export const updateNotificationPreferencesSchema = z.object({
   transaction_alerts: z.boolean().optional(),

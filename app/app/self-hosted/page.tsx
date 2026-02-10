@@ -7,7 +7,7 @@ import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
 import { useToast } from "@/hooks/use-toast";
 import {
   ShieldCheck, Plus, Loader2, Trash2, Copy, FileText,
-  CheckCircle, Clock, AlertTriangle, Hash, Key
+  CheckCircle, Clock, AlertTriangle, Hash, Key, Activity, Zap, Pause
 } from "lucide-react";
 
 interface Rail4BotStatus {
@@ -21,6 +21,28 @@ interface Rail4BotStatus {
   createdAt?: string;
 }
 
+interface ObfuscationStatus {
+  configured: boolean;
+  phase: "warmup" | "active" | "idle" | "none";
+  active: boolean;
+  organicCount: number;
+  obfuscationCount: number;
+  lastOrganicAt: string | null;
+  lastObfuscationAt: string | null;
+  activatedAt: string | null;
+}
+
+interface ObfuscationEvent {
+  id: number;
+  profile_index: number;
+  merchant_name: string;
+  item_name: string;
+  amount_usd: number;
+  status: string;
+  occurred_at: string | null;
+  created_at: string;
+}
+
 export default function SelfHostedPage() {
   const { toast } = useToast();
   const [botStatuses, setBotStatuses] = useState<Rail4BotStatus[]>([]);
@@ -28,6 +50,10 @@ export default function SelfHostedPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [deleteConfirmBotId, setDeleteConfirmBotId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedObfBot, setSelectedObfBot] = useState<string | null>(null);
+  const [obfStatus, setObfStatus] = useState<ObfuscationStatus | null>(null);
+  const [obfEvents, setObfEvents] = useState<ObfuscationEvent[]>([]);
+  const [obfLoading, setObfLoading] = useState(false);
 
   const fetchStatuses = useCallback(async () => {
     try {
@@ -66,6 +92,26 @@ export default function SelfHostedPage() {
       setBotStatuses(statuses);
     } catch {} finally {
       setLoading(false);
+    }
+  }, []);
+
+  const fetchObfuscation = useCallback(async (botId: string) => {
+    setObfLoading(true);
+    setSelectedObfBot(botId);
+    try {
+      const [statusRes, historyRes] = await Promise.all([
+        fetch(`/api/v1/rail4/obfuscation/status?bot_id=${botId}`),
+        fetch(`/api/v1/rail4/obfuscation/history?bot_id=${botId}&limit=20`),
+      ]);
+      if (statusRes.ok) {
+        setObfStatus(await statusRes.json());
+      }
+      if (historyRes.ok) {
+        const data = await historyRes.json();
+        setObfEvents(data.events || []);
+      }
+    } catch {} finally {
+      setObfLoading(false);
     }
   }, []);
 
@@ -164,6 +210,156 @@ export default function SelfHostedPage() {
           </div>
         </div>
       </div>
+
+      {botStatuses.some((b) => b.status === "active") && (
+        <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden" data-testid="panel-obfuscation">
+          <div className="p-5 border-b border-neutral-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-violet-500" />
+                <h3 className="font-bold text-neutral-900 text-sm">Obfuscation Engine</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-violet-50 text-violet-600">
+                  Privacy Shield
+                </span>
+              </div>
+              {!selectedObfBot && (
+                <div className="flex items-center gap-2">
+                  {botStatuses.filter((b) => b.status === "active").map((bot) => (
+                    <Button
+                      key={bot.botId}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs gap-1.5"
+                      onClick={() => fetchObfuscation(bot.botId)}
+                      data-testid={`button-obf-view-${bot.botId}`}
+                    >
+                      <Activity className="w-3 h-3" />
+                      {bot.botName}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {selectedObfBot && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-neutral-500"
+                  onClick={() => { setSelectedObfBot(null); setObfStatus(null); setObfEvents([]); }}
+                  data-testid="button-obf-close"
+                >
+                  Close
+                </Button>
+              )}
+            </div>
+            {!selectedObfBot && (
+              <p className="text-xs text-neutral-500 mt-2">
+                Generates fake purchase activity across decoy profiles to make the real payment profile indistinguishable. Select an active bot to view its obfuscation status.
+              </p>
+            )}
+          </div>
+
+          {selectedObfBot && (
+            <div className="p-5">
+              {obfLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+                </div>
+              ) : obfStatus ? (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-neutral-50 rounded-lg p-3" data-testid="obf-stat-phase">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Phase</p>
+                      <div className="flex items-center gap-1.5">
+                        {obfStatus.phase === "warmup" ? (
+                          <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        ) : obfStatus.phase === "active" ? (
+                          <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                        ) : obfStatus.phase === "idle" ? (
+                          <Pause className="w-3.5 h-3.5 text-neutral-400" />
+                        ) : null}
+                        <span className="font-bold text-sm capitalize text-neutral-900">
+                          {obfStatus.phase === "none" ? "Not Started" : obfStatus.phase}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-neutral-50 rounded-lg p-3" data-testid="obf-stat-organic">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Real Purchases</p>
+                      <p className="font-bold text-sm text-neutral-900">{obfStatus.organicCount}</p>
+                    </div>
+                    <div className="bg-neutral-50 rounded-lg p-3" data-testid="obf-stat-fake">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Fake Purchases</p>
+                      <p className="font-bold text-sm text-violet-700">{obfStatus.obfuscationCount}</p>
+                    </div>
+                    <div className="bg-neutral-50 rounded-lg p-3" data-testid="obf-stat-ratio">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Ratio (Target 3:1)</p>
+                      <p className="font-bold text-sm text-neutral-900">
+                        {obfStatus.organicCount > 0
+                          ? `${(obfStatus.obfuscationCount / obfStatus.organicCount).toFixed(1)}:1`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {obfStatus.phase !== "none" && (
+                    <div className="flex flex-wrap gap-3 text-xs text-neutral-500">
+                      {obfStatus.activatedAt && (
+                        <span>Activated {new Date(obfStatus.activatedAt).toLocaleDateString()}</span>
+                      )}
+                      {obfStatus.lastOrganicAt && (
+                        <span>Last real purchase {new Date(obfStatus.lastOrganicAt).toLocaleString()}</span>
+                      )}
+                      {obfStatus.lastObfuscationAt && (
+                        <span>Last fake purchase {new Date(obfStatus.lastObfuscationAt).toLocaleString()}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {obfEvents.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-2">Recent Fake Activity</h4>
+                      <div className="divide-y divide-neutral-50 border border-neutral-100 rounded-lg overflow-hidden">
+                        {obfEvents.slice(0, 10).map((evt) => (
+                          <div key={evt.id} className="px-3 py-2 flex items-center justify-between text-xs" data-testid={`obf-event-${evt.id}`}>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="w-5 h-5 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                P{evt.profile_index}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="font-medium text-neutral-800 truncate">{evt.merchant_name}</p>
+                                <p className="text-neutral-400 truncate">{evt.item_name}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="font-mono text-neutral-600">${evt.amount_usd.toFixed(2)}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                evt.status === "completed" ? "bg-emerald-50 text-emerald-600"
+                                : evt.status === "pending" ? "bg-amber-50 text-amber-600"
+                                : "bg-neutral-100 text-neutral-500"
+                              }`}>
+                                {evt.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {obfEvents.length === 0 && obfStatus.phase !== "none" && (
+                    <p className="text-xs text-neutral-400 text-center py-4">
+                      No obfuscation events yet. Events will appear during warmup and after real purchases.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-400 text-center py-8">
+                  Obfuscation not configured for this bot.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-16">

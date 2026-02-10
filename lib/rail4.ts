@@ -63,6 +63,9 @@ export interface FakeProfile {
   city: string;
   state: string;
   zip: string;
+  fakeMissingDigits: string;
+  fakeExpiryMonth: number;
+  fakeExpiryYear: number;
 }
 
 export interface Rail4Setup {
@@ -131,6 +134,9 @@ function generateFakeProfile(index: number, missingPositions: number[]): FakePro
     city: location.city,
     state: location.state,
     zip: location.zip,
+    fakeMissingDigits: randomDigits(3),
+    fakeExpiryMonth: 1 + Math.floor(Math.random() * 12),
+    fakeExpiryYear: 2026 + Math.floor(Math.random() * 5),
   };
 }
 
