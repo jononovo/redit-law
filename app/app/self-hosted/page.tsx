@@ -4,11 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Shield, Plus, CreditCard, ChevronRight } from "lucide-react";
 import { Rail4CardManager } from "@/components/dashboard/rail4-card-manager";
+import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -18,14 +15,11 @@ interface BotInfo {
 }
 
 export default function SelfHostedPage() {
-  const { toast } = useToast();
   const { user } = useAuth();
   const router = useRouter();
   const [bots, setBots] = useState<BotInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addOpen, setAddOpen] = useState(false);
-  const [botName, setBotName] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const fetchBots = useCallback(async () => {
     try {
@@ -48,35 +42,6 @@ export default function SelfHostedPage() {
     }
   }, [user, fetchBots]);
 
-  async function handleAddCard() {
-    if (!botName.trim()) {
-      toast({ title: "Name required", description: "Enter a name for this card's bot agent.", variant: "destructive" });
-      return;
-    }
-    setCreating(true);
-    try {
-      const regRes = await authFetch("/api/v1/rail4/create-bot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_name: botName.trim() }),
-      });
-
-      if (!regRes.ok) {
-        const err = await regRes.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to create card agent");
-      }
-
-      toast({ title: "Card agent created", description: `"${botName.trim()}" is ready. Now set up the card below.` });
-      setBotName("");
-      setAddOpen(false);
-      await fetchBots();
-    } catch (err: any) {
-      toast({ title: "Failed to create", description: err.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -86,49 +51,21 @@ export default function SelfHostedPage() {
             Use your own card with split-knowledge security. Neither your bot nor CreditClaw ever holds the full card number.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-full bg-primary hover:bg-primary/90 gap-2" data-testid="button-add-self-hosted">
-              <Plus className="w-4 h-4" />
-              Add New Card
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Add Self-Hosted Card
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <p className="text-sm text-neutral-500">
-                Give this card a name. This creates a bot agent that will handle purchases using your self-hosted card.
-              </p>
-              <div className="space-y-2">
-                <Label htmlFor="card-bot-name">Card Name</Label>
-                <Input
-                  id="card-bot-name"
-                  placeholder="e.g. Shopping Agent, AWS Billing"
-                  value={botName}
-                  onChange={(e) => setBotName(e.target.value)}
-                  className="rounded-xl"
-                  data-testid="input-card-bot-name"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddCard(); }}
-                />
-              </div>
-              <Button
-                onClick={handleAddCard}
-                disabled={creating || !botName.trim()}
-                className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2"
-                data-testid="button-create-card-agent"
-              >
-                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Create Card Agent
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={() => setWizardOpen(true)}
+          className="rounded-full bg-primary hover:bg-primary/90 gap-2"
+          data-testid="button-add-self-hosted"
+        >
+          <Plus className="w-4 h-4" />
+          Add New Card
+        </Button>
       </div>
+
+      <Rail4SetupWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        onComplete={fetchBots}
+      />
 
       <div className="bg-gradient-to-r from-primary/5 to-purple-50 rounded-2xl border border-primary/10 p-6" data-testid="card-rail4-explainer">
         <div className="flex items-start gap-4">

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 
 interface SetupWizardProps {
-  botId: string;
+  botId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: () => void;
@@ -27,6 +28,15 @@ interface ActivationResult {
   payment_profiles_filename: string;
   payment_profiles_content: string;
 }
+
+const USE_CASE_OPTIONS = [
+  { value: "personal", label: "Specific personal requests", icon: "🛍️" },
+  { value: "takeout", label: "Take-out & impulse purchases", icon: "🍕" },
+  { value: "business", label: "Business ordering & purchases", icon: "💼" },
+  { value: "autonomous", label: "Autonomous online building: hosting, SaaS, API credits", icon: "🤖" },
+  { value: "not_sure", label: "Not sure yet", icon: "🤔" },
+  { value: "other", label: "Other", icon: "✏️" },
+];
 
 const SAMPLE_CARD_NUMBER = "4532 8219 0647 3851";
 const SAMPLE_CARD_DIGITS = SAMPLE_CARD_NUMBER.replace(/\s/g, "").split("");
@@ -48,7 +58,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             {i < current ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={`w-12 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
+            <div className={`w-8 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
           )}
         </div>
       ))}
@@ -282,9 +292,21 @@ function InteractiveCard({
   );
 }
 
-export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: SetupWizardProps) {
+export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onComplete }: SetupWizardProps) {
   const { toast } = useToast();
+  const isNewMode = !initialBotId;
+  const stepOffset = isNewMode ? 2 : 0;
+  const totalSteps = isNewMode ? 7 : 5;
+
   const [step, setStep] = useState(0);
+  const [createdBotId, setCreatedBotId] = useState<string | null>(null);
+  const activeBotId = initialBotId || createdBotId;
+
+  const [cardName, setCardName] = useState("");
+  const [useCase, setUseCase] = useState("");
+  const [otherUseCase, setOtherUseCase] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
+
   const [initLoading, setInitLoading] = useState(false);
   const [initData, setInitData] = useState<InitData | null>(null);
   const [missingDigits, setMissingDigits] = useState("");
@@ -305,15 +327,21 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
   while (digitsArr.length < 3) digitsArr.push("");
   const activeField = getActiveField(digitsArr, expiryMonth, expiryYear, ownerZip);
 
+  const cardDetailsStep = stepOffset + 1;
+
   useEffect(() => {
-    if (activeField === "zip" && step === 1) {
+    if (activeField === "zip" && step === cardDetailsStep) {
       zipRef.current?.focus();
     }
-  }, [activeField, step]);
+  }, [activeField, step, cardDetailsStep]);
 
   useEffect(() => {
     if (!open) {
       setStep(0);
+      setCreatedBotId(null);
+      setCardName("");
+      setUseCase("");
+      setOtherUseCase("");
       setInitData(null);
       setMissingDigits("");
       setExpiryMonth("");
@@ -328,13 +356,53 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
     }
   }, [open]);
 
+  async function handleCreateAndInitialize() {
+    setCreateLoading(true);
+    try {
+      const createRes = await authFetch("/api/v1/rail4/create-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_name: cardName.trim() }),
+      });
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to create card agent");
+      }
+      const createData = await createRes.json();
+      const newBotId = createData.bot_id;
+      setCreatedBotId(newBotId);
+
+      const initRes = await authFetch("/api/v1/rail4/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id: newBotId }),
+      });
+      if (!initRes.ok) {
+        const err = await initRes.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to initialize card");
+      }
+      const data = await initRes.json();
+      setInitData({
+        decoy_filename: data.decoy_filename,
+        real_profile_index: data.real_profile_index,
+        missing_digit_positions: data.missing_digit_positions,
+      });
+      setStep(stepOffset);
+    } catch (err: any) {
+      toast({ title: "Setup failed", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setCreateLoading(false);
+    }
+  }
+
   async function handleInitialize() {
+    if (!activeBotId) return;
     setInitLoading(true);
     try {
       const res = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: botId }),
+        body: JSON.stringify({ bot_id: activeBotId }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -346,7 +414,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         real_profile_index: data.real_profile_index,
         missing_digit_positions: data.missing_digit_positions,
       });
-      setStep(1);
+      setStep(stepOffset + 1);
     } catch (err: any) {
       toast({ title: "Setup failed", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
@@ -357,6 +425,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
   const cardDetailsComplete = missingDigits.length >= 3 && !!expiryMonth && !!expiryYear;
 
   async function handleActivate() {
+    if (!activeBotId) return;
     if (missingDigits.length !== 3) {
       toast({ title: "Missing digits", description: "Enter all 3 missing card digits.", variant: "destructive" });
       return;
@@ -371,7 +440,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bot_id: botId,
+          bot_id: activeBotId,
           missing_digits: missingDigits,
           expiry_month: parseInt(expiryMonth),
           expiry_year: parseInt(expiryYear),
@@ -396,7 +465,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         payment_profiles_filename: data.payment_profiles_filename,
         payment_profiles_content: data.payment_profiles_content,
       });
-      setStep(3);
+      setStep(stepOffset + 3);
     } catch (err: any) {
       toast({ title: "Activation failed", description: err.message || "Please check your details and try again.", variant: "destructive" });
     } finally {
@@ -416,15 +485,124 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
     setDownloaded(true);
   }
 
-  const stepContent = [
+  const allSteps: React.ReactNode[] = [];
+
+  if (isNewMode) {
+    allSteps.push(
+      <div key="card-name" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-card-name">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-orange-100 flex items-center justify-center mb-6">
+          <CreditCard className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold text-neutral-900 mb-3">Add a New Card</h2>
+        <p className="text-neutral-500 max-w-md leading-relaxed mb-8">
+          Give your card a name so you can easily identify it later. This also creates a bot agent that will handle purchases on your behalf.
+        </p>
+        <div className="w-full max-w-md space-y-4 mb-8">
+          <div className="space-y-2 text-left">
+            <Label htmlFor="wizard-card-name" className="text-sm font-semibold">Card Name</Label>
+            <Input
+              id="wizard-card-name"
+              placeholder="e.g. Shopping Agent, AWS Billing, Grocery Bot"
+              value={cardName}
+              onChange={(e) => setCardName(e.target.value)}
+              className="rounded-xl text-base py-3"
+              data-testid="input-wizard-card-name"
+              onKeyDown={(e) => { if (e.key === "Enter" && cardName.trim()) setStep(1); }}
+              autoFocus
+            />
+          </div>
+        </div>
+        <Button
+          onClick={() => setStep(1)}
+          disabled={!cardName.trim()}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+          data-testid="button-wizard-name-continue"
+        >
+          Continue
+          <ArrowRight className="w-5 h-5" />
+        </Button>
+      </div>
+    );
+
+    allSteps.push(
+      <div key="use-case" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-use-case">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center mb-6">
+          <Tag className="w-10 h-10 text-purple-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-neutral-900 mb-3">What will you use this card for?</h2>
+        <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
+          This helps us tailor your experience. You can always change this later.
+        </p>
+        <div className="w-full max-w-md space-y-2 mb-6">
+          {USE_CASE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setUseCase(option.value)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
+                useCase === option.value
+                  ? "border-primary bg-primary/5 shadow-sm"
+                  : "border-neutral-100 hover:border-neutral-200 hover:bg-neutral-50"
+              }`}
+              data-testid={`button-usecase-${option.value}`}
+            >
+              <span className="text-xl flex-shrink-0">{option.icon}</span>
+              <span className={`text-sm font-medium ${useCase === option.value ? "text-primary" : "text-neutral-700"}`}>
+                {option.label}
+              </span>
+              {useCase === option.value && (
+                <CheckCircle2 className="w-5 h-5 text-primary ml-auto flex-shrink-0" />
+              )}
+            </button>
+          ))}
+
+          {useCase === "other" && (
+            <div className="pt-2">
+              <Input
+                placeholder="Tell us what you'll use it for..."
+                value={otherUseCase}
+                onChange={(e) => setOtherUseCase(e.target.value)}
+                className="rounded-xl"
+                data-testid="input-usecase-other"
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setStep(0)}
+            className="rounded-xl gap-2 px-6 py-3"
+            data-testid="button-wizard-usecase-back"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+          <Button
+            onClick={handleCreateAndInitialize}
+            disabled={!useCase || (useCase === "other" && !otherUseCase.trim()) || createLoading}
+            className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+            data-testid="button-wizard-usecase-continue"
+          >
+            {createLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+            {createLoading ? "Setting up..." : "Continue"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  allSteps.push(
     <div key="welcome" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-welcome">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-100 flex items-center justify-center mb-6">
         <Shield className="w-10 h-10 text-primary" />
       </div>
       <h2 className="text-2xl font-bold text-neutral-900 mb-3">Split-Knowledge Card Setup</h2>
       <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
-        We're about to set up a self-hosted card using our split-knowledge system. 
-        Here's what will happen:
+        {isNewMode
+          ? `Great — "${cardName.trim()}" is ready. Now let's secure your card with split-knowledge protection. Here's what will happen:`
+          : "We're about to set up a self-hosted card using our split-knowledge system. Here's what will happen:"}
       </p>
       <div className="grid gap-4 w-full max-w-md text-left mb-8">
         {[
@@ -444,17 +622,31 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           </div>
         ))}
       </div>
-      <Button
-        onClick={handleInitialize}
-        disabled={initLoading}
-        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
-        data-testid="button-wizard-start"
-      >
-        {initLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-        {initLoading ? "Generating..." : "Let's Go"}
-      </Button>
-    </div>,
+      {isNewMode ? (
+        <Button
+          onClick={() => setStep(stepOffset + 1)}
+          disabled={!initData}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+          data-testid="button-wizard-start"
+        >
+          <Sparkles className="w-5 h-5" />
+          Let's Go
+        </Button>
+      ) : (
+        <Button
+          onClick={handleInitialize}
+          disabled={initLoading}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+          data-testid="button-wizard-start"
+        >
+          {initLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+          {initLoading ? "Generating..." : "Let's Go"}
+        </Button>
+      )}
+    </div>
+  );
 
+  allSteps.push(
     <div key="card-details" className="flex flex-col items-center px-4 py-2" data-testid="wizard-step-card">
       <h2 className="text-2xl font-bold text-neutral-900 mb-2 text-center">Enter Your Card Details</h2>
       <p className="text-neutral-500 max-w-md text-center leading-relaxed mb-6">
@@ -496,7 +688,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       <div className="flex gap-3 mt-8">
         <Button
           variant="outline"
-          onClick={() => setStep(0)}
+          onClick={() => setStep(stepOffset)}
           className="rounded-xl gap-2 px-6 py-3"
           data-testid="button-wizard-back-to-welcome"
         >
@@ -504,7 +696,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           Back
         </Button>
         <Button
-          onClick={() => setStep(2)}
+          onClick={() => setStep(stepOffset + 2)}
           disabled={!cardDetailsComplete}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
           data-testid="button-wizard-continue-to-permissions"
@@ -513,8 +705,10 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           <ArrowRight className="w-5 h-5" />
         </Button>
       </div>
-    </div>,
+    </div>
+  );
 
+  allSteps.push(
     <div key="permissions" className="flex flex-col items-center px-4 py-2" data-testid="wizard-step-permissions">
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center mb-6">
         <Shield className="w-8 h-8 text-purple-600" />
@@ -585,7 +779,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       <div className="flex gap-3 mt-8">
         <Button
           variant="outline"
-          onClick={() => setStep(1)}
+          onClick={() => setStep(stepOffset + 1)}
           className="rounded-xl gap-2 px-6 py-3"
           data-testid="button-wizard-back-to-card"
         >
@@ -602,8 +796,10 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           {submitLoading ? "Activating..." : "Activate Card"}
         </Button>
       </div>
-    </div>,
+    </div>
+  );
 
+  allSteps.push(
     <div key="download" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-download">
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-6">
         <Download className="w-8 h-8 text-blue-600" />
@@ -657,7 +853,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       </div>
 
       <Button
-        onClick={() => setStep(4)}
+        onClick={() => setStep(stepOffset + 4)}
         disabled={!downloaded}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
         data-testid="button-wizard-continue-to-success"
@@ -665,8 +861,10 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         Continue
         <ArrowRight className="w-5 h-5" />
       </Button>
-    </div>,
+    </div>
+  );
 
+  allSteps.push(
     <div key="success" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-success">
       <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
         <CheckCircle2 className="w-10 h-10 text-green-600" />
@@ -700,14 +898,17 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         Go to Dashboard
         <ArrowRight className="w-5 h-5" />
       </Button>
-    </div>,
-  ];
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8 rounded-2xl">
-        <StepIndicator current={step} total={5} />
-        {stepContent[step]}
+        <VisuallyHidden>
+          <DialogTitle>Card Setup Wizard</DialogTitle>
+        </VisuallyHidden>
+        <StepIndicator current={step} total={totalSteps} />
+        {allSteps[step]}
       </DialogContent>
     </Dialog>
   );
