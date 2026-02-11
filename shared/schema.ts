@@ -371,7 +371,7 @@ export const rail4SubmitOwnerDataSchema = z.object({
   missing_digits: z.string().length(3).regex(/^\d{3}$/),
   expiry_month: z.number().int().min(1).max(12),
   expiry_year: z.number().int().min(2025).max(2040),
-  owner_name: z.string().min(1).max(200),
+  owner_name: z.string().max(200).optional(),
   owner_zip: z.string().min(3).max(20),
   profile_permissions: profilePermissionSchema.optional(),
 });

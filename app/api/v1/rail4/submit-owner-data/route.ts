@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     missingDigitsValue: missing_digits,
     expiryMonth: expiry_month,
     expiryYear: expiry_year,
-    ownerName: owner_name,
+    ...(owner_name ? { ownerName: owner_name } : {}),
     ownerZip: owner_zip,
     ownerIp: ownerIp,
     status: "active",

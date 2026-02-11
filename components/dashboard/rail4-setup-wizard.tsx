@@ -51,6 +51,22 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
+type ActiveField = "digit0" | "digit1" | "digit2" | "month" | "year" | "zip" | "done";
+
+function getActiveField(digits: string[], expiryMonth: string, expiryYear: string, zip: string): ActiveField {
+  if (!digits[0]) return "digit0";
+  if (!digits[1]) return "digit1";
+  if (!digits[2]) return "digit2";
+  if (!expiryMonth) return "month";
+  if (!expiryYear) return "year";
+  if (!zip.trim()) return "zip";
+  return "done";
+}
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const currentYear = new Date().getFullYear();
+const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
+
 function InteractiveCard({
   missingPositions,
   missingDigits,
@@ -59,8 +75,7 @@ function InteractiveCard({
   expiryYear,
   onExpiryMonthChange,
   onExpiryYearChange,
-  ownerName,
-  onOwnerNameChange,
+  activeField,
 }: {
   missingPositions: number[];
   missingDigits: string;
@@ -69,33 +84,50 @@ function InteractiveCard({
   expiryYear: string;
   onExpiryMonthChange: (val: string) => void;
   onExpiryYearChange: (val: string) => void;
-  ownerName: string;
-  onOwnerNameChange: (val: string) => void;
+  activeField: ActiveField;
 }) {
   const digitRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const expiryMonthRef = useRef<HTMLInputElement>(null);
-  const expiryYearRef = useRef<HTMLInputElement>(null);
+  const monthRef = useRef<HTMLSelectElement>(null);
+  const yearRef = useRef<HTMLSelectElement>(null);
 
   const digits = missingDigits.split("");
   while (digits.length < 3) digits.push("");
+
+  useEffect(() => {
+    if (activeField === "digit0") digitRefs.current[0]?.focus();
+    else if (activeField === "digit1") digitRefs.current[1]?.focus();
+    else if (activeField === "digit2") digitRefs.current[2]?.focus();
+    else if (activeField === "month") monthRef.current?.focus();
+    else if (activeField === "year") yearRef.current?.focus();
+  }, [activeField]);
 
   function handleDigitInput(index: number, value: string) {
     const cleaned = value.replace(/\D/g, "").slice(0, 1);
     const newDigits = [...digits];
     newDigits[index] = cleaned;
     onDigitChange(newDigits.join(""));
-    if (cleaned && index < 2) {
-      digitRefs.current[index + 1]?.focus();
-    } else if (cleaned && index === 2) {
-      expiryMonthRef.current?.focus();
-    }
   }
 
   function handleDigitKeyDown(index: number, e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !digits[index] && index > 0) {
+      const newDigits = [...digits];
+      newDigits[index - 1] = "";
+      onDigitChange(newDigits.join(""));
       digitRefs.current[index - 1]?.focus();
     }
   }
+
+  function digitBorderClass(index: number) {
+    const fieldName = `digit${index}` as ActiveField;
+    if (digits[index]) return "border-green-400 bg-green-400/20";
+    if (activeField === fieldName) return "border-amber-300 bg-white/20 ring-2 ring-amber-300/50 scale-110";
+    return "border-amber-200/60 bg-white/10";
+  }
+
+  const isMonthActive = activeField === "month";
+  const isYearActive = activeField === "year";
+  const monthFilled = !!expiryMonth;
+  const yearFilled = !!expiryYear;
 
   function renderCardNumber() {
     const groups: React.ReactNode[][] = [[], [], [], []];
@@ -117,7 +149,7 @@ function InteractiveCard({
             value={digits[currentMissingIdx] || ""}
             onChange={(e) => handleDigitInput(currentMissingIdx, e.target.value)}
             onKeyDown={(e) => handleDigitKeyDown(currentMissingIdx, e)}
-            className="w-[1.4em] h-[1.6em] text-center bg-white/20 border-2 border-amber-300 rounded text-white font-mono text-inherit focus:outline-none focus:border-amber-400 focus:bg-white/30 placeholder:text-amber-200/60 caret-amber-300"
+            className={`w-[1.4em] h-[1.6em] text-center border-2 rounded text-white font-mono text-inherit focus:outline-none placeholder:text-white/40 caret-amber-300 transition-all duration-200 ${digitBorderClass(currentMissingIdx)}`}
             placeholder="?"
             data-testid={`input-card-digit-${currentMissingIdx}`}
             autoComplete="off"
@@ -176,54 +208,51 @@ function InteractiveCard({
             {renderCardNumber()}
           </div>
 
-          <div className="flex items-end justify-between">
-            <div className="flex-1">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Card Holder</p>
-              <input
-                type="text"
-                value={ownerName}
-                onChange={(e) => onOwnerNameChange(e.target.value)}
-                placeholder="YOUR NAME"
-                className="bg-transparent border-b border-white/20 text-white text-sm font-medium w-full max-w-[200px] focus:outline-none focus:border-amber-300 placeholder:text-white/30 pb-0.5 uppercase tracking-wide"
-                data-testid="input-card-name"
-                autoComplete="off"
-              />
-            </div>
-
+          <div className="flex items-end justify-end">
             <div className="text-right">
               <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
               <div className="flex items-center gap-1">
-                <input
-                  ref={expiryMonthRef}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
+                <select
+                  ref={monthRef}
                   value={expiryMonth}
                   onChange={(e) => {
-                    const v = e.target.value.replace(/\D/g, "").slice(0, 2);
-                    onExpiryMonthChange(v);
-                    if (v.length === 2) expiryYearRef.current?.focus();
+                    onExpiryMonthChange(e.target.value);
                   }}
-                  placeholder="MM"
-                  className="w-8 bg-transparent border-b border-white/20 text-white text-sm font-medium text-center focus:outline-none focus:border-amber-300 placeholder:text-white/30 pb-0.5"
-                  data-testid="input-card-expiry-month"
-                  autoComplete="off"
-                />
+                  className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all duration-200 ${
+                    monthFilled
+                      ? "border-green-400"
+                      : isMonthActive
+                        ? "border-amber-300 ring-1 ring-amber-300/50"
+                        : "border-amber-200/60"
+                  }`}
+                  data-testid="select-card-expiry-month"
+                >
+                  <option value="" className="bg-neutral-800 text-white">MM</option>
+                  {MONTHS.map(m => (
+                    <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>
+                  ))}
+                </select>
                 <span className="text-white/40 text-sm">/</span>
-                <input
-                  ref={expiryYearRef}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
+                <select
+                  ref={yearRef}
                   value={expiryYear}
                   onChange={(e) => {
-                    onExpiryYearChange(e.target.value.replace(/\D/g, "").slice(0, 2));
+                    onExpiryYearChange(e.target.value);
                   }}
-                  placeholder="YY"
-                  className="w-8 bg-transparent border-b border-white/20 text-white text-sm font-medium text-center focus:outline-none focus:border-amber-300 placeholder:text-white/30 pb-0.5"
-                  data-testid="input-card-expiry-year"
-                  autoComplete="off"
-                />
+                  className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all duration-200 ${
+                    yearFilled
+                      ? "border-green-400"
+                      : isYearActive
+                        ? "border-amber-300 ring-1 ring-amber-300/50"
+                        : "border-amber-200/60"
+                  }`}
+                  data-testid="select-card-expiry-year"
+                >
+                  <option value="" className="bg-neutral-800 text-white">YYYY</option>
+                  {YEARS.map(y => (
+                    <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -257,9 +286,19 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
   const [missingDigits, setMissingDigits] = useState("");
   const [expiryMonth, setExpiryMonth] = useState("");
   const [expiryYear, setExpiryYear] = useState("");
-  const [ownerName, setOwnerName] = useState("");
   const [ownerZip, setOwnerZip] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
+  const zipRef = useRef<HTMLInputElement>(null);
+
+  const digitsArr = missingDigits.split("");
+  while (digitsArr.length < 3) digitsArr.push("");
+  const activeField = getActiveField(digitsArr, expiryMonth, expiryYear, ownerZip);
+
+  useEffect(() => {
+    if (activeField === "zip" && step === 2) {
+      zipRef.current?.focus();
+    }
+  }, [activeField, step]);
 
   useEffect(() => {
     if (!open) {
@@ -269,7 +308,6 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       setMissingDigits("");
       setExpiryMonth("");
       setExpiryYear("");
-      setOwnerName("");
       setOwnerZip("");
     }
   }, [open]);
@@ -317,14 +355,8 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       toast({ title: "Expiry required", description: "Enter the card expiry date.", variant: "destructive" });
       return;
     }
-    if (!ownerName.trim()) {
-      toast({ title: "Name required", description: "Enter the cardholder name.", variant: "destructive" });
-      return;
-    }
-
     setSubmitLoading(true);
     try {
-      const fullYear = expiryYear.length === 2 ? `20${expiryYear}` : expiryYear;
       const res = await authFetch("/api/v1/rail4/submit-owner-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -332,8 +364,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           bot_id: botId,
           missing_digits: missingDigits,
           expiry_month: parseInt(expiryMonth),
-          expiry_year: parseInt(fullYear),
-          owner_name: ownerName.trim(),
+          expiry_year: parseInt(expiryYear),
           owner_zip: ownerZip.trim() || "00000",
         }),
       });
@@ -451,8 +482,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
     <div key="card-details" className="flex flex-col items-center px-4 py-2" data-testid="wizard-step-card">
       <h2 className="text-2xl font-bold text-neutral-900 mb-2 text-center">Enter Your Card Details</h2>
       <p className="text-neutral-500 max-w-md text-center leading-relaxed mb-6">
-        Click on the highlighted spots on the card below to enter your 3 missing digits, 
-        expiry date, and name.
+        Fill in the highlighted field below. Each field will light up in order as you go.
       </p>
 
       <InteractiveCard
@@ -463,19 +493,25 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         expiryYear={expiryYear}
         onExpiryMonthChange={setExpiryMonth}
         onExpiryYearChange={setExpiryYear}
-        ownerName={ownerName}
-        onOwnerNameChange={setOwnerName}
+        activeField={activeField}
       />
 
       <div className="w-full max-w-md mt-6">
         <div className="space-y-2">
           <label className="text-sm font-medium text-neutral-700">Billing ZIP Code</label>
           <Input
+            ref={zipRef}
             value={ownerZip}
             onChange={(e) => setOwnerZip(e.target.value)}
             placeholder="90210"
             maxLength={10}
-            className="rounded-xl"
+            className={`rounded-xl transition-all duration-200 ${
+              ownerZip.trim()
+                ? "border-green-400 ring-1 ring-green-200"
+                : activeField === "zip"
+                  ? "border-amber-400 ring-2 ring-amber-300/50"
+                  : "border-amber-200 ring-1 ring-amber-100"
+            }`}
             data-testid="input-wizard-zip"
           />
         </div>
@@ -493,7 +529,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         </Button>
         <Button
           onClick={handleActivate}
-          disabled={submitLoading || missingDigits.length < 3 || !expiryMonth || !expiryYear || !ownerName.trim()}
+          disabled={submitLoading || missingDigits.length < 3 || !expiryMonth || !expiryYear}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
           data-testid="button-wizard-activate"
         >
