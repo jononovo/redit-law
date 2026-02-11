@@ -82,7 +82,7 @@ export function CardVisual({
                     <span>{last4}</span>
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Holder</span>
+                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Name</span>
                     <span className="text-sm font-medium uppercase tracking-wide">{holder}</span>
                 </div>
             </div>
