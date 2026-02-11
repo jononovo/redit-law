@@ -14,8 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 
 interface Rail4Status {
-  status: string;
+  configured: boolean;
+  status: string | null;
   decoy_filename?: string;
+  real_profile_index?: number;
+  missing_digit_positions?: number[];
   created_at?: string;
   card_status?: string;
 }
@@ -64,7 +67,13 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   const [rail4Status, setRail4Status] = useState<Rail4Status | null>(null);
   const [loading, setLoading] = useState(true);
   const [initLoading, setInitLoading] = useState(false);
-  const [initData, setInitData] = useState<{ decoy_url?: string; instructions?: string } | null>(null);
+  const [initData, setInitData] = useState<{
+    decoy_filename?: string;
+    real_profile_index?: number;
+    missing_digit_positions?: number[];
+    decoy_file_content?: string;
+    instructions?: string;
+  } | null>(null);
   const [setupStep, setSetupStep] = useState<"idle" | "initialized" | "form">("idle");
 
   const [missingDigits, setMissingDigits] = useState("");
@@ -89,7 +98,9 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const isActive = rail4Status?.card_status === "active" || rail4Status?.status === "active";
+  const isConfigured = rail4Status?.configured === true;
+  const isActive = rail4Status?.status === "active";
+  const isPendingSetup = rail4Status?.status === "pending_setup";
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -165,9 +176,16 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
       });
       if (!res.ok) throw new Error("Failed to initialize");
       const data = await res.json();
-      setInitData(data);
+      setInitData({
+        decoy_filename: data.decoy_filename,
+        real_profile_index: data.real_profile_index,
+        missing_digit_positions: data.missing_digit_positions,
+        decoy_file_content: data.decoy_file_content,
+        instructions: data.instructions,
+      });
       setSetupStep("initialized");
-      toast({ title: "Rail 4 Initialized", description: "Download the decoy file and complete setup." });
+      await fetchStatus();
+      toast({ title: "Card Initialized", description: "Download the decoy file and complete setup." });
     } catch {
       toast({ title: "Initialization failed", description: "Please try again.", variant: "destructive" });
     } finally {
@@ -259,18 +277,19 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     );
   }
 
-  if (!isActive && setupStep === "idle" && !rail4Status) {
+  if (!isConfigured && setupStep === "idle") {
     return (
       <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-setup">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
             <Shield className="w-4 h-4" />
-            Self-Hosted Card (Rail 4)
+            Set Up Self-Hosted Card
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-neutral-500 mb-4">
-            Set up a self-hosted card with split-knowledge security for this bot.
+            This will generate a decoy file with fake card profiles. Your real card details are split — 
+            neither your bot nor CreditClaw ever holds the full number.
           </p>
           <Button
             onClick={handleInitialize}
@@ -279,7 +298,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
             data-testid="button-initialize-rail4"
           >
             {initLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-            Set Up Self-Hosted Card
+            Start Card Setup
           </Button>
         </CardContent>
       </Card>
@@ -296,32 +315,49 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {initData.decoy_url && (
-            <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
-              <p className="text-sm font-medium text-neutral-700 mb-2">Step 1: Download Decoy File</p>
-              <p className="text-xs text-neutral-500 mb-3">
-                {initData.instructions || "Download and host this decoy file for card security."}
-              </p>
-              <a
-                href={initData.decoy_url}
-                download
-                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                data-testid="link-download-decoy"
+          <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
+            <p className="text-sm font-medium text-neutral-700 mb-2">Step 1: Download Your Decoy File</p>
+            <p className="text-xs text-neutral-500 mb-3">
+              {initData.instructions || `Save this file as "${initData.decoy_filename}". Your real card is Profile #${initData.real_profile_index}. Fill in your real card details there, leaving positions ${initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} as "xxx".`}
+            </p>
+            {initData.decoy_file_content && (
+              <Button
+                variant="outline"
+                className="rounded-xl gap-2"
+                data-testid="button-download-decoy"
+                onClick={() => {
+                  const blob = new Blob([initData.decoy_file_content!], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = initData.decoy_filename || "decoy_cards.json";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
               >
                 <Download className="w-4 h-4" />
-                Download Decoy File
-              </a>
-            </div>
-          )}
+                Download {initData.decoy_filename || "Decoy File"}
+              </Button>
+            )}
+          </div>
+
+          <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
+            <p className="text-sm font-medium text-blue-800 mb-1">Your Real Profile: #{initData.real_profile_index}</p>
+            <p className="text-xs text-blue-600">
+              Only you know which profile is real. CreditClaw stores the other 5 fake profiles for obfuscation.
+              The 3 digits at card positions {initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} are never stored — enter them below.
+            </p>
+          </div>
 
           <div className="space-y-4">
-            <p className="text-sm font-medium text-neutral-700">Step 2: Enter Card Details</p>
+            <p className="text-sm font-medium text-neutral-700">Step 2: Enter Your Card Details</p>
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label htmlFor="missing-digits">Missing Digits (3 digits)</Label>
+                <Label htmlFor="missing-digits">3 Missing Card Digits</Label>
+                <p className="text-xs text-neutral-400">The 3 digits at positions {initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} of your card number</p>
                 <Input
                   id="missing-digits"
-                  placeholder="123"
+                  placeholder="e.g. 482"
                   maxLength={3}
                   value={missingDigits}
                   onChange={(e) => setMissingDigits(e.target.value.replace(/\D/g, "").slice(0, 3))}
@@ -387,6 +423,46 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
             >
               {submitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Activate Card
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isPendingSetup && setupStep === "idle") {
+    return (
+      <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-pending">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
+            <Shield className="w-4 h-4" />
+            Card Setup Incomplete
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-neutral-500">
+            Your decoy file was created but you haven't finished entering your card details yet. 
+            You can re-initialize to get a fresh decoy file, or delete and start over.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleInitialize}
+              disabled={initLoading}
+              className="rounded-xl bg-primary hover:bg-primary/90 gap-2"
+              data-testid="button-reinitialize-rail4"
+            >
+              {initLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Re-Initialize
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-xl gap-2 text-red-600 border-red-200 hover:bg-red-50"
+              onClick={handleDelete}
+              disabled={deleting}
+              data-testid="button-delete-pending"
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Delete
             </Button>
           </div>
         </CardContent>

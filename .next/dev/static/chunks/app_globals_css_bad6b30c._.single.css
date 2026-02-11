@@ -2364,6 +2364,10 @@
     border-color: var(--color-amber-200);
   }
 
+  .border-blue-100 {
+    border-color: var(--color-blue-100);
+  }
+
   .border-border {
     border-color: hsl(var(--border));
   }
@@ -3742,6 +3746,10 @@
 
   .text-blue-700 {
     color: var(--color-blue-700);
+  }
+
+  .text-blue-800 {
+    color: var(--color-blue-800);
   }
 
   .text-card-foreground {
