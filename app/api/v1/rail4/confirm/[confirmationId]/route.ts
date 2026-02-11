@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
 import { createHmac } from "crypto";
 
-const CONFIRMATION_SECRET = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET || "default-confirmation-secret";
+const CONFIRMATION_SECRET = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
+if (!CONFIRMATION_SECRET) {
+  console.error("CRITICAL: CONFIRMATION_HMAC_SECRET or CRON_SECRET must be set for approval link security.");
+}
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
 function verifyHmac(confirmationId: string, token: string): boolean {
+  if (!CONFIRMATION_SECRET) return false;
   const expected = createHmac("sha256", CONFIRMATION_SECRET)
     .update(confirmationId)
     .digest("hex");
@@ -139,6 +143,23 @@ async function handleApproval(conf: any) {
   await storage.updateCheckoutConfirmationStatus(conf.confirmationId, "approved");
 
   const card = await storage.getRail4CardByBotId(conf.botId);
+
+  if (card) {
+    const { getWindowStart } = await import("@/lib/rail4");
+    const permissions = card.profilePermissions ? JSON.parse(card.profilePermissions) : [];
+    const profilePerm = permissions.find((p: { profile_index: number }) => p.profile_index === conf.profileIndex);
+    if (profilePerm) {
+      const windowStart = getWindowStart(profilePerm.allowance_duration);
+      await storage.upsertProfileAllowanceUsage(
+        conf.botId,
+        conf.profileIndex,
+        windowStart,
+        conf.amountCents,
+        false,
+      );
+    }
+  }
+
   const { fireWebhook } = await import("@/lib/webhooks");
   fireWebhook(bot, "rail4.checkout.approved" as any, {
     confirmation_id: conf.confirmationId,
