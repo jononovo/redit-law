@@ -22,7 +22,6 @@ interface InitData {
   card_id: string;
   decoy_filename: string;
   real_profile_index: number;
-  masked_pan: string;
   missing_digit_positions: number[];
 }
 
@@ -40,6 +39,8 @@ const USE_CASE_OPTIONS = [
   { value: "other", label: "Other", icon: "✏️" },
 ];
 
+const SAMPLE_CARD_NUMBER = "4532 8219 0647 3851";
+const SAMPLE_CARD_DIGITS = SAMPLE_CARD_NUMBER.replace(/\s/g, "").split("");
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
@@ -83,7 +84,7 @@ const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
 
 function InteractiveCard({
-  maskedPan,
+  missingPositions,
   missingDigits,
   onDigitChange,
   expiryMonth,
@@ -92,7 +93,7 @@ function InteractiveCard({
   onExpiryYearChange,
   activeField,
 }: {
-  maskedPan: string;
+  missingPositions: number[];
   missingDigits: string;
   onDigitChange: (val: string) => void;
   expiryMonth: string;
@@ -144,16 +145,15 @@ function InteractiveCard({
   const monthFilled = !!expiryMonth;
   const yearFilled = !!expiryYear;
 
-  const panChars = maskedPan.split("");
-
   function renderCardNumber() {
     const groups: React.ReactNode[][] = [[], [], [], []];
     let missingIdx = 0;
 
-    panChars.forEach((ch, i) => {
+    SAMPLE_CARD_DIGITS.forEach((digit, i) => {
       const groupIdx = Math.floor(i / 4);
+      const isMissing = missingPositions.includes(i);
 
-      if (ch === "X") {
+      if (isMissing) {
         const currentMissingIdx = missingIdx;
         groups[groupIdx].push(
           <input
@@ -166,7 +166,7 @@ function InteractiveCard({
             onChange={(e) => handleDigitInput(currentMissingIdx, e.target.value)}
             onKeyDown={(e) => handleDigitKeyDown(currentMissingIdx, e)}
             className={`w-[1.4em] h-[1.6em] text-center border-2 rounded text-white font-mono text-inherit focus:outline-none placeholder:text-white/40 caret-amber-300 transition-all duration-200 ${digitBorderClass(currentMissingIdx)}`}
-            placeholder="X"
+            placeholder="?"
             data-testid={`input-card-digit-${currentMissingIdx}`}
             autoComplete="off"
           />
@@ -174,7 +174,7 @@ function InteractiveCard({
         missingIdx++;
       } else {
         groups[groupIdx].push(
-          <span key={i} className="text-white/30">{ch}</span>
+          <span key={i} className="text-white/80">{digit}</span>
         );
       }
     });
@@ -274,6 +274,21 @@ function InteractiveCard({
           </div>
         </div>
       </div>
+
+      <div className="flex flex-wrap gap-2 justify-center mt-4">
+        {missingPositions.map((pos, i) => (
+          <div
+            key={pos}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${
+              digits[i]
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700 animate-pulse"
+            }`}
+          >
+            Position {pos + 1}: {digits[i] ? <span className="font-bold">{digits[i]}</span> : "needed"}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -362,7 +377,6 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
-        masked_pan: data.masked_pan,
         missing_digit_positions: data.missing_digit_positions,
       });
       setStep(stepOffset);
@@ -391,7 +405,6 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
-        masked_pan: data.masked_pan,
         missing_digit_positions: data.missing_digit_positions,
       });
       setStep(stepOffset + 1);

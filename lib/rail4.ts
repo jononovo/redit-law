@@ -113,30 +113,9 @@ export interface Rail4Setup {
   decoyFilename: string;
   realProfileIndex: number;
   missingDigitPositions: number[];
-  maskedPan: string;
   fakeProfiles: FakeProfile[];
   profilePermissions: ProfilePermission[];
   decoyFileContent: string;
-}
-
-export function buildMaskedPanTemplate(missingPositions: number[]): string {
-  let pan = "";
-  for (let i = 0; i < 16; i++) {
-    pan += missingPositions.includes(i) ? "X" : "0";
-  }
-  return pan;
-}
-
-export function expandLegacyMissingDigits(
-  missingDigitsValue: string,
-  missingDigitPositions: number[],
-): string {
-  if (missingDigitsValue.length === 16) return missingDigitsValue;
-  const chars = Array(16).fill("0");
-  for (let i = 0; i < missingDigitPositions.length; i++) {
-    chars[missingDigitPositions[i]] = missingDigitsValue[i] || "0";
-  }
-  return chars.join("");
 }
 
 function generateFakePermission(profileIndex: number): ProfilePermission {
@@ -211,7 +190,7 @@ export function generateRail4Setup(): Rail4Setup {
     const bin = randomPick(BIN_PREFIXES);
     const { masked } = generateCardNumber(bin, missingDigitPositions);
     const cvv = String(randomInt(100, 999));
-    const fakeMissingDigits = String(randomInt(100, 999));
+    const fakeMissing = String(randomInt(100, 999));
     const fakeExpMonth = randomInt(1, 12);
     const fakeExpYear = randomInt(2026, 2032);
 
@@ -229,15 +208,13 @@ export function generateRail4Setup(): Rail4Setup {
       state: loc.state,
       zip: loc.zip,
       country: "United States",
-      fakeMissingDigits: fakeMissingDigits,
+      fakeMissingDigits: fakeMissing,
       fakeExpiryMonth: fakeExpMonth,
       fakeExpiryYear: fakeExpYear,
     });
 
     profilePermissions.push(generateFakePermission(i));
   }
-
-  const maskedPan = buildMaskedPanTemplate(missingDigitPositions);
 
   const decoyFileContent = buildDecoyFileContent(
     realProfileIndex,
@@ -250,7 +227,6 @@ export function generateRail4Setup(): Rail4Setup {
     decoyFilename,
     realProfileIndex,
     missingDigitPositions,
-    maskedPan,
     fakeProfiles,
     profilePermissions,
     decoyFileContent,
@@ -269,7 +245,7 @@ export function buildDecoyFileContent(
     const perm = permissions.find(p => p.profile_index === i);
 
     if (i === realProfileIndex) {
-      const maskedPan = buildMaskedPanTemplate(missingPositions);
+      const posLabel = missingPositions.map(p => p + 1).join("-");
       lines.push(`// Profile ${i}:`);
       lines.push(`profile: ${i}`);
       lines.push(`fullname: [Enter your full name]`);
@@ -288,7 +264,7 @@ export function buildDecoyFileContent(
         lines.push(`creditclaw_permission_required: ${perm.creditclaw_permission_required}`);
       }
       lines.push(`card-name: [Enter name on card]`);
-      lines.push(`pan: ${formatPan(maskedPan)}`);
+      lines.push(`pan: [Enter card number, leave digits ${posLabel} as xxx]`);
       lines.push(`cvv: [Enter CVV]`);
       lines.push(`expiry: xx/xx`);
       lines.push(``);

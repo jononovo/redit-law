@@ -6,7 +6,7 @@ import { fireWebhook } from "@/lib/webhooks";
 import { notifyPurchase, notifyBalanceLow, notifySuspicious } from "@/lib/notifications";
 import { recordOrganicEvent, incrementObfuscationCount } from "@/lib/obfuscation-engine/state-machine";
 import { completeObfuscationEvent } from "@/lib/obfuscation-engine/events";
-import { getWindowStart, expandLegacyMissingDigits } from "@/lib/rail4";
+import { getWindowStart } from "@/lib/rail4";
 import type { FakeProfile } from "@/lib/rail4";
 import { randomBytes } from "crypto";
 
@@ -340,11 +340,9 @@ async function handleRealCheckout(
 
   await recordOrganicEvent(card.cardId);
 
-  const maskedPan = expandLegacyMissingDigits(card.missingDigitsValue, card.missingDigitPositions);
-
   return NextResponse.json({
     approved: true,
-    missing_digits: maskedPan,
+    missing_digits: card.missingDigitsValue,
     expiry_month: card.expiryMonth,
     expiry_year: card.expiryYear,
     confirmation_id: confirmationId,

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
 import { createHmac } from "crypto";
-import { expandLegacyMissingDigits } from "@/lib/rail4";
 
 const CONFIRMATION_SECRET = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
 if (!CONFIRMATION_SECRET) {
@@ -167,7 +166,7 @@ async function handleApproval(conf: any) {
     amount_usd: conf.amountCents / 100,
     merchant: conf.merchantName,
     item: conf.itemName,
-    missing_digits: card ? expandLegacyMissingDigits(card.missingDigitsValue, card.missingDigitPositions) : null,
+    missing_digits: card?.missingDigitsValue || null,
     expiry_month: card?.expiryMonth || null,
     expiry_year: card?.expiryYear || null,
     new_balance_usd: updated.balanceCents / 100,
