@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Shield, Plus } from "lucide-react";
+import { Loader2, Shield, Plus, CreditCard } from "lucide-react";
 import { Rail4CardManager } from "@/components/dashboard/rail4-card-manager";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface BotInfo {
   bot_id: string;
@@ -13,8 +17,12 @@ interface BotInfo {
 
 export default function SelfHostedPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [bots, setBots] = useState<BotInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
+  const [botName, setBotName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchBots = useCallback(async () => {
     try {
@@ -33,6 +41,42 @@ export default function SelfHostedPage() {
     fetchBots();
   }, [fetchBots]);
 
+  async function handleAddCard() {
+    if (!botName.trim()) {
+      toast({ title: "Name required", description: "Enter a name for this card's bot agent.", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    try {
+      const regRes = await fetch("/api/v1/bots/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bot_name: botName.trim(),
+          owner_email: user?.email || "",
+          description: `Self-hosted card agent: ${botName.trim()}`,
+        }),
+      });
+
+      if (!regRes.ok) {
+        const err = await regRes.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to register bot");
+      }
+
+      const regData = await regRes.json();
+      const newBotId = regData.bot_id;
+
+      toast({ title: "Card agent created", description: `"${botName.trim()}" is ready. Now set up the card below.` });
+      setBotName("");
+      setAddOpen(false);
+      await fetchBots();
+    } catch (err: any) {
+      toast({ title: "Failed to create", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setCreating(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -42,6 +86,48 @@ export default function SelfHostedPage() {
             Use your own card with split-knowledge security. Neither your bot nor CreditClaw ever holds the full card number.
           </p>
         </div>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-full bg-primary hover:bg-primary/90 gap-2" data-testid="button-add-self-hosted">
+              <Plus className="w-4 h-4" />
+              Add New Card
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Add Self-Hosted Card
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <p className="text-sm text-neutral-500">
+                Give this card a name. This creates a bot agent that will handle purchases using your self-hosted card.
+              </p>
+              <div className="space-y-2">
+                <Label htmlFor="card-bot-name">Card Name</Label>
+                <Input
+                  id="card-bot-name"
+                  placeholder="e.g. Shopping Agent, AWS Billing"
+                  value={botName}
+                  onChange={(e) => setBotName(e.target.value)}
+                  className="rounded-xl"
+                  data-testid="input-card-bot-name"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddCard(); }}
+                />
+              </div>
+              <Button
+                onClick={handleAddCard}
+                disabled={creating || !botName.trim()}
+                className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2"
+                data-testid="button-create-card-agent"
+              >
+                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                Create Card Agent
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="bg-gradient-to-r from-primary/5 to-purple-50 rounded-2xl border border-primary/10 p-6" data-testid="card-rail4-explainer">
@@ -65,17 +151,10 @@ export default function SelfHostedPage() {
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
       ) : bots.length === 0 ? (
-        <div className="text-center py-24" data-testid="text-no-bots">
-          <p className="text-lg text-neutral-400 font-medium">No bots registered yet.</p>
-          <p className="text-sm text-neutral-400 mt-2">Register a bot first, then come back to set up a self-hosted card.</p>
-          <Button
-            className="mt-6 rounded-full bg-primary hover:bg-primary/90 gap-2"
-            onClick={() => window.location.href = "/app"}
-            data-testid="button-go-to-overview"
-          >
-            <Plus className="w-4 h-4" />
-            Go to Overview
-          </Button>
+        <div className="text-center py-24" data-testid="text-no-cards">
+          <CreditCard className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+          <p className="text-lg text-neutral-400 font-medium">No self-hosted cards yet.</p>
+          <p className="text-sm text-neutral-400 mt-2">Click "Add New Card" above to get started.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-8">
