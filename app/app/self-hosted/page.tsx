@@ -11,6 +11,15 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 
+interface AllowanceInfo {
+  value: number;
+  currency: string;
+  duration: string;
+  spent_cents: number;
+  remaining_cents: number;
+  resets_at: string;
+}
+
 interface CardInfo {
   card_id: string;
   card_name: string;
@@ -18,6 +27,7 @@ interface CardInfo {
   status: string;
   bot_id: string | null;
   created_at: string;
+  allowance: AllowanceInfo | null;
 }
 
 const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["purple", "dark", "blue", "primary"];
@@ -56,10 +66,26 @@ export default function SelfHostedPage() {
     toast({ title: "Copied", description: "Card ID copied to clipboard." });
   }
 
-  function statusLabel(status: string) {
-    if (status === "active") return "Active";
-    if (status === "pending_setup") return "Pending Setup";
-    return status;
+  function formatBalance(card: CardInfo) {
+    if (!card.allowance) {
+      if (card.status === "active") return "Active";
+      if (card.status === "pending_setup") return "Pending Setup";
+      return card.status;
+    }
+    const remaining = card.allowance.remaining_cents / 100;
+    const sign = remaining < 0 ? "-" : "";
+    return `${sign}$${Math.abs(remaining).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function formatAllowanceLabel(a: AllowanceInfo) {
+    const durationMap: Record<string, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
+    const durLabel = durationMap[a.duration] || a.duration;
+    return `Allowance: $${a.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${a.currency} | ${durLabel}`;
+  }
+
+  function formatResetsLabel(a: AllowanceInfo) {
+    const d = new Date(a.resets_at);
+    return `Resets: ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   }
 
   return (
@@ -119,11 +145,13 @@ export default function SelfHostedPage() {
             <div className="flex flex-col gap-4 min-w-[320px]" key={card.card_id} data-testid={`card-self-hosted-${card.card_id}`}>
               <CardVisual
                 color={CARD_COLORS[index % CARD_COLORS.length]}
-                balance={statusLabel(card.status)}
+                balance={formatBalance(card)}
                 last4={card.card_id.slice(-4)}
                 holder={card.card_name.toUpperCase()}
                 frozen={card.status !== "active"}
                 expiry="••/••"
+                allowanceLabel={card.allowance ? formatAllowanceLabel(card.allowance) : undefined}
+                resetsLabel={card.allowance ? formatResetsLabel(card.allowance) : undefined}
               />
               <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
                 <Button

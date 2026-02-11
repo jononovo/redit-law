@@ -9,6 +9,8 @@ interface CardVisualProps {
   balance?: string;
   frozen?: boolean;
   className?: string;
+  allowanceLabel?: string;
+  resetsLabel?: string;
 }
 
 export function CardVisual({ 
@@ -18,7 +20,9 @@ export function CardVisual({
   holder = "OPENCLAW AGENT 01",
   balance = "$5,000.00",
   frozen = false,
-  className 
+  className,
+  allowanceLabel,
+  resetsLabel,
 }: CardVisualProps) {
   
   const gradients = {
@@ -50,6 +54,12 @@ export function CardVisual({
 
       <div className="relative z-10 flex justify-between items-start">
         <div className="flex flex-col">
+            {allowanceLabel && (
+              <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-0.5" data-testid="text-allowance-label">{allowanceLabel}</span>
+            )}
+            {resetsLabel && (
+              <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-1" data-testid="text-resets-label">{resetsLabel}</span>
+            )}
             <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">Current Balance</span>
             <span className="text-2xl font-bold font-mono tracking-tight">{balance}</span>
         </div>

@@ -323,3 +323,25 @@ export function getWindowStart(duration: string): Date {
       return new Date(now.setHours(0, 0, 0, 0));
   }
 }
+
+export function getNextWindowStart(duration: string): Date {
+  const start = getWindowStart(duration);
+  switch (duration) {
+    case "day": {
+      start.setDate(start.getDate() + 1);
+      return start;
+    }
+    case "week": {
+      start.setDate(start.getDate() + 7);
+      return start;
+    }
+    case "month": {
+      start.setMonth(start.getMonth() + 1);
+      return start;
+    }
+    default: {
+      start.setDate(start.getDate() + 1);
+      return start;
+    }
+  }
+}
