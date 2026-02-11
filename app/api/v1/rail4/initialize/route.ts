@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     decoyFilename: setup.decoyFilename,
     realProfileIndex: setup.realProfileIndex,
     missingDigitPositions: setup.missingDigitPositions,
-    missingDigitsValue: "000",
+    missingDigitsValue: "0000000000000000",
     status: "pending_setup",
     fakeProfilesJson: JSON.stringify(setup.fakeProfiles),
     profilePermissions: JSON.stringify(setup.profilePermissions),
@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     card_name: cardName,
     decoy_filename: setup.decoyFilename,
     real_profile_index: setup.realProfileIndex,
+    masked_pan: setup.maskedPan,
     missing_digit_positions: setup.missingDigitPositions,
-    instructions: `Your payment profiles file will be "${setup.decoyFilename}". Profile #${setup.realProfileIndex} is your real card. The 3 digits at positions ${setup.missingDigitPositions.map(p => p + 1).join(", ")} are never stored. Complete setup by entering card details, setting permissions, then downloading the file.`,
+    instructions: `Your payment profiles file will be "${setup.decoyFilename}". Profile #${setup.realProfileIndex} is your real card. The 3 digits marked X in the masked card number are never stored. Complete setup by entering card details, setting permissions, then downloading the file.`,
   });
 }

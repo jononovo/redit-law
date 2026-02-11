@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withBotApi } from "@/lib/bot-api";
 import { storage } from "@/server/storage";
+import { expandLegacyMissingDigits } from "@/lib/rail4";
 
 export const GET = withBotApi("/api/v1/bot/merchant/checkout/status", async (request, { bot }) => {
   const confirmationId = request.nextUrl.searchParams.get("confirmation_id");
@@ -33,7 +34,7 @@ export const GET = withBotApi("/api/v1/bot/merchant/checkout/status", async (req
   if (conf.status === "approved") {
     const card = await storage.getRail4CardByCardId(conf.cardId);
     if (card) {
-      response.missing_digits = card.missingDigitsValue;
+      response.missing_digits = expandLegacyMissingDigits(card.missingDigitsValue, card.missingDigitPositions);
       response.expiry_month = card.expiryMonth;
       response.expiry_year = card.expiryYear;
     }
