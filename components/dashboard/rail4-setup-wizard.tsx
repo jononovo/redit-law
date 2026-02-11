@@ -368,10 +368,13 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           owner_zip: ownerZip.trim() || "00000",
         }),
       });
-      if (!res.ok) throw new Error("Failed to activate");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || err.error || "Failed to activate");
+      }
       setStep(3);
-    } catch {
-      toast({ title: "Activation failed", description: "Please check your details and try again.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Activation failed", description: err.message || "Please check your details and try again.", variant: "destructive" });
     } finally {
       setSubmitLoading(false);
     }
