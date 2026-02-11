@@ -39,7 +39,7 @@ const USE_CASE_OPTIONS = [
   { value: "other", label: "Other", icon: "✏️" },
 ];
 
-const SAMPLE_CARD_NUMBER = "4532 8219 0647 3851";
+const SAMPLE_CARD_NUMBER = "0000 0000 0000 0000";
 const SAMPLE_CARD_DIGITS = SAMPLE_CARD_NUMBER.replace(/\s/g, "").split("");
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
