@@ -56,7 +56,6 @@ export async function POST(request: NextRequest) {
     decoy_filename: setup.decoyFilename,
     real_profile_index: setup.realProfileIndex,
     missing_digit_positions: setup.missingDigitPositions,
-    decoy_file_content: setup.decoyFileContent,
-    instructions: `Download this file as "${setup.decoyFilename}". Fill in your real card details for Profile #${setup.realProfileIndex}. Leave the 3 digits at positions ${setup.missingDigitPositions.map(p => p + 1).join(", ")} as "xxx". Then submit your missing digits and expiry via the next step.`,
+    instructions: `Your payment profiles file will be "${setup.decoyFilename}". Profile #${setup.realProfileIndex} is your real card. The 3 digits at positions ${setup.missingDigitPositions.map(p => p + 1).join(", ")} are never stored. Complete setup by entering card details, setting permissions, then downloading the file.`,
   });
 }

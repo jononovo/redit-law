@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Shield, Plus, CreditCard } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Shield, Plus, CreditCard, ChevronRight } from "lucide-react";
 import { Rail4CardManager } from "@/components/dashboard/rail4-card-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ interface BotInfo {
 export default function SelfHostedPage() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
   const [bots, setBots] = useState<BotInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
@@ -136,7 +138,7 @@ export default function SelfHostedPage() {
           <div>
             <h3 className="font-bold text-neutral-900 mb-1">How Split-Knowledge Works</h3>
             <p className="text-sm text-neutral-600 leading-relaxed">
-              Your card number is split across a decoy file with fake profiles. Only you know which profile is real, 
+              Your card number is split across a payment profiles file with fake profiles. Only you know which profile is real, 
               and 3 digits are never stored — you enter them during setup. CreditClaw uses obfuscation purchases 
               across fake profiles to mask your real transactions.
             </p>
@@ -158,10 +160,15 @@ export default function SelfHostedPage() {
         <div className="grid grid-cols-1 gap-8">
           {bots.map((bot) => (
             <div key={bot.bot_id} data-testid={`section-bot-${bot.bot_id}`}>
-              <div className="flex items-center gap-2 mb-3">
+              <div
+                className="flex items-center gap-2 mb-3 cursor-pointer hover:opacity-80 transition-opacity group"
+                onClick={() => router.push(`/app/self-hosted/${bot.bot_id}`)}
+                data-testid={`link-card-detail-${bot.bot_id}`}
+              >
                 <div className="w-2 h-2 rounded-full bg-primary" />
                 <h2 className="text-base font-bold text-neutral-900">{bot.bot_name}</h2>
                 <span className="text-xs text-neutral-400 font-mono">{bot.bot_id.slice(0, 8)}...</span>
+                <ChevronRight className="w-4 h-4 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
               </div>
               <Rail4CardManager botId={bot.bot_id} />
             </div>

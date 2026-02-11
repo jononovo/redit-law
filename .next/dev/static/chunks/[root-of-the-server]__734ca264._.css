@@ -1706,10 +1706,6 @@
     width: 1px;
   }
 
-  .w-\[95vw\] {
-    width: 95vw;
-  }
-
   .w-\[100px\] {
     width: 100px;
   }
@@ -3126,6 +3122,10 @@
     }
   }
 
+  .bg-purple-50 {
+    background-color: var(--color-purple-50);
+  }
+
   .bg-purple-100 {
     background-color: var(--color-purple-100);
   }
@@ -3369,6 +3369,11 @@
   }
 
   .from-primary\/20 {
+    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+  }
+
+  .from-purple-100 {
+    --tw-gradient-from: var(--color-purple-100);
     --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
   }
 
@@ -4107,6 +4112,10 @@
 
   .text-muted-foreground {
     color: hsl(var(--muted-foreground));
+  }
+
+  .text-neutral-200 {
+    color: var(--color-neutral-200);
   }
 
   .text-neutral-300 {
@@ -5869,6 +5878,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:opacity-80:hover {
+      opacity: .8;
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:opacity-100:hover {
       opacity: 1;
     }
@@ -5935,6 +5950,10 @@
 
   .focus\:text-accent-foreground:focus {
     color: hsl(var(--accent-foreground));
+  }
+
+  .focus\:text-red-600:focus {
+    color: var(--color-red-600);
   }
 
   .focus\:opacity-100:focus {

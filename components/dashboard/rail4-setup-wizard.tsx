@@ -5,6 +5,8 @@ import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditC
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -19,8 +21,11 @@ interface InitData {
   decoy_filename: string;
   real_profile_index: number;
   missing_digit_positions: number[];
-  decoy_file_content: string;
-  instructions: string;
+}
+
+interface ActivationResult {
+  payment_profiles_filename: string;
+  payment_profiles_content: string;
 }
 
 const SAMPLE_CARD_NUMBER = "4532 8219 0647 3851";
@@ -282,20 +287,26 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
   const [step, setStep] = useState(0);
   const [initLoading, setInitLoading] = useState(false);
   const [initData, setInitData] = useState<InitData | null>(null);
-  const [downloaded, setDownloaded] = useState(false);
   const [missingDigits, setMissingDigits] = useState("");
   const [expiryMonth, setExpiryMonth] = useState("");
   const [expiryYear, setExpiryYear] = useState("");
   const [ownerZip, setOwnerZip] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
+  const [downloaded, setDownloaded] = useState(false);
   const zipRef = useRef<HTMLInputElement>(null);
+
+  const [permAllowanceDuration, setPermAllowanceDuration] = useState("week");
+  const [permAllowanceValue, setPermAllowanceValue] = useState("50");
+  const [permExemptLimit, setPermExemptLimit] = useState("10");
+  const [permHumanPermission, setPermHumanPermission] = useState("all");
 
   const digitsArr = missingDigits.split("");
   while (digitsArr.length < 3) digitsArr.push("");
   const activeField = getActiveField(digitsArr, expiryMonth, expiryYear, ownerZip);
 
   useEffect(() => {
-    if (activeField === "zip" && step === 2) {
+    if (activeField === "zip" && step === 1) {
       zipRef.current?.focus();
     }
   }, [activeField, step]);
@@ -304,11 +315,16 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
     if (!open) {
       setStep(0);
       setInitData(null);
-      setDownloaded(false);
       setMissingDigits("");
       setExpiryMonth("");
       setExpiryYear("");
       setOwnerZip("");
+      setActivationResult(null);
+      setDownloaded(false);
+      setPermAllowanceDuration("week");
+      setPermAllowanceValue("50");
+      setPermExemptLimit("10");
+      setPermHumanPermission("all");
     }
   }, [open]);
 
@@ -325,7 +341,11 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         throw new Error(err.message || "Failed to initialize");
       }
       const data = await res.json();
-      setInitData(data);
+      setInitData({
+        decoy_filename: data.decoy_filename,
+        real_profile_index: data.real_profile_index,
+        missing_digit_positions: data.missing_digit_positions,
+      });
       setStep(1);
     } catch (err: any) {
       toast({ title: "Setup failed", description: err.message || "Please try again.", variant: "destructive" });
@@ -334,17 +354,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
     }
   }
 
-  function handleDownload() {
-    if (!initData?.decoy_file_content) return;
-    const blob = new Blob([initData.decoy_file_content], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = initData.decoy_filename || "decoy_cards.json";
-    a.click();
-    URL.revokeObjectURL(url);
-    setDownloaded(true);
-  }
+  const cardDetailsComplete = missingDigits.length >= 3 && !!expiryMonth && !!expiryYear;
 
   async function handleActivate() {
     if (missingDigits.length !== 3) {
@@ -366,18 +376,44 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
           expiry_month: parseInt(expiryMonth),
           expiry_year: parseInt(expiryYear),
           owner_zip: ownerZip.trim() || "00000",
+          profile_permissions: {
+            profile_index: initData?.real_profile_index || 1,
+            allowance_duration: permAllowanceDuration,
+            allowance_currency: "USD",
+            allowance_value: parseFloat(permAllowanceValue) || 50,
+            confirmation_exempt_limit: parseFloat(permExemptLimit) || 0,
+            human_permission_required: permHumanPermission,
+            creditclaw_permission_required: "all",
+          },
         }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || err.error || "Failed to activate");
       }
+      const data = await res.json();
+      setActivationResult({
+        payment_profiles_filename: data.payment_profiles_filename,
+        payment_profiles_content: data.payment_profiles_content,
+      });
       setStep(3);
     } catch (err: any) {
       toast({ title: "Activation failed", description: err.message || "Please check your details and try again.", variant: "destructive" });
     } finally {
       setSubmitLoading(false);
     }
+  }
+
+  function handleDownload() {
+    if (!activationResult?.payment_profiles_content) return;
+    const blob = new Blob([activationResult.payment_profiles_content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = activationResult.payment_profiles_filename || "payment_profiles.md";
+    a.click();
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
   }
 
   const stepContent = [
@@ -392,9 +428,9 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       </p>
       <div className="grid gap-4 w-full max-w-md text-left mb-8">
         {[
-          { num: "1", title: "We generate a decoy file", desc: "A file with 6 card profiles — 5 are fake, 1 is yours" },
-          { num: "2", title: "You download it", desc: "Only you know which profile is the real one" },
-          { num: "3", title: "Enter 3 secret digits", desc: "These digits are never stored — you type them on a card visual" },
+          { num: "1", title: "Enter 3 secret digits", desc: "These digits are never stored — you type them on a card visual" },
+          { num: "2", title: "Set spending permissions", desc: "Choose allowance limits and approval rules for your card" },
+          { num: "3", title: "Download payment profiles", desc: "A file with 6 card profiles — 5 are fake, 1 is yours" },
           { num: "4", title: "Card goes live", desc: "Your bot can now make purchases with obfuscation protection" },
         ].map((item) => (
           <div key={item.num} className="flex items-start gap-3 bg-neutral-50 rounded-xl p-3.5 border border-neutral-100">
@@ -416,69 +452,6 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       >
         {initLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
         {initLoading ? "Generating..." : "Let's Go"}
-      </Button>
-    </div>,
-
-    <div key="download" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-download">
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-6">
-        <Download className="w-8 h-8 text-blue-600" />
-      </div>
-      <h2 className="text-2xl font-bold text-neutral-900 mb-3">Download Your Decoy File</h2>
-      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
-        This file contains 6 card profiles. Five are decoys used for obfuscation. 
-        Your real card is <span className="font-bold text-primary">Profile #{initData?.real_profile_index}</span>.
-      </p>
-
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-6 w-full max-w-md mb-6">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-blue-600" />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-bold text-neutral-800">{initData?.decoy_filename}</p>
-            <p className="text-xs text-neutral-500">6 profiles, 1 real</p>
-          </div>
-        </div>
-        <Button
-          onClick={handleDownload}
-          className={`w-full rounded-xl gap-2 py-3 text-base transition-all ${
-            downloaded
-              ? "bg-green-500 hover:bg-green-600"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-          data-testid="button-wizard-download"
-        >
-          {downloaded ? (
-            <>
-              <CheckCircle2 className="w-5 h-5" />
-              Downloaded
-            </>
-          ) : (
-            <>
-              <Download className="w-5 h-5" />
-              Download {initData?.decoy_filename}
-            </>
-          )}
-        </Button>
-      </div>
-
-      <div className="bg-amber-50 rounded-xl border border-amber-100 p-4 w-full max-w-md mb-6 text-left">
-        <p className="text-sm font-semibold text-amber-800 mb-1">Important</p>
-        <p className="text-xs text-amber-700 leading-relaxed">
-          Save this file somewhere safe. Fill in your real card details for Profile #{initData?.real_profile_index}, 
-          but leave 3 digits as "xxx" — you'll enter those in the next step. 
-          CreditClaw never sees your full card number.
-        </p>
-      </div>
-
-      <Button
-        onClick={() => setStep(2)}
-        disabled={!downloaded}
-        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
-        data-testid="button-wizard-continue-to-card"
-      >
-        Continue
-        <ArrowRight className="w-5 h-5" />
       </Button>
     </div>,
 
@@ -523,16 +496,105 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       <div className="flex gap-3 mt-8">
         <Button
           variant="outline"
+          onClick={() => setStep(0)}
+          className="rounded-xl gap-2 px-6 py-3"
+          data-testid="button-wizard-back-to-welcome"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
+        <Button
+          onClick={() => setStep(2)}
+          disabled={!cardDetailsComplete}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+          data-testid="button-wizard-continue-to-permissions"
+        >
+          Continue
+          <ArrowRight className="w-5 h-5" />
+        </Button>
+      </div>
+    </div>,
+
+    <div key="permissions" className="flex flex-col items-center px-4 py-2" data-testid="wizard-step-permissions">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center mb-6">
+        <Shield className="w-8 h-8 text-purple-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-neutral-900 mb-2 text-center">Set Card Permissions</h2>
+      <p className="text-neutral-500 max-w-md text-center leading-relaxed mb-6">
+        Configure spending limits and approval rules for this card. You can change these later in card settings.
+      </p>
+
+      <div className="w-full max-w-md space-y-4">
+        <div className="space-y-2">
+          <Label>Allowance Duration</Label>
+          <Select value={permAllowanceDuration} onValueChange={setPermAllowanceDuration}>
+            <SelectTrigger className="rounded-xl" data-testid="select-wizard-allowance-duration">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Daily</SelectItem>
+              <SelectItem value="week">Weekly</SelectItem>
+              <SelectItem value="month">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="wizard-allowance-value">Allowance Value ($)</Label>
+          <Input
+            id="wizard-allowance-value"
+            type="number"
+            min={0}
+            value={permAllowanceValue}
+            onChange={(e) => setPermAllowanceValue(e.target.value)}
+            className="rounded-xl"
+            data-testid="input-wizard-allowance-value"
+          />
+          <p className="text-xs text-neutral-400">Maximum spend per {permAllowanceDuration}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="wizard-exempt-limit">Confirmation Exempt Limit ($)</Label>
+          <Input
+            id="wizard-exempt-limit"
+            type="number"
+            min={0}
+            value={permExemptLimit}
+            onChange={(e) => setPermExemptLimit(e.target.value)}
+            className="rounded-xl"
+            data-testid="input-wizard-exempt-limit"
+          />
+          <p className="text-xs text-neutral-400">Purchases under this amount skip human approval</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Human Permission Required</Label>
+          <Select value={permHumanPermission} onValueChange={setPermHumanPermission}>
+            <SelectTrigger className="rounded-xl" data-testid="select-wizard-human-permission">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Transactions</SelectItem>
+              <SelectItem value="above_exempt">Above Exempt Limit</SelectItem>
+              <SelectItem value="none">None</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex gap-3 mt-8">
+        <Button
+          variant="outline"
           onClick={() => setStep(1)}
           className="rounded-xl gap-2 px-6 py-3"
-          data-testid="button-wizard-back-to-download"
+          data-testid="button-wizard-back-to-card"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
         <Button
           onClick={handleActivate}
-          disabled={submitLoading || missingDigits.length < 3 || !expiryMonth || !expiryYear}
+          disabled={submitLoading}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
           data-testid="button-wizard-activate"
         >
@@ -542,6 +604,69 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       </div>
     </div>,
 
+    <div key="download" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-download">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-6">
+        <Download className="w-8 h-8 text-blue-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-neutral-900 mb-3">Download Payment Profiles</h2>
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
+        Your card is now active. Download your payment profiles file — it contains 6 card profiles 
+        (5 fake, 1 real) with your permissions baked in.
+      </p>
+
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 p-6 w-full max-w-md mb-6">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center">
+            <CreditCard className="w-5 h-5 text-blue-600" />
+          </div>
+          <div className="text-left">
+            <p className="text-sm font-bold text-neutral-800">{activationResult?.payment_profiles_filename}</p>
+            <p className="text-xs text-neutral-500">6 profiles, 1 real</p>
+          </div>
+        </div>
+        <Button
+          onClick={handleDownload}
+          className={`w-full rounded-xl gap-2 py-3 text-base transition-all ${
+            downloaded
+              ? "bg-green-500 hover:bg-green-600"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
+          data-testid="button-wizard-download"
+        >
+          {downloaded ? (
+            <>
+              <CheckCircle2 className="w-5 h-5" />
+              Downloaded
+            </>
+          ) : (
+            <>
+              <Download className="w-5 h-5" />
+              Download {activationResult?.payment_profiles_filename}
+            </>
+          )}
+        </Button>
+      </div>
+
+      <div className="bg-amber-50 rounded-xl border border-amber-100 p-4 w-full max-w-md mb-6 text-left">
+        <p className="text-sm font-semibold text-amber-800 mb-1">Important</p>
+        <p className="text-xs text-amber-700 leading-relaxed">
+          Save this file somewhere safe and give it to your bot. Your real card is Profile #{initData?.real_profile_index}. 
+          Fill in your real card details for that profile, but leave the 3 digits as "xxx". 
+          CreditClaw never sees your full card number.
+        </p>
+      </div>
+
+      <Button
+        onClick={() => setStep(4)}
+        disabled={!downloaded}
+        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+        data-testid="button-wizard-continue-to-success"
+      >
+        Continue
+        <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>,
+
     <div key="success" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-success">
       <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
         <CheckCircle2 className="w-10 h-10 text-green-600" />
@@ -549,7 +674,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
       <h2 className="text-2xl font-bold text-neutral-900 mb-3">Card Activated!</h2>
       <p className="text-neutral-500 max-w-md leading-relaxed mb-3">
         Your self-hosted card is now live. Your bot can make purchases, and CreditClaw 
-        will use obfuscation to mask your real transactions among decoy profiles.
+        will use obfuscation to mask your real transactions among fake profiles.
       </p>
 
       <div className="bg-green-50 rounded-xl border border-green-100 p-4 w-full max-w-sm mb-8 text-left">
@@ -559,7 +684,7 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
         </div>
         <ul className="space-y-1.5 text-xs text-green-700">
           <li>Obfuscation will start warming up automatically</li>
-          <li>Set spending limits in the Permissions panel</li>
+          <li>Adjust spending limits anytime via the card's settings menu</li>
           <li>All real purchases will require your approval via email</li>
         </ul>
       </div>
@@ -580,11 +705,8 @@ export function Rail4SetupWizard({ botId, open, onOpenChange, onComplete }: Setu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto rounded-2xl p-8"
-        data-testid="wizard-dialog"
-      >
-        <StepIndicator current={step} total={4} />
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-8 rounded-2xl">
+        <StepIndicator current={step} total={5} />
         {stepContent[step]}
       </DialogContent>
     </Dialog>

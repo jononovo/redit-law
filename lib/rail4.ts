@@ -233,7 +233,7 @@ export function generateRail4Setup(): Rail4Setup {
   };
 }
 
-function buildDecoyFileContent(
+export function buildDecoyFileContent(
   realProfileIndex: number,
   missingPositions: number[],
   fakeProfiles: FakeProfile[],
