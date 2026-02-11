@@ -495,7 +495,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         </div>
         <h2 className="text-2xl font-bold text-neutral-900 mb-3">Add a New Card</h2>
         <p className="text-neutral-500 max-w-md leading-relaxed mb-8">
-          Give your card a name so you can easily identify it later. This also creates a bot agent that will handle purchases on your behalf.
+          Give your card a name so you can easily identify it later.
         </p>
         <div className="w-full max-w-md space-y-4 mb-8">
           <div className="space-y-2 text-left">
