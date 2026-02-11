@@ -246,7 +246,7 @@ function buildDecoyFileContent(
 
     if (i === realProfileIndex) {
       const posLabel = missingPositions.map(p => p + 1).join("-");
-      lines.push(`// REAL Profile:`);
+      lines.push(`// Profile ${i}:`);
       lines.push(`profile: ${i}`);
       lines.push(`fullname: [Enter your full name]`);
       lines.push(`address_line1: [Enter your address]`);
