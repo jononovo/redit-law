@@ -443,6 +443,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/rail4/create-bot/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/create-bot">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail4/create-bot/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/rail4/initialize/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/initialize">> = Specific

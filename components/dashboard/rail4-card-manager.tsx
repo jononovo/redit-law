@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 import { Shield, Download, Trash2, RefreshCw, Clock, Activity, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -92,7 +93,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v1/rail4/status?bot_id=${botId}`);
+      const res = await authFetch(`/api/v1/rail4/status?bot_id=${botId}`);
       if (res.ok) {
         const data = await res.json();
         setRail4Status(data);
@@ -109,8 +110,8 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   const fetchObfuscation = useCallback(async () => {
     try {
       const [statusRes, historyRes] = await Promise.all([
-        fetch(`/api/v1/rail4/obfuscation/status?bot_id=${botId}`),
-        fetch(`/api/v1/rail4/obfuscation/history?bot_id=${botId}`),
+        authFetch(`/api/v1/rail4/obfuscation/status?bot_id=${botId}`),
+        authFetch(`/api/v1/rail4/obfuscation/history?bot_id=${botId}`),
       ]);
       if (statusRes.ok) setObfStatus(await statusRes.json());
       if (historyRes.ok) {
@@ -122,7 +123,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
 
   const fetchConfirmations = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v1/rail4/confirmations`);
+      const res = await authFetch(`/api/v1/rail4/confirmations`);
       if (res.ok) {
         const data = await res.json();
         setConfirmations(data.confirmations || data || []);
@@ -136,7 +137,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
 
   const fetchPermissions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/v1/rail4/permissions?bot_id=${botId}`);
+      const res = await authFetch(`/api/v1/rail4/permissions?bot_id=${botId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.permissions) {
@@ -157,7 +158,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   async function handleInitialize() {
     setInitLoading(true);
     try {
-      const res = await fetch("/api/v1/rail4/initialize", {
+      const res = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bot_id: botId }),
@@ -181,7 +182,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     }
     setSubmitLoading(true);
     try {
-      const res = await fetch("/api/v1/rail4/submit-owner-data", {
+      const res = await authFetch("/api/v1/rail4/submit-owner-data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,7 +208,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/v1/rail4?bot_id=${botId}`, { method: "DELETE" });
+      const res = await authFetch(`/api/v1/rail4?bot_id=${botId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       toast({ title: "Card Deleted", description: "Self-hosted card has been removed." });
       setDeleteOpen(false);
@@ -223,7 +224,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   async function handleSavePermissions() {
     setPermSaving(true);
     try {
-      const res = await fetch("/api/v1/rail4/permissions", {
+      const res = await authFetch("/api/v1/rail4/permissions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bot_id: botId, permissions }),

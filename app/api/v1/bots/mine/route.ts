@@ -1,10 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { adminAuth } from "@/lib/firebase/admin";
 import { storage } from "@/server/storage";
 
-export async function GET() {
+async function getAuthUser(request: NextRequest) {
+  const sessionUser = await getCurrentUser();
+  if (sessionUser) return sessionUser;
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.slice(7);
+      const decoded = await adminAuth.verifyIdToken(token);
+      const fbUser = await adminAuth.getUser(decoded.uid);
+      return { uid: fbUser.uid, email: fbUser.email || null, displayName: fbUser.displayName || null, photoURL: fbUser.photoURL || null };
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getAuthUser(request);
     if (!user) {
       return NextResponse.json(
         { error: "Authentication required" },

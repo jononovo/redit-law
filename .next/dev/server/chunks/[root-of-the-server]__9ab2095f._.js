@@ -76,7 +76,9 @@ __turbopack_context__.s([
     "destroySession",
     ()=>destroySession,
     "getCurrentUser",
-    ()=>getCurrentUser
+    ()=>getCurrentUser,
+    "getSessionUser",
+    ()=>getSessionUser
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/headers.js [app-route] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2f$admin$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/firebase/admin.ts [app-route] (ecmascript)");
@@ -118,6 +120,27 @@ async function getCurrentUser() {
     } catch  {
         return null;
     }
+}
+async function getSessionUser(request) {
+    const sessionUser = await getCurrentUser();
+    if (sessionUser) return sessionUser;
+    const authHeader = request.headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+        try {
+            const token = authHeader.slice(7);
+            const decoded = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2f$admin$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["adminAuth"].verifyIdToken(token);
+            const user = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$firebase$2f$admin$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["adminAuth"].getUser(decoded.uid);
+            return {
+                uid: user.uid,
+                email: user.email || null,
+                displayName: user.displayName || null,
+                photoURL: user.photoURL || null
+            };
+        } catch  {
+            return null;
+        }
+    }
+    return null;
 }
 async function destroySession() {
     const cookieStore = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$headers$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["cookies"])();

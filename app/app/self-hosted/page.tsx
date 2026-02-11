@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth/auth-context";
+import { authFetch } from "@/lib/auth-fetch";
 
 interface BotInfo {
   bot_id: string;
@@ -26,7 +27,7 @@ export default function SelfHostedPage() {
 
   const fetchBots = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/bots/mine");
+      const res = await authFetch("/api/v1/bots/mine");
       if (res.ok) {
         const data = await res.json();
         setBots(data.bots || []);
@@ -38,8 +39,12 @@ export default function SelfHostedPage() {
   }, []);
 
   useEffect(() => {
-    fetchBots();
-  }, [fetchBots]);
+    if (user) {
+      fetchBots();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchBots]);
 
   async function handleAddCard() {
     if (!botName.trim()) {
@@ -48,23 +53,16 @@ export default function SelfHostedPage() {
     }
     setCreating(true);
     try {
-      const regRes = await fetch("/api/v1/bots/register", {
+      const regRes = await authFetch("/api/v1/rail4/create-bot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bot_name: botName.trim(),
-          owner_email: user?.email || "",
-          description: `Self-hosted card agent: ${botName.trim()}`,
-        }),
+        body: JSON.stringify({ bot_name: botName.trim() }),
       });
 
       if (!regRes.ok) {
         const err = await regRes.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to register bot");
+        throw new Error(err.message || "Failed to create card agent");
       }
-
-      const regData = await regRes.json();
-      const newBotId = regData.bot_id;
 
       toast({ title: "Card agent created", description: `"${botName.trim()}" is ready. Now set up the card below.` });
       setBotName("");
