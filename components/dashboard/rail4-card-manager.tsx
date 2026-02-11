@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { authFetch } from "@/lib/auth-fetch";
-import { Shield, Download, Trash2, RefreshCw, Clock, Activity, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Shield, Trash2, RefreshCw, Clock, Activity, CheckCircle2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { Rail4SetupWizard } from "./rail4-setup-wizard";
 
 interface Rail4Status {
   configured: boolean;
@@ -66,22 +67,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   const { toast } = useToast();
   const [rail4Status, setRail4Status] = useState<Rail4Status | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initLoading, setInitLoading] = useState(false);
-  const [initData, setInitData] = useState<{
-    decoy_filename?: string;
-    real_profile_index?: number;
-    missing_digit_positions?: number[];
-    decoy_file_content?: string;
-    instructions?: string;
-  } | null>(null);
-  const [setupStep, setSetupStep] = useState<"idle" | "initialized" | "form">("idle");
-
-  const [missingDigits, setMissingDigits] = useState("");
-  const [expiryMonth, setExpiryMonth] = useState("");
-  const [expiryYear, setExpiryYear] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [ownerZip, setOwnerZip] = useState("");
-  const [submitLoading, setSubmitLoading] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const [permissions, setPermissions] = useState<Permissions>({
     profile_index: 0,
@@ -166,63 +152,6 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     }
   }, [isActive, fetchObfuscation, fetchConfirmations, fetchPermissions]);
 
-  async function handleInitialize() {
-    setInitLoading(true);
-    try {
-      const res = await authFetch("/api/v1/rail4/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: botId }),
-      });
-      if (!res.ok) throw new Error("Failed to initialize");
-      const data = await res.json();
-      setInitData({
-        decoy_filename: data.decoy_filename,
-        real_profile_index: data.real_profile_index,
-        missing_digit_positions: data.missing_digit_positions,
-        decoy_file_content: data.decoy_file_content,
-        instructions: data.instructions,
-      });
-      setSetupStep("initialized");
-      await fetchStatus();
-      toast({ title: "Card Initialized", description: "Download the decoy file and complete setup." });
-    } catch {
-      toast({ title: "Initialization failed", description: "Please try again.", variant: "destructive" });
-    } finally {
-      setInitLoading(false);
-    }
-  }
-
-  async function handleSubmitOwnerData() {
-    if (missingDigits.length !== 3) {
-      toast({ title: "Invalid input", description: "Missing digits must be exactly 3 digits.", variant: "destructive" });
-      return;
-    }
-    setSubmitLoading(true);
-    try {
-      const res = await authFetch("/api/v1/rail4/submit-owner-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bot_id: botId,
-          missing_digits: missingDigits,
-          expiry_month: parseInt(expiryMonth),
-          expiry_year: parseInt(expiryYear),
-          owner_name: ownerName,
-          owner_zip: ownerZip,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to submit");
-      toast({ title: "Card Active", description: "Your self-hosted card is now active." });
-      setSetupStep("idle");
-      fetchStatus();
-    } catch {
-      toast({ title: "Submission failed", description: "Please check your inputs and try again.", variant: "destructive" });
-    } finally {
-      setSubmitLoading(false);
-    }
-  }
-
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -231,7 +160,6 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
       toast({ title: "Card Deleted", description: "Self-hosted card has been removed." });
       setDeleteOpen(false);
       setRail4Status(null);
-      setSetupStep("idle");
     } catch {
       toast({ title: "Delete failed", description: "Please try again.", variant: "destructive" });
     } finally {
@@ -277,196 +205,53 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     );
   }
 
-  if (!isConfigured && setupStep === "idle") {
+  if (!isConfigured || isPendingSetup) {
     return (
-      <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-setup">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
-            <Shield className="w-4 h-4" />
-            Set Up Self-Hosted Card
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-neutral-500 mb-4">
-            This will generate a decoy file with fake card profiles. Your real card details are split — 
-            neither your bot nor CreditClaw ever holds the full number.
-          </p>
-          <Button
-            onClick={handleInitialize}
-            disabled={initLoading}
-            className="rounded-xl bg-primary hover:bg-primary/90 gap-2"
-            data-testid="button-initialize-rail4"
-          >
-            {initLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-            Start Card Setup
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (setupStep === "initialized" && initData) {
-    return (
-      <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-setup-form">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
-            <Shield className="w-4 h-4" />
-            Complete Card Setup
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="bg-neutral-50 rounded-xl border border-neutral-100 p-4">
-            <p className="text-sm font-medium text-neutral-700 mb-2">Step 1: Download Your Decoy File</p>
-            <p className="text-xs text-neutral-500 mb-3">
-              {initData.instructions || `Save this file as "${initData.decoy_filename}". Your real card is Profile #${initData.real_profile_index}. Fill in your real card details there, leaving positions ${initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} as "xxx".`}
+      <>
+        <Rail4SetupWizard
+          botId={botId}
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          onComplete={fetchStatus}
+        />
+        <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-setup">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
+              <Shield className="w-4 h-4" />
+              {isPendingSetup ? "Card Setup Incomplete" : "Set Up Self-Hosted Card"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-neutral-500">
+              {isPendingSetup
+                ? "Your decoy file was created but you haven't finished entering your card details yet. Click below to continue."
+                : "This will generate a decoy file with fake card profiles. Your real card details are split \u2014 neither your bot nor CreditClaw ever holds the full number."}
             </p>
-            {initData.decoy_file_content && (
+            <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="rounded-xl gap-2"
-                data-testid="button-download-decoy"
-                onClick={() => {
-                  const blob = new Blob([initData.decoy_file_content!], { type: "application/json" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = initData.decoy_filename || "decoy_cards.json";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
+                onClick={() => setWizardOpen(true)}
+                className="rounded-xl bg-primary hover:bg-primary/90 gap-2"
+                data-testid="button-start-setup-wizard"
               >
-                <Download className="w-4 h-4" />
-                Download {initData.decoy_filename || "Decoy File"}
+                <Shield className="w-4 h-4" />
+                {isPendingSetup ? "Continue Setup" : "Start Card Setup"}
               </Button>
-            )}
-          </div>
-
-          <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
-            <p className="text-sm font-medium text-blue-800 mb-1">Your Real Profile: #{initData.real_profile_index}</p>
-            <p className="text-xs text-blue-600">
-              Only you know which profile is real. CreditClaw stores the other 5 fake profiles for obfuscation.
-              The 3 digits at card positions {initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} are never stored — enter them below.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-sm font-medium text-neutral-700">Step 2: Enter Your Card Details</p>
-            <div className="grid gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="missing-digits">3 Missing Card Digits</Label>
-                <p className="text-xs text-neutral-400">The 3 digits at positions {initData.missing_digit_positions?.map(p => (p + 1)).join(", ")} of your card number</p>
-                <Input
-                  id="missing-digits"
-                  placeholder="e.g. 482"
-                  maxLength={3}
-                  value={missingDigits}
-                  onChange={(e) => setMissingDigits(e.target.value.replace(/\D/g, "").slice(0, 3))}
-                  className="rounded-xl"
-                  data-testid="input-missing-digits"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiry-month">Expiry Month</Label>
-                  <Input
-                    id="expiry-month"
-                    placeholder="MM"
-                    maxLength={2}
-                    value={expiryMonth}
-                    onChange={(e) => setExpiryMonth(e.target.value.replace(/\D/g, "").slice(0, 2))}
-                    className="rounded-xl"
-                    data-testid="input-expiry-month"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expiry-year">Expiry Year</Label>
-                  <Input
-                    id="expiry-year"
-                    placeholder="YYYY"
-                    maxLength={4}
-                    value={expiryYear}
-                    onChange={(e) => setExpiryYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    className="rounded-xl"
-                    data-testid="input-expiry-year"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-name">Cardholder Name</Label>
-                <Input
-                  id="owner-name"
-                  placeholder="John Doe"
-                  value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
-                  className="rounded-xl"
-                  data-testid="input-owner-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="owner-zip">Billing ZIP Code</Label>
-                <Input
-                  id="owner-zip"
-                  placeholder="90210"
-                  maxLength={10}
-                  value={ownerZip}
-                  onChange={(e) => setOwnerZip(e.target.value)}
-                  className="rounded-xl"
-                  data-testid="input-owner-zip"
-                />
-              </div>
+              {isPendingSetup && (
+                <Button
+                  variant="outline"
+                  className="rounded-xl gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  data-testid="button-delete-pending"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Delete
+                </Button>
+              )}
             </div>
-            <Button
-              onClick={handleSubmitOwnerData}
-              disabled={submitLoading || !missingDigits || !expiryMonth || !expiryYear || !ownerName || !ownerZip}
-              className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2"
-              data-testid="button-submit-owner-data"
-            >
-              {submitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Activate Card
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isPendingSetup && setupStep === "idle") {
-    return (
-      <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-rail4-pending">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
-            <Shield className="w-4 h-4" />
-            Card Setup Incomplete
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-neutral-500">
-            Your decoy file was created but you haven't finished entering your card details yet. 
-            You can re-initialize to get a fresh decoy file, or delete and start over.
-          </p>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleInitialize}
-              disabled={initLoading}
-              className="rounded-xl bg-primary hover:bg-primary/90 gap-2"
-              data-testid="button-reinitialize-rail4"
-            >
-              {initLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Re-Initialize
-            </Button>
-            <Button
-              variant="outline"
-              className="rounded-xl gap-2 text-red-600 border-red-200 hover:bg-red-50"
-              onClick={handleDelete}
-              disabled={deleting}
-              data-testid="button-delete-pending"
-            >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              Delete
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </>
     );
   }
 
