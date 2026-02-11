@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Shield, Plus, CreditCard, ChevronRight, Bot } from "lucide-react";
+import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal } from "lucide-react";
 import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
+import { CardVisual } from "@/components/dashboard/card-visual";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
+import { useToast } from "@/hooks/use-toast";
 
 interface CardInfo {
   card_id: string;
@@ -18,9 +20,12 @@ interface CardInfo {
   created_at: string;
 }
 
+const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["purple", "dark", "blue", "primary"];
+
 export default function SelfHostedPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [cards, setCards] = useState<CardInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -45,6 +50,17 @@ export default function SelfHostedPage() {
       setLoading(false);
     }
   }, [user, fetchCards]);
+
+  function handleCopyCardId(cardId: string) {
+    navigator.clipboard.writeText(cardId);
+    toast({ title: "Copied", description: "Card ID copied to clipboard." });
+  }
+
+  function statusLabel(status: string) {
+    if (status === "active") return "Active";
+    if (status === "pending_setup") return "Pending Setup";
+    return status;
+  }
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -98,41 +114,54 @@ export default function SelfHostedPage() {
           <p className="text-sm text-neutral-400 mt-2">Click "Add New Card" above to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cards.map((card) => (
-            <div
-              key={card.card_id}
-              onClick={() => router.push(`/app/self-hosted/${card.card_id}`)}
-              className="group relative bg-white rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md hover:border-primary/20 transition-all cursor-pointer p-5"
-              data-testid={`card-self-hosted-${card.card_id}`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-purple-50 flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                </div>
-                <Badge
-                  className={`border-0 text-xs ${
-                    card.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-amber-100 text-amber-700"
-                  }`}
-                  data-testid={`badge-card-status-${card.card_id}`}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {cards.map((card, index) => (
+            <div className="flex flex-col gap-4" key={card.card_id} data-testid={`card-self-hosted-${card.card_id}`}>
+              <CardVisual
+                color={CARD_COLORS[index % CARD_COLORS.length]}
+                balance={statusLabel(card.status)}
+                last4={card.card_id.slice(-4)}
+                holder={card.card_name.toUpperCase()}
+                frozen={card.status !== "active"}
+                expiry="••/••"
+              />
+              <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
+                <Button
+                  variant="ghost"
+                  className="flex-1 text-xs gap-2 text-neutral-600"
+                  onClick={() => router.push(`/app/self-hosted/${card.card_id}`)}
+                  data-testid={`button-manage-${card.card_id}`}
                 >
-                  {card.status === "active" ? "Active" : card.status === "pending_setup" ? "Pending" : card.status}
-                </Badge>
+                  <Eye className="w-4 h-4" /> Manage
+                </Button>
+                <div className="w-px bg-neutral-100 my-1" />
+                {card.bot_id && (
+                  <>
+                    <div
+                      className="flex-1 flex items-center justify-center gap-2 text-xs text-blue-600 font-medium"
+                      data-testid={`badge-bot-link-${card.card_id}`}
+                    >
+                      <Bot className="w-4 h-4" /> Linked
+                    </div>
+                    <div className="w-px bg-neutral-100 my-1" />
+                  </>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600" data-testid={`button-more-${card.card_id}`}>
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleCopyCardId(card.card_id)} data-testid={`menu-copy-cardid-${card.card_id}`}>
+                      <Copy className="w-4 h-4 mr-2" /> Copy Card ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/app/self-hosted/${card.card_id}`)} data-testid={`menu-view-details-${card.card_id}`}>
+                      <Eye className="w-4 h-4 mr-2" /> View Details
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <h3 className="text-base font-bold text-neutral-900 mb-1">{card.card_name}</h3>
-              <p className="text-xs text-neutral-400 font-mono mb-2">{card.card_id.slice(0, 16)}...</p>
-              {card.bot_id && (
-                <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-2">
-                  <Bot className="w-3.5 h-3.5" />
-                  <span>Linked to bot</span>
-                </div>
-              )}
-              <p className="text-xs text-neutral-400">
-                Created {new Date(card.created_at).toLocaleDateString()}
-              </p>
-              <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           ))}
         </div>

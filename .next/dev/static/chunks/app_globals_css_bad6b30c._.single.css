@@ -3226,20 +3226,6 @@
     --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
   }
 
-  .from-primary\/10 {
-    --tw-gradient-from: hsl(var(--primary));
-  }
-
-  @supports (color: color-mix(in lab, red, red)) {
-    .from-primary\/10 {
-      --tw-gradient-from: color-mix(in oklab, hsl(var(--primary)) 10%, transparent);
-    }
-  }
-
-  .from-primary\/10 {
-    --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
-  }
-
   .from-primary\/20 {
     --tw-gradient-from: hsl(var(--primary));
   }
@@ -5527,18 +5513,6 @@
   @media (hover: hover) {
     .hover\:border-primary:hover {
       border-color: hsl(var(--primary));
-    }
-  }
-
-  @media (hover: hover) {
-    .hover\:border-primary\/20:hover {
-      border-color: hsl(var(--primary));
-    }
-
-    @supports (color: color-mix(in lab, red, red)) {
-      .hover\:border-primary\/20:hover {
-        border-color: color-mix(in oklab, hsl(var(--primary)) 20%, transparent);
-      }
     }
   }
 
