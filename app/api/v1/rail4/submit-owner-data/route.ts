@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     card.missingDigitPositions,
     fakeProfiles,
     updatedPerms,
+    card.cardName,
   );
 
   return NextResponse.json({
