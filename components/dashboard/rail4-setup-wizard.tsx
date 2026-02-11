@@ -893,7 +893,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       <h2 className="text-2xl font-bold text-neutral-900 mb-2">&ldquo;Split-Knowledge&rdquo; Step 2:</h2>
       <p className="text-lg font-semibold text-neutral-700 mb-6">You give the other card digits to your Bot.</p>
 
-      <div className="grid gap-4 w-full max-w-md text-left mb-8">
+      <div className="grid gap-4 w-full max-w-md text-left mb-6">
         <div className="flex items-start gap-3 bg-neutral-50 rounded-xl p-4 border border-neutral-100">
           <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <span className="text-sm font-bold text-indigo-600">1</span>
@@ -913,6 +913,9 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
           </div>
         </div>
       </div>
+
+      <p className="text-sm text-neutral-500 max-w-md leading-relaxed mb-2">Every card setup is slightly different.</p>
+      <p className="text-sm font-semibold text-neutral-700 mb-8">These next steps are customized to you.</p>
 
       <Button
         onClick={() => setStep(editingGuideStepIndex)}
