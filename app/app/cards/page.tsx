@@ -116,18 +116,31 @@ function LimitsPopover({ botId, cardId }: { botId: string; cardId: number }) {
   );
 }
 
+interface BotInfo {
+  bot_id: string;
+  bot_name: string;
+}
+
 export default function CardsPage() {
   const { toast } = useToast();
   const [cards, setCards] = useState<CardData[]>([]);
+  const [bots, setBots] = useState<BotInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [freezingIds, setFreezingIds] = useState<Set<number>>(new Set());
 
   const fetchCards = useCallback(async () => {
     try {
-      const res = await fetch("/api/v1/wallets");
-      if (res.ok) {
-        const data = await res.json();
+      const [walletsRes, botsRes] = await Promise.all([
+        fetch("/api/v1/wallets"),
+        fetch("/api/v1/bots/mine"),
+      ]);
+      if (walletsRes.ok) {
+        const data = await walletsRes.json();
         setCards(data.cards || []);
+      }
+      if (botsRes.ok) {
+        const data = await botsRes.json();
+        setBots(data.bots || []);
       }
     } catch {
     } finally {
@@ -279,12 +292,16 @@ export default function CardsPage() {
         </div>
       )}
 
-      {!loading && cards.length > 0 && (
+      {!loading && bots.length > 0 && (
         <div className="space-y-6 mt-4">
           <h2 className="text-lg font-bold text-neutral-900">Self-Hosted Card (Rail 4)</h2>
+          <p className="text-sm text-neutral-500 -mt-3">Use your own card with split-knowledge security. Neither your bot nor CreditClaw ever holds the full card number.</p>
           <div className="grid grid-cols-1 gap-6">
-            {cards.map((card) => (
-              <Rail4CardManager key={`rail4-${card.botId}`} botId={card.botId} />
+            {bots.map((bot) => (
+              <div key={`rail4-${bot.bot_id}`}>
+                <p className="text-sm font-semibold text-neutral-700 mb-2">{bot.bot_name}</p>
+                <Rail4CardManager botId={bot.bot_id} />
+              </div>
             ))}
           </div>
         </div>
