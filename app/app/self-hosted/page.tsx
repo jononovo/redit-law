@@ -114,9 +114,9 @@ export default function SelfHostedPage() {
           <p className="text-sm text-neutral-400 mt-2">Click "Add New Card" above to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {cards.map((card, index) => (
-            <div className="flex flex-col gap-4" key={card.card_id} data-testid={`card-self-hosted-${card.card_id}`}>
+            <div className="flex flex-col gap-4 min-w-[320px]" key={card.card_id} data-testid={`card-self-hosted-${card.card_id}`}>
               <CardVisual
                 color={CARD_COLORS[index % CARD_COLORS.length]}
                 balance={statusLabel(card.status)}
