@@ -246,20 +246,23 @@ export function buildDecoyFileContent(
     const perm = permissions.find(p => p.profile_index === i);
 
     if (i === realProfileIndex) {
-      const posLabels = missingPositions.map(p => p + 1).join(", ");
       const maskedDigits = Array.from({ length: 16 }, (_, idx) =>
         missingPositions.includes(idx) ? "X" : "0"
       );
       const maskedPan = `${maskedDigits.slice(0, 4).join("")} ${maskedDigits.slice(4, 8).join("")} ${maskedDigits.slice(8, 12).join("")} ${maskedDigits.slice(12, 16).join("")}`;
 
-      lines.push(`// Profile ${i}:`);
       lines.push(`profile: ${i}`);
-      lines.push(`fullname: [Enter name on card]`);
+      lines.push(`---`);
+      lines.push(`name_on_card: [Replace with name on card]`);
+      lines.push(`card number: ${maskedPan}`);
+      lines.push(`cvv: 000`);
+      lines.push(`---`);
       lines.push(`address_line1: [Enter address]`);
       lines.push(`city: [Enter city]`);
       lines.push(`state: [Enter state]`);
       lines.push(`zip: [Enter zip]`);
       lines.push(`country: [Enter country]`);
+      lines.push(`---`);
       if (perm) {
         lines.push(`allowance-duration: ${perm.allowance_duration}`);
         lines.push(`allowance-currency: ${perm.allowance_currency}`);
@@ -269,8 +272,6 @@ export function buildDecoyFileContent(
         lines.push(`creditclaw_permission_required: ${perm.creditclaw_permission_required}`);
       }
       lines.push(`card-name: ${cardName}`);
-      lines.push(`card number: ${maskedPan} // Replace with correct digits, leave digits in positions ${posLabels} as XXX (as shown.)`);
-      lines.push(`cvv: 000 //Replace with correct digits`);
       lines.push(``);
     } else {
       const fake = fakeProfiles.find(f => f.profileIndex === i)!;
