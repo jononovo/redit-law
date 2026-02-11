@@ -9,6 +9,8 @@
   "/api/v1/rail4/permissions/route": "app/api/v1/rail4/permissions/route.js",
   "/api/v1/rail4/status/route": "app/api/v1/rail4/status/route.js",
   "/api/v1/rail4/submit-owner-data/route": "app/api/v1/rail4/submit-owner-data/route.js",
+  "/api/v1/wallets/route": "app/api/v1/wallets/route.js",
+  "/app/cards/page": "app/app/cards/page.js",
   "/app/self-hosted/[cardId]/page": "app/app/self-hosted/[cardId]/page.js",
   "/app/self-hosted/page": "app/app/self-hosted/page.js",
   "/page": "app/page.js"
