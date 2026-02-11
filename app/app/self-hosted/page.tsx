@@ -222,7 +222,7 @@ export default function SelfHostedPage() {
               <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
                 <Button
                   variant="ghost"
-                  className="flex-1 text-xs gap-2 text-neutral-600"
+                  className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
                   onClick={() => router.push(`/app/self-hosted/${card.card_id}`)}
                   data-testid={`button-manage-${card.card_id}`}
                 >
@@ -233,7 +233,7 @@ export default function SelfHostedPage() {
                   <>
                     <Button
                       variant="ghost"
-                      className={`flex-1 text-xs gap-2 ${card.status === "frozen" ? "text-blue-600" : "text-neutral-600"}`}
+                      className={`flex-1 text-xs gap-2 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors ${card.status === "frozen" ? "text-blue-600" : "text-neutral-600"}`}
                       onClick={() => setFreezeTarget(card)}
                       data-testid={`button-freeze-${card.card_id}`}
                     >
@@ -259,7 +259,7 @@ export default function SelfHostedPage() {
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600" data-testid={`button-more-${card.card_id}`}>
+                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors" data-testid={`button-more-${card.card_id}`}>
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
