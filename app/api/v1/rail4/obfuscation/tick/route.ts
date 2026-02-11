@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { tickAllActiveBots } from "@/lib/obfuscation-engine/scheduler";
+import { tickAllActiveCards } from "@/lib/obfuscation-engine/scheduler";
 
 export async function POST(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const result = await tickAllActiveBots();
+  const result = await tickAllActiveCards();
 
   return NextResponse.json({
     processed: result.processed,

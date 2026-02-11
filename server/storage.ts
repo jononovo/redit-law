@@ -102,28 +102,34 @@ export interface IStorage {
   getWalletsWithBotsByOwnerUid(ownerUid: string): Promise<(Wallet & { botName: string; botId: string })[]>;
 
   createRail4Card(data: InsertRail4Card): Promise<Rail4Card>;
+  getRail4CardByCardId(cardId: string): Promise<Rail4Card | null>;
   getRail4CardByBotId(botId: string): Promise<Rail4Card | null>;
+  getRail4CardsByOwnerUid(ownerUid: string): Promise<Rail4Card[]>;
+  updateRail4CardByCardId(cardId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null>;
   updateRail4Card(botId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null>;
+  deleteRail4CardByCardId(cardId: string): Promise<void>;
   deleteRail4Card(botId: string): Promise<void>;
 
   createObfuscationEvent(data: InsertObfuscationEvent): Promise<ObfuscationEvent>;
+  getObfuscationEventsByCardId(cardId: string, limit?: number): Promise<ObfuscationEvent[]>;
   getObfuscationEventsByBotId(botId: string, limit?: number): Promise<ObfuscationEvent[]>;
-  getPendingObfuscationEvents(botId: string): Promise<ObfuscationEvent[]>;
+  getPendingObfuscationEvents(cardId: string): Promise<ObfuscationEvent[]>;
   completeObfuscationEvent(id: number, occurredAt: Date): Promise<ObfuscationEvent | null>;
   updateObfuscationEventConfirmation(id: number, confirmationId: string): Promise<void>;
 
-  getObfuscationState(botId: string): Promise<ObfuscationState | null>;
+  getObfuscationState(cardId: string): Promise<ObfuscationState | null>;
   createObfuscationState(data: InsertObfuscationState): Promise<ObfuscationState>;
-  updateObfuscationState(botId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null>;
+  updateObfuscationState(cardId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null>;
   getActiveObfuscationStates(): Promise<ObfuscationState[]>;
 
-  getProfileAllowanceUsage(botId: string, profileIndex: number, windowStart: Date): Promise<ProfileAllowanceUsage | null>;
-  upsertProfileAllowanceUsage(botId: string, profileIndex: number, windowStart: Date, addCents: number, markExemptUsed?: boolean): Promise<ProfileAllowanceUsage>;
+  getProfileAllowanceUsage(cardId: string, profileIndex: number, windowStart: Date): Promise<ProfileAllowanceUsage | null>;
+  upsertProfileAllowanceUsage(cardId: string, profileIndex: number, windowStart: Date, addCents: number, markExemptUsed?: boolean): Promise<ProfileAllowanceUsage>;
 
   createCheckoutConfirmation(data: InsertCheckoutConfirmation): Promise<CheckoutConfirmation>;
   getCheckoutConfirmation(confirmationId: string): Promise<CheckoutConfirmation | null>;
   updateCheckoutConfirmationStatus(confirmationId: string, status: string): Promise<CheckoutConfirmation | null>;
   getPendingConfirmationsByBotIds(botIds: string[]): Promise<CheckoutConfirmation[]>;
+  getPendingConfirmationsByCardIds(cardIds: string[]): Promise<CheckoutConfirmation[]>;
 }
 
 export const storage: IStorage = {
@@ -687,9 +693,27 @@ export const storage: IStorage = {
     return card;
   },
 
+  async getRail4CardByCardId(cardId: string): Promise<Rail4Card | null> {
+    const [card] = await db.select().from(rail4Cards).where(eq(rail4Cards.cardId, cardId)).limit(1);
+    return card || null;
+  },
+
   async getRail4CardByBotId(botId: string): Promise<Rail4Card | null> {
     const [card] = await db.select().from(rail4Cards).where(eq(rail4Cards.botId, botId)).limit(1);
     return card || null;
+  },
+
+  async getRail4CardsByOwnerUid(ownerUid: string): Promise<Rail4Card[]> {
+    return db.select().from(rail4Cards).where(eq(rail4Cards.ownerUid, ownerUid)).orderBy(desc(rail4Cards.createdAt));
+  },
+
+  async updateRail4CardByCardId(cardId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null> {
+    const [updated] = await db
+      .update(rail4Cards)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rail4Cards.cardId, cardId))
+      .returning();
+    return updated || null;
   },
 
   async updateRail4Card(botId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null> {
@@ -701,6 +725,10 @@ export const storage: IStorage = {
     return updated || null;
   },
 
+  async deleteRail4CardByCardId(cardId: string): Promise<void> {
+    await db.delete(rail4Cards).where(eq(rail4Cards.cardId, cardId));
+  },
+
   async deleteRail4Card(botId: string): Promise<void> {
     await db.delete(rail4Cards).where(eq(rail4Cards.botId, botId));
   },
@@ -708,6 +736,15 @@ export const storage: IStorage = {
   async createObfuscationEvent(data: InsertObfuscationEvent): Promise<ObfuscationEvent> {
     const [event] = await db.insert(obfuscationEvents).values(data).returning();
     return event;
+  },
+
+  async getObfuscationEventsByCardId(cardId: string, limit = 50): Promise<ObfuscationEvent[]> {
+    return db
+      .select()
+      .from(obfuscationEvents)
+      .where(eq(obfuscationEvents.cardId, cardId))
+      .orderBy(desc(obfuscationEvents.createdAt))
+      .limit(limit);
   },
 
   async getObfuscationEventsByBotId(botId: string, limit = 50): Promise<ObfuscationEvent[]> {
@@ -719,11 +756,11 @@ export const storage: IStorage = {
       .limit(limit);
   },
 
-  async getPendingObfuscationEvents(botId: string): Promise<ObfuscationEvent[]> {
+  async getPendingObfuscationEvents(cardId: string): Promise<ObfuscationEvent[]> {
     return db
       .select()
       .from(obfuscationEvents)
-      .where(and(eq(obfuscationEvents.botId, botId), eq(obfuscationEvents.status, "pending")))
+      .where(and(eq(obfuscationEvents.cardId, cardId), eq(obfuscationEvents.status, "pending")))
       .orderBy(obfuscationEvents.createdAt);
   },
 
@@ -743,8 +780,8 @@ export const storage: IStorage = {
       .where(eq(obfuscationEvents.id, id));
   },
 
-  async getObfuscationState(botId: string): Promise<ObfuscationState | null> {
-    const [state] = await db.select().from(obfuscationState).where(eq(obfuscationState.botId, botId)).limit(1);
+  async getObfuscationState(cardId: string): Promise<ObfuscationState | null> {
+    const [state] = await db.select().from(obfuscationState).where(eq(obfuscationState.cardId, cardId)).limit(1);
     return state || null;
   },
 
@@ -753,11 +790,11 @@ export const storage: IStorage = {
     return state;
   },
 
-  async updateObfuscationState(botId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null> {
+  async updateObfuscationState(cardId: string, data: Partial<InsertObfuscationState>): Promise<ObfuscationState | null> {
     const [updated] = await db
       .update(obfuscationState)
       .set(data)
-      .where(eq(obfuscationState.botId, botId))
+      .where(eq(obfuscationState.cardId, cardId))
       .returning();
     return updated || null;
   },
@@ -769,12 +806,12 @@ export const storage: IStorage = {
       .where(eq(obfuscationState.active, true));
   },
 
-  async getProfileAllowanceUsage(botId: string, profileIndex: number, windowStart: Date): Promise<ProfileAllowanceUsage | null> {
+  async getProfileAllowanceUsage(cardId: string, profileIndex: number, windowStart: Date): Promise<ProfileAllowanceUsage | null> {
     const [usage] = await db
       .select()
       .from(profileAllowanceUsage)
       .where(and(
-        eq(profileAllowanceUsage.botId, botId),
+        eq(profileAllowanceUsage.cardId, cardId),
         eq(profileAllowanceUsage.profileIndex, profileIndex),
         eq(profileAllowanceUsage.windowStart, windowStart),
       ))
@@ -782,8 +819,8 @@ export const storage: IStorage = {
     return usage || null;
   },
 
-  async upsertProfileAllowanceUsage(botId: string, profileIndex: number, windowStart: Date, addCents: number, markExemptUsed = false): Promise<ProfileAllowanceUsage> {
-    const existing = await this.getProfileAllowanceUsage(botId, profileIndex, windowStart);
+  async upsertProfileAllowanceUsage(cardId: string, profileIndex: number, windowStart: Date, addCents: number, markExemptUsed = false): Promise<ProfileAllowanceUsage> {
+    const existing = await this.getProfileAllowanceUsage(cardId, profileIndex, windowStart);
     if (existing) {
       const updateData: Record<string, unknown> = {
         spentCents: sql`${profileAllowanceUsage.spentCents} + ${addCents}`,
@@ -801,7 +838,7 @@ export const storage: IStorage = {
     const [created] = await db
       .insert(profileAllowanceUsage)
       .values({
-        botId,
+        cardId,
         profileIndex,
         windowStart,
         spentCents: addCents,
@@ -841,6 +878,18 @@ export const storage: IStorage = {
       .from(checkoutConfirmations)
       .where(and(
         inArray(checkoutConfirmations.botId, botIds),
+        eq(checkoutConfirmations.status, "pending"),
+      ))
+      .orderBy(desc(checkoutConfirmations.createdAt));
+  },
+
+  async getPendingConfirmationsByCardIds(cardIds: string[]): Promise<CheckoutConfirmation[]> {
+    if (cardIds.length === 0) return [];
+    return db
+      .select()
+      .from(checkoutConfirmations)
+      .where(and(
+        inArray(checkoutConfirmations.cardId, cardIds),
         eq(checkoutConfirmations.status, "pending"),
       ))
       .orderBy(desc(checkoutConfirmations.createdAt));

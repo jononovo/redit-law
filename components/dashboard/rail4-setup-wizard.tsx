@@ -12,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 
 interface SetupWizardProps {
-  botId?: string;
+  cardId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: () => void;
 }
 
 interface InitData {
+  card_id: string;
   decoy_filename: string;
   real_profile_index: number;
   missing_digit_positions: number[];
@@ -292,15 +293,13 @@ function InteractiveCard({
   );
 }
 
-export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onComplete }: SetupWizardProps) {
+export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, onComplete }: SetupWizardProps) {
   const { toast } = useToast();
-  const isNewMode = !initialBotId;
+  const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
   const totalSteps = isNewMode ? 7 : 5;
 
   const [step, setStep] = useState(0);
-  const [createdBotId, setCreatedBotId] = useState<string | null>(null);
-  const activeBotId = initialBotId || createdBotId;
 
   const [cardName, setCardName] = useState("");
   const [useCase, setUseCase] = useState("");
@@ -323,6 +322,8 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   const [permExemptLimit, setPermExemptLimit] = useState("10");
   const [permHumanPermission, setPermHumanPermission] = useState("all");
 
+  const activeCardId = existingCardId || initData?.card_id;
+
   const digitsArr = missingDigits.split("");
   while (digitsArr.length < 3) digitsArr.push("");
   const activeField = getActiveField(digitsArr, expiryMonth, expiryYear, ownerZip);
@@ -338,7 +339,6 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   useEffect(() => {
     if (!open) {
       setStep(0);
-      setCreatedBotId(null);
       setCardName("");
       setUseCase("");
       setOtherUseCase("");
@@ -356,26 +356,17 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
     }
   }, [open]);
 
-  async function handleCreateAndInitialize() {
+  async function handleInitializeNewCard() {
     setCreateLoading(true);
     try {
-      const createRes = await authFetch("/api/v1/rail4/create-bot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_name: cardName.trim() }),
-      });
-      if (!createRes.ok) {
-        const err = await createRes.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to create card agent");
-      }
-      const createData = await createRes.json();
-      const newBotId = createData.bot_id;
-      setCreatedBotId(newBotId);
-
+      const finalUseCase = useCase === "other" ? otherUseCase.trim() : useCase;
       const initRes = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: newBotId }),
+        body: JSON.stringify({
+          card_name: cardName.trim(),
+          use_case: finalUseCase,
+        }),
       });
       if (!initRes.ok) {
         const err = await initRes.json().catch(() => ({}));
@@ -383,6 +374,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
       }
       const data = await initRes.json();
       setInitData({
+        card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
         missing_digit_positions: data.missing_digit_positions,
@@ -395,14 +387,14 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
     }
   }
 
-  async function handleInitialize() {
-    if (!activeBotId) return;
+  async function handleInitializeExistingCard() {
+    if (!existingCardId) return;
     setInitLoading(true);
     try {
       const res = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: activeBotId }),
+        body: JSON.stringify({ card_id: existingCardId }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -410,6 +402,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
       }
       const data = await res.json();
       setInitData({
+        card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
         missing_digit_positions: data.missing_digit_positions,
@@ -425,7 +418,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   const cardDetailsComplete = missingDigits.length >= 3 && !!expiryMonth && !!expiryYear;
 
   async function handleActivate() {
-    if (!activeBotId) return;
+    if (!activeCardId) return;
     if (missingDigits.length !== 3) {
       toast({ title: "Missing digits", description: "Enter all 3 missing card digits.", variant: "destructive" });
       return;
@@ -440,7 +433,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bot_id: activeBotId,
+          card_id: activeCardId,
           missing_digits: missingDigits,
           expiry_month: parseInt(expiryMonth),
           expiry_year: parseInt(expiryYear),
@@ -580,7 +573,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
             Back
           </Button>
           <Button
-            onClick={handleCreateAndInitialize}
+            onClick={handleInitializeNewCard}
             disabled={!useCase || (useCase === "other" && !otherUseCase.trim()) || createLoading}
             className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
             data-testid="button-wizard-usecase-continue"
@@ -634,7 +627,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         </Button>
       ) : (
         <Button
-          onClick={handleInitialize}
+          onClick={handleInitializeExistingCard}
           disabled={initLoading}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
           data-testid="button-wizard-start"

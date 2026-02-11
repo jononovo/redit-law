@@ -5,14 +5,14 @@ import type { ObfuscationEvent } from "@/shared/schema";
 import { randomBytes } from "crypto";
 
 export async function createObfuscationEvent(
-  botId: string,
+  cardId: string,
   realProfileIndex: number,
 ): Promise<ObfuscationEvent> {
   const profileIndex = pickFakeProfileIndex(realProfileIndex);
   const order = generatePurchaseOrder();
 
   return storage.createObfuscationEvent({
-    botId,
+    cardId,
     profileIndex,
     merchantName: order.merchantName,
     merchantSlug: order.merchantSlug,
@@ -31,7 +31,7 @@ export async function completeObfuscationEvent(
   if (!updated) return null;
 
   await storage.updateObfuscationEventConfirmation(eventId, confirmationId);
-  await incrementObfuscationCount(updated.botId);
+  await incrementObfuscationCount(updated.cardId);
 
   return updated;
 }

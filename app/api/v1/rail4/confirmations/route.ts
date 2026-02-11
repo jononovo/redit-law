@@ -8,16 +8,25 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const cards = await storage.getRail4CardsByOwnerUid(user.uid);
+  const cardIds = cards.map(c => c.cardId);
+
+  if (cardIds.length === 0) {
+    return NextResponse.json({ confirmations: [] });
+  }
+
+  const confirmations = await storage.getPendingConfirmationsByCardIds(cardIds);
+
+  const cardMap = new Map(cards.map(c => [c.cardId, c]));
+
   const bots = await storage.getBotsByOwnerUid(user.uid);
-  const botIds = bots.map(b => b.botId);
-
-  const confirmations = await storage.getPendingConfirmationsByBotIds(botIds);
-
   const botMap = new Map(bots.map(b => [b.botId, b.botName]));
 
   return NextResponse.json({
     confirmations: confirmations.map(c => ({
       confirmation_id: c.confirmationId,
+      card_id: c.cardId,
+      card_name: cardMap.get(c.cardId)?.cardName || "Untitled Card",
       bot_id: c.botId,
       bot_name: botMap.get(c.botId) || c.botId,
       profile_index: c.profileIndex,

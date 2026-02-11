@@ -41,3 +41,7 @@ export function getApiKeyPrefix(apiKey: string): string {
 export function generateWebhookSecret(): string {
   return "whsec_" + randomBytes(24).toString("hex");
 }
+
+export function generateCardId(): string {
+  return "card_" + randomBytes(6).toString("hex");
+}

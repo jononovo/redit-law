@@ -31,7 +31,7 @@ export const GET = withBotApi("/api/v1/bot/merchant/checkout/status", async (req
   };
 
   if (conf.status === "approved") {
-    const card = await storage.getRail4CardByBotId(bot.botId);
+    const card = await storage.getRail4CardByCardId(conf.cardId);
     if (card) {
       response.missing_digits = card.missingDigitsValue;
       response.expiry_month = card.expiryMonth;

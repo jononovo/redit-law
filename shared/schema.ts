@@ -246,7 +246,11 @@ export type InsertPairingCode = typeof pairingCodes.$inferInsert;
 
 export const rail4Cards = pgTable("rail4_cards", {
   id: serial("id").primaryKey(),
-  botId: text("bot_id").notNull().unique(),
+  cardId: text("card_id").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  cardName: text("card_name").notNull().default("Untitled Card"),
+  useCase: text("use_case"),
+  botId: text("bot_id").unique(),
   decoyFilename: text("decoy_filename").notNull(),
   realProfileIndex: integer("real_profile_index").notNull(),
   missingDigitPositions: integer("missing_digit_positions").array().notNull(),
@@ -262,13 +266,16 @@ export const rail4Cards = pgTable("rail4_cards", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
+  index("rail4_cards_card_id_idx").on(table.cardId),
+  index("rail4_cards_owner_uid_idx").on(table.ownerUid),
   index("rail4_cards_bot_id_idx").on(table.botId),
   index("rail4_cards_status_idx").on(table.status),
 ]);
 
 export const obfuscationEvents = pgTable("obfuscation_events", {
   id: serial("id").primaryKey(),
-  botId: text("bot_id").notNull(),
+  cardId: text("card_id").notNull(),
+  botId: text("bot_id"),
   profileIndex: integer("profile_index").notNull(),
   merchantName: text("merchant_name").notNull(),
   merchantSlug: text("merchant_slug").notNull(),
@@ -279,13 +286,14 @@ export const obfuscationEvents = pgTable("obfuscation_events", {
   occurredAt: timestamp("occurred_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("obfuscation_events_bot_id_idx").on(table.botId),
-  index("obfuscation_events_bot_status_idx").on(table.botId, table.status),
+  index("obfuscation_events_card_id_idx").on(table.cardId),
+  index("obfuscation_events_card_status_idx").on(table.cardId, table.status),
 ]);
 
 export const obfuscationState = pgTable("obfuscation_state", {
   id: serial("id").primaryKey(),
-  botId: text("bot_id").notNull().unique(),
+  cardId: text("card_id").notNull().unique(),
+  botId: text("bot_id"),
   phase: text("phase").notNull().default("warmup"),
   active: boolean("active").notNull().default(true),
   activatedAt: timestamp("activated_at").notNull().defaultNow(),
@@ -299,19 +307,21 @@ export const obfuscationState = pgTable("obfuscation_state", {
 
 export const profileAllowanceUsage = pgTable("profile_allowance_usage", {
   id: serial("id").primaryKey(),
-  botId: text("bot_id").notNull(),
+  cardId: text("card_id").notNull(),
+  botId: text("bot_id"),
   profileIndex: integer("profile_index").notNull(),
   windowStart: timestamp("window_start").notNull(),
   spentCents: integer("spent_cents").notNull().default(0),
   exemptUsed: boolean("exempt_used").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
-  index("profile_allowance_bot_profile_idx").on(table.botId, table.profileIndex),
+  index("profile_allowance_card_profile_idx").on(table.cardId, table.profileIndex),
 ]);
 
 export const checkoutConfirmations = pgTable("checkout_confirmations", {
   id: serial("id").primaryKey(),
   confirmationId: text("confirmation_id").notNull().unique(),
+  cardId: text("card_id").notNull(),
   botId: text("bot_id").notNull(),
   profileIndex: integer("profile_index").notNull(),
   amountCents: integer("amount_cents").notNull(),
@@ -325,6 +335,7 @@ export const checkoutConfirmations = pgTable("checkout_confirmations", {
   decidedAt: timestamp("decided_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
+  index("checkout_confirmations_card_idx").on(table.cardId),
   index("checkout_confirmations_bot_idx").on(table.botId),
   index("checkout_confirmations_confirmation_idx").on(table.confirmationId),
 ]);
@@ -363,11 +374,11 @@ export const profilePermissionSchema = z.object({
 export type ProfilePermission = z.infer<typeof profilePermissionSchema>;
 
 export const rail4InitializeSchema = z.object({
-  bot_id: z.string().min(1),
+  card_id: z.string().min(1),
 });
 
 export const rail4SubmitOwnerDataSchema = z.object({
-  bot_id: z.string().min(1),
+  card_id: z.string().min(1),
   missing_digits: z.string().length(3).regex(/^\d{3}$/),
   expiry_month: z.number().int().min(1).max(12),
   expiry_year: z.number().int().min(2025).max(2040),

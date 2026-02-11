@@ -34,7 +34,7 @@ Advanced features include:
 - `/app` — Dashboard overview
 - `/app/cards` — Card management
 - `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
-- `/app/self-hosted/[botId]` — Per-card detail page with transaction ledger
+- `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
 - `/onboarding` — Guided setup wizard (authenticated)
@@ -47,9 +47,10 @@ Advanced features include:
 - `GET/POST /api/v1/rail4/confirm/[id]` — HMAC-signed approval page (HTML) and processing
 - `GET /api/v1/rail4/confirmations` — Owner lists pending approvals
 - `GET/PATCH /api/v1/rail4/permissions` — Profile permissions editor
+- `GET /api/v1/rail4/cards` — List owner's self-hosted cards
 - `POST /api/v1/rail4/create-bot` — Owner-initiated bot creation for self-hosted cards
-- `POST /api/v1/rail4/initialize` — Initialize card setup (returns missing digit positions, no file content)
-- `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions, activate card, returns payment profiles file
+- `POST /api/v1/rail4/initialize` — Initialize card setup (creates card with cardId, returns missing digit positions)
+- `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions by card_id, activate card, returns payment profiles file
 
 ### Authentication
 - Session cookies (httpOnly) via Firebase Admin SDK

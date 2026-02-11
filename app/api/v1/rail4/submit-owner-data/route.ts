@@ -25,17 +25,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "validation_error", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const { bot_id, missing_digits, expiry_month, expiry_year, owner_name, owner_zip, profile_permissions } = parsed.data;
+  const { card_id, missing_digits, expiry_month, expiry_year, owner_name, owner_zip, profile_permissions } = parsed.data;
 
-  const bot = await storage.getBotByBotId(bot_id);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
+  const card = await storage.getRail4CardByCardId(card_id);
+  if (!card || card.ownerUid !== user.uid) {
+    return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
-  const card = await storage.getRail4CardByBotId(bot_id);
-  if (!card) {
-    return NextResponse.json({ error: "not_initialized", message: "Run initialize first." }, { status: 400 });
-  }
   if (card.status === "active") {
     return NextResponse.json({ error: "already_active" }, { status: 409 });
   }
@@ -68,9 +64,9 @@ export async function POST(request: NextRequest) {
     profilePermissions: JSON.stringify(updatedPerms),
   };
 
-  await storage.updateRail4Card(bot_id, updateData as any);
+  await storage.updateRail4CardByCardId(card_id, updateData as any);
 
-  initializeState(bot_id).catch(err => {
+  initializeState(card_id).catch(err => {
     console.error("Failed to initialize obfuscation state:", err);
   });
 

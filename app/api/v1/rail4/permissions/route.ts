@@ -9,18 +9,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const botId = request.nextUrl.searchParams.get("bot_id");
-  if (!botId) {
-    return NextResponse.json({ error: "missing_bot_id" }, { status: 400 });
+  const cardId = request.nextUrl.searchParams.get("card_id");
+  if (!cardId) {
+    return NextResponse.json({ error: "missing_card_id" }, { status: 400 });
   }
 
-  const bot = await storage.getBotByBotId(botId);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
-  }
-
-  const card = await storage.getRail4CardByBotId(botId);
-  if (!card) {
+  const card = await storage.getRail4CardByCardId(cardId);
+  if (!card || card.ownerUid !== user.uid) {
     return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
@@ -51,9 +46,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const { bot_id, permissions } = body;
-  if (!bot_id || !permissions) {
-    return NextResponse.json({ error: "missing_fields", message: "bot_id and permissions are required." }, { status: 400 });
+  const { card_id, permissions } = body;
+  if (!card_id || !permissions) {
+    return NextResponse.json({ error: "missing_fields", message: "card_id and permissions are required." }, { status: 400 });
   }
 
   const parsed = profilePermissionSchema.safeParse(permissions);
@@ -61,14 +56,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "validation_error", details: parsed.error.flatten().fieldErrors }, { status: 400 });
   }
 
-  const bot = await storage.getBotByBotId(bot_id);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
-  }
-
-  const card = await storage.getRail4CardByBotId(bot_id);
-  if (!card) {
-    return NextResponse.json({ error: "card_not_found", message: "No self-hosted card configured for this bot." }, { status: 404 });
+  const card = await storage.getRail4CardByCardId(card_id);
+  if (!card || card.ownerUid !== user.uid) {
+    return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
   if (parsed.data.profile_index !== card.realProfileIndex) {
@@ -85,7 +75,7 @@ export async function PATCH(request: NextRequest) {
     updatedPerms.push(parsed.data);
   }
 
-  await storage.updateRail4Card(bot_id, {
+  await storage.updateRail4CardByCardId(card_id, {
     profilePermissions: JSON.stringify(updatedPerms),
   } as any);
 

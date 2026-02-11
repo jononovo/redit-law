@@ -142,7 +142,7 @@ async function handleApproval(conf: any) {
 
   await storage.updateCheckoutConfirmationStatus(conf.confirmationId, "approved");
 
-  const card = await storage.getRail4CardByBotId(conf.botId);
+  const card = await storage.getRail4CardByCardId(conf.cardId);
 
   if (card) {
     const { getWindowStart } = await import("@/lib/rail4");
@@ -151,7 +151,7 @@ async function handleApproval(conf: any) {
     if (profilePerm) {
       const windowStart = getWindowStart(profilePerm.allowance_duration);
       await storage.upsertProfileAllowanceUsage(
-        conf.botId,
+        card.cardId,
         conf.profileIndex,
         windowStart,
         conf.amountCents,
@@ -173,7 +173,9 @@ async function handleApproval(conf: any) {
   }).catch(() => {});
 
   const { recordOrganicEvent } = await import("@/lib/obfuscation-engine/state-machine");
-  recordOrganicEvent(conf.botId).catch(() => {});
+  if (card) {
+    recordOrganicEvent(card.cardId).catch(() => {});
+  }
 
   return NextResponse.json({
     status: "approved",
