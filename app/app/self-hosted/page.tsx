@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal } from "lucide-react";
+import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal, Snowflake, Play } from "lucide-react";
 import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
 import { CardVisual } from "@/components/dashboard/card-visual";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
@@ -39,6 +40,8 @@ export default function SelfHostedPage() {
   const [cards, setCards] = useState<CardInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [freezeTarget, setFreezeTarget] = useState<CardInfo | null>(null);
+  const [freezeLoading, setFreezeLoading] = useState(false);
 
   const fetchCards = useCallback(async () => {
     try {
@@ -64,6 +67,38 @@ export default function SelfHostedPage() {
   function handleCopyCardId(cardId: string) {
     navigator.clipboard.writeText(cardId);
     toast({ title: "Copied", description: "Card ID copied to clipboard." });
+  }
+
+  async function handleFreezeConfirm() {
+    if (!freezeTarget) return;
+    const isFrozen = freezeTarget.status === "frozen";
+    const newFrozen = !isFrozen;
+
+    setFreezeLoading(true);
+    setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: newFrozen ? "frozen" : "active" } : c));
+
+    try {
+      const res = await authFetch("/api/v1/rail4/freeze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: freezeTarget.card_id, frozen: newFrozen }),
+      });
+      if (!res.ok) {
+        setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: isFrozen ? "frozen" : "active" } : c));
+        toast({ title: "Error", description: "Failed to update card status.", variant: "destructive" });
+      } else {
+        toast({
+          title: newFrozen ? "Card frozen" : "Card unfrozen",
+          description: newFrozen ? "All transactions on this card are paused." : "Transactions on this card are resumed.",
+        });
+      }
+    } catch {
+      setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: isFrozen ? "frozen" : "active" } : c));
+      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+    } finally {
+      setFreezeLoading(false);
+      setFreezeTarget(null);
+    }
   }
 
   function formatBalance(card: CardInfo) {
@@ -111,6 +146,38 @@ export default function SelfHostedPage() {
         onComplete={fetchCards}
       />
 
+      <Dialog open={!!freezeTarget} onOpenChange={(open) => !open && setFreezeTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            {freezeTarget?.status === "frozen" ? (
+              <><Play className="w-5 h-5 text-emerald-600" /> Unfreeze Card</>
+            ) : (
+              <><Snowflake className="w-5 h-5 text-blue-500" /> Freeze Card</>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            {freezeTarget?.status === "frozen"
+              ? `Are you sure you want to unfreeze "${freezeTarget?.card_name}"? Transactions will be allowed again.`
+              : `Are you sure you want to freeze "${freezeTarget?.card_name}"? All transactions will be blocked until you unfreeze it.`
+            }
+          </DialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setFreezeTarget(null)} disabled={freezeLoading} data-testid="button-freeze-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFreezeConfirm}
+              disabled={freezeLoading}
+              className={freezeTarget?.status === "frozen" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"}
+              data-testid="button-freeze-confirm"
+            >
+              {freezeLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {freezeTarget?.status === "frozen" ? "Unfreeze" : "Freeze"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="bg-gradient-to-r from-primary/5 to-purple-50 rounded-2xl border border-primary/10 p-6" data-testid="card-rail4-explainer">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -146,7 +213,7 @@ export default function SelfHostedPage() {
                 balance={formatBalance(card)}
                 last4={card.card_id.slice(-4)}
                 holder={card.card_name.toUpperCase()}
-                frozen={false}
+                frozen={card.status === "frozen"}
                 expiry="••/••"
                 allowanceLabel={card.allowance ? formatAllowanceLabel(card.allowance) : undefined}
                 resetsLabel={card.allowance ? formatResetsLabel(card.allowance) : undefined}
@@ -162,6 +229,23 @@ export default function SelfHostedPage() {
                   <Eye className="w-4 h-4" /> Manage
                 </Button>
                 <div className="w-px bg-neutral-100 my-1" />
+                {card.status !== "pending_setup" && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className={`flex-1 text-xs gap-2 ${card.status === "frozen" ? "text-blue-600" : "text-neutral-600"}`}
+                      onClick={() => setFreezeTarget(card)}
+                      data-testid={`button-freeze-${card.card_id}`}
+                    >
+                      {card.status === "frozen" ? (
+                        <><Play className="w-4 h-4" /> Unfreeze</>
+                      ) : (
+                        <><Snowflake className="w-4 h-4" /> Freeze</>
+                      )}
+                    </Button>
+                    <div className="w-px bg-neutral-100 my-1" />
+                  </>
+                )}
                 {card.bot_id && (
                   <>
                     <div
