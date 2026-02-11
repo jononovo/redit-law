@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
@@ -316,6 +317,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
   const [downloaded, setDownloaded] = useState(false);
   const [showCompleteExample, setShowCompleteExample] = useState(false);
+  const [autoTogglePaused, setAutoTogglePaused] = useState(false);
   const zipRef = useRef<HTMLInputElement>(null);
 
   const [permAllowanceDuration, setPermAllowanceDuration] = useState("week");
@@ -351,6 +353,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       setActivationResult(null);
       setDownloaded(false);
       setShowCompleteExample(false);
+      setAutoTogglePaused(false);
       setPermAllowanceDuration("week");
       setPermAllowanceValue("50");
       setPermExemptLimit("10");
@@ -874,12 +877,12 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   }, []);
 
   useEffect(() => {
-    if (!fileEditingGuideActive) return;
+    if (!fileEditingGuideActive || autoTogglePaused) return;
     const interval = setInterval(() => {
       setShowCompleteExample(prev => !prev);
     }, 5000);
     return () => clearInterval(interval);
-  }, [fileEditingGuideActive]);
+  }, [fileEditingGuideActive, autoTogglePaused]);
 
   const realProfileIndex = initData?.real_profile_index ?? 4;
   const missingPositions = initData?.missing_digit_positions ?? [];
@@ -933,7 +936,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mb-5">
         <Edit3 className="w-8 h-8 text-amber-600" />
       </div>
-      <h2 className="text-xl font-bold text-neutral-900 mb-2">Update the file you downloaded:</h2>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Fill-in the file you downloaded:</h2>
 
       <div className="w-full max-w-md text-left space-y-3 mb-5">
         <div className="flex items-start gap-2">
@@ -950,30 +953,9 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         </div>
       </div>
 
-      <p className="text-sm text-neutral-500 mb-3">It should look something like this:</p>
+      <p className="text-sm text-neutral-500 mb-3 w-full max-w-md text-left">It should look something like this:</p>
 
       <div className="w-full max-w-md mb-4">
-        <div className="flex items-center justify-end gap-2 mb-2">
-          <button
-            onClick={() => setShowCompleteExample(false)}
-            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
-              !showCompleteExample ? "bg-neutral-800 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
-            }`}
-            data-testid="button-toggle-incomplete"
-          >
-            Incomplete
-          </button>
-          <button
-            onClick={() => setShowCompleteExample(true)}
-            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
-              showCompleteExample ? "bg-green-600 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
-            }`}
-            data-testid="button-toggle-complete"
-          >
-            Complete Example
-          </button>
-        </div>
-
         <div className={`rounded-xl border p-5 text-left font-mono text-sm transition-all duration-500 ${
           showCompleteExample ? "bg-green-50 border-green-200" : "bg-neutral-50 border-neutral-200"
         }`} data-testid="profile-example-block">
@@ -1024,6 +1006,28 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
           </div>
 
           <div className="border-t border-dashed border-neutral-300 my-2" />
+        </div>
+
+        <div
+          className="flex items-center justify-end gap-2 mt-3"
+          onMouseEnter={() => setAutoTogglePaused(true)}
+          data-testid="switch-toggle-area"
+        >
+          <span className={`text-xs font-medium transition-colors ${!showCompleteExample ? "text-neutral-700" : "text-neutral-400"}`}>
+            Incomplete
+          </span>
+          <Switch
+            checked={showCompleteExample}
+            onCheckedChange={(checked) => {
+              setAutoTogglePaused(true);
+              setShowCompleteExample(checked);
+            }}
+            className="data-[state=checked]:bg-green-600"
+            data-testid="switch-toggle-example"
+          />
+          <span className={`text-xs font-medium transition-colors ${showCompleteExample ? "text-green-700" : "text-neutral-400"}`}>
+            Complete
+          </span>
         </div>
       </div>
 
