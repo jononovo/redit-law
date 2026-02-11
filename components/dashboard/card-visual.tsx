@@ -11,6 +11,7 @@ interface CardVisualProps {
   className?: string;
   allowanceLabel?: string;
   resetsLabel?: string;
+  status?: string;
 }
 
 export function CardVisual({ 
@@ -23,6 +24,7 @@ export function CardVisual({
   className,
   allowanceLabel,
   resetsLabel,
+  status,
 }: CardVisualProps) {
   
   const gradients = {
@@ -31,6 +33,22 @@ export function CardVisual({
     blue: "bg-gradient-to-br from-blue-500 to-blue-700",
     purple: "bg-gradient-to-br from-purple-500 to-purple-700"
   };
+
+  const statusColors: Record<string, string> = {
+    active: "bg-emerald-500/20 text-emerald-100 border-emerald-300/30",
+    pending_setup: "bg-amber-500/20 text-amber-100 border-amber-300/30",
+    frozen: "bg-blue-500/20 text-blue-100 border-blue-300/30",
+  };
+
+  const statusLabels: Record<string, string> = {
+    active: "Active",
+    pending_setup: "Pending Setup",
+    frozen: "Frozen",
+  };
+
+  const displayStatus = frozen ? "frozen" : status;
+  const statusStyle = displayStatus ? statusColors[displayStatus] || "bg-white/20 text-white/90 border-white/30" : null;
+  const statusLabel = displayStatus ? (statusLabels[displayStatus] || displayStatus) : null;
 
   return (
     <div className={cn(
@@ -62,14 +80,25 @@ export function CardVisual({
             )}
             <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">Current Balance</span>
             <span className="text-2xl font-bold font-mono tracking-tight">{balance}</span>
-        </div>
-        <div className="w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-            <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
-                <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
-                <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
-                <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
+            <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
+                    <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
+                    <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
+                    <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
+                </div>
             </div>
         </div>
+        {statusLabel && (
+          <span
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border backdrop-blur-sm",
+              statusStyle
+            )}
+            data-testid="text-card-status"
+          >
+            {statusLabel}
+          </span>
+        )}
       </div>
 
       <div className="relative z-10">

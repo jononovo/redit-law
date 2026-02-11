@@ -141,9 +141,13 @@
     --color-green-700: #008138;
     --color-green-800: #016630;
     --color-green-900: #0d542b;
+    --color-emerald-100: #d0fae5;
+    --color-emerald-300: #5ee9b5;
+    --color-emerald-500: #00bb7f;
     --color-blue-50: #eff6ff;
     --color-blue-100: #dbeafe;
     --color-blue-200: #bedbff;
+    --color-blue-300: #90c5ff;
     --color-blue-400: #54a2ff;
     --color-blue-500: #3080ff;
     --color-blue-600: #155dfc;
@@ -288,9 +292,13 @@
       --color-green-700: lab(47.0329% -47.0239 31.4788);
       --color-green-800: lab(37.4616% -36.7971 22.9692);
       --color-green-900: lab(30.797% -29.6927 17.382);
+      --color-emerald-100: lab(94.9004% -17.0769 5.63836);
+      --color-emerald-300: lab(83.9203% -48.7124 13.8849);
+      --color-emerald-500: lab(66.9756% -58.27 19.5419);
       --color-blue-50: lab(96.492% -1.14644 -5.11479);
       --color-blue-100: lab(92.0301% -2.24757 -11.6453);
       --color-blue-200: lab(86.15% -4.04379 -21.0797);
+      --color-blue-300: lab(77.5052% -6.4629 -36.42);
       --color-blue-400: lab(65.0361% -1.42065 -56.9802);
       --color-blue-500: lab(54.1736% 13.3369 -74.6839);
       --color-blue-600: lab(44.0605% 29.0279 -86.0352);
@@ -2434,6 +2442,16 @@
     border-color: var(--color-amber-300);
   }
 
+  .border-amber-300\/30 {
+    border-color: #ffd2364d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-amber-300\/30 {
+      border-color: color-mix(in oklab, var(--color-amber-300) 30%, transparent);
+    }
+  }
+
   .border-amber-400 {
     border-color: var(--color-amber-400);
   }
@@ -2450,6 +2468,16 @@
 
   .border-blue-100 {
     border-color: var(--color-blue-100);
+  }
+
+  .border-blue-300\/30 {
+    border-color: #90c5ff4d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-blue-300\/30 {
+      border-color: color-mix(in oklab, var(--color-blue-300) 30%, transparent);
+    }
   }
 
   .border-border {
@@ -2477,6 +2505,16 @@
   @supports (color: color-mix(in lab, red, red)) {
     .border-destructive\/50 {
       border-color: color-mix(in oklab, hsl(var(--destructive)) 50%, transparent);
+    }
+  }
+
+  .border-emerald-300\/30 {
+    border-color: #5ee9b54d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-emerald-300\/30 {
+      border-color: color-mix(in oklab, var(--color-emerald-300) 30%, transparent);
     }
   }
 
@@ -2642,6 +2680,16 @@
     background-color: var(--color-amber-100);
   }
 
+  .bg-amber-500\/20 {
+    background-color: #f99c0033;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-amber-500\/20 {
+      background-color: color-mix(in oklab, var(--color-amber-500) 20%, transparent);
+    }
+  }
+
   .bg-background {
     background-color: hsl(var(--background));
   }
@@ -2746,6 +2794,16 @@
 
   .bg-destructive {
     background-color: hsl(var(--destructive));
+  }
+
+  .bg-emerald-500\/20 {
+    background-color: #00bb7f33;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-emerald-500\/20 {
+      background-color: color-mix(in oklab, var(--color-emerald-500) 20%, transparent);
+    }
   }
 
   .bg-foreground {
@@ -3889,6 +3947,10 @@
     color: hsl(var(--accent-foreground));
   }
 
+  .text-amber-100 {
+    color: var(--color-amber-100);
+  }
+
   .text-amber-500 {
     color: var(--color-amber-500);
   }
@@ -3907,6 +3969,10 @@
 
   .text-black {
     color: var(--color-black);
+  }
+
+  .text-blue-100 {
+    color: var(--color-blue-100);
   }
 
   .text-blue-400 {
@@ -3939,6 +4005,10 @@
 
   .text-destructive-foreground {
     color: hsl(var(--destructive-foreground));
+  }
+
+  .text-emerald-100 {
+    color: var(--color-emerald-100);
   }
 
   .text-foreground {
@@ -4140,6 +4210,16 @@
   @supports (color: color-mix(in lab, red, red)) {
     .text-white\/80 {
       color: color-mix(in oklab, var(--color-white) 80%, transparent);
+    }
+  }
+
+  .text-white\/90 {
+    color: #ffffffe6;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-white\/90 {
+      color: color-mix(in oklab, var(--color-white) 90%, transparent);
     }
   }
 

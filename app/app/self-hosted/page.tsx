@@ -68,9 +68,7 @@ export default function SelfHostedPage() {
 
   function formatBalance(card: CardInfo) {
     if (!card.allowance) {
-      if (card.status === "active") return "Active";
-      if (card.status === "pending_setup") return "Pending Setup";
-      return card.status;
+      return "$0.00";
     }
     const remaining = card.allowance.remaining_cents / 100;
     const sign = remaining < 0 ? "-" : "";
@@ -148,10 +146,11 @@ export default function SelfHostedPage() {
                 balance={formatBalance(card)}
                 last4={card.card_id.slice(-4)}
                 holder={card.card_name.toUpperCase()}
-                frozen={card.status !== "active"}
+                frozen={false}
                 expiry="••/••"
                 allowanceLabel={card.allowance ? formatAllowanceLabel(card.allowance) : undefined}
                 resetsLabel={card.allowance ? formatResetsLabel(card.allowance) : undefined}
+                status={card.status}
               />
               <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
                 <Button
