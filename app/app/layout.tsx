@@ -18,9 +18,13 @@ export default function DashboardLayout({
     completeMagicLink();
   }, [completeMagicLink]);
 
+  // DEV ONLY: 2-second delay before redirect to prevent false logouts caused by
+  // Firebase token refresh race conditions in the Replit dev environment (cross-origin issues).
+  // REMOVE THIS IN PRODUCTION — it is not needed when the app runs on its own domain.
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/");
+      const timeout = setTimeout(() => router.push("/"), 2000);
+      return () => clearTimeout(timeout);
     }
   }, [user, loading, router]);
 
