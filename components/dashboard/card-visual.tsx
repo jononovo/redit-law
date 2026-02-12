@@ -37,12 +37,14 @@ export function CardVisual({
   const statusColors: Record<string, string> = {
     active: "bg-emerald-500/20 text-emerald-100 border-emerald-300/30",
     pending_setup: "bg-amber-500/20 text-amber-100 border-amber-300/30",
+    awaiting_bot: "bg-violet-500/20 text-violet-100 border-violet-300/30",
     frozen: "bg-blue-500/20 text-blue-100 border-blue-300/30",
   };
 
   const statusLabels: Record<string, string> = {
     active: "Active",
     pending_setup: "Pending Setup",
+    awaiting_bot: "Awaiting Bot",
     frozen: "Frozen",
   };
 

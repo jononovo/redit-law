@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin } from "lucide-react";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin, Cable } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -298,7 +298,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const { toast } = useToast();
   const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
-  const totalSteps = isNewMode ? 10 : 8;
+  const totalSteps = isNewMode ? 11 : 9;
 
   const [step, setStep] = useState(0);
 
@@ -865,6 +865,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const instructionsStepIndex = stepOffset + 4;
   const editingGuideStepIndex = stepOffset + 5;
   const addressGuideStepIndex = stepOffset + 6;
+  const connectBotStepIndex = stepOffset + 8;
   const fileEditingGuideActive = step === editingGuideStepIndex || step === addressGuideStepIndex;
 
   const buildMaskedCardDisplay = useCallback((positions: number[], complete: boolean) => {
@@ -1154,7 +1155,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         will use obfuscation to mask your real transactions among fake profiles.
       </p>
 
-      <div className="bg-green-50 rounded-xl border border-green-100 p-4 w-full max-w-sm mb-8 text-left">
+      <div className="bg-green-50 rounded-xl border border-green-100 p-4 w-full max-w-sm mb-6 text-left">
         <div className="flex items-center gap-3 mb-2">
           <Shield className="w-5 h-5 text-green-600" />
           <span className="text-sm font-semibold text-green-800">What happens next</span>
@@ -1166,16 +1167,67 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         </ul>
       </div>
 
+      <p className="text-sm font-medium text-neutral-700 mb-4">Your bot will need to be connected.</p>
+
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => {
+            onComplete();
+            onOpenChange(false);
+          }}
+          className="rounded-xl gap-2 px-6 py-3 text-base"
+          data-testid="button-wizard-done"
+        >
+          Go to Dashboard
+        </Button>
+        <Button
+          onClick={() => setStep(connectBotStepIndex)}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-6 py-3 text-base"
+          data-testid="button-wizard-connect-bot"
+        >
+          Connect Bot
+          <ArrowRight className="w-5 h-5" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  allSteps.push(
+    <div key="connect-bot" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-connect-bot">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mb-5">
+        <Cable className="w-8 h-8 text-violet-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Connect Your Bot</h2>
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
+        Instructions for connecting your bot will appear here. You'll be able to invite your bot and share purchase instructions.
+      </p>
+
+      <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-5 w-full max-w-md text-left mb-6">
+        <p className="text-sm font-semibold text-neutral-700 mb-3">Steps to connect:</p>
+        <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+          <li>Invite or connect with your bot on the platform</li>
+          <li>Share the purchase instructions below with your bot</li>
+        </ol>
+      </div>
+
+      <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-5 w-full max-w-md text-left mb-6">
+        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">Paste this to your bot:</p>
+        <div className="bg-white rounded-lg border border-neutral-100 p-3 font-mono text-xs text-neutral-700 leading-relaxed">
+          [Purchase instructions will be finalized here]
+        </div>
+      </div>
+
       <Button
         onClick={() => {
           onComplete();
           onOpenChange(false);
         }}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
-        data-testid="button-wizard-done"
+        data-testid="button-wizard-connect-bot-done"
       >
-        Go to Dashboard
-        <ArrowRight className="w-5 h-5" />
+        Done
+        <CheckCircle2 className="w-5 h-5" />
       </Button>
     </div>
   );

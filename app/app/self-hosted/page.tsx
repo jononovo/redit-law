@@ -229,7 +229,7 @@ export default function SelfHostedPage() {
                   <Eye className="w-4 h-4" /> Manage
                 </Button>
                 <div className="w-px bg-neutral-100 my-1" />
-                {card.status !== "pending_setup" && (
+                {card.status !== "pending_setup" && card.status !== "awaiting_bot" && (
                   <>
                     <Button
                       variant="ghost"

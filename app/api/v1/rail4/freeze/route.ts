@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
-  if (card.status === "pending_setup") {
+  if (card.status === "pending_setup" || card.status === "awaiting_bot") {
     return NextResponse.json({ error: "card_not_active", message: "Cannot freeze a card that is not yet set up." }, { status: 400 });
   }
 
