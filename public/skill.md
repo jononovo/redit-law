@@ -379,6 +379,11 @@ All endpoints require `Authorization: Bearer <api_key>` header (except register)
 | POST | `/bot/payments/create-link` | Generate a payment link to charge anyone. | 10/hr |
 | GET | `/bot/payments/links` | List your payment links. Supports `?status=` and `?limit=`. | 12/hr |
 | GET | `/bot/wallet/transactions` | List transaction history. Supports `?limit=` (default 50, max 100). | 12/hr |
+| POST | `/bot/merchant/checkout` | Self-hosted card checkout. Requires `profile_index`, `merchant_name`, `merchant_url`, `item_name`, `amount_cents`. Optional: `card_id`, `category`, `task_id`. | 30/hr |
+| GET | `/bot/merchant/checkout/status` | Poll for human approval result on a pending checkout. | 30/hr |
+
+**Multi-card note:** If your owner has linked you to multiple self-hosted cards, you must include `card_id` in
+your `/bot/merchant/checkout` request. If you only have one active card, `card_id` is optional and will auto-select.
 
 ## Error Responses
 

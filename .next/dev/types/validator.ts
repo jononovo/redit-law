@@ -488,6 +488,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/rail4/link-bot/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/link-bot">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail4/link-bot/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/rail4/obfuscation/history/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/obfuscation/history">> = Specific
@@ -510,6 +519,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/obfuscation/tick">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/rail4/obfuscation/tick/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/rail4/owner-bot/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/owner-bot">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail4/owner-bot/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

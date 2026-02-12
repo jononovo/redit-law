@@ -43,6 +43,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "missing_bot_name", message: "A card name is required." }, { status: 400 });
     }
 
+    const existingBots = await storage.getBotsByOwnerUid(user.uid);
+    if (existingBots.length > 0) {
+      return NextResponse.json({
+        error: "bot_already_exists",
+        message: "You already have a bot on this account. Only one bot per account is allowed.",
+        existing_bot_id: existingBots[0].botId,
+        existing_bot_name: existingBots[0].botName,
+      }, { status: 409 });
+    }
+
     const botId = generateBotId();
     const apiKey = generateApiKey();
     const apiKeyHash = await hashApiKey(apiKey);

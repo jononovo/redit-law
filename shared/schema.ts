@@ -250,7 +250,7 @@ export const rail4Cards = pgTable("rail4_cards", {
   ownerUid: text("owner_uid").notNull(),
   cardName: text("card_name").notNull().default("Untitled Card"),
   useCase: text("use_case"),
-  botId: text("bot_id").unique(),
+  botId: text("bot_id"),
   decoyFilename: text("decoy_filename").notNull(),
   realProfileIndex: integer("real_profile_index").notNull(),
   missingDigitPositions: integer("missing_digit_positions").array().notNull(),
@@ -395,6 +395,7 @@ export const unifiedCheckoutSchema = z.object({
   amount_cents: z.number().int().min(1).max(10000000),
   category: z.string().max(100).optional(),
   task_id: z.string().optional(),
+  card_id: z.string().optional(),
 });
 
 export const waitlistEmailSchema = z.object({

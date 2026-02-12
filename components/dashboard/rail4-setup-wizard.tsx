@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin, Cable } from "lucide-react";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin, Cable, Link2, Send, Terminal, Copy, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -298,7 +298,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const { toast } = useToast();
   const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
-  const totalSteps = isNewMode ? 11 : 9;
+  const totalSteps = isNewMode ? 12 : 10;
 
   const [step, setStep] = useState(0);
 
@@ -324,6 +324,13 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const [permAllowanceValue, setPermAllowanceValue] = useState("50");
   const [permExemptLimit, setPermExemptLimit] = useState("10");
   const [permHumanPermission, setPermHumanPermission] = useState("all");
+
+  const [ownerBot, setOwnerBot] = useState<{ bot_id: string; bot_name: string; wallet_status: string } | null>(null);
+  const [ownerBotCardCount, setOwnerBotCardCount] = useState(0);
+  const [ownerBotLoading, setOwnerBotLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [connectTab, setConnectTab] = useState<"agent" | "manual">("agent");
+  const [copied, setCopied] = useState(false);
 
   const activeCardId = existingCardId || initData?.card_id;
 
@@ -358,6 +365,12 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       setPermAllowanceValue("50");
       setPermExemptLimit("10");
       setPermHumanPermission("all");
+      setOwnerBot(null);
+      setOwnerBotCardCount(0);
+      setOwnerBotLoading(false);
+      setLinkLoading(false);
+      setConnectTab("agent");
+      setCopied(false);
     }
   }, [open]);
 
@@ -481,6 +494,55 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
     a.click();
     URL.revokeObjectURL(url);
     setDownloaded(true);
+  }
+
+  async function fetchOwnerBot() {
+    setOwnerBotLoading(true);
+    try {
+      const res = await authFetch("/api/v1/rail4/owner-bot");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.has_bot && data.bot) {
+          setOwnerBot(data.bot);
+          setOwnerBotCardCount(data.card_count);
+        } else {
+          setOwnerBot(null);
+          setOwnerBotCardCount(0);
+        }
+      }
+    } catch {
+    } finally {
+      setOwnerBotLoading(false);
+    }
+  }
+
+  async function handleLinkBot() {
+    if (!activeCardId) return;
+    setLinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/rail4/link-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: activeCardId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to link bot");
+      }
+      toast({ title: "Bot linked!", description: "Your bot is now connected to this card." });
+      onComplete();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Link failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLinkLoading(false);
+    }
+  }
+
+  function handleCopyText(text: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   const allSteps: React.ReactNode[] = [];
@@ -865,7 +927,8 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const instructionsStepIndex = stepOffset + 4;
   const editingGuideStepIndex = stepOffset + 5;
   const addressGuideStepIndex = stepOffset + 6;
-  const connectBotStepIndex = stepOffset + 8;
+  const choiceBotStepIndex = stepOffset + 8;
+  const connectBotStepIndex = stepOffset + 9;
   const fileEditingGuideActive = step === editingGuideStepIndex || step === addressGuideStepIndex;
 
   const buildMaskedCardDisplay = useCallback((positions: number[], complete: boolean) => {
@@ -1182,7 +1245,10 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
           Go to Dashboard
         </Button>
         <Button
-          onClick={() => setStep(connectBotStepIndex)}
+          onClick={() => {
+            fetchOwnerBot();
+            setStep(choiceBotStepIndex);
+          }}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-6 py-3 text-base"
           data-testid="button-wizard-connect-bot"
         >
@@ -1193,29 +1259,186 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
     </div>
   );
 
+  const agentPasteText = `Read https://creditclaw.com/skill.md and follow the instructions to register with CreditClaw. Once registered, send me the claim link so I can connect you to my account.`;
+
+  const manualCurlText = `curl -s https://creditclaw.com/skill.md`;
+
+  allSteps.push(
+    <div key="choice-bot" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-choice-bot">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mb-5">
+        <Cable className="w-8 h-8 text-violet-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Connect a Bot</h2>
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
+        Link an existing bot or connect a new one to this card.
+      </p>
+
+      {ownerBotLoading ? (
+        <div className="flex items-center gap-2 text-neutral-500 py-8">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Checking for your bot...</span>
+        </div>
+      ) : ownerBot ? (
+        <div className="w-full max-w-md space-y-3 mb-6">
+          <div className="rounded-xl border border-neutral-200 p-5 text-left">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center">
+                <Cable className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{ownerBot.bot_name}</p>
+                <p className="text-xs text-neutral-500">{ownerBotCardCount} of 3 cards linked</p>
+              </div>
+            </div>
+            {ownerBotCardCount >= 3 ? (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                This bot already has the maximum of 3 cards linked.
+              </p>
+            ) : (
+              <Button
+                onClick={handleLinkBot}
+                disabled={linkLoading}
+                className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2 py-3 text-base"
+                data-testid="button-wizard-link-bot"
+              >
+                {linkLoading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Linking...</>
+                ) : (
+                  <><Link2 className="w-5 h-5" /> Link "{ownerBot.bot_name}" to this card</>
+                )}
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-neutral-200" />
+            <span className="text-xs text-neutral-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-neutral-200" />
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => setStep(connectBotStepIndex)}
+            className="w-full rounded-xl gap-2 py-3 text-base"
+            data-testid="button-wizard-connect-new-bot"
+          >
+            Connect a New Bot
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="w-full max-w-md mb-6">
+          <p className="text-sm text-neutral-500 mb-4">You don't have a bot on your account yet.</p>
+          <Button
+            onClick={() => setStep(connectBotStepIndex)}
+            className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2 py-3 text-base"
+            data-testid="button-wizard-connect-new-bot"
+          >
+            Connect a Bot
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
+      <Button
+        variant="ghost"
+        onClick={() => {
+          onComplete();
+          onOpenChange(false);
+        }}
+        className="text-sm text-neutral-400 hover:text-neutral-600"
+        data-testid="button-wizard-skip-connect"
+      >
+        Skip for now
+      </Button>
+    </div>
+  );
+
   allSteps.push(
     <div key="connect-bot" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-connect-bot">
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mb-5">
         <Cable className="w-8 h-8 text-violet-600" />
       </div>
       <h2 className="text-xl font-bold text-neutral-900 mb-2">Connect Your Bot</h2>
-      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
-        Instructions for connecting your bot will appear here. You'll be able to invite your bot and share purchase instructions.
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-5">
+        Send your AI agent to CreditClaw to register and connect.
       </p>
 
-      <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-5 w-full max-w-md text-left mb-6">
-        <p className="text-sm font-semibold text-neutral-700 mb-3">Steps to connect:</p>
-        <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
-          <li>Invite or connect with your bot on the platform</li>
-          <li>Share the purchase instructions below with your bot</li>
-        </ol>
-      </div>
-
-      <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-5 w-full max-w-md text-left mb-6">
-        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">Paste this to your bot:</p>
-        <div className="bg-white rounded-lg border border-neutral-100 p-3 font-mono text-xs text-neutral-700 leading-relaxed">
-          [Purchase instructions will be finalized here]
+      <div className="w-full max-w-md mb-6">
+        <div className="flex rounded-xl bg-neutral-100 p-1 mb-4">
+          <button
+            onClick={() => setConnectTab("agent")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              connectTab === "agent"
+                ? "bg-white shadow-sm text-neutral-900"
+                : "text-neutral-500 hover:text-neutral-700"
+            }`}
+            data-testid="tab-send-to-agent"
+          >
+            <Send className="w-4 h-4" />
+            Send to Agent
+          </button>
+          <button
+            onClick={() => setConnectTab("manual")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              connectTab === "manual"
+                ? "bg-white shadow-sm text-neutral-900"
+                : "text-neutral-500 hover:text-neutral-700"
+            }`}
+            data-testid="tab-manual"
+          >
+            <Terminal className="w-4 h-4" />
+            Manual
+          </button>
         </div>
+
+        {connectTab === "agent" ? (
+          <div className="rounded-xl border border-neutral-200 p-5 text-left space-y-4">
+            <p className="text-sm font-semibold text-neutral-700">Send this to your AI agent:</p>
+            <div className="relative">
+              <div className="bg-neutral-50 rounded-lg border border-neutral-100 p-4 font-mono text-xs text-neutral-700 leading-relaxed pr-10">
+                {agentPasteText}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopyText(agentPasteText)}
+                className="absolute top-2 right-2 h-7 w-7 p-0"
+                data-testid="button-copy-agent-text"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+              </Button>
+            </div>
+            <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+              <li>Send the text above to your agent</li>
+              <li>They'll sign up and send you a claim link</li>
+              <li>Visit the claim link to connect them</li>
+            </ol>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-neutral-200 p-5 text-left space-y-4">
+            <p className="text-sm font-semibold text-neutral-700">Run this command:</p>
+            <div className="relative">
+              <div className="bg-neutral-50 rounded-lg border border-neutral-100 p-4 font-mono text-xs text-neutral-700 leading-relaxed pr-10">
+                {manualCurlText}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopyText(manualCurlText)}
+                className="absolute top-2 right-2 h-7 w-7 p-0"
+                data-testid="button-copy-curl"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+              </Button>
+            </div>
+            <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+              <li>Run the command above to get started</li>
+              <li>Register and send your human the claim link</li>
+              <li>Once claimed, start making purchases!</li>
+            </ol>
+          </div>
+        )}
       </div>
 
       <Button
