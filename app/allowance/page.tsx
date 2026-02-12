@@ -2,6 +2,7 @@
 
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { Wallet, TrendingDown, Pause, PiggyBank, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -30,7 +31,7 @@ const highlights = [
 export default function AllowancePage() {
   return (
     <div className="min-h-screen bg-background text-neutral-900 font-sans">
-      <div className="h-8 bg-neutral-800" />
+      <AnnouncementBar />
       <Nav />
 
       <main>

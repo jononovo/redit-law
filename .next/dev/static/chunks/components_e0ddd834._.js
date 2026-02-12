@@ -738,7 +738,7 @@ function Nav() {
     _s();
     const { user, loading } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$auth$2f$auth$2d$context$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"])();
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
-        className: "fixed top-8 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100",
+        className: "sticky top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100",
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
             className: "container mx-auto px-6 h-20 flex items-center justify-between",
             children: [
@@ -3512,10 +3512,10 @@ function AnnouncementBar() {
     const [visible, setVisible] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     if (!visible) return null;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-        className: "bg-neutral-800 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]",
+        className: "bg-neutral-800 text-white text-xs font-medium py-2 text-center relative w-full z-[60]",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                children: "Self-hosted cards are live! Set your bot's allowance in 60 seconds. Wallets coming soon."
+                children: "We are in early beta. Launch at 18th of Feb, 2026."
             }, void 0, false, {
                 fileName: "[project]/components/announcement-bar.tsx",
                 lineNumber: 13,

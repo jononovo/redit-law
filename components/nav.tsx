@@ -11,7 +11,7 @@ export function Nav() {
   const { user, loading } = useAuth();
 
   return (
-    <nav className="fixed top-8 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100">
+    <nav className="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100">
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link href="/" className="group cursor-pointer flex items-center gap-2">
           <Image src="/images/logo-claw-chip.png" alt="CreditClaw Logo" width={40} height={40} className="object-contain" />

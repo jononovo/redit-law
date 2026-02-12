@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { CreditCard, SlidersHorizontal, ShoppingCart, Sparkles } from "lucide-react";
 
 const steps = [
@@ -29,7 +30,7 @@ const steps = [
 export default function HowItWorksPage() {
   return (
     <div className="min-h-screen bg-background text-neutral-900 font-sans">
-      <div className="h-8 bg-neutral-800" />
+      <AnnouncementBar />
       <Nav />
 
       <main>
