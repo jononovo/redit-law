@@ -5895,6 +5895,12 @@
   }
 
   @media (hover: hover) {
+    .hover\:text-neutral-400:hover {
+      color: var(--color-neutral-400);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:text-neutral-600:hover {
       color: var(--color-neutral-600);
     }

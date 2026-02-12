@@ -19,10 +19,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: CreditCard, label: "Cards", href: "/app/cards" },
   { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: Settings, label: "Settings", href: "/app/settings" },
+  { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
 
 export function Sidebar() {
@@ -46,16 +46,24 @@ export function Sidebar() {
       <nav className="flex-1 px-4 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const isInactive = "inactive" in item && item.inactive;
           return (
             <Link key={item.href} href={item.href}>
               <div className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
-                isActive 
-                  ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
-                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                isInactive
+                  ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
+                  : isActive 
+                    ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
               )}>
-                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
+                <item.icon className={cn("w-5 h-5", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
                 {item.label}
+                {isInactive && (
+                  <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
+                    Inactive
+                  </span>
+                )}
               </div>
             </Link>
           );
