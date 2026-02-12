@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3 } from "lucide-react";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -298,7 +298,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const { toast } = useToast();
   const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
-  const totalSteps = isNewMode ? 9 : 7;
+  const totalSteps = isNewMode ? 10 : 8;
 
   const [step, setStep] = useState(0);
 
@@ -864,7 +864,8 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
 
   const instructionsStepIndex = stepOffset + 4;
   const editingGuideStepIndex = stepOffset + 5;
-  const fileEditingGuideActive = step === editingGuideStepIndex;
+  const addressGuideStepIndex = stepOffset + 6;
+  const fileEditingGuideActive = step === editingGuideStepIndex || step === addressGuideStepIndex;
 
   const buildMaskedCardDisplay = useCallback((positions: number[], complete: boolean) => {
     const sampleComplete = ["4", "5", "6", "7", "3", "2", "9", "8", "6", "3", "8", "8", "7", "6", "5", "2"];
@@ -1038,9 +1039,103 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       </div>
 
       <Button
-        onClick={() => setStep(stepOffset + 6)}
+        onClick={() => setStep(addressGuideStepIndex)}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
         data-testid="button-wizard-editing-guide-continue"
+      >
+        Continue
+        <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>
+  );
+
+  allSteps.push(
+    <div key="address-guide" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-address-guide">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mb-5">
+        <MapPin className="w-8 h-8 text-blue-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Fill-in your billing address:</h2>
+
+      <div className="w-full max-w-md text-left space-y-3 mb-5">
+        <div className="flex items-start gap-2">
+          <span className="text-neutral-400 font-medium text-sm mt-0.5">•</span>
+          <p className="text-sm text-neutral-600">
+            In the same file, <span className="font-semibold text-neutral-800">Profile {realProfileIndex}</span>, fill in the address section.
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-neutral-500 mb-3 w-full max-w-md text-left">It should look something like this:</p>
+
+      <div className="w-full max-w-md mb-4">
+        <div className={`rounded-xl border p-5 text-left font-mono text-sm transition-all duration-500 ${
+          showCompleteExample ? "bg-green-50 border-green-200" : "bg-neutral-50 border-neutral-200"
+        }`} data-testid="address-example-block">
+          <div className="text-neutral-400 text-xs mb-2">---</div>
+
+          <div className="space-y-2">
+            <div>
+              <span className="text-neutral-400 text-xs">address_line1: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400 italic"}`}>
+                {showCompleteExample ? "742 Oak Avenue" : "[Enter card address]"}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">city: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "Portland" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">state: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "Oregon" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">zip: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "97201" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">country: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                United States
+              </span>
+            </div>
+          </div>
+
+          <div className="text-neutral-400 text-xs mt-2">---</div>
+        </div>
+
+        <div
+          className="flex items-center justify-end gap-2 mt-3"
+          onMouseEnter={() => setAutoTogglePaused(true)}
+          data-testid="switch-toggle-address-area"
+        >
+          <span className={`text-xs font-medium transition-colors ${!showCompleteExample ? "text-neutral-700" : "text-neutral-400"}`}>
+            Incomplete
+          </span>
+          <Switch
+            checked={showCompleteExample}
+            onCheckedChange={(checked) => {
+              setAutoTogglePaused(true);
+              setShowCompleteExample(checked);
+            }}
+            className="data-[state=checked]:bg-green-600"
+            data-testid="switch-toggle-address-example"
+          />
+          <span className={`text-xs font-medium transition-colors ${showCompleteExample ? "text-green-700" : "text-neutral-400"}`}>
+            Complete
+          </span>
+        </div>
+      </div>
+
+      <Button
+        onClick={() => setStep(stepOffset + 7)}
+        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+        data-testid="button-wizard-address-guide-continue"
       >
         Continue
         <ArrowRight className="w-5 h-5" />
