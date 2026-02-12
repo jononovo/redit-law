@@ -1,5 +1,21 @@
 {
   "/api/auth/session/route": "app/api/auth/session/route.js",
+  "/api/v1/activity-log/route": "app/api/v1/activity-log/route.js",
+  "/api/v1/bots/mine/route": "app/api/v1/bots/mine/route.js",
+  "/api/v1/notifications/unread-count/route": "app/api/v1/notifications/unread-count/route.js",
+  "/api/v1/payment-links/route": "app/api/v1/payment-links/route.js",
+  "/api/v1/rail4/cards/route": "app/api/v1/rail4/cards/route.js",
   "/api/v1/rail4/confirm/[confirmationId]/route": "app/api/v1/rail4/confirm/[confirmationId]/route.js",
+  "/api/v1/rail4/confirmations/route": "app/api/v1/rail4/confirmations/route.js",
+  "/api/v1/rail4/obfuscation/history/route": "app/api/v1/rail4/obfuscation/history/route.js",
+  "/api/v1/rail4/obfuscation/status/route": "app/api/v1/rail4/obfuscation/status/route.js",
+  "/api/v1/rail4/permissions/route": "app/api/v1/rail4/permissions/route.js",
+  "/api/v1/rail4/status/route": "app/api/v1/rail4/status/route.js",
+  "/api/v1/wallet/balance/route": "app/api/v1/wallet/balance/route.js",
+  "/api/v1/webhooks/health/route": "app/api/v1/webhooks/health/route.js",
+  "/api/v1/webhooks/route": "app/api/v1/webhooks/route.js",
+  "/app/page": "app/app/page.js",
+  "/app/self-hosted/[cardId]/page": "app/app/self-hosted/[cardId]/page.js",
+  "/app/self-hosted/page": "app/app/self-hosted/page.js",
   "/page": "app/page.js"
 }
