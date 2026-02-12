@@ -112,10 +112,10 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$providers$2e$tsx__$5b
 const metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || "https://creditclaw.com"),
     title: "CreditClaw - Give your bot a card",
-    description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
+    description: "The fun, safe way to give your OpenClaw bot an allowance. Self-hosted cards, wallets, and spending guardrails for AI agents.",
     openGraph: {
         title: "CreditClaw - Give your bot a card",
-        description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
+        description: "The fun, safe way to give your OpenClaw bot an allowance. Self-hosted cards, wallets, and spending guardrails for AI agents.",
         type: "website",
         siteName: "CreditClaw",
         images: [
@@ -123,13 +123,13 @@ const metadata = {
                 url: "/og/og-image.png",
                 width: 1200,
                 height: 675,
-                alt: "CreditClaw - Virtual cards for AI agents"
+                alt: "CreditClaw - Allowance platform for AI agents"
             },
             {
                 url: "/og/og-square.png",
                 width: 1200,
                 height: 1200,
-                alt: "CreditClaw - Virtual cards for AI agents"
+                alt: "CreditClaw - Allowance platform for AI agents"
             }
         ]
     },
@@ -137,13 +137,13 @@ const metadata = {
         card: "summary_large_image",
         site: "@creditclaw",
         title: "CreditClaw - Give your bot a card",
-        description: "The fun, safe way to give your OpenClaw agent an allowance. Virtual Visa/Mastercard for AI agents, funded by their humans.",
+        description: "The fun, safe way to give your OpenClaw bot an allowance. Self-hosted cards, wallets, and spending guardrails for AI agents.",
         images: [
             {
                 url: "/og/og-twitter.png",
                 width: 1200,
                 height: 675,
-                alt: "CreditClaw - Virtual cards for AI agents"
+                alt: "CreditClaw - Allowance platform for AI agents"
             }
         ]
     },

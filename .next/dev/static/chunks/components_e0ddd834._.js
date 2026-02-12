@@ -1285,7 +1285,7 @@ function Hero() {
                                             animationDelay: '0.2s'
                                         },
                                         className: "text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-fade-in-up",
-                                        children: "Your bot works hard. Let it buy its own API credits (responsibly). Set a weekly allowance and never worry about surprise bills again."
+                                        children: "Your bot works hard. Give it an allowance with guardrails. Self-hosted cards are live — wallets and x402 coming next."
                                     }, void 0, false, {
                                         fileName: "[project]/components/hero.tsx",
                                         lineNumber: 88,
@@ -1706,7 +1706,7 @@ function Hero() {
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                         className: "text-sm text-neutral-500 mt-1",
-                                                        children: "We'll notify you when virtual cards for bots are ready. No action needed right now."
+                                                        children: "We'll notify you when bot wallets are ready. No action needed right now."
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/hero.tsx",
                                                         lineNumber: 241,
@@ -2451,13 +2451,13 @@ function LiveMetrics() {
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                     className: "text-neutral-500 text-sm font-medium leading-relaxed",
                                     children: [
-                                        "Waiting for virtual",
+                                        "Waiting for",
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("br", {}, void 0, false, {
                                             fileName: "[project]/components/live-metrics.tsx",
                                             lineNumber: 73,
-                                            columnNumber: 100
+                                            columnNumber: 92
                                         }, this),
-                                        "card issuance"
+                                        "bot wallets"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/live-metrics.tsx",
@@ -3176,7 +3176,7 @@ function WaitlistForm() {
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                 className: "text-xl text-neutral-400 mb-12 font-medium max-w-xl mx-auto",
-                                children: "Join the waitlist for virtual card issuance, or jump in now and add your own card with full spending controls."
+                                children: "Join the waitlist for bot wallets, or jump in now with self-hosted cards and full spending controls."
                             }, void 0, false, {
                                 fileName: "[project]/components/waitlist-form.tsx",
                                 lineNumber: 97,
@@ -3435,7 +3435,7 @@ function WaitlistForm() {
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                         className: "text-sm text-neutral-500 mt-1",
-                                                        children: "We'll notify you when virtual cards for bots are ready. No action needed right now."
+                                                        children: "We'll notify you when bot wallets are ready. No action needed right now."
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/waitlist-form.tsx",
                                                         lineNumber: 194,
@@ -3515,7 +3515,7 @@ function AnnouncementBar() {
         className: "bg-neutral-800 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                children: "Now open! Add your card and set spending limits for your bot. Virtual cards coming soon."
+                children: "Self-hosted cards are live! Set your bot's allowance in 60 seconds. Wallets coming soon."
             }, void 0, false, {
                 fileName: "[project]/components/announcement-bar.tsx",
                 lineNumber: 13,

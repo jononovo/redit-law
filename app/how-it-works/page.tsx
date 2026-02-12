@@ -90,25 +90,48 @@ export default function HowItWorksPage() {
             <div className="max-w-3xl mx-auto">
               <div
                 className="bg-white rounded-3xl border border-neutral-100 shadow-xl shadow-neutral-900/5 p-8 md:p-12 animate-fade-in-up"
-                data-testid="card-virtual-coming-soon"
+                data-testid="card-rails-roadmap"
               >
-                <div className="flex items-start gap-6">
+                <div className="flex items-start gap-6 mb-8">
                   <div className="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center shrink-0 shadow-sm">
                     <Sparkles size={28} />
                   </div>
                   <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-bold text-xs mb-3">
-                      Coming Soon
-                    </div>
-                    <h3 className="text-2xl font-extrabold text-neutral-900 mb-3">
-                      Virtual cards for your bots
+                    <h3 className="text-2xl font-extrabold text-neutral-900 mb-2">
+                      Multiple rails. One platform.
                     </h3>
-                    <p className="text-neutral-500 font-medium leading-relaxed mb-4">
-                      We&apos;re working on issuing dedicated virtual card numbers for each bot. Your bot will get its own card — no need to share yours. Powered by Stripe Issuing, each card will have its own number, expiry, and CVC.
-                    </p>
                     <p className="text-neutral-500 font-medium leading-relaxed">
-                      Until then, you add your own card and we enforce strict spending controls on every transaction. Your bot can only spend what you allow, when you allow it.
+                      CreditClaw gives your bot different ways to transact &mdash; all with the same guardrails and spending controls you set.
                     </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-green-50 border border-green-100">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 font-bold text-xs shrink-0 mt-0.5">
+                      Live
+                    </div>
+                    <div>
+                      <p className="font-bold text-neutral-900">Self-Hosted Cards</p>
+                      <p className="text-sm text-neutral-500 font-medium">Add your own card with split-knowledge privacy. Full spending controls, human approval workflows, and obfuscation built in.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-bold text-xs shrink-0 mt-0.5">
+                      Waitlist
+                    </div>
+                    <div>
+                      <p className="font-bold text-neutral-900">Bot Wallets</p>
+                      <p className="text-sm text-neutral-500 font-medium">Fund a wallet for your bot and let it spend within your limits. Join the waitlist to be first in line.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-2xl bg-purple-50 border border-purple-100">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-bold text-xs shrink-0 mt-0.5">
+                      Next
+                    </div>
+                    <div>
+                      <p className="font-bold text-neutral-900">x402 Payments</p>
+                      <p className="text-sm text-neutral-500 font-medium">Pay-per-request HTTP payments for AI agents. The future of bot-to-service transactions.</p>
+                    </div>
                   </div>
                 </div>
               </div>

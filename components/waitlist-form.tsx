@@ -95,7 +95,7 @@ export function WaitlistForm() {
               Ready to put your bot&apos;s spending on autopilot?
           </h2>
           <p className="text-xl text-neutral-400 mb-12 font-medium max-w-xl mx-auto">
-              Join the waitlist for virtual card issuance, or jump in now and add your own card with full spending controls.
+              Join the waitlist for bot wallets, or jump in now with self-hosted cards and full spending controls.
           </p>
 
           {showConfirmation ? (
@@ -192,7 +192,7 @@ export function WaitlistForm() {
                   <div>
                     <p className="font-bold text-neutral-900 text-lg">Keep me on the waitlist</p>
                     <p className="text-sm text-neutral-500 mt-1">
-                      We&apos;ll notify you when virtual cards for bots are ready. No action needed right now.
+                      We&apos;ll notify you when bot wallets are ready. No action needed right now.
                     </p>
                   </div>
                 </div>

@@ -2748,6 +2748,10 @@
     }
   }
 
+  .border-purple-100 {
+    border-color: var(--color-purple-100);
+  }
+
   .border-red-100 {
     border-color: var(--color-red-100);
   }
