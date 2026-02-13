@@ -101,6 +101,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/app/stripe-wallet/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/app/stripe-wallet">> = Specific
+  const handler = {} as typeof import("../../../app/app/stripe-wallet/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/app/transactions/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/app/transactions">> = Specific
@@ -168,6 +177,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/safety">> = Specific
   const handler = {} as typeof import("../../../app/safety/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/stripe-wallet/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/stripe-wallet">> = Specific
+  const handler = {} as typeof import("../../../app/stripe-wallet/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -564,6 +582,105 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/submit-owner-data">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/rail4/submit-owner-data/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/approvals/decide/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/approvals/decide">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/approvals/decide/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/approvals/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/approvals">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/approvals/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/balance/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/balance">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/balance/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/bot/sign/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/bot/sign">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/bot/sign/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/create/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/create">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/create/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/freeze/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/freeze">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/freeze/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/guardrails/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/guardrails">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/guardrails/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/list/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/list">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/list/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/onramp/session/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/onramp/session">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/onramp/session/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/transactions/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/transactions">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/transactions/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/stripe-wallet/webhooks/stripe/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/stripe-wallet/webhooks/stripe">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/stripe-wallet/webhooks/stripe/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

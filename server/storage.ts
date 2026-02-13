@@ -3,6 +3,7 @@ import {
   bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs, webhookDeliveries,
   notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes, waitlistEntries,
   rail4Cards, obfuscationEvents, obfuscationState, profileAllowanceUsage, checkoutConfirmations,
+  privyWallets, privyGuardrails, privyTransactions, privyApprovals,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -22,6 +23,10 @@ import {
   type ObfuscationState, type InsertObfuscationState,
   type ProfileAllowanceUsage, type InsertProfileAllowanceUsage,
   type CheckoutConfirmation, type InsertCheckoutConfirmation,
+  type PrivyWallet, type InsertPrivyWallet,
+  type PrivyGuardrail, type InsertPrivyGuardrail,
+  type PrivyTransaction, type InsertPrivyTransaction,
+  type PrivyApproval, type InsertPrivyApproval,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -100,6 +105,30 @@ export interface IStorage {
   freezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
   unfreezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
   getWalletsWithBotsByOwnerUid(ownerUid: string): Promise<(Wallet & { botName: string; botId: string })[]>;
+
+  // ─── Rail 1: Stripe Wallet (Privy + x402) ─────────────────────────
+  privyCreateWallet(data: InsertPrivyWallet): Promise<PrivyWallet>;
+  privyGetWalletById(id: number): Promise<PrivyWallet | null>;
+  privyGetWalletByBotId(botId: string): Promise<PrivyWallet | null>;
+  privyGetWalletsByOwnerUid(ownerUid: string): Promise<PrivyWallet[]>;
+  privyGetWalletByAddress(address: string): Promise<PrivyWallet | null>;
+  privyUpdateWalletBalance(id: number, balanceUsdc: number): Promise<PrivyWallet | null>;
+  privyUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<PrivyWallet | null>;
+
+  privyGetGuardrails(walletId: number): Promise<PrivyGuardrail | null>;
+  privyUpsertGuardrails(walletId: number, data: Partial<InsertPrivyGuardrail>): Promise<PrivyGuardrail>;
+
+  privyCreateTransaction(data: InsertPrivyTransaction): Promise<PrivyTransaction>;
+  privyGetTransactionsByWalletId(walletId: number, limit?: number): Promise<PrivyTransaction[]>;
+  privyUpdateTransactionStatus(id: number, status: string, txHash?: string): Promise<PrivyTransaction | null>;
+  privyGetDailySpend(walletId: number): Promise<number>;
+  privyGetMonthlySpend(walletId: number): Promise<number>;
+
+  privyCreateApproval(data: InsertPrivyApproval): Promise<PrivyApproval>;
+  privyGetApproval(id: number): Promise<PrivyApproval | null>;
+  privyGetPendingApprovals(walletId: number): Promise<PrivyApproval[]>;
+  privyGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<PrivyApproval[]>;
+  privyDecideApproval(id: number, decision: string, decidedBy: string): Promise<PrivyApproval | null>;
 
   createRail4Card(data: InsertRail4Card): Promise<Rail4Card>;
   getRail4CardByCardId(cardId: string): Promise<Rail4Card | null>;
@@ -904,5 +933,171 @@ export const storage: IStorage = {
         eq(checkoutConfirmations.status, "pending"),
       ))
       .orderBy(desc(checkoutConfirmations.createdAt));
+  },
+
+  // ─── Rail 1: Stripe Wallet (Privy + x402) ─────────────────────────
+
+  async privyCreateWallet(data: InsertPrivyWallet): Promise<PrivyWallet> {
+    const [wallet] = await db.insert(privyWallets).values(data).returning();
+    return wallet;
+  },
+
+  async privyGetWalletById(id: number): Promise<PrivyWallet | null> {
+    const [wallet] = await db.select().from(privyWallets).where(eq(privyWallets.id, id)).limit(1);
+    return wallet || null;
+  },
+
+  async privyGetWalletByBotId(botId: string): Promise<PrivyWallet | null> {
+    const [wallet] = await db.select().from(privyWallets).where(eq(privyWallets.botId, botId)).limit(1);
+    return wallet || null;
+  },
+
+  async privyGetWalletsByOwnerUid(ownerUid: string): Promise<PrivyWallet[]> {
+    return db.select().from(privyWallets).where(eq(privyWallets.ownerUid, ownerUid)).orderBy(desc(privyWallets.createdAt));
+  },
+
+  async privyGetWalletByAddress(address: string): Promise<PrivyWallet | null> {
+    const [wallet] = await db
+      .select()
+      .from(privyWallets)
+      .where(sql`LOWER(${privyWallets.address}) = LOWER(${address})`)
+      .limit(1);
+    return wallet || null;
+  },
+
+  async privyUpdateWalletBalance(id: number, balanceUsdc: number): Promise<PrivyWallet | null> {
+    const [updated] = await db
+      .update(privyWallets)
+      .set({ balanceUsdc, updatedAt: new Date() })
+      .where(eq(privyWallets.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async privyUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<PrivyWallet | null> {
+    const [updated] = await db
+      .update(privyWallets)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(privyWallets.id, id), eq(privyWallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async privyGetGuardrails(walletId: number): Promise<PrivyGuardrail | null> {
+    const [g] = await db.select().from(privyGuardrails).where(eq(privyGuardrails.walletId, walletId)).limit(1);
+    return g || null;
+  },
+
+  async privyUpsertGuardrails(walletId: number, data: Partial<InsertPrivyGuardrail>): Promise<PrivyGuardrail> {
+    const existing = await this.privyGetGuardrails(walletId);
+    if (existing) {
+      const [updated] = await db
+        .update(privyGuardrails)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(privyGuardrails.walletId, walletId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(privyGuardrails)
+      .values({ walletId, ...data })
+      .returning();
+    return created;
+  },
+
+  async privyCreateTransaction(data: InsertPrivyTransaction): Promise<PrivyTransaction> {
+    const [tx] = await db.insert(privyTransactions).values(data).returning();
+    return tx;
+  },
+
+  async privyGetTransactionsByWalletId(walletId: number, limit = 50): Promise<PrivyTransaction[]> {
+    return db
+      .select()
+      .from(privyTransactions)
+      .where(eq(privyTransactions.walletId, walletId))
+      .orderBy(desc(privyTransactions.createdAt))
+      .limit(limit);
+  },
+
+  async privyUpdateTransactionStatus(id: number, status: string, txHash?: string): Promise<PrivyTransaction | null> {
+    const updateData: Record<string, unknown> = { status };
+    if (txHash) updateData.txHash = txHash;
+    if (status === "confirmed") updateData.confirmedAt = new Date();
+    const [updated] = await db
+      .update(privyTransactions)
+      .set(updateData)
+      .where(eq(privyTransactions.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async privyGetDailySpend(walletId: number): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const result = await db
+      .select({ total: sql<number>`COALESCE(SUM(${privyTransactions.amountUsdc}), 0)` })
+      .from(privyTransactions)
+      .where(and(
+        eq(privyTransactions.walletId, walletId),
+        eq(privyTransactions.type, "x402_payment"),
+        gte(privyTransactions.createdAt, today),
+      ));
+    return Number(result[0]?.total || 0);
+  },
+
+  async privyGetMonthlySpend(walletId: number): Promise<number> {
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1);
+    firstOfMonth.setHours(0, 0, 0, 0);
+    const result = await db
+      .select({ total: sql<number>`COALESCE(SUM(${privyTransactions.amountUsdc}), 0)` })
+      .from(privyTransactions)
+      .where(and(
+        eq(privyTransactions.walletId, walletId),
+        eq(privyTransactions.type, "x402_payment"),
+        gte(privyTransactions.createdAt, firstOfMonth),
+      ));
+    return Number(result[0]?.total || 0);
+  },
+
+  async privyCreateApproval(data: InsertPrivyApproval): Promise<PrivyApproval> {
+    const [approval] = await db.insert(privyApprovals).values(data).returning();
+    return approval;
+  },
+
+  async privyGetApproval(id: number): Promise<PrivyApproval | null> {
+    const [approval] = await db.select().from(privyApprovals).where(eq(privyApprovals.id, id)).limit(1);
+    return approval || null;
+  },
+
+  async privyGetPendingApprovals(walletId: number): Promise<PrivyApproval[]> {
+    return db
+      .select()
+      .from(privyApprovals)
+      .where(and(eq(privyApprovals.walletId, walletId), eq(privyApprovals.status, "pending")))
+      .orderBy(desc(privyApprovals.createdAt));
+  },
+
+  async privyGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<PrivyApproval[]> {
+    const wallets = await this.privyGetWalletsByOwnerUid(ownerUid);
+    if (wallets.length === 0) return [];
+    const walletIds = wallets.map(w => w.id);
+    return db
+      .select()
+      .from(privyApprovals)
+      .where(and(
+        inArray(privyApprovals.walletId, walletIds),
+        eq(privyApprovals.status, "pending"),
+      ))
+      .orderBy(desc(privyApprovals.createdAt));
+  },
+
+  async privyDecideApproval(id: number, decision: string, decidedBy: string): Promise<PrivyApproval | null> {
+    const [updated] = await db
+      .update(privyApprovals)
+      .set({ status: decision, decidedAt: new Date(), decidedBy })
+      .where(and(eq(privyApprovals.id, id), eq(privyApprovals.status, "pending")))
+      .returning();
+    return updated || null;
   },
 };

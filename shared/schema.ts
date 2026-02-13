@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, boolean, index, bigint, jsonb } from "drizzle-orm/pg-core";
 import { z } from "zod";
 
 export const bots = pgTable("bots", {
@@ -417,4 +417,115 @@ export const updateNotificationPreferencesSchema = z.object({
   balance_low_usd: z.number().min(0).max(100000).optional(),
   email_enabled: z.boolean().optional(),
   in_app_enabled: z.boolean().optional(),
+});
+
+// ─── Rail 1: Stripe Wallet (Privy + x402) ───────────────────────────────────
+
+export const privyWallets = pgTable("privy_wallets", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  ownerUid: text("owner_uid").notNull(),
+  privyWalletId: text("privy_wallet_id").notNull(),
+  address: text("address").notNull(),
+  balanceUsdc: bigint("balance_usdc", { mode: "number" }).notNull().default(0),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("privy_wallets_bot_id_idx").on(table.botId),
+  index("privy_wallets_owner_uid_idx").on(table.ownerUid),
+  index("privy_wallets_address_idx").on(table.address),
+]);
+
+export const privyGuardrails = pgTable("privy_guardrails", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(100),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(1000),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(10000),
+  requireApprovalAbove: integer("require_approval_above"),
+  allowlistedDomains: jsonb("allowlisted_domains").$type<string[]>().default([]),
+  blocklistedDomains: jsonb("blocklisted_domains").$type<string[]>().default([]),
+  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: text("updated_by"),
+}, (table) => [
+  index("privy_guardrails_wallet_id_idx").on(table.walletId),
+]);
+
+export const privyTransactions = pgTable("privy_transactions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  type: text("type").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  recipientAddress: text("recipient_address"),
+  resourceUrl: text("resource_url"),
+  txHash: text("tx_hash"),
+  status: text("status").notNull().default("pending"),
+  stripeSessionId: text("stripe_session_id"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+}, (table) => [
+  index("privy_transactions_wallet_id_idx").on(table.walletId),
+  index("privy_transactions_status_idx").on(table.status),
+  index("privy_transactions_type_idx").on(table.type),
+]);
+
+export const privyApprovals = pgTable("privy_approvals", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  transactionId: integer("transaction_id").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  resourceUrl: text("resource_url").notNull(),
+  status: text("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  decidedAt: timestamp("decided_at"),
+  decidedBy: text("decided_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("privy_approvals_wallet_id_idx").on(table.walletId),
+  index("privy_approvals_status_idx").on(table.status),
+]);
+
+export type PrivyWallet = typeof privyWallets.$inferSelect;
+export type InsertPrivyWallet = typeof privyWallets.$inferInsert;
+export type PrivyGuardrail = typeof privyGuardrails.$inferSelect;
+export type InsertPrivyGuardrail = typeof privyGuardrails.$inferInsert;
+export type PrivyTransaction = typeof privyTransactions.$inferSelect;
+export type InsertPrivyTransaction = typeof privyTransactions.$inferInsert;
+export type PrivyApproval = typeof privyApprovals.$inferSelect;
+export type InsertPrivyApproval = typeof privyApprovals.$inferInsert;
+
+export const createPrivyWalletSchema = z.object({
+  bot_id: z.string().min(1),
+});
+
+export const setPrivyGuardrailsSchema = z.object({
+  wallet_id: z.number().int().positive(),
+  max_per_tx_usdc: z.number().int().min(0).optional(),
+  daily_budget_usdc: z.number().int().min(0).optional(),
+  monthly_budget_usdc: z.number().int().min(0).optional(),
+  require_approval_above: z.number().int().min(0).nullable().optional(),
+  allowlisted_domains: z.array(z.string()).optional(),
+  blocklisted_domains: z.array(z.string()).optional(),
+  auto_pause_on_zero: z.boolean().optional(),
+});
+
+export const privyOnrampSessionSchema = z.object({
+  wallet_id: z.number().int().positive(),
+  amount_usd: z.number().min(1).max(10000).optional(),
+});
+
+export const privyBotSignSchema = z.object({
+  bot_id: z.string().min(1),
+  resource_url: z.string().min(1),
+  amount_usdc: z.number().int().positive(),
+  recipient_address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  valid_before: z.number().int().positive().optional(),
+});
+
+export const privyApprovalDecideSchema = z.object({
+  approval_id: z.number().int().positive(),
+  decision: z.enum(["approve", "reject"]),
 });

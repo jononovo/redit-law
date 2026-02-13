@@ -28,10 +28,19 @@ Advanced features include:
 - **Onboarding Wizard:** A guided 12-screen wizard facilitates new bot owner setup, supporting both "bot-first" (claim token) and "owner-first" (pairing code) flows.
 - **Split-Knowledge Card Model (Rail 4):** This advanced privacy feature uses payment profiles files (formerly "decoy files"), real profile indexes, and obfuscation events to manage bot card configurations and transactions. Setup wizard (11 steps in new-card mode): Card Name → Use Case → Welcome → Card Details → Permissions → Download → Instructions Overview → File Editing Guide → Address Guide → Success → Connect Bot (optional). Card status lifecycle: pending_setup → awaiting_bot (setup complete) → active (bot connected). The File Editing Guide shows the user's actual profile number and masked card number with an auto-toggling incomplete/complete switch (5-second interval, pauses on hover/click). The Address Guide shows the address section with the same toggle. Permissions editable post-setup via three-dot menu on each card. Per-card detail page shows filtered transaction ledger. Includes human approval workflow via HMAC-signed email links (15-min TTL), bot polling for confirmation results, and per-profile allowance tracking with confirmation-exempt thresholds.
 
+### Multi-Rail Architecture
+CreditClaw supports multiple independent payment rails, each with its own database tables, API routes, components, and lib files. Rails are strongly segmented — no cross-contamination of schemas or logic.
+
+- **Rail 1 (Stripe Wallet):** Privy server wallets on Base chain, USDC funding via Stripe Crypto Onramp, x402 payment protocol for bot spending. Firebase Auth remains the global auth layer; Privy SDK is scoped only to Rail 1 wallet operations. Tables: `privy_wallets`, `privy_guardrails`, `privy_transactions`, `privy_approvals`. Routes: `/api/v1/stripe-wallet/*`. Lib: `lib/stripe-wallet/`. UI: `/stripe-wallet` (landing), `/app/stripe-wallet` (dashboard). Storage methods prefixed `privy*`.
+- **Rail 2 (Card Wallet):** Future — CrossMint/Stytch integration. Routes: `/api/v1/card-wallet/*`. Not yet implemented.
+- **Rail 4 (Self-Hosted Cards):** Split-knowledge card model with obfuscation. See existing documentation below. Routes: `/api/v1/rail4/*`.
+
 ### Key Routes
 - `/` — Consumer landing page
 - `/claim` — Bot claim page
+- `/stripe-wallet` — Rail 1 landing page (Privy + x402)
 - `/app` — Dashboard overview
+- `/app/stripe-wallet` — Rail 1 dashboard (wallet list, guardrails, activity, approvals)
 - `/app/cards` — Card management
 - `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
 - `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
@@ -40,6 +49,19 @@ Advanced features include:
 - `/onboarding` — Guided setup wizard (authenticated)
 - `/payment/success` — Post-payment success page (public)
 - `/payment/cancelled` — Post-payment cancel page (public)
+
+### Rail 1 API Endpoints (Stripe Wallet)
+- `POST /api/v1/stripe-wallet/create` — Create a Privy server wallet for a bot
+- `GET /api/v1/stripe-wallet/list` — List owner's Stripe Wallets with balances and guardrails
+- `GET /api/v1/stripe-wallet/balance` — Get single wallet balance
+- `POST /api/v1/stripe-wallet/freeze` — Pause/activate a wallet
+- `POST /api/v1/stripe-wallet/onramp/session` — Create Stripe Crypto Onramp session (fiat → USDC)
+- `GET/POST /api/v1/stripe-wallet/guardrails` — View/set spending guardrails
+- `POST /api/v1/stripe-wallet/bot/sign` — Bot-facing: sign x402 EIP-712 transfer authorization (enforces guardrails)
+- `GET /api/v1/stripe-wallet/transactions` — List transactions for a wallet
+- `GET /api/v1/stripe-wallet/approvals` — List pending approvals for owner
+- `POST /api/v1/stripe-wallet/approvals/decide` — Approve or reject a pending payment
+- `POST /api/v1/stripe-wallet/webhooks/stripe` — Stripe webhook for onramp fulfillment
 
 ### Rail 4 API Endpoints
 - `POST /api/v1/bot/merchant/checkout` — Unified checkout (fake profiles → obfuscation, real profiles → wallet debit or pending approval)
@@ -61,10 +83,13 @@ Advanced features include:
 - HMAC-SHA256 signed approval links require `CONFIRMATION_HMAC_SECRET` or `CRON_SECRET` env var
 
 ## External Dependencies
-- **Firebase Auth:** User authentication and authorization.
+- **Firebase Auth:** User authentication and authorization (global layer across all rails).
 - **PostgreSQL:** Primary database for all application data.
 - **Drizzle ORM:** Object-Relational Mapper for database interactions.
-- **Stripe:** Payment processing for funding wallets, managing payment methods, and handling payment links.
+- **Stripe:** Payment processing for funding wallets, managing payment methods, payment links, and Crypto Onramp (Rail 1).
+- **Privy (@privy-io/node):** Server wallet management on Base chain (Rail 1 only). Env vars: `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY`.
+- **viem:** Ethereum utility library for EIP-712 typed data construction (Rail 1).
+- **canonicalize:** JSON canonicalization for Privy authorization signatures (Rail 1).
 - **SendGrid:** Transactional email services for notifications.
 - **shadcn/ui:** UI component library.
 - **React Query (@tanstack/react-query):** Server state management and data fetching.
