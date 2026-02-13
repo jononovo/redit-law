@@ -96,7 +96,7 @@ export default function StripeWalletPage() {
 
   const fetchBots = useCallback(async () => {
     try {
-      const res = await authFetch("/api/v1/bots");
+      const res = await authFetch("/api/v1/bots/mine");
       if (res.ok) {
         const data = await res.json();
         setBots(data.bots || []);
