@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
-    if (event.type === "crypto.onramp_session_updated") {
+    if ((event.type as string) === "crypto.onramp_session_updated") {
       const session = event.data.object as any;
 
       if (session.status === "fulfillment_complete") {
