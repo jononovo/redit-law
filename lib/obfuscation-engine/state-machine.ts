@@ -7,12 +7,12 @@ const OBFUSCATION_RATIO = 3;
 const MAX_EVENTS_PER_TICK = 3;
 const WARMUP_EVENTS_PER_DAY = 2;
 
-export async function initializeState(botId: string): Promise<ObfuscationState> {
-  const existing = await storage.getObfuscationState(botId);
+export async function initializeState(cardId: string): Promise<ObfuscationState> {
+  const existing = await storage.getObfuscationState(cardId);
   if (existing) return existing;
 
   return storage.createObfuscationState({
-    botId,
+    cardId,
     phase: "warmup",
     active: true,
     activatedAt: new Date(),
@@ -21,11 +21,11 @@ export async function initializeState(botId: string): Promise<ObfuscationState> 
   });
 }
 
-export async function recordOrganicEvent(botId: string): Promise<void> {
-  const state = await storage.getObfuscationState(botId);
+export async function recordOrganicEvent(cardId: string): Promise<void> {
+  const state = await storage.getObfuscationState(cardId);
   if (!state) return;
 
-  await storage.updateObfuscationState(botId, {
+  await storage.updateObfuscationState(cardId, {
     phase: "active",
     lastOrganicAt: new Date(),
     organicCount: state.organicCount + 1,
@@ -33,8 +33,8 @@ export async function recordOrganicEvent(botId: string): Promise<void> {
   });
 }
 
-export async function shouldRunObfuscation(botId: string): Promise<number> {
-  const state = await storage.getObfuscationState(botId);
+export async function shouldRunObfuscation(cardId: string): Promise<number> {
+  const state = await storage.getObfuscationState(cardId);
   if (!state || !state.active) return 0;
 
   const now = Date.now();
@@ -42,7 +42,7 @@ export async function shouldRunObfuscation(botId: string): Promise<number> {
   if (state.phase === "warmup") {
     const elapsed = now - state.activatedAt.getTime();
     if (elapsed > WARMUP_DURATION_MS) {
-      await storage.updateObfuscationState(botId, {
+      await storage.updateObfuscationState(cardId, {
         phase: "idle",
         updatedAt: new Date(),
       });
@@ -59,7 +59,7 @@ export async function shouldRunObfuscation(botId: string): Promise<number> {
     if (state.lastOrganicAt) {
       const sinceLastOrganic = now - state.lastOrganicAt.getTime();
       if (sinceLastOrganic > IDLE_THRESHOLD_MS) {
-        await storage.updateObfuscationState(botId, {
+        await storage.updateObfuscationState(cardId, {
           phase: "idle",
           updatedAt: new Date(),
         });
@@ -75,11 +75,11 @@ export async function shouldRunObfuscation(botId: string): Promise<number> {
   return 0;
 }
 
-export async function incrementObfuscationCount(botId: string): Promise<void> {
-  const state = await storage.getObfuscationState(botId);
+export async function incrementObfuscationCount(cardId: string): Promise<void> {
+  const state = await storage.getObfuscationState(cardId);
   if (!state) return;
 
-  await storage.updateObfuscationState(botId, {
+  await storage.updateObfuscationState(cardId, {
     obfuscationCount: state.obfuscationCount + 1,
     lastObfuscationAt: new Date(),
     updatedAt: new Date(),

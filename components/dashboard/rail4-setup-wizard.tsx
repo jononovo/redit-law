@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 
 interface SetupWizardProps {
-  botId?: string;
+  cardId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: () => void;
 }
 
 interface InitData {
+  card_id: string;
   decoy_filename: string;
   real_profile_index: number;
   missing_digit_positions: number[];
@@ -38,7 +39,7 @@ const USE_CASE_OPTIONS = [
   { value: "other", label: "Other", icon: "✏️" },
 ];
 
-const SAMPLE_CARD_NUMBER = "4532 8219 0647 3851";
+const SAMPLE_CARD_NUMBER = "0000 0000 0000 0000";
 const SAMPLE_CARD_DIGITS = SAMPLE_CARD_NUMBER.replace(/\s/g, "").split("");
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -292,15 +293,13 @@ function InteractiveCard({
   );
 }
 
-export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onComplete }: SetupWizardProps) {
+export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, onComplete }: SetupWizardProps) {
   const { toast } = useToast();
-  const isNewMode = !initialBotId;
+  const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
-  const totalSteps = isNewMode ? 7 : 5;
+  const totalSteps = isNewMode ? 9 : 7;
 
   const [step, setStep] = useState(0);
-  const [createdBotId, setCreatedBotId] = useState<string | null>(null);
-  const activeBotId = initialBotId || createdBotId;
 
   const [cardName, setCardName] = useState("");
   const [useCase, setUseCase] = useState("");
@@ -316,12 +315,15 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   const [submitLoading, setSubmitLoading] = useState(false);
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
   const [downloaded, setDownloaded] = useState(false);
+  const [showCompleteExample, setShowCompleteExample] = useState(false);
   const zipRef = useRef<HTMLInputElement>(null);
 
   const [permAllowanceDuration, setPermAllowanceDuration] = useState("week");
   const [permAllowanceValue, setPermAllowanceValue] = useState("50");
   const [permExemptLimit, setPermExemptLimit] = useState("10");
   const [permHumanPermission, setPermHumanPermission] = useState("all");
+
+  const activeCardId = existingCardId || initData?.card_id;
 
   const digitsArr = missingDigits.split("");
   while (digitsArr.length < 3) digitsArr.push("");
@@ -338,7 +340,6 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   useEffect(() => {
     if (!open) {
       setStep(0);
-      setCreatedBotId(null);
       setCardName("");
       setUseCase("");
       setOtherUseCase("");
@@ -349,6 +350,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
       setOwnerZip("");
       setActivationResult(null);
       setDownloaded(false);
+      setShowCompleteExample(false);
       setPermAllowanceDuration("week");
       setPermAllowanceValue("50");
       setPermExemptLimit("10");
@@ -356,26 +358,17 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
     }
   }, [open]);
 
-  async function handleCreateAndInitialize() {
+  async function handleInitializeNewCard() {
     setCreateLoading(true);
     try {
-      const createRes = await authFetch("/api/v1/rail4/create-bot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_name: cardName.trim() }),
-      });
-      if (!createRes.ok) {
-        const err = await createRes.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to create card agent");
-      }
-      const createData = await createRes.json();
-      const newBotId = createData.bot_id;
-      setCreatedBotId(newBotId);
-
+      const finalUseCase = useCase === "other" ? otherUseCase.trim() : useCase;
       const initRes = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: newBotId }),
+        body: JSON.stringify({
+          card_name: cardName.trim(),
+          use_case: finalUseCase,
+        }),
       });
       if (!initRes.ok) {
         const err = await initRes.json().catch(() => ({}));
@@ -383,6 +376,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
       }
       const data = await initRes.json();
       setInitData({
+        card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
         missing_digit_positions: data.missing_digit_positions,
@@ -395,14 +389,14 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
     }
   }
 
-  async function handleInitialize() {
-    if (!activeBotId) return;
+  async function handleInitializeExistingCard() {
+    if (!existingCardId) return;
     setInitLoading(true);
     try {
       const res = await authFetch("/api/v1/rail4/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: activeBotId }),
+        body: JSON.stringify({ card_id: existingCardId }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -410,6 +404,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
       }
       const data = await res.json();
       setInitData({
+        card_id: data.card_id,
         decoy_filename: data.decoy_filename,
         real_profile_index: data.real_profile_index,
         missing_digit_positions: data.missing_digit_positions,
@@ -425,7 +420,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
   const cardDetailsComplete = missingDigits.length >= 3 && !!expiryMonth && !!expiryYear;
 
   async function handleActivate() {
-    if (!activeBotId) return;
+    if (!activeCardId) return;
     if (missingDigits.length !== 3) {
       toast({ title: "Missing digits", description: "Enter all 3 missing card digits.", variant: "destructive" });
       return;
@@ -440,7 +435,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bot_id: activeBotId,
+          card_id: activeCardId,
           missing_digits: missingDigits,
           expiry_month: parseInt(expiryMonth),
           expiry_year: parseInt(expiryYear),
@@ -580,7 +575,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
             Back
           </Button>
           <Button
-            onClick={handleCreateAndInitialize}
+            onClick={handleInitializeNewCard}
             disabled={!useCase || (useCase === "other" && !otherUseCase.trim()) || createLoading}
             className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
             data-testid="button-wizard-usecase-continue"
@@ -634,7 +629,7 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         </Button>
       ) : (
         <Button
-          onClick={handleInitialize}
+          onClick={handleInitializeExistingCard}
           disabled={initLoading}
           className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
           data-testid="button-wizard-start"
@@ -857,6 +852,191 @@ export function Rail4SetupWizard({ botId: initialBotId, open, onOpenChange, onCo
         disabled={!downloaded}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
         data-testid="button-wizard-continue-to-success"
+      >
+        Continue
+        <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>
+  );
+
+  const instructionsStepIndex = stepOffset + 4;
+  const editingGuideStepIndex = stepOffset + 5;
+  const fileEditingGuideActive = step === editingGuideStepIndex;
+
+  const buildMaskedCardDisplay = useCallback((positions: number[], complete: boolean) => {
+    const sampleComplete = ["4", "5", "6", "7", "3", "2", "9", "8", "6", "3", "8", "8", "7", "6", "5", "2"];
+    const result = Array.from({ length: 16 }, (_, idx) => {
+      if (positions.includes(idx)) return "X";
+      return complete ? sampleComplete[idx] : "0";
+    });
+    const groups = [0, 1, 2, 3].map(g => result.slice(g * 4, g * 4 + 4));
+    return groups;
+  }, []);
+
+  useEffect(() => {
+    if (!fileEditingGuideActive) return;
+    const interval = setInterval(() => {
+      setShowCompleteExample(prev => !prev);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fileEditingGuideActive]);
+
+  const realProfileIndex = initData?.real_profile_index ?? 4;
+  const missingPositions = initData?.missing_digit_positions ?? [];
+  const displayFilename = activationResult?.payment_profiles_filename ?? "payment_profiles.md";
+
+  allSteps.push(
+    <div key="instructions-overview" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-instructions-overview">
+      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-6">
+        <FileText className="w-10 h-10 text-indigo-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-neutral-900 mb-2">&ldquo;Split-Knowledge&rdquo; Step 2:</h2>
+      <p className="text-lg font-semibold text-neutral-700 mb-6">You give the other card digits to your Bot.</p>
+
+      <div className="grid gap-4 w-full max-w-md text-left mb-6">
+        <div className="flex items-start gap-3 bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-sm font-bold text-indigo-600">1</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-neutral-800">Update the file you downloaded</p>
+            <p className="text-xs text-neutral-500 mt-1">Don&apos;t worry, we&apos;ll guide you through it.</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-3 bg-neutral-50 rounded-xl p-4 border border-neutral-100">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-sm font-bold text-indigo-600">2</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-neutral-800">Give it to your bot</p>
+            <p className="text-xs text-neutral-500 mt-1">Save it in your Bot&apos;s OpenClaw dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-sm text-neutral-500 max-w-md leading-relaxed mb-2">Every card setup is slightly different.</p>
+      <p className="text-sm font-semibold text-neutral-700 mb-8">These next steps are customized to you.</p>
+
+      <Button
+        onClick={() => setStep(editingGuideStepIndex)}
+        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+        data-testid="button-wizard-instructions-continue"
+      >
+        Continue
+        <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>
+  );
+
+  allSteps.push(
+    <div key="editing-guide" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-editing-guide">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mb-5">
+        <Edit3 className="w-8 h-8 text-amber-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Update the file you downloaded:</h2>
+
+      <div className="w-full max-w-md text-left space-y-3 mb-5">
+        <div className="flex items-start gap-2">
+          <span className="text-neutral-400 font-medium text-sm mt-0.5">•</span>
+          <p className="text-sm text-neutral-600">
+            Open the <span className="font-semibold text-neutral-800">&ldquo;{displayFilename}&rdquo;</span> file you downloaded.
+          </p>
+        </div>
+        <div className="flex items-start gap-2">
+          <span className="text-neutral-400 font-medium text-sm mt-0.5">•</span>
+          <p className="text-sm text-neutral-600">
+            You will see 6 profiles, <span className="font-semibold text-neutral-800">Profile {realProfileIndex} is yours.</span>
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-neutral-500 mb-3">It should look something like this:</p>
+
+      <div className="w-full max-w-md mb-4">
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <button
+            onClick={() => setShowCompleteExample(false)}
+            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
+              !showCompleteExample ? "bg-neutral-800 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
+            }`}
+            data-testid="button-toggle-incomplete"
+          >
+            Incomplete
+          </button>
+          <button
+            onClick={() => setShowCompleteExample(true)}
+            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
+              showCompleteExample ? "bg-green-600 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
+            }`}
+            data-testid="button-toggle-complete"
+          >
+            Complete Example
+          </button>
+        </div>
+
+        <div className={`rounded-xl border p-5 text-left font-mono text-sm transition-all duration-500 ${
+          showCompleteExample ? "bg-green-50 border-green-200" : "bg-neutral-50 border-neutral-200"
+        }`} data-testid="profile-example-block">
+          <div className="mb-3">
+            <span className="text-neutral-800 font-semibold">profile: {realProfileIndex}</span>
+          </div>
+          <div className="border-t border-dashed border-neutral-300 my-2" />
+
+          <div className="space-y-2">
+            <div>
+              <span className="text-neutral-400 text-xs">name_on_card: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400 italic"}`}>
+                {showCompleteExample ? "Jane D. Fonda" : "Add name on card"}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-neutral-400 text-xs">card number: </span>
+              <span className="tracking-wider">
+                {buildMaskedCardDisplay(missingPositions, showCompleteExample).map((group, gi) => (
+                  <span key={gi}>
+                    {gi > 0 && " "}
+                    {group.map((d, di) => (
+                      <span
+                        key={di}
+                        className={
+                          d === "X"
+                            ? "text-amber-600 font-bold text-base"
+                            : showCompleteExample
+                              ? "text-neutral-800 font-medium"
+                              : "text-neutral-400"
+                        }
+                      >
+                        {d}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-neutral-400 text-xs">cvv: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "134" : "000"}
+              </span>
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-neutral-300 my-2" />
+        </div>
+      </div>
+
+      <div className="bg-amber-50 rounded-xl border border-amber-100 p-3 w-full max-w-md mb-5 text-left">
+        <p className="text-xs text-amber-700 leading-relaxed">
+          Only add the digits requested, not the full card number.
+        </p>
+      </div>
+
+      <Button
+        onClick={() => setStep(stepOffset + 6)}
+        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+        data-testid="button-wizard-editing-guide-continue"
       >
         Continue
         <ArrowRight className="w-5 h-5" />

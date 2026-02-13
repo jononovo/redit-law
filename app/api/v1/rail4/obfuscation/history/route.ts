@@ -8,20 +8,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const botId = request.nextUrl.searchParams.get("bot_id");
-  if (!botId) {
-    return NextResponse.json({ error: "missing_bot_id" }, { status: 400 });
+  const cardId = request.nextUrl.searchParams.get("card_id");
+  if (!cardId) {
+    return NextResponse.json({ error: "missing_card_id" }, { status: 400 });
   }
 
   const limitParam = request.nextUrl.searchParams.get("limit");
   const limit = Math.min(Math.max(parseInt(limitParam || "50", 10) || 50, 1), 100);
 
-  const bot = await storage.getBotByBotId(botId);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
+  const card = await storage.getRail4CardByCardId(cardId);
+  if (!card || card.ownerUid !== user.uid) {
+    return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
-  const events = await storage.getObfuscationEventsByBotId(botId, limit);
+  const events = await storage.getObfuscationEventsByCardId(cardId, limit);
 
   return NextResponse.json({
     events: events.map(e => ({

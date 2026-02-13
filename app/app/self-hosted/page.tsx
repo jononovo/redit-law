@@ -2,31 +2,53 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Shield, Plus, CreditCard, ChevronRight } from "lucide-react";
-import { Rail4CardManager } from "@/components/dashboard/rail4-card-manager";
+import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal, Snowflake, Play } from "lucide-react";
 import { Rail4SetupWizard } from "@/components/dashboard/rail4-setup-wizard";
+import { CardVisual } from "@/components/dashboard/card-visual";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
+import { useToast } from "@/hooks/use-toast";
 
-interface BotInfo {
-  bot_id: string;
-  bot_name: string;
+interface AllowanceInfo {
+  value: number;
+  currency: string;
+  duration: string;
+  spent_cents: number;
+  remaining_cents: number;
+  resets_at: string;
 }
+
+interface CardInfo {
+  card_id: string;
+  card_name: string;
+  use_case: string | null;
+  status: string;
+  bot_id: string | null;
+  created_at: string;
+  allowance: AllowanceInfo | null;
+}
+
+const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["purple", "dark", "blue", "primary"];
 
 export default function SelfHostedPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [bots, setBots] = useState<BotInfo[]>([]);
+  const { toast } = useToast();
+  const [cards, setCards] = useState<CardInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [freezeTarget, setFreezeTarget] = useState<CardInfo | null>(null);
+  const [freezeLoading, setFreezeLoading] = useState(false);
 
-  const fetchBots = useCallback(async () => {
+  const fetchCards = useCallback(async () => {
     try {
-      const res = await authFetch("/api/v1/bots/mine");
+      const res = await authFetch("/api/v1/rail4/cards");
       if (res.ok) {
         const data = await res.json();
-        setBots(data.bots || []);
+        setCards(data.cards || []);
       }
     } catch {
     } finally {
@@ -36,11 +58,68 @@ export default function SelfHostedPage() {
 
   useEffect(() => {
     if (user) {
-      fetchBots();
+      fetchCards();
     } else {
       setLoading(false);
     }
-  }, [user, fetchBots]);
+  }, [user, fetchCards]);
+
+  function handleCopyCardId(cardId: string) {
+    navigator.clipboard.writeText(cardId);
+    toast({ title: "Copied", description: "Card ID copied to clipboard." });
+  }
+
+  async function handleFreezeConfirm() {
+    if (!freezeTarget) return;
+    const isFrozen = freezeTarget.status === "frozen";
+    const newFrozen = !isFrozen;
+
+    setFreezeLoading(true);
+    setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: newFrozen ? "frozen" : "active" } : c));
+
+    try {
+      const res = await authFetch("/api/v1/rail4/freeze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: freezeTarget.card_id, frozen: newFrozen }),
+      });
+      if (!res.ok) {
+        setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: isFrozen ? "frozen" : "active" } : c));
+        toast({ title: "Error", description: "Failed to update card status.", variant: "destructive" });
+      } else {
+        toast({
+          title: newFrozen ? "Card frozen" : "Card unfrozen",
+          description: newFrozen ? "All transactions on this card are paused." : "Transactions on this card are resumed.",
+        });
+      }
+    } catch {
+      setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: isFrozen ? "frozen" : "active" } : c));
+      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+    } finally {
+      setFreezeLoading(false);
+      setFreezeTarget(null);
+    }
+  }
+
+  function formatBalance(card: CardInfo) {
+    if (!card.allowance) {
+      return "$0.00";
+    }
+    const remaining = card.allowance.remaining_cents / 100;
+    const sign = remaining < 0 ? "-" : "";
+    return `${sign}$${Math.abs(remaining).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function formatAllowanceLabel(a: AllowanceInfo) {
+    const durationMap: Record<string, string> = { day: "Daily", week: "Weekly", month: "Monthly" };
+    const durLabel = durationMap[a.duration] || a.duration;
+    return `Allowance: $${a.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${a.currency} | ${durLabel}`;
+  }
+
+  function formatResetsLabel(a: AllowanceInfo) {
+    const d = new Date(a.resets_at);
+    return `Resets: ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+  }
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -64,8 +143,40 @@ export default function SelfHostedPage() {
       <Rail4SetupWizard
         open={wizardOpen}
         onOpenChange={setWizardOpen}
-        onComplete={fetchBots}
+        onComplete={fetchCards}
       />
+
+      <Dialog open={!!freezeTarget} onOpenChange={(open) => !open && setFreezeTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            {freezeTarget?.status === "frozen" ? (
+              <><Play className="w-5 h-5 text-emerald-600" /> Unfreeze Card</>
+            ) : (
+              <><Snowflake className="w-5 h-5 text-blue-500" /> Freeze Card</>
+            )}
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            {freezeTarget?.status === "frozen"
+              ? `Are you sure you want to unfreeze "${freezeTarget?.card_name}"? Transactions will be allowed again.`
+              : `Are you sure you want to freeze "${freezeTarget?.card_name}"? All transactions will be blocked until you unfreeze it.`
+            }
+          </DialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setFreezeTarget(null)} disabled={freezeLoading} data-testid="button-freeze-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFreezeConfirm}
+              disabled={freezeLoading}
+              className={freezeTarget?.status === "frozen" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"}
+              data-testid="button-freeze-confirm"
+            >
+              {freezeLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {freezeTarget?.status === "frozen" ? "Unfreeze" : "Freeze"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="bg-gradient-to-r from-primary/5 to-purple-50 rounded-2xl border border-primary/10 p-6" data-testid="card-rail4-explainer">
         <div className="flex items-start gap-4">
@@ -87,27 +198,81 @@ export default function SelfHostedPage() {
         <div className="flex items-center justify-center py-24" data-testid="loading-self-hosted">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
-      ) : bots.length === 0 ? (
+      ) : cards.length === 0 ? (
         <div className="text-center py-24" data-testid="text-no-cards">
           <CreditCard className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
           <p className="text-lg text-neutral-400 font-medium">No self-hosted cards yet.</p>
           <p className="text-sm text-neutral-400 mt-2">Click "Add New Card" above to get started.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8">
-          {bots.map((bot) => (
-            <div key={bot.bot_id} data-testid={`section-bot-${bot.bot_id}`}>
-              <div
-                className="flex items-center gap-2 mb-3 cursor-pointer hover:opacity-80 transition-opacity group"
-                onClick={() => router.push(`/app/self-hosted/${bot.bot_id}`)}
-                data-testid={`link-card-detail-${bot.bot_id}`}
-              >
-                <div className="w-2 h-2 rounded-full bg-primary" />
-                <h2 className="text-base font-bold text-neutral-900">{bot.bot_name}</h2>
-                <span className="text-xs text-neutral-400 font-mono">{bot.bot_id.slice(0, 8)}...</span>
-                <ChevronRight className="w-4 h-4 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {cards.map((card, index) => (
+            <div className="flex flex-col gap-4 min-w-[320px]" key={card.card_id} data-testid={`card-self-hosted-${card.card_id}`}>
+              <CardVisual
+                color={CARD_COLORS[index % CARD_COLORS.length]}
+                balance={formatBalance(card)}
+                last4={card.card_id.slice(-4)}
+                holder={card.card_name.toUpperCase()}
+                frozen={card.status === "frozen"}
+                expiry="••/••"
+                allowanceLabel={card.allowance ? formatAllowanceLabel(card.allowance) : undefined}
+                resetsLabel={card.allowance ? formatResetsLabel(card.allowance) : undefined}
+                status={card.status}
+              />
+              <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
+                <Button
+                  variant="ghost"
+                  className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
+                  onClick={() => router.push(`/app/self-hosted/${card.card_id}`)}
+                  data-testid={`button-manage-${card.card_id}`}
+                >
+                  <Eye className="w-4 h-4" /> Manage
+                </Button>
+                <div className="w-px bg-neutral-100 my-1" />
+                {card.status !== "pending_setup" && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className={`flex-1 text-xs gap-2 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors ${card.status === "frozen" ? "text-blue-600" : "text-neutral-600"}`}
+                      onClick={() => setFreezeTarget(card)}
+                      data-testid={`button-freeze-${card.card_id}`}
+                    >
+                      {card.status === "frozen" ? (
+                        <><Play className="w-4 h-4" /> Unfreeze</>
+                      ) : (
+                        <><Snowflake className="w-4 h-4" /> Freeze</>
+                      )}
+                    </Button>
+                    <div className="w-px bg-neutral-100 my-1" />
+                  </>
+                )}
+                {card.bot_id && (
+                  <>
+                    <div
+                      className="flex-1 flex items-center justify-center gap-2 text-xs text-blue-600 font-medium"
+                      data-testid={`badge-bot-link-${card.card_id}`}
+                    >
+                      <Bot className="w-4 h-4" /> Linked
+                    </div>
+                    <div className="w-px bg-neutral-100 my-1" />
+                  </>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors" data-testid={`button-more-${card.card_id}`}>
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleCopyCardId(card.card_id)} data-testid={`menu-copy-cardid-${card.card_id}`}>
+                      <Copy className="w-4 h-4 mr-2" /> Copy Card ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push(`/app/self-hosted/${card.card_id}`)} data-testid={`menu-view-details-${card.card_id}`}>
+                      <Eye className="w-4 h-4 mr-2" /> View Details
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <Rail4CardManager botId={bot.bot_id} />
             </div>
           ))}
         </div>

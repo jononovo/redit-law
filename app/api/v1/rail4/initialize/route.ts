@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { rail4InitializeSchema } from "@/shared/schema";
 import { generateRail4Setup } from "@/lib/rail4";
+import { generateCardId } from "@/lib/crypto";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -17,31 +17,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const parsed = rail4InitializeSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "validation_error", details: parsed.error.flatten().fieldErrors }, { status: 400 });
-  }
+  const cardName = typeof body.card_name === "string" ? body.card_name.slice(0, 200) : "Untitled Card";
+  const useCase = typeof body.use_case === "string" ? body.use_case.slice(0, 500) : undefined;
 
-  const { bot_id } = parsed.data;
-
-  const bot = await storage.getBotByBotId(bot_id);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
-  }
-
-  const existing = await storage.getRail4CardByBotId(bot_id);
-  if (existing?.status === "active") {
-    return NextResponse.json({ error: "already_active", message: "Rail 4 is already active for this bot. Delete it first to reconfigure." }, { status: 409 });
-  }
-
-  if (existing?.status === "pending_setup") {
-    await storage.deleteRail4Card(bot_id);
-  }
-
+  const generatedCardId = generateCardId();
   const setup = generateRail4Setup();
 
   const card = await storage.createRail4Card({
-    botId: bot_id,
+    cardId: generatedCardId,
+    ownerUid: user.uid,
+    cardName,
+    useCase: useCase || null,
     decoyFilename: setup.decoyFilename,
     realProfileIndex: setup.realProfileIndex,
     missingDigitPositions: setup.missingDigitPositions,
@@ -52,7 +38,8 @@ export async function POST(request: NextRequest) {
   });
 
   return NextResponse.json({
-    bot_id,
+    card_id: generatedCardId,
+    card_name: cardName,
     decoy_filename: setup.decoyFilename,
     real_profile_index: setup.realProfileIndex,
     missing_digit_positions: setup.missingDigitPositions,

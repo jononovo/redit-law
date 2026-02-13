@@ -8,18 +8,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const botId = request.nextUrl.searchParams.get("bot_id");
-  if (!botId) {
-    return NextResponse.json({ error: "missing_bot_id" }, { status: 400 });
+  const cardId = request.nextUrl.searchParams.get("card_id");
+  if (!cardId) {
+    return NextResponse.json({ error: "missing_card_id" }, { status: 400 });
   }
 
-  const bot = await storage.getBotByBotId(botId);
-  if (!bot || bot.ownerUid !== user.uid) {
-    return NextResponse.json({ error: "bot_not_found" }, { status: 404 });
-  }
-
-  const card = await storage.getRail4CardByBotId(botId);
-  if (!card) {
+  const card = await storage.getRail4CardByCardId(cardId);
+  if (!card || card.ownerUid !== user.uid) {
     return NextResponse.json({
       configured: false,
       status: null,
@@ -28,7 +23,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     configured: true,
+    card_id: card.cardId,
     status: card.status,
+    card_name: card.cardName,
     decoy_filename: card.decoyFilename,
     real_profile_index: card.realProfileIndex,
     missing_digit_positions: card.missingDigitPositions,

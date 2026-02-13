@@ -23,11 +23,12 @@ import { Rail4SetupWizard } from "./rail4-setup-wizard";
 interface Rail4Status {
   configured: boolean;
   status: string | null;
+  card_id?: string;
+  card_name?: string;
   decoy_filename?: string;
   real_profile_index?: number;
   missing_digit_positions?: number[];
   created_at?: string;
-  card_status?: string;
 }
 
 interface ObfuscationStatus {
@@ -66,10 +67,10 @@ interface Permissions {
 }
 
 interface Rail4CardManagerProps {
-  botId: string;
+  cardId: string;
 }
 
-export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
+export function Rail4CardManager({ cardId }: Rail4CardManagerProps) {
   const { toast } = useToast();
   const [rail4Status, setRail4Status] = useState<Rail4Status | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,7 +98,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await authFetch(`/api/v1/rail4/status?bot_id=${botId}`);
+      const res = await authFetch(`/api/v1/rail4/status?card_id=${cardId}`);
       if (res.ok) {
         const data = await res.json();
         setRail4Status(data);
@@ -109,21 +110,21 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     } finally {
       setLoading(false);
     }
-  }, [botId]);
+  }, [cardId]);
 
   const fetchObfuscation = useCallback(async () => {
     try {
       const [statusRes, historyRes] = await Promise.all([
-        authFetch(`/api/v1/rail4/obfuscation/status?bot_id=${botId}`),
-        authFetch(`/api/v1/rail4/obfuscation/history?bot_id=${botId}`),
+        authFetch(`/api/v1/rail4/obfuscation/status?card_id=${cardId}`),
+        authFetch(`/api/v1/rail4/obfuscation/history?card_id=${cardId}`),
       ]);
       if (statusRes.ok) setObfStatus(await statusRes.json());
       if (historyRes.ok) {
         const data = await historyRes.json();
-        setObfHistory((data.history || data.entries || []).slice(0, 20));
+        setObfHistory((data.history || data.entries || data.events || []).slice(0, 20));
       }
     } catch {}
-  }, [botId]);
+  }, [cardId]);
 
   const fetchConfirmations = useCallback(async () => {
     try {
@@ -141,7 +142,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
 
   const fetchPermissions = useCallback(async () => {
     try {
-      const res = await authFetch(`/api/v1/rail4/permissions?bot_id=${botId}`);
+      const res = await authFetch(`/api/v1/rail4/permissions?card_id=${cardId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.permissions) {
@@ -149,7 +150,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
         }
       }
     } catch {}
-  }, [botId]);
+  }, [cardId]);
 
   useEffect(() => {
     if (isActive) {
@@ -162,7 +163,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await authFetch(`/api/v1/rail4?bot_id=${botId}`, { method: "DELETE" });
+      const res = await authFetch(`/api/v1/rail4?card_id=${cardId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       toast({ title: "Card Deleted", description: "Self-hosted card has been removed." });
       setDeleteOpen(false);
@@ -180,7 +181,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
       const res = await authFetch("/api/v1/rail4/permissions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: botId, permissions }),
+        body: JSON.stringify({ card_id: cardId, permissions }),
       });
       if (!res.ok) throw new Error("Failed to save");
       toast({ title: "Permissions Saved", description: "Card permissions updated. Remember to also update your local payment profiles file." });
@@ -192,15 +193,16 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     }
   }
 
-  function phaseBadge(phase: string) {
+  function phaseBadge(phase: string | null | undefined) {
+    const p = phase || "idle";
     const colors: Record<string, string> = {
       warmup: "bg-amber-100 text-amber-700",
       active: "bg-green-100 text-green-700",
       idle: "bg-neutral-100 text-neutral-500",
     };
     return (
-      <Badge className={`${colors[phase] || colors.idle} border-0`} data-testid="badge-obfuscation-phase">
-        {phase.charAt(0).toUpperCase() + phase.slice(1)}
+      <Badge className={`${colors[p] || colors.idle} border-0`} data-testid="badge-obfuscation-phase">
+        {p.charAt(0).toUpperCase() + p.slice(1)}
       </Badge>
     );
   }
@@ -217,7 +219,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
     return (
       <>
         <Rail4SetupWizard
-          botId={botId}
+          cardId={cardId}
           open={wizardOpen}
           onOpenChange={setWizardOpen}
           onComplete={fetchStatus}
@@ -270,7 +272,7 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
               <Shield className="w-4 h-4" />
-              Self-Hosted Card
+              Card Controls
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge
@@ -502,60 +504,6 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
         </Card>
       )}
 
-      {isActive && obfHistory.length > 0 && (
-        <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-obfuscation-history">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base font-bold text-neutral-900">
-              <Clock className="w-4 h-4" />
-              Obfuscation History
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Merchant</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Profile #</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {obfHistory.map((entry) => (
-                    <TableRow key={entry.id} data-testid={`row-obfuscation-${entry.id}`}>
-                      <TableCell className="text-sm font-medium">{entry.merchant}</TableCell>
-                      <TableCell className="text-sm text-neutral-600">{entry.item}</TableCell>
-                      <TableCell className="text-sm font-medium">${entry.amount.toFixed(2)}</TableCell>
-                      <TableCell className="text-sm text-neutral-600">#{entry.profile_index}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`border-0 text-xs ${
-                            entry.status === "completed"
-                              ? "bg-green-100 text-green-700"
-                              : entry.status === "failed"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-amber-100 text-amber-700"
-                          }`}
-                          data-testid={`badge-obf-status-${entry.id}`}
-                        >
-                          {entry.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-neutral-500">
-                        {new Date(entry.created_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <Card className="rounded-2xl border-neutral-100 shadow-sm" data-testid="card-pending-approvals">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -586,22 +534,23 @@ export function Rail4CardManager({ botId }: Rail4CardManagerProps) {
                 <div
                   key={c.id}
                   className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-100"
-                  data-testid={`confirmation-${c.id}`}
+                  data-testid={`row-confirmation-${c.id}`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-neutral-900">{c.merchant}</span>
-                      <span className="text-sm font-medium text-neutral-700">${c.amount.toFixed(2)}</span>
-                    </div>
-                    <p className="text-xs text-neutral-500 truncate">{c.item}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{c.bot_name}</p>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-800">{c.merchant}</p>
+                    <p className="text-xs text-neutral-500">{c.item} — ${c.amount.toFixed(2)}</p>
                   </div>
-                  <div className="flex items-center gap-2 ml-3">
-                    <span className="text-xs text-neutral-400 italic flex items-center gap-1" data-testid={`text-check-email-${c.id}`}>
-                      <Clock className="w-3 h-3" />
-                      Check Email
-                    </span>
-                  </div>
+                  {c.hmac_token && (
+                    <a
+                      href={`/api/v1/rail4/confirm/${c.id}?token=${c.hmac_token}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline font-medium"
+                      data-testid={`link-approve-${c.id}`}
+                    >
+                      Review
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

@@ -55,7 +55,7 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
   }
 
   const windowStart = getWindowStart(profilePerm.allowance_duration);
-  const usage = await storage.getProfileAllowanceUsage(bot.botId, profile_index, windowStart);
+  const usage = await storage.getProfileAllowanceUsage(card.cardId, profile_index, windowStart);
   const currentSpent = usage?.spentCents || 0;
   const allowanceCents = Math.round(profilePerm.allowance_value * 100);
 
@@ -104,6 +104,7 @@ async function handleFakeCheckout(
       const completed = await completeObfuscationEvent(eventId);
       if (!completed) {
         await storage.createObfuscationEvent({
+          cardId: card.cardId,
           botId: bot.botId,
           profileIndex: data.profile_index,
           merchantName: data.merchant_name,
@@ -114,11 +115,12 @@ async function handleFakeCheckout(
           confirmationId,
           occurredAt: new Date(),
         });
-        await incrementObfuscationCount(bot.botId);
+        await incrementObfuscationCount(card.cardId);
       }
     }
   } else {
     await storage.createObfuscationEvent({
+      cardId: card.cardId,
       botId: bot.botId,
       profileIndex: data.profile_index,
       merchantName: data.merchant_name,
@@ -129,11 +131,11 @@ async function handleFakeCheckout(
       confirmationId,
       occurredAt: new Date(),
     });
-    await incrementObfuscationCount(bot.botId);
+    await incrementObfuscationCount(card.cardId);
   }
 
   await storage.upsertProfileAllowanceUsage(
-    bot.botId,
+    card.cardId,
     data.profile_index,
     windowStart,
     data.amount_cents,
@@ -233,6 +235,7 @@ async function handleRealCheckout(
 
     await storage.createCheckoutConfirmation({
       confirmationId,
+      cardId: card.cardId,
       botId: bot.botId,
       profileIndex: data.profile_index,
       amountCents: data.amount_cents,
@@ -305,7 +308,7 @@ async function handleRealCheckout(
     && !exemptUsed;
 
   await storage.upsertProfileAllowanceUsage(
-    bot.botId,
+    card.cardId,
     data.profile_index,
     windowStart,
     data.amount_cents,
@@ -335,7 +338,7 @@ async function handleRealCheckout(
     }
   }
 
-  await recordOrganicEvent(bot.botId);
+  await recordOrganicEvent(card.cardId);
 
   return NextResponse.json({
     approved: true,

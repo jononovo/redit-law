@@ -238,6 +238,7 @@ export function buildDecoyFileContent(
   missingPositions: number[],
   fakeProfiles: FakeProfile[],
   permissions: ProfilePermission[],
+  cardName: string = "Untitled Card",
 ): string {
   const lines: string[] = [];
 
@@ -245,16 +246,23 @@ export function buildDecoyFileContent(
     const perm = permissions.find(p => p.profile_index === i);
 
     if (i === realProfileIndex) {
-      const posLabel = missingPositions.map(p => p + 1).join("-");
-      lines.push(`// Profile ${i}:`);
+      const maskedDigits = Array.from({ length: 16 }, (_, idx) =>
+        missingPositions.includes(idx) ? "X" : "0"
+      );
+      const maskedPan = `${maskedDigits.slice(0, 4).join("")} ${maskedDigits.slice(4, 8).join("")} ${maskedDigits.slice(8, 12).join("")} ${maskedDigits.slice(12, 16).join("")}`;
+
       lines.push(`profile: ${i}`);
-      lines.push(`fullname: [Enter your full name]`);
-      lines.push(`address_line1: [Enter your address]`);
-      lines.push(`address_line2: [Optional]`);
+      lines.push(`---`);
+      lines.push(`name_on_card: [Replace with name on card]`);
+      lines.push(`card number: ${maskedPan}`);
+      lines.push(`cvv: 000`);
+      lines.push(`---`);
+      lines.push(`address_line1: [Enter address]`);
       lines.push(`city: [Enter city]`);
       lines.push(`state: [Enter state]`);
       lines.push(`zip: [Enter zip]`);
       lines.push(`country: [Enter country]`);
+      lines.push(`---`);
       if (perm) {
         lines.push(`allowance-duration: ${perm.allowance_duration}`);
         lines.push(`allowance-currency: ${perm.allowance_currency}`);
@@ -263,10 +271,7 @@ export function buildDecoyFileContent(
         lines.push(`human_permission_required: ${perm.human_permission_required}`);
         lines.push(`creditclaw_permission_required: ${perm.creditclaw_permission_required}`);
       }
-      lines.push(`card-name: [Enter name on card]`);
-      lines.push(`pan: [Enter card number, leave digits ${posLabel} as xxx]`);
-      lines.push(`cvv: [Enter CVV]`);
-      lines.push(`expiry: xx/xx`);
+      lines.push(`card-name: ${cardName}`);
       lines.push(``);
     } else {
       const fake = fakeProfiles.find(f => f.profileIndex === i)!;
@@ -321,5 +326,27 @@ export function getWindowStart(duration: string): Date {
     }
     default:
       return new Date(now.setHours(0, 0, 0, 0));
+  }
+}
+
+export function getNextWindowStart(duration: string): Date {
+  const start = getWindowStart(duration);
+  switch (duration) {
+    case "day": {
+      start.setDate(start.getDate() + 1);
+      return start;
+    }
+    case "week": {
+      start.setDate(start.getDate() + 7);
+      return start;
+    }
+    case "month": {
+      start.setMonth(start.getMonth() + 1);
+      return start;
+    }
+    default: {
+      start.setDate(start.getDate() + 1);
+      return start;
+    }
   }
 }

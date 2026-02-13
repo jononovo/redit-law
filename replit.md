@@ -26,7 +26,7 @@ Advanced features include:
 - **Payment Links:** Bots can generate Stripe Checkout Sessions for receiving payments, crediting their wallets automatically upon completion.
 - **Wallet Freeze:** Owners can freeze bot wallets, preventing transactions and triggering notifications.
 - **Onboarding Wizard:** A guided 12-screen wizard facilitates new bot owner setup, supporting both "bot-first" (claim token) and "owner-first" (pairing code) flows.
-- **Split-Knowledge Card Model (Rail 4):** This advanced privacy feature uses payment profiles files (formerly "decoy files"), real profile indexes, and obfuscation events to manage bot card configurations and transactions. Setup wizard: Welcome → Card Details → Permissions → Download payment profiles → Success. Permissions editable post-setup via three-dot menu on each card. Per-card detail page shows filtered transaction ledger. Includes human approval workflow via HMAC-signed email links (15-min TTL), bot polling for confirmation results, and per-profile allowance tracking with confirmation-exempt thresholds.
+- **Split-Knowledge Card Model (Rail 4):** This advanced privacy feature uses payment profiles files (formerly "decoy files"), real profile indexes, and obfuscation events to manage bot card configurations and transactions. Setup wizard (9 steps in new-card mode): Card Name → Use Case → Welcome → Card Details → Permissions → Download → Instructions Overview → File Editing Guide → Success. The File Editing Guide shows the user's actual profile number and masked card number with an auto-toggling incomplete/complete example (5-second interval). Permissions editable post-setup via three-dot menu on each card. Per-card detail page shows filtered transaction ledger. Includes human approval workflow via HMAC-signed email links (15-min TTL), bot polling for confirmation results, and per-profile allowance tracking with confirmation-exempt thresholds.
 
 ### Key Routes
 - `/` — Consumer landing page
@@ -34,7 +34,7 @@ Advanced features include:
 - `/app` — Dashboard overview
 - `/app/cards` — Card management
 - `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
-- `/app/self-hosted/[botId]` — Per-card detail page with transaction ledger
+- `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
 - `/app/transactions` — Transaction history
 - `/app/settings` — Account settings
 - `/onboarding` — Guided setup wizard (authenticated)
@@ -47,9 +47,10 @@ Advanced features include:
 - `GET/POST /api/v1/rail4/confirm/[id]` — HMAC-signed approval page (HTML) and processing
 - `GET /api/v1/rail4/confirmations` — Owner lists pending approvals
 - `GET/PATCH /api/v1/rail4/permissions` — Profile permissions editor
+- `GET /api/v1/rail4/cards` — List owner's self-hosted cards
 - `POST /api/v1/rail4/create-bot` — Owner-initiated bot creation for self-hosted cards
-- `POST /api/v1/rail4/initialize` — Initialize card setup (returns missing digit positions, no file content)
-- `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions, activate card, returns payment profiles file
+- `POST /api/v1/rail4/initialize` — Initialize card setup (creates card with cardId, returns missing digit positions)
+- `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions by card_id, activate card, returns payment profiles file
 
 ### Authentication
 - Session cookies (httpOnly) via Firebase Admin SDK

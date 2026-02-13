@@ -74,10 +74,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../../app/app/self-hosted/[botId]/page.tsx
+// Validate ../../../app/app/self-hosted/[cardId]/page.tsx
 {
-  type __IsExpected<Specific extends AppPageConfig<"/app/self-hosted/[botId]">> = Specific
-  const handler = {} as typeof import("../../../app/app/self-hosted/[botId]/page.js")
+  type __IsExpected<Specific extends AppPageConfig<"/app/self-hosted/[cardId]">> = Specific
+  const handler = {} as typeof import("../../../app/app/self-hosted/[cardId]/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -434,6 +434,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/rail4/cards/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/cards">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail4/cards/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/rail4/confirm/[confirmationId]/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/confirm/[confirmationId]">> = Specific
@@ -456,6 +465,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/create-bot">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/rail4/create-bot/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/rail4/freeze/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/freeze">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail4/freeze/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
