@@ -3515,7 +3515,7 @@ function AnnouncementBar() {
         className: "bg-neutral-800 text-white text-xs font-medium py-2 text-center relative w-full z-[60]",
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                children: "We are in early beta. Launch at 18th of Feb, 2026."
+                children: "We are in early beta  |  Public beta launching on 18th of Feb, 2026"
             }, void 0, false, {
                 fileName: "[project]/components/announcement-bar.tsx",
                 lineNumber: 13,
