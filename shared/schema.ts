@@ -529,3 +529,151 @@ export const privyApprovalDecideSchema = z.object({
   approval_id: z.number().int().positive(),
   decision: z.enum(["approve", "reject"]),
 });
+
+// ─── Rail 2: Card Wallet (CrossMint + Commerce) ─────────────────────────────
+
+export const crossmintWallets = pgTable("crossmint_wallets", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  ownerUid: text("owner_uid").notNull(),
+  crossmintWalletId: text("crossmint_wallet_id").notNull(),
+  address: text("address").notNull(),
+  balanceUsdc: bigint("balance_usdc", { mode: "number" }).notNull().default(0),
+  chain: text("chain").notNull().default("base"),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("crossmint_wallets_bot_id_idx").on(table.botId),
+  index("crossmint_wallets_owner_uid_idx").on(table.ownerUid),
+  index("crossmint_wallets_address_idx").on(table.address),
+]);
+
+export const crossmintGuardrails = pgTable("crossmint_guardrails", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(100),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(500),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(2000),
+  requireApprovalAbove: integer("require_approval_above").notNull().default(0),
+  allowlistedMerchants: jsonb("allowlisted_merchants").$type<string[]>().default([]),
+  blocklistedMerchants: jsonb("blocklisted_merchants").$type<string[]>().default([]),
+  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: text("updated_by"),
+}, (table) => [
+  index("crossmint_guardrails_wallet_id_idx").on(table.walletId),
+]);
+
+export const crossmintTransactions = pgTable("crossmint_transactions", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  type: text("type").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  crossmintOrderId: text("crossmint_order_id"),
+  productLocator: text("product_locator"),
+  productName: text("product_name"),
+  quantity: integer("quantity").notNull().default(1),
+  orderStatus: text("order_status"),
+  shippingAddress: jsonb("shipping_address").$type<{
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  }>(),
+  trackingInfo: jsonb("tracking_info").$type<{
+    carrier?: string;
+    tracking_number?: string;
+    tracking_url?: string;
+    estimated_delivery?: string;
+  }>(),
+  status: text("status").notNull().default("pending"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("crossmint_transactions_wallet_id_idx").on(table.walletId),
+  index("crossmint_transactions_status_idx").on(table.status),
+  index("crossmint_transactions_type_idx").on(table.type),
+  index("crossmint_transactions_order_id_idx").on(table.crossmintOrderId),
+]);
+
+export const crossmintApprovals = pgTable("crossmint_approvals", {
+  id: serial("id").primaryKey(),
+  walletId: integer("wallet_id").notNull(),
+  transactionId: integer("transaction_id").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  productLocator: text("product_locator").notNull(),
+  productName: text("product_name"),
+  shippingAddress: jsonb("shipping_address").$type<{
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  }>(),
+  status: text("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  decidedBy: text("decided_by"),
+  decidedAt: timestamp("decided_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("crossmint_approvals_wallet_id_idx").on(table.walletId),
+  index("crossmint_approvals_status_idx").on(table.status),
+]);
+
+export type CrossmintWallet = typeof crossmintWallets.$inferSelect;
+export type InsertCrossmintWallet = typeof crossmintWallets.$inferInsert;
+export type CrossmintGuardrail = typeof crossmintGuardrails.$inferSelect;
+export type InsertCrossmintGuardrail = typeof crossmintGuardrails.$inferInsert;
+export type CrossmintTransaction = typeof crossmintTransactions.$inferSelect;
+export type InsertCrossmintTransaction = typeof crossmintTransactions.$inferInsert;
+export type CrossmintApproval = typeof crossmintApprovals.$inferSelect;
+export type InsertCrossmintApproval = typeof crossmintApprovals.$inferInsert;
+
+export const createCrossmintWalletSchema = z.object({
+  bot_id: z.string().min(1),
+});
+
+export const setCrossmintGuardrailsSchema = z.object({
+  wallet_id: z.number().int().positive(),
+  max_per_tx_usdc: z.number().int().min(0).optional(),
+  daily_budget_usdc: z.number().int().min(0).optional(),
+  monthly_budget_usdc: z.number().int().min(0).optional(),
+  require_approval_above: z.number().int().min(0).optional(),
+  allowlisted_merchants: z.array(z.string()).optional(),
+  blocklisted_merchants: z.array(z.string()).optional(),
+  auto_pause_on_zero: z.boolean().optional(),
+});
+
+export const crossmintOnrampSessionSchema = z.object({
+  wallet_id: z.number().int().positive(),
+  amount_usd: z.number().min(1).max(10000).optional(),
+});
+
+export const crossmintBotPurchaseSchema = z.object({
+  merchant: z.string().min(1).max(100),
+  product_id: z.string().min(1).max(500),
+  quantity: z.number().int().min(1).max(100).default(1),
+  product_name: z.string().max(500).optional(),
+  estimated_price_usd: z.number().positive().optional(),
+  shipping_address: z.object({
+    name: z.string().min(1).max(200),
+    line1: z.string().min(1).max(500),
+    line2: z.string().max(500).optional(),
+    city: z.string().min(1).max(200),
+    state: z.string().min(1).max(100),
+    zip: z.string().min(1).max(20),
+    country: z.string().length(2).default("US"),
+  }),
+});
+
+export const crossmintApprovalDecideSchema = z.object({
+  approval_id: z.number().int().positive(),
+  decision: z.enum(["approve", "reject"]),
+});

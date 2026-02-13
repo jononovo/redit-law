@@ -162,7 +162,10 @@
     --color-blue-900: #1c398e;
     --color-indigo-50: #eef2ff;
     --color-indigo-100: #e0e7ff;
+    --color-indigo-200: #c7d2ff;
     --color-indigo-600: #4f39f6;
+    --color-indigo-700: #432dd7;
+    --color-violet-50: #f5f3ff;
     --color-violet-100: #ede9fe;
     --color-violet-300: #c4b4ff;
     --color-violet-500: #8d54ff;
@@ -326,7 +329,10 @@
       --color-blue-900: lab(26.1542% 15.7545 -51.5504);
       --color-indigo-50: lab(95.4818% .411302 -6.78529);
       --color-indigo-100: lab(91.6577% 1.04591 -12.7199);
+      --color-indigo-200: lab(84.4329% 3.18977 -23.9688);
       --color-indigo-600: lab(38.4009% 52.6132 -92.3857);
+      --color-indigo-700: lab(32.4486% 49.2217 -84.6695);
+      --color-violet-50: lab(96.2416% 2.28849 -5.51657);
       --color-violet-100: lab(93.0838% 4.35197 -9.88284);
       --color-violet-300: lab(76.7419% 18.3911 -37.0706);
       --color-violet-500: lab(49.9355% 55.1776 -81.8963);
@@ -2566,6 +2572,10 @@
     border-color: var(--color-blue-100);
   }
 
+  .border-blue-200 {
+    border-color: var(--color-blue-200);
+  }
+
   .border-blue-300\/30 {
     border-color: #90c5ff4d;
   }
@@ -2614,6 +2624,10 @@
     }
   }
 
+  .border-emerald-200 {
+    border-color: var(--color-emerald-200);
+  }
+
   .border-emerald-300\/30 {
     border-color: #5ee9b54d;
   }
@@ -2648,6 +2662,10 @@
 
   .border-green-800 {
     border-color: var(--color-green-800);
+  }
+
+  .border-indigo-200 {
+    border-color: var(--color-indigo-200);
   }
 
   .border-input {
@@ -2944,6 +2962,10 @@
     background-color: hsl(var(--destructive));
   }
 
+  .bg-emerald-50 {
+    background-color: var(--color-emerald-50);
+  }
+
   .bg-emerald-400 {
     background-color: var(--color-emerald-400);
   }
@@ -3038,6 +3060,10 @@
     .bg-green-900\/30 {
       background-color: color-mix(in oklab, var(--color-green-900) 30%, transparent);
     }
+  }
+
+  .bg-indigo-50 {
+    background-color: var(--color-indigo-50);
   }
 
   .bg-indigo-100 {
@@ -3300,6 +3326,10 @@
 
   .bg-transparent {
     background-color: #0000;
+  }
+
+  .bg-violet-50 {
+    background-color: var(--color-violet-50);
   }
 
   .bg-violet-500\/20 {
@@ -4265,6 +4295,10 @@
     color: var(--color-emerald-600);
   }
 
+  .text-emerald-700 {
+    color: var(--color-emerald-700);
+  }
+
   .text-foreground {
     color: hsl(var(--foreground));
   }
@@ -4313,6 +4347,10 @@
 
   .text-indigo-600 {
     color: var(--color-indigo-600);
+  }
+
+  .text-indigo-700 {
+    color: var(--color-indigo-700);
   }
 
   .text-inherit {
@@ -6077,6 +6115,18 @@
   }
 
   @media (hover: hover) {
+    .hover\:text-amber-700:hover {
+      color: var(--color-amber-700);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:text-emerald-700:hover {
+      color: var(--color-emerald-700);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:text-foreground:hover {
       color: hsl(var(--foreground));
     }
@@ -6183,6 +6233,13 @@
   @media (hover: hover) {
     .hover\:shadow-md:hover {
       --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, #0000001a), 0 2px 4px -2px var(--tw-shadow-color, #0000001a);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:shadow-sm:hover {
+      --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, #0000001a), 0 1px 2px -1px var(--tw-shadow-color, #0000001a);
       box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
     }
   }

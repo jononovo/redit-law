@@ -32,7 +32,7 @@ Advanced features include:
 CreditClaw supports multiple independent payment rails, each with its own database tables, API routes, components, and lib files. Rails are strongly segmented — no cross-contamination of schemas or logic.
 
 - **Rail 1 (Stripe Wallet):** Privy server wallets on Base chain, USDC funding via Stripe Crypto Onramp, x402 payment protocol for bot spending. Firebase Auth remains the global auth layer; Privy SDK is scoped only to Rail 1 wallet operations. Tables: `privy_wallets`, `privy_guardrails`, `privy_transactions`, `privy_approvals`. Routes: `/api/v1/stripe-wallet/*`. Lib: `lib/stripe-wallet/`. UI: `/stripe-wallet` (landing), `/app/stripe-wallet` (dashboard). Storage methods prefixed `privy*`.
-- **Rail 2 (Card Wallet):** Future — CrossMint/Stytch integration. Routes: `/api/v1/card-wallet/*`. Not yet implemented.
+- **Rail 2 (Card Wallet):** CrossMint smart wallets on Base chain, USDC funding via fiat onramp, Amazon/commerce purchases via Orders API. Firebase Auth remains global layer; CrossMint handles wallet operations only (no Stytch). Uses merchant allow/blocklist instead of domain lists; 15-min approval TTL. Tables: `crossmint_wallets`, `crossmint_guardrails`, `crossmint_transactions`, `crossmint_approvals`. Routes: `/api/v1/card-wallet/*`. Lib: `lib/card-wallet/` (server.ts, onramp.ts, purchase.ts). Shared modules: `lib/guardrails/evaluate.ts`, `lib/approvals/lifecycle.ts`. UI: `/app/card-wallet` (dashboard). Storage methods prefixed `crossmint*`.
 - **Rail 4 (Self-Hosted Cards):** Split-knowledge card model with obfuscation. See existing documentation below. Routes: `/api/v1/rail4/*`.
 
 ### Key Routes
@@ -41,6 +41,7 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `/stripe-wallet` — Rail 1 landing page (Privy + x402)
 - `/app` — Dashboard overview
 - `/app/stripe-wallet` — Rail 1 dashboard (wallet list, guardrails, activity, approvals)
+- `/app/card-wallet` — Rail 2 dashboard (wallet list, guardrails, orders, approvals)
 - `/app/cards` — Card management
 - `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
 - `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
@@ -62,6 +63,19 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `GET /api/v1/stripe-wallet/approvals` — List pending approvals for owner
 - `POST /api/v1/stripe-wallet/approvals/decide` — Approve or reject a pending payment
 - `POST /api/v1/stripe-wallet/webhooks/stripe` — Stripe webhook for onramp fulfillment
+
+### Rail 2 API Endpoints (Card Wallet)
+- `POST /api/v1/card-wallet/create` — Create a CrossMint smart wallet for a bot
+- `GET /api/v1/card-wallet/list` — List owner's Card Wallets with balances, guardrails, and merchant controls
+- `GET /api/v1/card-wallet/balance` — Get single wallet balance (queries CrossMint chain balance)
+- `POST /api/v1/card-wallet/freeze` — Pause/activate a wallet
+- `POST /api/v1/card-wallet/onramp/session` — Create fiat onramp session (fiat → USDC)
+- `GET/POST /api/v1/card-wallet/guardrails` — View/set spending guardrails (merchant allow/blocklist, limits, auto-pause)
+- `GET /api/v1/card-wallet/transactions` — List transactions/orders for a wallet
+- `GET /api/v1/card-wallet/approvals` — List pending purchase approvals for owner
+- `POST /api/v1/card-wallet/approvals/decide` — Approve or reject a purchase (creates order on approval)
+- `POST /api/v1/card-wallet/bot/purchase` — Bot-facing: request a commerce purchase (requires owner approval)
+- `GET /api/v1/card-wallet/bot/purchase/status` — Bot-facing: poll purchase/approval status
 
 ### Rail 4 API Endpoints
 - `POST /api/v1/bot/merchant/checkout` — Unified checkout (fake profiles → obfuscation, real profiles → wallet debit or pending approval)
@@ -90,6 +104,7 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - **Privy (@privy-io/node):** Server wallet management on Base chain (Rail 1 only). Env vars: `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY`.
 - **viem:** Ethereum utility library for EIP-712 typed data construction (Rail 1).
 - **canonicalize:** JSON canonicalization for Privy authorization signatures (Rail 1).
+- **CrossMint:** Smart wallet creation, fiat onramp, and commerce orders API (Rail 2). Env vars: `CROSSMINT_SERVER_API_KEY`, `NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY`, `CROSSMINT_WEBHOOK_SECRET`.
 - **SendGrid:** Transactional email services for notifications.
 - **shadcn/ui:** UI component library.
 - **React Query (@tanstack/react-query):** Server state management and data fetching.
