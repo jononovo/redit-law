@@ -1,5 +1,7 @@
 # Rail 1: Stripe Wallet — Technical Specification
 
+**Date:** February 13, 2026, 8:30 PM UTC
+
 > Privy server wallets on Base chain, Stripe Crypto Onramp for fiat→USDC, x402 payment protocol for bot spending.
 
 ---
