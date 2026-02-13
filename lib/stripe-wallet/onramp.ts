@@ -10,7 +10,7 @@ export async function createOnrampSession(params: {
   }
 
   const formData = new URLSearchParams();
-  formData.append("wallet_addresses[ethereum]", params.walletAddress);
+  formData.append("wallet_addresses[base]", params.walletAddress);
   formData.append("lock_wallet_address", "true");
   formData.append("destination_currencies[]", "usdc");
   formData.append("destination_networks[]", "base");

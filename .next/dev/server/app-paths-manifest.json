@@ -6,7 +6,6 @@
   "/api/v1/payment-links/route": "app/api/v1/payment-links/route.js",
   "/api/v1/stripe-wallet/approvals/route": "app/api/v1/stripe-wallet/approvals/route.js",
   "/api/v1/stripe-wallet/list/route": "app/api/v1/stripe-wallet/list/route.js",
-  "/api/v1/stripe-wallet/onramp/session/route": "app/api/v1/stripe-wallet/onramp/session/route.js",
   "/api/v1/stripe-wallet/transactions/route": "app/api/v1/stripe-wallet/transactions/route.js",
   "/api/v1/wallet/balance/route": "app/api/v1/wallet/balance/route.js",
   "/api/v1/webhooks/health/route": "app/api/v1/webhooks/health/route.js",
