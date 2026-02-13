@@ -52,8 +52,8 @@ interface ApprovalInfo {
 }
 
 interface BotInfo {
-  botId: string;
-  botName: string;
+  bot_id: string;
+  bot_name: string;
 }
 
 export default function StripeWalletPage() {
@@ -531,7 +531,7 @@ export default function StripeWalletPage() {
               >
                 <option value="">Choose a bot...</option>
                 {bots.map((bot) => (
-                  <option key={bot.botId} value={bot.botId}>{bot.botName}</option>
+                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
                 ))}
               </select>
             </div>
