@@ -3,6 +3,9 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { rail4SubmitOwnerDataSchema } from "@/shared/schema";
 import { initializeState } from "@/lib/obfuscation-engine/state-machine";
+import { buildDecoyFileContent } from "@/lib/rail4";
+import type { FakeProfile } from "@/lib/rail4";
+import type { ProfilePermission } from "@/shared/schema";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -41,23 +44,29 @@ export async function POST(request: NextRequest) {
     || request.headers.get("x-real-ip")
     || "unknown";
 
+  const existingPerms: ProfilePermission[] = card.profilePermissions ? JSON.parse(card.profilePermissions) : [];
+  let updatedPerms = [...existingPerms];
+
+  if (profile_permissions) {
+    updatedPerms = existingPerms.map((p) =>
+      p.profile_index === card.realProfileIndex ? { ...profile_permissions, profile_index: card.realProfileIndex } : p
+    );
+    const hasRealProfile = updatedPerms.some((p) => p.profile_index === card.realProfileIndex);
+    if (!hasRealProfile) {
+      updatedPerms.push({ ...profile_permissions, profile_index: card.realProfileIndex });
+    }
+  }
+
   const updateData: Record<string, unknown> = {
     missingDigitsValue: missing_digits,
     expiryMonth: expiry_month,
     expiryYear: expiry_year,
-    ownerName: owner_name,
+    ...(owner_name ? { ownerName: owner_name } : {}),
     ownerZip: owner_zip,
     ownerIp: ownerIp,
     status: "active",
+    profilePermissions: JSON.stringify(updatedPerms),
   };
-
-  if (profile_permissions) {
-    const existingPerms = card.profilePermissions ? JSON.parse(card.profilePermissions) : [];
-    const updatedPerms = existingPerms.map((p: { profile_index: number }) =>
-      p.profile_index === card.realProfileIndex ? { ...profile_permissions, profile_index: card.realProfileIndex } : p
-    );
-    updateData.profilePermissions = JSON.stringify(updatedPerms);
-  }
 
   await storage.updateRail4Card(bot_id, updateData as any);
 
@@ -65,8 +74,18 @@ export async function POST(request: NextRequest) {
     console.error("Failed to initialize obfuscation state:", err);
   });
 
+  const fakeProfiles: FakeProfile[] = card.fakeProfilesJson ? JSON.parse(card.fakeProfilesJson) : [];
+  const paymentProfilesContent = buildDecoyFileContent(
+    card.realProfileIndex,
+    card.missingDigitPositions,
+    fakeProfiles,
+    updatedPerms,
+  );
+
   return NextResponse.json({
     status: "active",
-    message: "Self-hosted card is now active. The obfuscation engine will begin generating decoy transactions.",
+    message: "Self-hosted card is now active. The obfuscation engine will begin generating obfuscation transactions.",
+    payment_profiles_filename: card.decoyFilename,
+    payment_profiles_content: paymentProfilesContent,
   });
 }

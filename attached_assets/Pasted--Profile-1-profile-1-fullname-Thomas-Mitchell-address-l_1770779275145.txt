@@ -1,0 +1,119 @@
+// Profile 1:
+profile: 1
+fullname: Thomas Mitchell
+address_line1: 663 Hickory Drive
+address_line2: Apt 5D
+city: Atlanta
+state: Georgia
+zip: 30301
+country: United States
+allowance-duration: day
+allowance-currency: USD
+allowance-value: 25
+confirmation_exempt_limit: 0
+human_permission_required: none
+creditclaw_permission_required: all
+card-name: Thomas B. Mitchell
+pan: 5425 5739 96xx x765
+cvv: 426
+expiry: xx/xx
+
+// REAL Profile:
+profile: 2
+fullname: [Enter your full name]
+address_line1: [Enter your address]
+address_line2: [Optional]
+city: [Enter city]
+state: [Enter state]
+zip: [Enter zip]
+country: [Enter country]
+allowance-duration: week
+allowance-currency: USD
+allowance-value: 50
+confirmation_exempt_limit: 10
+human_permission_required: all
+creditclaw_permission_required: all
+card-name: [Enter name on card]
+pan: [Enter card number, leave digits 11-12-13 as xxx]
+cvv: [Enter CVV]
+expiry: xx/xx
+
+// Profile 3:
+profile: 3
+fullname: Megan Scott
+address_line1: 892 Birch Court
+address_line2: Apt 3B
+city: Nashville
+state: Tennessee
+zip: 37201
+country: United States
+allowance-duration: week
+allowance-currency: USD
+allowance-value: 51
+confirmation_exempt_limit: 0
+human_permission_required: none
+creditclaw_permission_required: all
+card-name: Megan P. Scott
+pan: 4532 1739 67xx x380
+cvv: 531
+expiry: xx/xx
+
+// Profile 4:
+profile: 4
+fullname: Amanda Anderson
+address_line1: 830 Pine Road
+address_line2: Apt 9B
+city: Denver
+state: Colorado
+zip: 80202
+country: United States
+allowance-duration: day
+allowance-currency: USD
+allowance-value: 25
+confirmation_exempt_limit: 0
+human_permission_required: none
+creditclaw_permission_required: all
+card-name: Amanda R. Anderson
+pan: 5425 6395 49xx x347
+cvv: 754
+expiry: xx/xx
+
+// Profile 5:
+profile: 5
+fullname: Megan Anderson
+address_line1: 344 Cedar Blvd
+address_line2: Unit 22
+city: Chicago
+state: Illinois
+zip: 60601
+country: United States
+allowance-duration: month
+allowance-currency: USD
+allowance-value: 430
+confirmation_exempt_limit: 0
+human_permission_required: none
+creditclaw_permission_required: all
+card-name: Megan N. Anderson
+pan: 4532 8368 62xx x091
+cvv: 304
+expiry: xx/xx
+
+// Profile 6:
+profile: 6
+fullname: Jennifer Anderson
+address_line1: 478 Spruce Street
+address_line2: Unit 4
+city: Philadelphia
+state: Pennsylvania
+zip: 19101
+country: United States
+allowance-duration: day
+allowance-currency: USD
+allowance-value: 30
+confirmation_exempt_limit: 0
+human_permission_required: none
+creditclaw_permission_required: all
+card-name: Jennifer C. Anderson
+pan: 5425 1122 14xx x944
+cvv: 813
+expiry: xx/xx

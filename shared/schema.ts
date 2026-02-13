@@ -320,6 +320,8 @@ export const checkoutConfirmations = pgTable("checkout_confirmations", {
   itemName: text("item_name").notNull(),
   category: text("category"),
   status: text("status").notNull().default("pending"),
+  hmacToken: text("hmac_token"),
+  expiresAt: timestamp("expires_at"),
   decidedAt: timestamp("decided_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
@@ -369,7 +371,7 @@ export const rail4SubmitOwnerDataSchema = z.object({
   missing_digits: z.string().length(3).regex(/^\d{3}$/),
   expiry_month: z.number().int().min(1).max(12),
   expiry_year: z.number().int().min(2025).max(2040),
-  owner_name: z.string().min(1).max(200),
+  owner_name: z.string().max(200).optional(),
   owner_zip: z.string().min(3).max(20),
   profile_permissions: profilePermissionSchema.optional(),
 });

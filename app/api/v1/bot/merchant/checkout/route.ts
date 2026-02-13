@@ -221,7 +221,16 @@ async function handleRealCheckout(
   }
 
   if (needsHumanConfirmation) {
+    const { createHmac } = await import("crypto");
     const confirmationId = "chk_" + randomBytes(6).toString("hex");
+    const hmacSecret = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
+    if (!hmacSecret) {
+      console.error("CRITICAL: CONFIRMATION_HMAC_SECRET or CRON_SECRET must be set");
+      return NextResponse.json({ error: "server_config_error", message: "Server is not properly configured for approvals." }, { status: 500 });
+    }
+    const hmacToken = createHmac("sha256", hmacSecret).update(confirmationId).digest("hex");
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
     await storage.createCheckoutConfirmation({
       confirmationId,
       botId: bot.botId,
@@ -231,8 +240,46 @@ async function handleRealCheckout(
       merchantUrl: data.merchant_url,
       itemName: data.item_name,
       category: data.category || null,
-      status: "approved",
+      status: "pending",
+      hmacToken,
+      expiresAt,
     });
+
+    if (bot.ownerUid) {
+      const { sendCheckoutApprovalEmail } = await import("@/lib/email");
+      sendCheckoutApprovalEmail({
+        ownerEmail: bot.ownerEmail,
+        botName: bot.botName,
+        merchantName: data.merchant_name,
+        itemName: data.item_name,
+        amountUsd: data.amount_cents / 100,
+        confirmationId,
+        hmacToken,
+      }).catch((err: any) => {
+        console.error("Failed to send approval email:", err);
+      });
+
+      const { notifyOwner } = await import("@/lib/notifications");
+      notifyOwner({
+        ownerUid: bot.ownerUid,
+        ownerEmail: bot.ownerEmail,
+        type: "purchase",
+        title: `${bot.botName} needs purchase approval`,
+        body: `${bot.botName} wants to spend $${(data.amount_cents / 100).toFixed(2)} at ${data.merchant_name} for "${data.item_name}". Check your email to approve or deny.`,
+        botId: bot.botId,
+      }).catch(() => {});
+    }
+
+    return NextResponse.json({
+      approved: false,
+      status: "pending_confirmation",
+      confirmation_id: confirmationId,
+      profile_index: data.profile_index,
+      merchant_name: data.merchant_name,
+      amount_usd: data.amount_cents / 100,
+      expires_at: expiresAt.toISOString(),
+      message: "This purchase requires owner approval. Poll /api/v1/bot/merchant/checkout/status to check the result.",
+    }, { status: 202 });
   }
 
   const updated = await storage.debitWallet(wallet.id, data.amount_cents);

@@ -41,6 +41,25 @@ export async function getCurrentUser() {
   }
 }
 
+export async function getSessionUser(request: Request) {
+  const sessionUser = await getCurrentUser();
+  if (sessionUser) return sessionUser;
+
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.slice(7);
+      const decoded = await adminAuth.verifyIdToken(token);
+      const user = await adminAuth.getUser(decoded.uid);
+      return { uid: user.uid, email: user.email || null, displayName: user.displayName || null, photoURL: user.photoURL || null };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export async function destroySession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);

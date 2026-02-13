@@ -123,6 +123,7 @@ export interface IStorage {
   createCheckoutConfirmation(data: InsertCheckoutConfirmation): Promise<CheckoutConfirmation>;
   getCheckoutConfirmation(confirmationId: string): Promise<CheckoutConfirmation | null>;
   updateCheckoutConfirmationStatus(confirmationId: string, status: string): Promise<CheckoutConfirmation | null>;
+  getPendingConfirmationsByBotIds(botIds: string[]): Promise<CheckoutConfirmation[]>;
 }
 
 export const storage: IStorage = {
@@ -831,5 +832,17 @@ export const storage: IStorage = {
       .where(eq(checkoutConfirmations.confirmationId, confirmationId))
       .returning();
     return updated || null;
+  },
+
+  async getPendingConfirmationsByBotIds(botIds: string[]): Promise<CheckoutConfirmation[]> {
+    if (botIds.length === 0) return [];
+    return db
+      .select()
+      .from(checkoutConfirmations)
+      .where(and(
+        inArray(checkoutConfirmations.botId, botIds),
+        eq(checkoutConfirmations.status, "pending"),
+      ))
+      .orderBy(desc(checkoutConfirmations.createdAt));
   },
 };
