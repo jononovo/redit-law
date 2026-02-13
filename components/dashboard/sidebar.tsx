@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut,
   Plus,
-  Shield
+  Shield,
+  Wallet
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
+  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet" },
   { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: Settings, label: "Settings", href: "/app/settings" },
