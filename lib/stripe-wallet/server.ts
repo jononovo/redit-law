@@ -62,7 +62,7 @@ export async function createServerWallet(): Promise<{
   chainType: string;
 }> {
   const privy = getPrivyClient();
-  const wallet = await privy.walletApi.create({ chainType: "ethereum" });
+  const wallet = await (privy as any).walletsService.create({ chainType: "ethereum" });
   return {
     id: wallet.id,
     address: wallet.address,
@@ -75,9 +75,10 @@ export async function signTypedData(
   typedData: object
 ): Promise<string> {
   const privy = getPrivyClient();
-  const { signature } = await privy.walletApi.ethereum.signTypedData({
+  const ethService = (privy as any).walletsService.ethereum();
+  const result = await ethService.signTypedData({
     walletId,
     typedData: typedData as any,
   });
-  return signature;
+  return result.signature;
 }
