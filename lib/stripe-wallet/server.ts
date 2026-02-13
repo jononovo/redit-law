@@ -23,7 +23,7 @@ export function getPrivyClient(): PrivyClient {
     if (!appId || !appSecret) {
       throw new Error("PRIVY_APP_ID and PRIVY_APP_SECRET are required for Rail 1");
     }
-    privyClient = new PrivyClient(appId, appSecret);
+    privyClient = new PrivyClient({ appId, appSecret });
   }
   return privyClient;
 }
@@ -62,7 +62,7 @@ export async function createServerWallet(): Promise<{
   chainType: string;
 }> {
   const privy = getPrivyClient();
-  const wallet = await (privy as any).walletsService.create({ chainType: "ethereum" });
+  const wallet = await (privy as any).walletsService.create({ chain_type: "ethereum" });
   return {
     id: wallet.id,
     address: wallet.address,
@@ -76,8 +76,7 @@ export async function signTypedData(
 ): Promise<string> {
   const privy = getPrivyClient();
   const ethService = (privy as any).walletsService.ethereum();
-  const result = await ethService.signTypedData({
-    walletId,
+  const result = await ethService.signTypedData(walletId, {
     typedData: typedData as any,
   });
   return result.signature;
