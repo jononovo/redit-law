@@ -28,7 +28,7 @@ export async function createOnrampSession(params: {
   }
 
   if (params.amountUsd) {
-    sessionParams.source_amount = String(Math.round(params.amountUsd * 100));
+    sessionParams.source_amount = String(params.amountUsd);
     sessionParams.source_currency = "usd";
   }
 

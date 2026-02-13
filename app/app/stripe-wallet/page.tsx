@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -70,6 +70,12 @@ export default function StripeWalletPage() {
   const [selectedBotId, setSelectedBotId] = useState("");
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
+
+  const [onrampDialogOpen, setOnrampDialogOpen] = useState(false);
+  const [onrampWallet, setOnrampWallet] = useState<WalletInfo | null>(null);
+  const [onrampLoading, setOnrampLoading] = useState(false);
+  const onrampMountRef = useRef<HTMLDivElement>(null);
+  const onrampSessionRef = useRef<any>(null);
 
   const [guardrailForm, setGuardrailForm] = useState({
     max_per_tx_usdc: 100,
@@ -227,6 +233,98 @@ export default function StripeWalletPage() {
     toast({ title: "Copied", description: "Wallet address copied." });
   }
 
+  function loadScript(src: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function handleOpenOnramp(wallet: WalletInfo) {
+    setOnrampWallet(wallet);
+    setOnrampDialogOpen(true);
+    setOnrampLoading(true);
+
+    try {
+      await loadScript("https://js.stripe.com/clover/stripe.js");
+      await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
+
+      const res = await authFetch("/api/v1/stripe-wallet/onramp/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: wallet.id }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to create onramp session", variant: "destructive" });
+        setOnrampDialogOpen(false);
+        return;
+      }
+
+      const data = await res.json();
+      const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+      if (!publishableKey) {
+        toast({ title: "Configuration Error", description: "Stripe publishable key is not configured", variant: "destructive" });
+        setOnrampDialogOpen(false);
+        return;
+      }
+
+      const StripeOnramp = (window as any).StripeOnramp;
+      if (!StripeOnramp) {
+        toast({ title: "Error", description: "Stripe onramp SDK failed to load", variant: "destructive" });
+        setOnrampDialogOpen(false);
+        return;
+      }
+
+      const stripeOnramp = StripeOnramp(publishableKey);
+      const session = stripeOnramp.createSession({
+        clientSecret: data.client_secret,
+      });
+
+      onrampSessionRef.current = session;
+
+      session.addEventListener("onramp_session_updated", (e: any) => {
+        const status = e?.payload?.session?.status;
+        if (status === "fulfillment_complete") {
+          toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
+          fetchWallets();
+        }
+      });
+
+      setTimeout(() => {
+        if (onrampMountRef.current && onrampDialogOpen) {
+          session.mount(onrampMountRef.current);
+        }
+        setOnrampLoading(false);
+      }, 100);
+    } catch (err) {
+      console.error("Onramp error:", err);
+      toast({ title: "Error", description: "Failed to initialize onramp", variant: "destructive" });
+      setOnrampDialogOpen(false);
+    }
+  }
+
+  function handleCloseOnramp() {
+    if (onrampSessionRef.current) {
+      try {
+        onrampSessionRef.current.destroy?.();
+      } catch {}
+      onrampSessionRef.current = null;
+    }
+    setOnrampDialogOpen(false);
+    setOnrampWallet(null);
+    setOnrampLoading(false);
+  }
+
   function openGuardrailsDialog(wallet: WalletInfo) {
     setSelectedWallet(wallet);
     if (wallet.guardrails) {
@@ -310,94 +408,103 @@ export default function StripeWalletPage() {
               <p className="text-sm text-neutral-400 mt-2">Click "New Wallet" to provision a USDC wallet for your bot.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {wallets.map((wallet) => (
-                <div
-                  key={wallet.id}
-                  className="bg-white rounded-2xl border border-neutral-100 p-6 hover:shadow-lg transition-shadow"
-                  data-testid={`card-stripe-wallet-${wallet.id}`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                        <Wallet className="w-5 h-5 text-blue-600" />
+                <div className="flex flex-col gap-4 min-w-[320px]" key={wallet.id} data-testid={`card-stripe-wallet-${wallet.id}`}>
+                  <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
+
+                    <div className="flex items-center justify-between mb-5 relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
+                          <Wallet className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
+                          <button
+                            onClick={() => copyAddress(wallet.address)}
+                            className="text-xs text-white/60 hover:text-white/90 flex items-center gap-1 cursor-pointer transition-colors"
+                            data-testid={`button-copy-address-${wallet.id}`}
+                          >
+                            {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-neutral-900" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
-                        <button
-                          onClick={() => copyAddress(wallet.address)}
-                          className="text-xs text-neutral-400 hover:text-neutral-600 flex items-center gap-1 cursor-pointer"
-                          data-testid={`button-copy-address-${wallet.id}`}
-                        >
-                          {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
-                          <Copy className="w-3 h-3" />
-                        </button>
-                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
+                        wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
+                        "bg-white/10 text-white/70 border border-white/20"
+                      }`} data-testid={`badge-status-${wallet.id}`}>
+                        {wallet.status}
+                      </span>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      wallet.status === "active" ? "bg-emerald-50 text-emerald-700" :
-                      wallet.status === "paused" ? "bg-blue-50 text-blue-600" :
-                      "bg-neutral-100 text-neutral-500"
-                    }`} data-testid={`badge-status-${wallet.id}`}>
-                      {wallet.status}
-                    </span>
+
+                    <div className="mb-5 relative z-10">
+                      <p className="text-4xl font-bold text-white tracking-tight" data-testid={`text-balance-${wallet.id}`}>
+                        {wallet.balance_display}
+                      </p>
+                      <p className="text-xs text-white/50 mt-1 font-medium tracking-wide uppercase">USDC on Base</p>
+                    </div>
+
+                    {wallet.guardrails && (
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-xs text-white/70 space-y-1.5 relative z-10 border border-white/10">
+                        <div className="flex justify-between">
+                          <span>Per-tx limit</span>
+                          <span className="font-medium text-white/90">${wallet.guardrails.max_per_tx_usdc}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Daily budget</span>
+                          <span className="font-medium text-white/90">${wallet.guardrails.daily_budget_usdc}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Monthly budget</span>
+                          <span className="font-medium text-white/90">${wallet.guardrails.monthly_budget_usdc}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-neutral-900" data-testid={`text-balance-${wallet.id}`}>
-                      {wallet.balance_display}
-                    </p>
-                    <p className="text-xs text-neutral-400 mt-1">USDC on Base</p>
-                  </div>
-
-                  {wallet.guardrails && (
-                    <div className="bg-neutral-50 rounded-xl p-3 mb-4 text-xs text-neutral-500 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Per-tx limit</span>
-                        <span className="font-medium text-neutral-700">${wallet.guardrails.max_per_tx_usdc}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Daily budget</span>
-                        <span className="font-medium text-neutral-700">${wallet.guardrails.daily_budget_usdc}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Monthly budget</span>
-                        <span className="font-medium text-neutral-700">${wallet.guardrails.monthly_budget_usdc}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
+                  <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1 text-xs"
+                      variant="ghost"
+                      className="flex-1 text-xs gap-2 text-emerald-600 font-semibold cursor-pointer hover:bg-emerald-50 rounded-lg transition-colors"
+                      onClick={() => handleOpenOnramp(wallet)}
+                      data-testid={`button-fund-${wallet.id}`}
+                    >
+                      <DollarSign className="w-4 h-4" /> Fund with Stripe
+                    </Button>
+                    <div className="w-px bg-neutral-100 my-1" />
+                    <Button
+                      variant="ghost"
+                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
                       onClick={() => handleFreeze(wallet)}
                       data-testid={`button-freeze-${wallet.id}`}
                     >
                       {wallet.status === "active" ? (
-                        <><Snowflake className="w-3.5 h-3.5" /> Pause</>
+                        <><Snowflake className="w-4 h-4" /> Pause</>
                       ) : (
-                        <><Play className="w-3.5 h-3.5" /> Activate</>
+                        <><Play className="w-4 h-4" /> Activate</>
                       )}
                     </Button>
+                    <div className="w-px bg-neutral-100 my-1" />
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1 text-xs"
+                      variant="ghost"
+                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
                       onClick={() => openGuardrailsDialog(wallet)}
                       data-testid={`button-guardrails-${wallet.id}`}
                     >
-                      <Settings2 className="w-3.5 h-3.5" /> Guardrails
+                      <Settings2 className="w-4 h-4" /> Guardrails
                     </Button>
+                    <div className="w-px bg-neutral-100 my-1" />
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1 text-xs"
+                      variant="ghost"
+                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
                       onClick={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
                       data-testid={`button-activity-${wallet.id}`}
                     >
-                      <ArrowUpRight className="w-3.5 h-3.5" /> Activity
+                      <ArrowUpRight className="w-4 h-4" /> Activity
                     </Button>
                   </div>
                 </div>
@@ -611,6 +718,29 @@ export default function StripeWalletPage() {
                 Save
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={onrampDialogOpen} onOpenChange={(open) => { if (!open) handleCloseOnramp(); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-onramp">
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-emerald-600" />
+            Fund Wallet {onrampWallet ? `— ${onrampWallet.bot_name}` : ""}
+          </DialogTitle>
+          <DialogDescription>
+            Buy USDC with your credit card via Stripe. Funds will be delivered directly to your wallet on Base.
+          </DialogDescription>
+          <div className="mt-4 min-h-[500px] relative">
+            {onrampLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <p className="text-sm text-neutral-500">Loading Stripe onramp...</p>
+                </div>
+              </div>
+            )}
+            <div ref={onrampMountRef} id="stripe-onramp-element" className="w-full min-h-[480px]" data-testid="container-onramp-widget" />
           </div>
         </DialogContent>
       </Dialog>
