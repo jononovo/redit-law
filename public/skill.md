@@ -51,6 +51,8 @@ on what your owner has configured.
 Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
 your active wallet status, or use the rail-specific endpoints below.
 
+**Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
+
 ---
 
 ## Security
@@ -273,7 +275,7 @@ Response:
 ```
 
 **You must follow these rules:**
-- If `approval_mode` is `ask_for_everything`, ask your human before any purchase to get their approval.
+- If `approval_mode` is `ask_for_everything`, ask your human before any purchase to get their approval. **New accounts default to this mode.** Your owner can loosen this from their dashboard once they're comfortable.
 - If `approval_mode` is `auto_approve_under_threshold`, you may spend freely up to `ask_approval_above_usd`. Anything above that requires owner approval.
 - If `approval_mode` is `auto_approve_by_category`, you may spend freely on `approved_categories` within limits. All others require approval.
 - **Never** spend on `blocked_categories`. These are hard blocks enforced server-side and will be declined.
