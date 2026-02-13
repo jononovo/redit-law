@@ -4,7 +4,6 @@
   "/api/v1/notifications/unread-count/route": "app/api/v1/notifications/unread-count/route.js",
   "/api/v1/stripe-wallet/approvals/route": "app/api/v1/stripe-wallet/approvals/route.js",
   "/api/v1/stripe-wallet/list/route": "app/api/v1/stripe-wallet/list/route.js",
-  "/api/v1/stripe-wallet/onramp/session/route": "app/api/v1/stripe-wallet/onramp/session/route.js",
   "/api/v1/stripe-wallet/transactions/route": "app/api/v1/stripe-wallet/transactions/route.js",
   "/app/stripe-wallet/page": "app/app/stripe-wallet/page.js",
   "/page": "app/page.js"
