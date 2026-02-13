@@ -1,0 +1,39 @@
+forward-logs-shared.ts:95 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+createWebSocket @ web-socket.ts:145
+hydrate @ app-index.tsx:307
+(anonymous) @ app-next-turbopack.ts:13
+(anonymous) @ app-bootstrap.ts:79
+loadScriptsInSequence @ app-bootstrap.ts:23
+appBootstrap @ app-bootstrap.ts:61
+module evaluation @ app-next-turbopack.ts:10
+(anonymous) @ dev-base.ts:244
+runModuleExecutionHooks @ dev-base.ts:278
+instantiateModule @ dev-base.ts:238
+getOrInstantiateRuntimeModule @ dev-base.ts:128
+registerChunk @ runtime-backend-dom.ts:57
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+web-socket.ts:50 WebSocket connection to 'wss://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/_next/webpack-hmr?id=Io26543l5Oq0qc4Mx72Ak' failed: 
+init @ web-socket.ts:50
+stripe-wallet:1 Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+auth-fetch.ts:26  POST https://89296d20-74da-43ec-8204-367df2a223d5-00-13onhnckmod4a.kirk.replit.dev/api/v1/stripe-wallet/onramp/session 500 (Internal Server Error)
+authFetch @ auth-fetch.ts:26
+await in authFetch
+handleOpenOnramp @ page.tsx:255
+onClick @ page.tsx:485
+executeDispatch @ react-dom-client.development.js:20543
+runWithFiberInDEV @ react-dom-client.development.js:986
+processDispatchQueue @ react-dom-client.development.js:20593
+(anonymous) @ react-dom-client.development.js:21164
+batchedUpdates$1 @ react-dom-client.development.js:3377
+dispatchEventForPluginEventSystem @ react-dom-client.development.js:20747
+dispatchEvent @ react-dom-client.development.js:25693
+dispatchDiscreteEvent @ react-dom-client.development.js:25661
