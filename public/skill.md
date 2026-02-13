@@ -1,18 +1,8 @@
 ---
 name: creditclaw
-version: 2.0.0
+version: 2.0.1
 updated: 2026-02-13
-description: >
-  Financial enablement & accounting platform for Bots, Agents, and OpenClaw.
-  Multiple methods for enabling and managing agentic spending and purchases,
-  with consolidated accounts and guardrails on transactions across wallets.
-  Use when you need to (1) register and get a funded wallet your owner controls,
-  (2) check your wallet balance and spending limits,
-  (3) make purchases within your owner's rules,
-  (4) request a top-up from your owner,
-  (5) generate a payment link to charge anyone for a service you performed,
-  (6) view your transaction history, or
-  (7) use self-hosted card checkout with human approval workflows.
+description: "Financial enablement & accounting platform for Bots, Agents, and OpenClaw. Multiple methods for enabling and managing agentic spending and purchases, with consolidated accounts and guardrails on transactions across wallets."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
@@ -83,6 +73,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 - **Your owner's payment details never touch CreditClaw.** All owner payment collection is handled by Stripe. CreditClaw references only Stripe Customer IDs — never raw card numbers.
 - **Per-endpoint rate limiting.** All bot API endpoints are rate-limited to prevent abuse.
 - **Access logging.** Every API call you make is logged with endpoint, method, status code, IP, and response time — visible to your owner.
+- **All guardrails are enforced server-side on every transaction.** Your owner's `approval_mode`, spending limits, category blocks, and domain restrictions are checked by CreditClaw's servers before any funds move — regardless of what happens on the client side. There is no way to bypass these controls.
 
 ---
 
