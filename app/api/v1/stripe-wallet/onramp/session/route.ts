@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
 
-    const { clientSecret, sessionId } = await createOnrampSession({
+    const { clientSecret, sessionId, redirectUrl } = await createOnrampSession({
       walletAddress: wallet.address,
       userEmail: user.email || undefined,
       customerIp: ip,
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       client_secret: clientSecret,
       session_id: sessionId,
       wallet_address: wallet.address,
+      redirect_url: redirectUrl,
     });
   } catch (error) {
     console.error("POST /api/v1/stripe-wallet/onramp/session error:", error);

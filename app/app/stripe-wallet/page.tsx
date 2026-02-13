@@ -249,13 +249,9 @@ export default function StripeWalletPage() {
 
   async function handleOpenOnramp(wallet: WalletInfo) {
     setOnrampWallet(wallet);
-    setOnrampDialogOpen(true);
     setOnrampLoading(true);
 
     try {
-      await loadScript("https://js.stripe.com/clover/stripe.js");
-      await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
-
       const res = await authFetch("/api/v1/stripe-wallet/onramp/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,51 +261,67 @@ export default function StripeWalletPage() {
       if (!res.ok) {
         const err = await res.json();
         toast({ title: "Error", description: err.error || "Failed to create onramp session", variant: "destructive" });
-        setOnrampDialogOpen(false);
+        setOnrampLoading(false);
         return;
       }
 
       const data = await res.json();
       const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-      if (!publishableKey) {
-        toast({ title: "Configuration Error", description: "Stripe publishable key is not configured", variant: "destructive" });
-        setOnrampDialogOpen(false);
-        return;
-      }
+      if (publishableKey) {
+        setOnrampDialogOpen(true);
 
-      const StripeOnramp = (window as any).StripeOnramp;
-      if (!StripeOnramp) {
-        toast({ title: "Error", description: "Stripe onramp SDK failed to load", variant: "destructive" });
-        setOnrampDialogOpen(false);
-        return;
-      }
+        try {
+          await loadScript("https://js.stripe.com/clover/stripe.js");
+          await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
 
-      const stripeOnramp = StripeOnramp(publishableKey);
-      const session = stripeOnramp.createSession({
-        clientSecret: data.client_secret,
-      });
+          const StripeOnramp = (window as any).StripeOnramp;
+          if (!StripeOnramp) throw new Error("SDK not loaded");
 
-      onrampSessionRef.current = session;
+          const stripeOnramp = StripeOnramp(publishableKey);
+          const session = stripeOnramp.createSession({
+            clientSecret: data.client_secret,
+          });
 
-      session.addEventListener("onramp_session_updated", (e: any) => {
-        const status = e?.payload?.session?.status;
-        if (status === "fulfillment_complete") {
-          toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
-          fetchWallets();
+          onrampSessionRef.current = session;
+
+          session.addEventListener("onramp_session_updated", (e: any) => {
+            const status = e?.payload?.session?.status;
+            if (status === "fulfillment_complete") {
+              toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
+              fetchWallets();
+            }
+          });
+
+          setTimeout(() => {
+            if (onrampMountRef.current) {
+              session.mount(onrampMountRef.current);
+            }
+            setOnrampLoading(false);
+          }, 100);
+        } catch (embeddedErr) {
+          console.error("Embedded onramp failed, falling back to hosted:", embeddedErr);
+          setOnrampDialogOpen(false);
+          if (data.redirect_url) {
+            window.open(data.redirect_url, "_blank");
+            toast({ title: "Opening Stripe", description: "Stripe onramp opened in a new tab." });
+          } else {
+            toast({ title: "Error", description: "Failed to load onramp widget", variant: "destructive" });
+          }
+          setOnrampLoading(false);
         }
-      });
-
-      setTimeout(() => {
-        if (onrampMountRef.current && onrampDialogOpen) {
-          session.mount(onrampMountRef.current);
-        }
+      } else if (data.redirect_url) {
+        window.open(data.redirect_url, "_blank");
+        toast({ title: "Opening Stripe", description: "Stripe onramp opened in a new tab." });
         setOnrampLoading(false);
-      }, 100);
+      } else {
+        toast({ title: "Configuration needed", description: "Stripe publishable key is required for embedded onramp, and no hosted redirect is available.", variant: "destructive" });
+        setOnrampLoading(false);
+      }
     } catch (err) {
       console.error("Onramp error:", err);
       toast({ title: "Error", description: "Failed to initialize onramp", variant: "destructive" });
-      setOnrampDialogOpen(false);
+      setOnrampLoading(false);
     }
   }
 

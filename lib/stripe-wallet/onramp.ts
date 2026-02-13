@@ -5,7 +5,7 @@ export async function createOnrampSession(params: {
   userEmail?: string;
   customerIp?: string;
   amountUsd?: number;
-}): Promise<{ clientSecret: string; sessionId: string }> {
+}): Promise<{ clientSecret: string; sessionId: string; redirectUrl: string | null }> {
   const sessionParams: Record<string, any> = {
     wallet_addresses: {
       ethereum: params.walletAddress,
@@ -37,5 +37,6 @@ export async function createOnrampSession(params: {
   return {
     clientSecret: session.client_secret,
     sessionId: session.id,
+    redirectUrl: session.redirect_url || null,
   };
 }
