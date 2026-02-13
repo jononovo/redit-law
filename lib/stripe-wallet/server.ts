@@ -2,24 +2,35 @@ import { PrivyClient } from "@privy-io/node";
 import crypto from "crypto";
 import canonicalize from "canonicalize";
 
-const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
-const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET || "";
-const PRIVY_AUTHORIZATION_KEY = process.env.PRIVY_AUTHORIZATION_KEY || "";
+function getPrivyAppId(): string {
+  return process.env.NEXT_PUBLIC_PRIVY_APP_ID || process.env.PRIVY_APP_ID || "";
+}
+
+function getPrivyAppSecret(): string {
+  return process.env.PRIVY_APP_SECRET || "";
+}
+
+function getPrivyAuthKey(): string {
+  return process.env.PRIVY_AUTHORIZATION_KEY || "";
+}
 
 let privyClient: PrivyClient | null = null;
 
 export function getPrivyClient(): PrivyClient {
   if (!privyClient) {
-    if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) {
-      throw new Error("NEXT_PUBLIC_PRIVY_APP_ID and PRIVY_APP_SECRET are required for Rail 1");
+    const appId = getPrivyAppId();
+    const appSecret = getPrivyAppSecret();
+    if (!appId || !appSecret) {
+      throw new Error("PRIVY_APP_ID and PRIVY_APP_SECRET are required for Rail 1");
     }
-    privyClient = new PrivyClient(PRIVY_APP_ID, PRIVY_APP_SECRET);
+    privyClient = new PrivyClient(appId, appSecret);
   }
   return privyClient;
 }
 
 export function getAuthorizationSignature(url: string, body: object): string {
-  if (!PRIVY_AUTHORIZATION_KEY) {
+  const authKey = getPrivyAuthKey();
+  if (!authKey) {
     throw new Error("PRIVY_AUTHORIZATION_KEY is required for wallet operations");
   }
 
@@ -28,13 +39,13 @@ export function getAuthorizationSignature(url: string, body: object): string {
     method: "POST",
     url,
     body,
-    headers: { "privy-app-id": PRIVY_APP_ID },
+    headers: { "privy-app-id": getPrivyAppId() },
   };
 
   const serializedPayload = canonicalize(payload) as string;
   const serializedPayloadBuffer = Buffer.from(serializedPayload);
 
-  const privateKeyAsString = PRIVY_AUTHORIZATION_KEY.replace("wallet-auth:", "");
+  const privateKeyAsString = authKey.replace("wallet-auth:", "");
   const privateKeyAsPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyAsString}\n-----END PRIVATE KEY-----`;
   const privateKey = crypto.createPrivateKey({
     key: privateKeyAsPem,
