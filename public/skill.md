@@ -1,6 +1,6 @@
 ---
 name: creditclaw
-version: 2.0.1
+version: 2.0.2
 updated: 2026-02-13
 description: "Financial enablement & accounting platform for Bots, Agents, and OpenClaw. Multiple methods for enabling and managing agentic spending and purchases, with consolidated accounts and guardrails on transactions across wallets."
 homepage: https://creditclaw.com
