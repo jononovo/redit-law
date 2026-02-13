@@ -257,11 +257,11 @@ export function buildDecoyFileContent(
       lines.push(`card number: ${maskedPan}`);
       lines.push(`cvv: 000`);
       lines.push(`---`);
-      lines.push(`address_line1: [Enter address]`);
-      lines.push(`city: [Enter city]`);
-      lines.push(`state: [Enter state]`);
-      lines.push(`zip: [Enter zip]`);
-      lines.push(`country: [Enter country]`);
+      lines.push(`address_line1: [Enter card address]`);
+      lines.push(`city: `);
+      lines.push(`state: `);
+      lines.push(`zip: `);
+      lines.push(`country: United States`);
       lines.push(`---`);
       if (perm) {
         lines.push(`allowance-duration: ${perm.allowance_duration}`);

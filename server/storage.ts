@@ -104,6 +104,8 @@ export interface IStorage {
   createRail4Card(data: InsertRail4Card): Promise<Rail4Card>;
   getRail4CardByCardId(cardId: string): Promise<Rail4Card | null>;
   getRail4CardByBotId(botId: string): Promise<Rail4Card | null>;
+  getRail4CardsByBotId(botId: string): Promise<Rail4Card[]>;
+  countCardsByBotId(botId: string): Promise<number>;
   getRail4CardsByOwnerUid(ownerUid: string): Promise<Rail4Card[]>;
   updateRail4CardByCardId(cardId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null>;
   updateRail4Card(botId: string, data: Partial<InsertRail4Card>): Promise<Rail4Card | null>;
@@ -701,6 +703,15 @@ export const storage: IStorage = {
   async getRail4CardByBotId(botId: string): Promise<Rail4Card | null> {
     const [card] = await db.select().from(rail4Cards).where(eq(rail4Cards.botId, botId)).limit(1);
     return card || null;
+  },
+
+  async getRail4CardsByBotId(botId: string): Promise<Rail4Card[]> {
+    return db.select().from(rail4Cards).where(eq(rail4Cards.botId, botId)).orderBy(desc(rail4Cards.createdAt));
+  },
+
+  async countCardsByBotId(botId: string): Promise<number> {
+    const cards = await db.select().from(rail4Cards).where(eq(rail4Cards.botId, botId));
+    return cards.length;
   },
 
   async getRail4CardsByOwnerUid(ownerUid: string): Promise<Rail4Card[]> {

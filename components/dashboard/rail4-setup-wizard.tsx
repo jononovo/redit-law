@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3 } from "lucide-react";
+import { Shield, Download, CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Sparkles, Tag, FileText, Edit3, MapPin, Cable, Link2, Send, Terminal, Copy, Check } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
@@ -297,7 +298,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const { toast } = useToast();
   const isNewMode = !existingCardId;
   const stepOffset = isNewMode ? 2 : 0;
-  const totalSteps = isNewMode ? 9 : 7;
+  const totalSteps = isNewMode ? 12 : 10;
 
   const [step, setStep] = useState(0);
 
@@ -316,12 +317,20 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   const [activationResult, setActivationResult] = useState<ActivationResult | null>(null);
   const [downloaded, setDownloaded] = useState(false);
   const [showCompleteExample, setShowCompleteExample] = useState(false);
+  const [autoTogglePaused, setAutoTogglePaused] = useState(false);
   const zipRef = useRef<HTMLInputElement>(null);
 
   const [permAllowanceDuration, setPermAllowanceDuration] = useState("week");
   const [permAllowanceValue, setPermAllowanceValue] = useState("50");
   const [permExemptLimit, setPermExemptLimit] = useState("10");
   const [permHumanPermission, setPermHumanPermission] = useState("all");
+
+  const [ownerBot, setOwnerBot] = useState<{ bot_id: string; bot_name: string; wallet_status: string } | null>(null);
+  const [ownerBotCardCount, setOwnerBotCardCount] = useState(0);
+  const [ownerBotLoading, setOwnerBotLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [connectTab, setConnectTab] = useState<"agent" | "manual">("agent");
+  const [copied, setCopied] = useState(false);
 
   const activeCardId = existingCardId || initData?.card_id;
 
@@ -351,10 +360,17 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       setActivationResult(null);
       setDownloaded(false);
       setShowCompleteExample(false);
+      setAutoTogglePaused(false);
       setPermAllowanceDuration("week");
       setPermAllowanceValue("50");
       setPermExemptLimit("10");
       setPermHumanPermission("all");
+      setOwnerBot(null);
+      setOwnerBotCardCount(0);
+      setOwnerBotLoading(false);
+      setLinkLoading(false);
+      setConnectTab("agent");
+      setCopied(false);
     }
   }, [open]);
 
@@ -478,6 +494,55 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
     a.click();
     URL.revokeObjectURL(url);
     setDownloaded(true);
+  }
+
+  async function fetchOwnerBot() {
+    setOwnerBotLoading(true);
+    try {
+      const res = await authFetch("/api/v1/rail4/owner-bot");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.has_bot && data.bot) {
+          setOwnerBot(data.bot);
+          setOwnerBotCardCount(data.card_count);
+        } else {
+          setOwnerBot(null);
+          setOwnerBotCardCount(0);
+        }
+      }
+    } catch {
+    } finally {
+      setOwnerBotLoading(false);
+    }
+  }
+
+  async function handleLinkBot() {
+    if (!activeCardId) return;
+    setLinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/rail4/link-bot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card_id: activeCardId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to link bot");
+      }
+      toast({ title: "Bot linked!", description: "Your bot is now connected to this card." });
+      onComplete();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast({ title: "Link failed", description: err.message, variant: "destructive" });
+    } finally {
+      setLinkLoading(false);
+    }
+  }
+
+  function handleCopyText(text: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   const allSteps: React.ReactNode[] = [];
@@ -861,7 +926,10 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
 
   const instructionsStepIndex = stepOffset + 4;
   const editingGuideStepIndex = stepOffset + 5;
-  const fileEditingGuideActive = step === editingGuideStepIndex;
+  const addressGuideStepIndex = stepOffset + 6;
+  const choiceBotStepIndex = stepOffset + 8;
+  const connectBotStepIndex = stepOffset + 9;
+  const fileEditingGuideActive = step === editingGuideStepIndex || step === addressGuideStepIndex;
 
   const buildMaskedCardDisplay = useCallback((positions: number[], complete: boolean) => {
     const sampleComplete = ["4", "5", "6", "7", "3", "2", "9", "8", "6", "3", "8", "8", "7", "6", "5", "2"];
@@ -874,12 +942,12 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
   }, []);
 
   useEffect(() => {
-    if (!fileEditingGuideActive) return;
+    if (!fileEditingGuideActive || autoTogglePaused) return;
     const interval = setInterval(() => {
       setShowCompleteExample(prev => !prev);
     }, 5000);
     return () => clearInterval(interval);
-  }, [fileEditingGuideActive]);
+  }, [fileEditingGuideActive, autoTogglePaused]);
 
   const realProfileIndex = initData?.real_profile_index ?? 4;
   const missingPositions = initData?.missing_digit_positions ?? [];
@@ -933,7 +1001,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mb-5">
         <Edit3 className="w-8 h-8 text-amber-600" />
       </div>
-      <h2 className="text-xl font-bold text-neutral-900 mb-2">Update the file you downloaded:</h2>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Fill-in the file you downloaded:</h2>
 
       <div className="w-full max-w-md text-left space-y-3 mb-5">
         <div className="flex items-start gap-2">
@@ -950,30 +1018,9 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         </div>
       </div>
 
-      <p className="text-sm text-neutral-500 mb-3">It should look something like this:</p>
+      <p className="text-sm text-neutral-500 mb-3 w-full max-w-md text-left">It should look something like this:</p>
 
       <div className="w-full max-w-md mb-4">
-        <div className="flex items-center justify-end gap-2 mb-2">
-          <button
-            onClick={() => setShowCompleteExample(false)}
-            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
-              !showCompleteExample ? "bg-neutral-800 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
-            }`}
-            data-testid="button-toggle-incomplete"
-          >
-            Incomplete
-          </button>
-          <button
-            onClick={() => setShowCompleteExample(true)}
-            className={`text-xs font-medium px-3 py-1 rounded-full transition-colors ${
-              showCompleteExample ? "bg-green-600 text-white" : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 cursor-pointer"
-            }`}
-            data-testid="button-toggle-complete"
-          >
-            Complete Example
-          </button>
-        </div>
-
         <div className={`rounded-xl border p-5 text-left font-mono text-sm transition-all duration-500 ${
           showCompleteExample ? "bg-green-50 border-green-200" : "bg-neutral-50 border-neutral-200"
         }`} data-testid="profile-example-block">
@@ -1025,6 +1072,28 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
 
           <div className="border-t border-dashed border-neutral-300 my-2" />
         </div>
+
+        <div
+          className="flex items-center justify-end gap-2 mt-3"
+          onMouseEnter={() => setAutoTogglePaused(true)}
+          data-testid="switch-toggle-area"
+        >
+          <span className={`text-xs font-medium transition-colors ${!showCompleteExample ? "text-neutral-700" : "text-neutral-400"}`}>
+            Incomplete
+          </span>
+          <Switch
+            checked={showCompleteExample}
+            onCheckedChange={(checked) => {
+              setAutoTogglePaused(true);
+              setShowCompleteExample(checked);
+            }}
+            className="data-[state=checked]:bg-green-600"
+            data-testid="switch-toggle-example"
+          />
+          <span className={`text-xs font-medium transition-colors ${showCompleteExample ? "text-green-700" : "text-neutral-400"}`}>
+            Complete
+          </span>
+        </div>
       </div>
 
       <div className="bg-amber-50 rounded-xl border border-amber-100 p-3 w-full max-w-md mb-5 text-left">
@@ -1034,9 +1103,103 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
       </div>
 
       <Button
-        onClick={() => setStep(stepOffset + 6)}
+        onClick={() => setStep(addressGuideStepIndex)}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
         data-testid="button-wizard-editing-guide-continue"
+      >
+        Continue
+        <ArrowRight className="w-5 h-5" />
+      </Button>
+    </div>
+  );
+
+  allSteps.push(
+    <div key="address-guide" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-address-guide">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center mb-5">
+        <MapPin className="w-8 h-8 text-blue-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Fill-in your billing address:</h2>
+
+      <div className="w-full max-w-md text-left space-y-3 mb-5">
+        <div className="flex items-start gap-2">
+          <span className="text-neutral-400 font-medium text-sm mt-0.5">•</span>
+          <p className="text-sm text-neutral-600">
+            In the same file, <span className="font-semibold text-neutral-800">Profile {realProfileIndex}</span>, fill in the address section.
+          </p>
+        </div>
+      </div>
+
+      <p className="text-sm text-neutral-500 mb-3 w-full max-w-md text-left">It should look something like this:</p>
+
+      <div className="w-full max-w-md mb-4">
+        <div className={`rounded-xl border p-5 text-left font-mono text-sm transition-all duration-500 ${
+          showCompleteExample ? "bg-green-50 border-green-200" : "bg-neutral-50 border-neutral-200"
+        }`} data-testid="address-example-block">
+          <div className="text-neutral-400 text-xs mb-2">---</div>
+
+          <div className="space-y-2">
+            <div>
+              <span className="text-neutral-400 text-xs">address_line1: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400 italic"}`}>
+                {showCompleteExample ? "742 Oak Avenue" : "[Enter card address]"}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">city: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "Portland" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">state: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "Oregon" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">zip: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                {showCompleteExample ? "97201" : ""}
+              </span>
+            </div>
+            <div>
+              <span className="text-neutral-400 text-xs">country: </span>
+              <span className={`${showCompleteExample ? "text-neutral-800 font-medium" : "text-neutral-400"}`}>
+                United States
+              </span>
+            </div>
+          </div>
+
+          <div className="text-neutral-400 text-xs mt-2">---</div>
+        </div>
+
+        <div
+          className="flex items-center justify-end gap-2 mt-3"
+          onMouseEnter={() => setAutoTogglePaused(true)}
+          data-testid="switch-toggle-address-area"
+        >
+          <span className={`text-xs font-medium transition-colors ${!showCompleteExample ? "text-neutral-700" : "text-neutral-400"}`}>
+            Incomplete
+          </span>
+          <Switch
+            checked={showCompleteExample}
+            onCheckedChange={(checked) => {
+              setAutoTogglePaused(true);
+              setShowCompleteExample(checked);
+            }}
+            className="data-[state=checked]:bg-green-600"
+            data-testid="switch-toggle-address-example"
+          />
+          <span className={`text-xs font-medium transition-colors ${showCompleteExample ? "text-green-700" : "text-neutral-400"}`}>
+            Complete
+          </span>
+        </div>
+      </div>
+
+      <Button
+        onClick={() => setStep(stepOffset + 7)}
+        className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
+        data-testid="button-wizard-address-guide-continue"
       >
         Continue
         <ArrowRight className="w-5 h-5" />
@@ -1055,7 +1218,7 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         will use obfuscation to mask your real transactions among fake profiles.
       </p>
 
-      <div className="bg-green-50 rounded-xl border border-green-100 p-4 w-full max-w-sm mb-8 text-left">
+      <div className="bg-green-50 rounded-xl border border-green-100 p-4 w-full max-w-sm mb-6 text-left">
         <div className="flex items-center gap-3 mb-2">
           <Shield className="w-5 h-5 text-green-600" />
           <span className="text-sm font-semibold text-green-800">What happens next</span>
@@ -1067,16 +1230,227 @@ export function Rail4SetupWizard({ cardId: existingCardId, open, onOpenChange, o
         </ul>
       </div>
 
+      <p className="text-sm font-medium text-neutral-700 mb-4">Your bot will need to be connected.</p>
+
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => {
+            onComplete();
+            onOpenChange(false);
+          }}
+          className="rounded-xl gap-2 px-6 py-3 text-base"
+          data-testid="button-wizard-done"
+        >
+          Go to Dashboard
+        </Button>
+        <Button
+          onClick={() => {
+            fetchOwnerBot();
+            setStep(choiceBotStepIndex);
+          }}
+          className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-6 py-3 text-base"
+          data-testid="button-wizard-connect-bot"
+        >
+          Connect Bot
+          <ArrowRight className="w-5 h-5" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  const agentPasteText = `Read https://creditclaw.com/skill.md and follow the instructions to register with CreditClaw. Once registered, send me the claim link so I can connect you to my account.`;
+
+  const manualCurlText = `curl -s https://creditclaw.com/skill.md`;
+
+  allSteps.push(
+    <div key="choice-bot" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-choice-bot">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mb-5">
+        <Cable className="w-8 h-8 text-violet-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Connect a Bot</h2>
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-6">
+        Link an existing bot or connect a new one to this card.
+      </p>
+
+      {ownerBotLoading ? (
+        <div className="flex items-center gap-2 text-neutral-500 py-8">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Checking for your bot...</span>
+        </div>
+      ) : ownerBot ? (
+        <div className="w-full max-w-md space-y-3 mb-6">
+          <div className="rounded-xl border border-neutral-200 p-5 text-left">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center">
+                <Cable className="w-5 h-5 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{ownerBot.bot_name}</p>
+                <p className="text-xs text-neutral-500">{ownerBotCardCount} of 3 cards linked</p>
+              </div>
+            </div>
+            {ownerBotCardCount >= 3 ? (
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                This bot already has the maximum of 3 cards linked.
+              </p>
+            ) : (
+              <Button
+                onClick={handleLinkBot}
+                disabled={linkLoading}
+                className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2 py-3 text-base"
+                data-testid="button-wizard-link-bot"
+              >
+                {linkLoading ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Linking...</>
+                ) : (
+                  <><Link2 className="w-5 h-5" /> Link "{ownerBot.bot_name}" to this card</>
+                )}
+              </Button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-neutral-200" />
+            <span className="text-xs text-neutral-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-neutral-200" />
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => setStep(connectBotStepIndex)}
+            className="w-full rounded-xl gap-2 py-3 text-base"
+            data-testid="button-wizard-connect-new-bot"
+          >
+            Connect a New Bot
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="w-full max-w-md mb-6">
+          <p className="text-sm text-neutral-500 mb-4">You don't have a bot on your account yet.</p>
+          <Button
+            onClick={() => setStep(connectBotStepIndex)}
+            className="w-full rounded-xl bg-primary hover:bg-primary/90 gap-2 py-3 text-base"
+            data-testid="button-wizard-connect-new-bot"
+          >
+            Connect a Bot
+            <ArrowRight className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
+      <Button
+        variant="ghost"
+        onClick={() => {
+          onComplete();
+          onOpenChange(false);
+        }}
+        className="text-sm text-neutral-400 hover:text-neutral-600"
+        data-testid="button-wizard-skip-connect"
+      >
+        Skip for now
+      </Button>
+    </div>
+  );
+
+  allSteps.push(
+    <div key="connect-bot" className="flex flex-col items-center text-center px-4 py-2" data-testid="wizard-step-connect-bot">
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center mb-5">
+        <Cable className="w-8 h-8 text-violet-600" />
+      </div>
+      <h2 className="text-xl font-bold text-neutral-900 mb-2">Connect Your Bot</h2>
+      <p className="text-neutral-500 max-w-md leading-relaxed mb-5">
+        Send your AI agent to CreditClaw to register and connect.
+      </p>
+
+      <div className="w-full max-w-md mb-6">
+        <div className="flex rounded-xl bg-neutral-100 p-1 mb-4">
+          <button
+            onClick={() => setConnectTab("agent")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              connectTab === "agent"
+                ? "bg-white shadow-sm text-neutral-900"
+                : "text-neutral-500 hover:text-neutral-700"
+            }`}
+            data-testid="tab-send-to-agent"
+          >
+            <Send className="w-4 h-4" />
+            Send to Agent
+          </button>
+          <button
+            onClick={() => setConnectTab("manual")}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              connectTab === "manual"
+                ? "bg-white shadow-sm text-neutral-900"
+                : "text-neutral-500 hover:text-neutral-700"
+            }`}
+            data-testid="tab-manual"
+          >
+            <Terminal className="w-4 h-4" />
+            Manual
+          </button>
+        </div>
+
+        {connectTab === "agent" ? (
+          <div className="rounded-xl border border-neutral-200 p-5 text-left space-y-4">
+            <p className="text-sm font-semibold text-neutral-700">Send this to your AI agent:</p>
+            <div className="relative">
+              <div className="bg-neutral-50 rounded-lg border border-neutral-100 p-4 font-mono text-xs text-neutral-700 leading-relaxed pr-10">
+                {agentPasteText}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopyText(agentPasteText)}
+                className="absolute top-2 right-2 h-7 w-7 p-0"
+                data-testid="button-copy-agent-text"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+              </Button>
+            </div>
+            <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+              <li>Send the text above to your agent</li>
+              <li>They'll sign up and send you a claim link</li>
+              <li>Visit the claim link to connect them</li>
+            </ol>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-neutral-200 p-5 text-left space-y-4">
+            <p className="text-sm font-semibold text-neutral-700">Run this command:</p>
+            <div className="relative">
+              <div className="bg-neutral-50 rounded-lg border border-neutral-100 p-4 font-mono text-xs text-neutral-700 leading-relaxed pr-10">
+                {manualCurlText}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleCopyText(manualCurlText)}
+                className="absolute top-2 right-2 h-7 w-7 p-0"
+                data-testid="button-copy-curl"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-neutral-400" />}
+              </Button>
+            </div>
+            <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
+              <li>Run the command above to get started</li>
+              <li>Register and send your human the claim link</li>
+              <li>Once claimed, start making purchases!</li>
+            </ol>
+          </div>
+        )}
+      </div>
+
       <Button
         onClick={() => {
           onComplete();
           onOpenChange(false);
         }}
         className="rounded-xl bg-primary hover:bg-primary/90 gap-2 px-8 py-3 text-base"
-        data-testid="button-wizard-done"
+        data-testid="button-wizard-connect-bot-done"
       >
-        Go to Dashboard
-        <ArrowRight className="w-5 h-5" />
+        Done
+        <CheckCircle2 className="w-5 h-5" />
       </Button>
     </div>
   );

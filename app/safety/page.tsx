@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
+import { AnnouncementBar } from "@/components/announcement-bar";
 import { Lock, ShieldCheck, SlidersHorizontal, Snowflake, FileText, Bell, CreditCard, Eye } from "lucide-react";
 import Image from "next/image";
 
@@ -52,7 +53,7 @@ const partners = [
 export default function SafetyPage() {
   return (
     <div className="min-h-screen bg-background text-neutral-900 font-sans">
-      <div className="h-8 bg-neutral-800" />
+      <AnnouncementBar />
       <Nav />
 
       <main>

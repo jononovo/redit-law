@@ -70,7 +70,7 @@ export function LiveMetrics() {
             <div className="text-6xl font-bold text-neutral-800 mb-3 tracking-tight">
               <Counter end={1259} />
             </div>
-            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Waiting for virtual<br/>card issuance</p>
+            <p className="text-neutral-500 text-sm font-medium leading-relaxed">Waiting for<br/>bot wallets</p>
           </div>
 
           <div 

@@ -89,7 +89,7 @@ export function Hero() {
               style={{ animationDelay: '0.2s' }}
               className="text-xl text-neutral-600 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium animate-fade-in-up"
             >
-              Your bot works hard. Let it buy its own API credits (responsibly). Set a weekly allowance and never worry about surprise bills again.
+              Your bot works hard. Give it an allowance with guardrails. Self-hosted cards are live &mdash; wallets and x402 coming next.
             </p>
 
             <div 
@@ -239,7 +239,7 @@ export function Hero() {
                   <div>
                     <p className="font-bold text-neutral-900 text-lg">Keep me on the waitlist</p>
                     <p className="text-sm text-neutral-500 mt-1">
-                      We&apos;ll notify you when virtual cards for bots are ready. No action needed right now.
+                      We&apos;ll notify you when bot wallets are ready. No action needed right now.
                     </p>
                   </div>
                 </div>

@@ -9,8 +9,8 @@ export function AnnouncementBar() {
   if (!visible) return null;
 
   return (
-    <div className="bg-neutral-800 text-white text-xs font-medium py-2 text-center fixed top-0 w-full z-[60]">
-      <span>Now open! Add your card and set spending limits for your bot. Virtual cards coming soon.</span>
+    <div className="bg-neutral-800 text-white text-xs font-medium py-2 text-center relative w-full z-[60]">
+      <span>We are in early beta&nbsp; |&nbsp; Public beta launching on 18th of Feb, 2026</span>
       <button
         onClick={() => setVisible(false)}
         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 hover:text-white transition-colors"

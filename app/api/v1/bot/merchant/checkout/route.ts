@@ -33,9 +33,35 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
     );
   }
 
-  const { profile_index, merchant_name, merchant_url, item_name, amount_cents, category, task_id } = parsed.data;
+  const { profile_index, merchant_name, merchant_url, item_name, amount_cents, category, task_id, card_id } = parsed.data;
 
-  const card = await storage.getRail4CardByBotId(bot.botId);
+  let card;
+  if (card_id) {
+    card = await storage.getRail4CardByCardId(card_id);
+    if (!card || card.botId !== bot.botId) {
+      return NextResponse.json(
+        { error: "card_not_found", message: "Card not found or not linked to this bot." },
+        { status: 404 }
+      );
+    }
+  } else {
+    const botCards = await storage.getRail4CardsByBotId(bot.botId);
+    const activeCards = botCards.filter(c => c.status === "active");
+    if (activeCards.length === 0) {
+      return NextResponse.json(
+        { error: "card_not_active", message: "No active self-hosted card found for this bot." },
+        { status: 403 }
+      );
+    }
+    if (activeCards.length > 1) {
+      return NextResponse.json(
+        { error: "card_id_required", message: "This bot has multiple active cards. Specify card_id in your request.", cards: activeCards.map(c => ({ card_id: c.cardId, card_name: c.cardName })) },
+        { status: 400 }
+      );
+    }
+    card = activeCards[0];
+  }
+
   if (!card || card.status !== "active") {
     return NextResponse.json(
       { error: "card_not_active", message: "Self-hosted card is not active for this bot." },

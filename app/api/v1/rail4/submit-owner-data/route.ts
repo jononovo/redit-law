@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "card_not_found" }, { status: 404 });
   }
 
-  if (card.status === "active") {
-    return NextResponse.json({ error: "already_active" }, { status: 409 });
+  if (card.status === "active" || card.status === "awaiting_bot") {
+    return NextResponse.json({ error: "already_configured" }, { status: 409 });
   }
 
   const ownerIp = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     ...(owner_name ? { ownerName: owner_name } : {}),
     ownerZip: owner_zip,
     ownerIp: ownerIp,
-    status: "active",
+    status: "awaiting_bot",
     profilePermissions: JSON.stringify(updatedPerms),
   };
 
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
   );
 
   return NextResponse.json({
-    status: "active",
-    message: "Self-hosted card is now active. The obfuscation engine will begin generating obfuscation transactions.",
+    status: "awaiting_bot",
+    message: "Card setup complete. Connect your bot to activate the card.",
     payment_profiles_filename: card.decoyFilename,
     payment_profiles_content: paymentProfilesContent,
   });
