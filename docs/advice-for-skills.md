@@ -27,6 +27,12 @@ Skill registries and scanners look for a structured JSON file, not just YAML fro
   "homepage": "https://yourskill.com",
   "api_base": "https://yourskill.com/api",
   "credentials": ["YOUR_SKILL_API_KEY"],
+  "openclaw": {
+    "requires": {
+      "env": ["YOUR_SKILL_API_KEY"]
+    },
+    "primaryEnv": "YOUR_SKILL_API_KEY"
+  },
   "files": {
     "SKILL.md": "https://yourskill.com/skill.md",
     "HEARTBEAT.md": "https://yourskill.com/heartbeat.md"
@@ -36,6 +42,8 @@ Skill registries and scanners look for a structured JSON file, not just YAML fro
 
 Key points:
 - `credentials` must be an **array**, even for a single key: `["KEY_NAME"]`
+- The `openclaw` block is what the registry actually reads. `requires.env` declares required environment variables. `primaryEnv` tells the platform which credential to prompt for during install.
+- Both `credentials` and `openclaw.requires.env` must list the same keys.
 - Every file listed in SKILL.md should also appear in the `files` object
 - Keep the JSON in sync with the SKILL.md frontmatter version
 
@@ -51,10 +59,11 @@ description: What the skill does.
 homepage: https://yourskill.com
 api_base: https://yourskill.com/api
 credentials: [YOUR_SKILL_API_KEY]
+metadata: {"openclaw":{"requires":{"env":["YOUR_SKILL_API_KEY"]},"primaryEnv":"YOUR_SKILL_API_KEY"}}
 ---
 ```
 
-Both the frontmatter AND skill.json must declare credentials. Scanners check both.
+The `metadata` line is a single-line JSON object that mirrors the `openclaw` block from skill.json. The registry reads this to determine required credentials. Both the frontmatter AND skill.json must declare credentials consistently. Scanners check both.
 
 ---
 
@@ -199,10 +208,10 @@ If your skill has a moderation/security system, document the escalation path so 
 
 | Scanner says | What it means | How to fix |
 |---|---|---|
-| "metadata does not list required env vars" | `credentials` missing from frontmatter or skill.json | Add `credentials: [YOUR_KEY]` to both |
+| "metadata does not list required env vars" | Registry can't find `openclaw.requires.env` in skill.json or `metadata` in frontmatter | Add the `openclaw` block to skill.json and `metadata` line to SKILL.md frontmatter |
 | "suggests storing secrets in plaintext file" | You recommended a file path like `~/.config/...` | Change to "use your platform's secure secrets manager" |
 | "autonomous action not gated by human approval" | Skill tells agent to act without asking human first | Change "Do X" to "Ask your human if they'd like you to do X" |
-| "credential metadata mismatch" | skill.json and frontmatter disagree on credentials | Ensure both list the same credential names |
+| "credential metadata mismatch" | skill.json and frontmatter disagree on credentials | Ensure `credentials`, `openclaw.requires.env`, and frontmatter `metadata` all list the same keys |
 | "no machine-readable metadata" | Missing skill.json file | Create and serve a skill.json file |
 
 ---
@@ -219,7 +228,10 @@ When updating skill files:
 ## Checklist Before Publishing
 
 - [ ] SKILL.md frontmatter has `credentials: [KEY_NAME]`
+- [ ] SKILL.md frontmatter has `metadata` line with `openclaw.requires.env` and `primaryEnv`
 - [ ] skill.json exists and declares `credentials: ["KEY_NAME"]`
+- [ ] skill.json has `openclaw` block with `requires.env` and `primaryEnv`
+- [ ] All three credential declarations match: `credentials`, `openclaw.requires.env`, frontmatter `metadata`
 - [ ] Versions match between SKILL.md frontmatter and skill.json
 - [ ] Security warning block is present after auth requirement
 - [ ] Credential storage recommends secure secrets manager (not file paths)
