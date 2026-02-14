@@ -1,6 +1,6 @@
 ---
 name: creditclaw-heartbeat
-version: 2.0.0
+version: 2.0.4
 ---
 
 # CreditClaw Heartbeat (suggested: every 30 minutes)
