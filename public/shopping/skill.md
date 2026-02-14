@@ -1,7 +1,7 @@
 ---
 name: creditclaw-shopping
-version: 2.2.2
-updated: 2026-02-14
+version: 2.2.4
+updated: 2026-02-14T20:45:00Z
 description: "Is your claw a shopaholic? Provide payment wallets and strict controls."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
