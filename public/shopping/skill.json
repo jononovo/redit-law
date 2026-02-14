@@ -1,7 +1,7 @@
 {
-  "name": "creditclaw-shopping",
+  "name": "creditclaw-amazon",
   "version": "2.2.4",
-  "description": "Let your agent buy things online — Amazon, Shopify, and more. Funded wallets with spending guardrails.",
+  "description": "Let your agent shop on Amazon with guardrailed wallets, owner approval, and full order tracking.",
   "author": "creditclaw",
   "homepage": "https://creditclaw.com",
   "api_base": "https://creditclaw.com/api/v1",
@@ -13,8 +13,8 @@
     "primaryEnv": "CREDITCLAW_API_KEY"
   },
   "files": {
-    "SKILL.md": "https://creditclaw.com/shopping/skill.md",
-    "SHOPPING.md": "https://creditclaw.com/shopping/shopping.md",
-    "HEARTBEAT.md": "https://creditclaw.com/shopping/heartbeat.md"
+    "SKILL.md": "https://creditclaw.com/amazon/skill.md",
+    "AMAZON.md": "https://creditclaw.com/amazon/amazon.md",
+    "HEARTBEAT.md": "https://creditclaw.com/amazon/heartbeat.md"
   }
 }
