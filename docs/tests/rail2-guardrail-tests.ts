@@ -1,5 +1,6 @@
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { isApprovalExpired, getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
+import { centsToMicroUsdc, microUsdcToUsd } from "@/lib/guardrails/master";
 
 function runGuardrailTests() {
   const results: { test: string; pass: boolean; error?: string }[] = [];
@@ -100,6 +101,105 @@ function runGuardrailTests() {
   {
     const expired = isApprovalExpired({ expiresAt: new Date(Date.now() - 60000) } as any);
     log("isApprovalExpired returns true for past expiry", expired === true);
+  }
+
+  // ─── Shopify merchant tests ─────────────────────────────────────
+  {
+    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "shopify"] };
+    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Allow shopify on allowlist", result.action === "allow");
+  }
+
+  {
+    const rules = { ...baseRules, allowlistedMerchants: ["amazon"] };
+    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Block shopify when not on allowlist", result.action === "block");
+  }
+
+  {
+    const rules = { ...baseRules, blocklistedMerchants: ["shopify"] };
+    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Block shopify on blocklist", result.action === "block");
+  }
+
+  {
+    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "shopify", "url"] };
+    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "url" }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Allow url merchant on allowlist", result.action === "allow");
+  }
+
+  // ─── Master guardrails utility functions ────────────────────────
+  {
+    log("centsToMicroUsdc(100) = 1_000_000", centsToMicroUsdc(100) === 1_000_000);
+  }
+
+  {
+    log("centsToMicroUsdc(1) = 10_000", centsToMicroUsdc(1) === 10_000);
+  }
+
+  {
+    log("centsToMicroUsdc(0) = 0", centsToMicroUsdc(0) === 0);
+  }
+
+  {
+    log("microUsdcToUsd(1_000_000) = 1", microUsdcToUsd(1_000_000) === 1);
+  }
+
+  {
+    log("microUsdcToUsd(5_500_000) = 5.5", microUsdcToUsd(5_500_000) === 5.5);
+  }
+
+  {
+    log("microUsdcToUsd(0) = 0", microUsdcToUsd(0) === 0);
+  }
+
+  // ─── Master guardrails via evaluateGuardrails (no approval threshold) ───
+  {
+    const masterRules = {
+      maxPerTxUsdc: 50,
+      dailyBudgetUsdc: 200,
+      monthlyBudgetUsdc: 1000,
+      requireApprovalAbove: null as number | null,
+      autoPauseOnZero: false,
+    };
+    const result = evaluateGuardrails(masterRules, { amountUsdc: 10_000_000 }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Master: allow tx within limits", result.action === "allow");
+  }
+
+  {
+    const masterRules = {
+      maxPerTxUsdc: 50,
+      dailyBudgetUsdc: 200,
+      monthlyBudgetUsdc: 1000,
+      requireApprovalAbove: null as number | null,
+      autoPauseOnZero: false,
+    };
+    const result = evaluateGuardrails(masterRules, { amountUsdc: 60_000_000 }, { dailyUsdc: 0, monthlyUsdc: 0 });
+    log("Master: block tx exceeding per-tx max", result.action === "block");
+  }
+
+  {
+    const masterRules = {
+      maxPerTxUsdc: 50,
+      dailyBudgetUsdc: 200,
+      monthlyBudgetUsdc: 1000,
+      requireApprovalAbove: null as number | null,
+      autoPauseOnZero: false,
+    };
+    const result = evaluateGuardrails(masterRules, { amountUsdc: 10_000_000 }, { dailyUsdc: 200_000_000, monthlyUsdc: 200_000_000 });
+    log("Master: block tx exceeding daily budget", result.action === "block");
+  }
+
+  {
+    const masterRules = {
+      maxPerTxUsdc: 50,
+      dailyBudgetUsdc: 200,
+      monthlyBudgetUsdc: 1000,
+      requireApprovalAbove: null as number | null,
+      autoPauseOnZero: false,
+    };
+    const result = evaluateGuardrails(masterRules, { amountUsdc: 10_000_000 }, { dailyUsdc: 0, monthlyUsdc: 1000_000_000 });
+    log("Master: block tx exceeding monthly budget", result.action === "block");
   }
 
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
