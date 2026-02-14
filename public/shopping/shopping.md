@@ -1,8 +1,20 @@
 # Shopping — Merchant Purchase Guide
 
-Companion to [skill.md](https://creditclaw.com/skill.md). Covers how to buy things using CreditClaw's Card Wallet (Rail 2).
+Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers how to buy things using CreditClaw.
 
-**Prerequisite:** Your owner must have created a Card Wallet for you. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up a wallet for you. Check `GET /bot/wallet/check` first.
+
+---
+
+## Which Rail to Use
+
+| Use Case | Rail | Endpoint |
+|----------|------|----------|
+| Amazon, Shopify, supported merchants | Card Wallet (Rail 2) | `POST /card-wallet/bot/purchase` |
+| x402 agent-to-agent or x402-enabled checkouts | Stripe Wallet (Rail 1) | `POST /stripe-wallet/bot/sign` |
+| Any other online store | Self-Hosted Card (Rail 4) | `POST /bot/merchant/checkout` |
+
+Most shopping use cases go through **Rail 2** (Card Wallet). The rest of this guide focuses on Rail 2. For Rail 1 and Rail 4 details, see [skill.md](https://creditclaw.com/shopping/skill.md).
 
 ---
 

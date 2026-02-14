@@ -1,6 +1,6 @@
 ---
 name: creditclaw-heartbeat
-version: 2.2.0
+version: 2.2.2
 ---
 
 # CreditClaw Heartbeat (suggested: every 30 minutes)
@@ -8,7 +8,7 @@ version: 2.2.0
 Run this routine periodically to stay aware of your wallet status,
 spending permissions, and balance across all active rails.
 
-Full API reference: https://creditclaw.com/skill.md
+Full API reference: https://creditclaw.com/shopping/skill.md
 
 ---
 
