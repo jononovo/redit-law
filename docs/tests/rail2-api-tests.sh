@@ -83,9 +83,15 @@ check_status "POST /bot/purchase requires bot auth" "401" "$RESPONSE"
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/card-wallet/bot/purchase/status?transaction_id=1")
 check_status "GET /bot/purchase/status requires bot auth" "401" "$RESPONSE"
 
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{}' "$BASE_URL/api/v1/card-wallet/bot/search")
+check_status "POST /bot/search requires bot auth" "401" "$RESPONSE"
+
 # Bot endpoints should reject invalid tokens
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer invalid_token" -X POST -H "Content-Type: application/json" -d '{}' "$BASE_URL/api/v1/card-wallet/bot/purchase")
 check_status "POST /bot/purchase rejects invalid token" "401" "$RESPONSE"
+
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer invalid_token" -X POST -H "Content-Type: application/json" -d '{}' "$BASE_URL/api/v1/card-wallet/bot/search")
+check_status "POST /bot/search rejects invalid token" "401" "$RESPONSE"
 
 echo ""
 echo "--- Input Validation ---"
@@ -99,6 +105,32 @@ if [ "$STATUS" = "400" ] || [ "$STATUS" = "401" ]; then
 else
   fail "POST /bot/purchase validates input" "Expected 400 or 401, got $STATUS"
 fi
+
+# Bot search with invalid/missing fields
+BODY=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer cck_live_fakefake" -X POST -H "Content-Type: application/json" -d '{"product_url":"not-a-url"}' "$BASE_URL/api/v1/card-wallet/bot/search")
+STATUS=$(echo "$BODY" | tail -1)
+if [ "$STATUS" = "400" ] || [ "$STATUS" = "401" ]; then
+  pass "POST /bot/search validates product_url (HTTP $STATUS)"
+else
+  fail "POST /bot/search validates product_url" "Expected 400 or 401, got $STATUS"
+fi
+
+BODY=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer cck_live_fakefake" -X POST -H "Content-Type: application/json" -d '{}' "$BASE_URL/api/v1/card-wallet/bot/search")
+STATUS=$(echo "$BODY" | tail -1)
+if [ "$STATUS" = "400" ] || [ "$STATUS" = "401" ]; then
+  pass "POST /bot/search rejects missing product_url (HTTP $STATUS)"
+else
+  fail "POST /bot/search rejects missing product_url" "Expected 400 or 401, got $STATUS"
+fi
+
+echo ""
+echo "--- Master Guardrails Authentication ---"
+
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/master-guardrails")
+check_status "GET /master-guardrails requires auth" "401" "$RESPONSE"
+
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" -d '{"enabled":true}' "$BASE_URL/api/v1/master-guardrails")
+check_status "POST /master-guardrails requires auth" "401" "$RESPONSE"
 
 echo ""
 echo "--- Page Rendering ---"

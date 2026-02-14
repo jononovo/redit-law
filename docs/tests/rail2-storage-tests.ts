@@ -197,6 +197,65 @@ async function runStorageTests() {
     log("crossmintGetPendingApprovalsByOwnerUid (after decide)", false, e.message);
   }
 
+  // ─── Master Guardrails Storage Tests ─────────────────────────────
+  const MASTER_TEST_OWNER = "test_master_guardrails_owner";
+
+  try {
+    const config = await storage.getMasterGuardrails(MASTER_TEST_OWNER);
+    log("getMasterGuardrails (non-existent)", config === null);
+  } catch (e: any) {
+    log("getMasterGuardrails (non-existent)", false, e.message);
+  }
+
+  try {
+    const config = await storage.upsertMasterGuardrails(MASTER_TEST_OWNER, {
+      maxPerTxUsdc: 50,
+      dailyBudgetUsdc: 200,
+      monthlyBudgetUsdc: 1000,
+      enabled: true,
+    });
+    log("upsertMasterGuardrails (create)", !!config && config.maxPerTxUsdc === 50 && config.enabled === true);
+  } catch (e: any) {
+    log("upsertMasterGuardrails (create)", false, e.message);
+  }
+
+  try {
+    const config = await storage.getMasterGuardrails(MASTER_TEST_OWNER);
+    log("getMasterGuardrails (exists)", !!config && config.maxPerTxUsdc === 50);
+  } catch (e: any) {
+    log("getMasterGuardrails (exists)", false, e.message);
+  }
+
+  try {
+    const config = await storage.upsertMasterGuardrails(MASTER_TEST_OWNER, {
+      dailyBudgetUsdc: 500,
+    });
+    log("upsertMasterGuardrails (update)", !!config && config.dailyBudgetUsdc === 500 && config.maxPerTxUsdc === 50);
+  } catch (e: any) {
+    log("upsertMasterGuardrails (update)", false, e.message);
+  }
+
+  try {
+    const daily = await storage.getMasterDailySpend(MASTER_TEST_OWNER);
+    log("getMasterDailySpend returns breakdown", typeof daily.total === "number" && typeof daily.rail1 === "number" && typeof daily.rail2 === "number" && typeof daily.rail4 === "number");
+  } catch (e: any) {
+    log("getMasterDailySpend returns breakdown", false, e.message);
+  }
+
+  try {
+    const monthly = await storage.getMasterMonthlySpend(MASTER_TEST_OWNER);
+    log("getMasterMonthlySpend returns breakdown", typeof monthly.total === "number" && typeof monthly.rail1 === "number" && typeof monthly.rail2 === "number" && typeof monthly.rail4 === "number");
+  } catch (e: any) {
+    log("getMasterMonthlySpend returns breakdown", false, e.message);
+  }
+
+  try {
+    const config = await storage.upsertMasterGuardrails(MASTER_TEST_OWNER, { enabled: false });
+    log("upsertMasterGuardrails (disable)", !!config && config.enabled === false);
+  } catch (e: any) {
+    log("upsertMasterGuardrails (disable)", false, e.message);
+  }
+
   console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   const passed = results.filter(r => r.pass).length;
   const failed = results.filter(r => !r.pass).length;
