@@ -4,6 +4,8 @@ import { privyBotSignSchema } from "@/shared/schema";
 import { signTypedData } from "@/lib/stripe-wallet/server";
 import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc } from "@/lib/stripe-wallet/x402";
 import { authenticateBot } from "@/lib/bot-auth";
+import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 
 async function handler(request: NextRequest, botId: string) {
   try {
@@ -55,7 +57,7 @@ async function handler(request: NextRequest, botId: string) {
             transactionId: tx.id,
             amountUsdc: amount_usdc,
             resourceUrl: resource_url,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+            expiresAt: getApprovalExpiresAt(RAIL1_APPROVAL_TTL_MINUTES),
           });
 
           return NextResponse.json({
@@ -64,73 +66,54 @@ async function handler(request: NextRequest, botId: string) {
           }, { status: 202 });
         }
       }
-
-      // auto_approve_by_category: x402 payments don't carry category metadata,
-      // so category-based approval doesn't apply here. Fall through to Rail 1
-      // guardrails where domain allow/blocklist serves a similar filtering purpose.
     }
-    // If no spending_permissions row exists, skip global approval_mode enforcement
-    // and rely on Rail 1 guardrails below (preserves behavior for legacy bots).
 
     const guardrails = await storage.privyGetGuardrails(wallet.id);
 
     if (guardrails) {
-      const maxPerTxMicro = usdToMicroUsdc(guardrails.maxPerTxUsdc);
-      if (amount_usdc > maxPerTxMicro) {
-        return NextResponse.json({ error: "Amount exceeds per-transaction limit", max: guardrails.maxPerTxUsdc }, { status: 403 });
-      }
-
       const dailySpend = await storage.privyGetDailySpend(wallet.id);
-      const dailyLimitMicro = usdToMicroUsdc(guardrails.dailyBudgetUsdc);
-      if (dailySpend + amount_usdc > dailyLimitMicro) {
-        return NextResponse.json({ error: "Would exceed daily budget" }, { status: 403 });
-      }
-
       const monthlySpend = await storage.privyGetMonthlySpend(wallet.id);
-      const monthlyLimitMicro = usdToMicroUsdc(guardrails.monthlyBudgetUsdc);
-      if (monthlySpend + amount_usdc > monthlyLimitMicro) {
-        return NextResponse.json({ error: "Would exceed monthly budget" }, { status: 403 });
+
+      const decision = evaluateGuardrails(
+        {
+          maxPerTxUsdc: guardrails.maxPerTxUsdc,
+          dailyBudgetUsdc: guardrails.dailyBudgetUsdc,
+          monthlyBudgetUsdc: guardrails.monthlyBudgetUsdc,
+          requireApprovalAbove: guardrails.requireApprovalAbove,
+          allowlistedDomains: guardrails.allowlistedDomains as string[] | undefined,
+          blocklistedDomains: guardrails.blocklistedDomains as string[] | undefined,
+          autoPauseOnZero: guardrails.autoPauseOnZero,
+        },
+        { amountUsdc: amount_usdc, resourceUrl: resource_url },
+        { dailyUsdc: dailySpend, monthlyUsdc: monthlySpend }
+      );
+
+      if (decision.action === "block") {
+        return NextResponse.json({ error: decision.reason }, { status: 403 });
       }
 
-      if (guardrails.allowlistedDomains && (guardrails.allowlistedDomains as string[]).length > 0) {
-        const domain = new URL(resource_url).hostname;
-        if (!(guardrails.allowlistedDomains as string[]).includes(domain)) {
-          return NextResponse.json({ error: "Domain not on allowlist" }, { status: 403 });
-        }
-      }
+      if (decision.action === "require_approval") {
+        const tx = await storage.privyCreateTransaction({
+          walletId: wallet.id,
+          type: "x402_payment",
+          amountUsdc: amount_usdc,
+          recipientAddress: recipient_address,
+          resourceUrl: resource_url,
+          status: "requires_approval",
+        });
 
-      if (guardrails.blocklistedDomains && (guardrails.blocklistedDomains as string[]).length > 0) {
-        const domain = new URL(resource_url).hostname;
-        if ((guardrails.blocklistedDomains as string[]).includes(domain)) {
-          return NextResponse.json({ error: "Domain is blocklisted" }, { status: 403 });
-        }
-      }
+        const approval = await storage.privyCreateApproval({
+          walletId: wallet.id,
+          transactionId: tx.id,
+          amountUsdc: amount_usdc,
+          resourceUrl: resource_url,
+          expiresAt: getApprovalExpiresAt(RAIL1_APPROVAL_TTL_MINUTES),
+        });
 
-      if (guardrails.requireApprovalAbove !== null && guardrails.requireApprovalAbove !== undefined) {
-        const approvalThresholdMicro = usdToMicroUsdc(guardrails.requireApprovalAbove);
-        if (amount_usdc >= approvalThresholdMicro) {
-          const tx = await storage.privyCreateTransaction({
-            walletId: wallet.id,
-            type: "x402_payment",
-            amountUsdc: amount_usdc,
-            recipientAddress: recipient_address,
-            resourceUrl: resource_url,
-            status: "requires_approval",
-          });
-
-          const approval = await storage.privyCreateApproval({
-            walletId: wallet.id,
-            transactionId: tx.id,
-            amountUsdc: amount_usdc,
-            resourceUrl: resource_url,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-          });
-
-          return NextResponse.json({
-            status: "awaiting_approval",
-            approval_id: approval.id,
-          }, { status: 202 });
-        }
+        return NextResponse.json({
+          status: "awaiting_approval",
+          approval_id: approval.id,
+        }, { status: 202 });
       }
     }
 

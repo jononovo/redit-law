@@ -4,6 +4,7 @@ import {
   notificationPreferences, notifications, reconciliationLogs, paymentLinks, pairingCodes, waitlistEntries,
   rail4Cards, obfuscationEvents, obfuscationState, profileAllowanceUsage, checkoutConfirmations,
   privyWallets, privyGuardrails, privyTransactions, privyApprovals,
+  crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -27,6 +28,10 @@ import {
   type PrivyGuardrail, type InsertPrivyGuardrail,
   type PrivyTransaction, type InsertPrivyTransaction,
   type PrivyApproval, type InsertPrivyApproval,
+  type CrossmintWallet, type InsertCrossmintWallet,
+  type CrossmintGuardrail, type InsertCrossmintGuardrail,
+  type CrossmintTransaction, type InsertCrossmintTransaction,
+  type CrossmintApproval, type InsertCrossmintApproval,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -105,6 +110,29 @@ export interface IStorage {
   freezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
   unfreezeWallet(walletId: number, ownerUid: string): Promise<Wallet | null>;
   getWalletsWithBotsByOwnerUid(ownerUid: string): Promise<(Wallet & { botName: string; botId: string })[]>;
+
+  // ─── Rail 2: Card Wallet (CrossMint + Commerce) ──────────────────
+  crossmintCreateWallet(data: InsertCrossmintWallet): Promise<CrossmintWallet>;
+  crossmintGetWalletById(id: number): Promise<CrossmintWallet | null>;
+  crossmintGetWalletByBotId(botId: string): Promise<CrossmintWallet | null>;
+  crossmintGetWalletsByOwnerUid(ownerUid: string): Promise<CrossmintWallet[]>;
+  crossmintUpdateWalletBalance(id: number, balanceUsdc: number): Promise<CrossmintWallet | null>;
+  crossmintUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<CrossmintWallet | null>;
+
+  crossmintGetGuardrails(walletId: number): Promise<CrossmintGuardrail | null>;
+  crossmintUpsertGuardrails(walletId: number, data: Partial<InsertCrossmintGuardrail>): Promise<CrossmintGuardrail>;
+
+  crossmintCreateTransaction(data: InsertCrossmintTransaction): Promise<CrossmintTransaction>;
+  crossmintGetTransactionsByWalletId(walletId: number, limit?: number): Promise<CrossmintTransaction[]>;
+  crossmintGetTransactionById(id: number): Promise<CrossmintTransaction | null>;
+  crossmintUpdateTransaction(id: number, data: Partial<InsertCrossmintTransaction>): Promise<CrossmintTransaction | null>;
+  crossmintGetDailySpend(walletId: number): Promise<number>;
+  crossmintGetMonthlySpend(walletId: number): Promise<number>;
+
+  crossmintCreateApproval(data: InsertCrossmintApproval): Promise<CrossmintApproval>;
+  crossmintGetApproval(id: number): Promise<CrossmintApproval | null>;
+  crossmintGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<CrossmintApproval[]>;
+  crossmintDecideApproval(id: number, decision: string, decidedBy: string): Promise<CrossmintApproval | null>;
 
   // ─── Rail 1: Stripe Wallet (Privy + x402) ─────────────────────────
   privyCreateWallet(data: InsertPrivyWallet): Promise<PrivyWallet>;
@@ -1097,6 +1125,159 @@ export const storage: IStorage = {
       .update(privyApprovals)
       .set({ status: decision, decidedAt: new Date(), decidedBy })
       .where(and(eq(privyApprovals.id, id), eq(privyApprovals.status, "pending")))
+      .returning();
+    return updated || null;
+  },
+
+  // ─── Rail 2: Card Wallet (CrossMint + Commerce) ─────────────────────────
+
+  async crossmintCreateWallet(data: InsertCrossmintWallet): Promise<CrossmintWallet> {
+    const [wallet] = await db.insert(crossmintWallets).values(data).returning();
+    return wallet;
+  },
+
+  async crossmintGetWalletById(id: number): Promise<CrossmintWallet | null> {
+    const [wallet] = await db.select().from(crossmintWallets).where(eq(crossmintWallets.id, id)).limit(1);
+    return wallet || null;
+  },
+
+  async crossmintGetWalletByBotId(botId: string): Promise<CrossmintWallet | null> {
+    const [wallet] = await db.select().from(crossmintWallets).where(eq(crossmintWallets.botId, botId)).limit(1);
+    return wallet || null;
+  },
+
+  async crossmintGetWalletsByOwnerUid(ownerUid: string): Promise<CrossmintWallet[]> {
+    return db.select().from(crossmintWallets).where(eq(crossmintWallets.ownerUid, ownerUid)).orderBy(desc(crossmintWallets.createdAt));
+  },
+
+  async crossmintUpdateWalletBalance(id: number, balanceUsdc: number): Promise<CrossmintWallet | null> {
+    const [updated] = await db
+      .update(crossmintWallets)
+      .set({ balanceUsdc, updatedAt: new Date() })
+      .where(eq(crossmintWallets.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<CrossmintWallet | null> {
+    const [updated] = await db
+      .update(crossmintWallets)
+      .set({ status, updatedAt: new Date() })
+      .where(and(eq(crossmintWallets.id, id), eq(crossmintWallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintGetGuardrails(walletId: number): Promise<CrossmintGuardrail | null> {
+    const [g] = await db.select().from(crossmintGuardrails).where(eq(crossmintGuardrails.walletId, walletId)).limit(1);
+    return g || null;
+  },
+
+  async crossmintUpsertGuardrails(walletId: number, data: Partial<InsertCrossmintGuardrail>): Promise<CrossmintGuardrail> {
+    const existing = await this.crossmintGetGuardrails(walletId);
+    if (existing) {
+      const [updated] = await db
+        .update(crossmintGuardrails)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(crossmintGuardrails.walletId, walletId))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(crossmintGuardrails)
+      .values({ walletId, ...data })
+      .returning();
+    return created;
+  },
+
+  async crossmintCreateTransaction(data: InsertCrossmintTransaction): Promise<CrossmintTransaction> {
+    const [tx] = await db.insert(crossmintTransactions).values(data).returning();
+    return tx;
+  },
+
+  async crossmintGetTransactionsByWalletId(walletId: number, limit = 50): Promise<CrossmintTransaction[]> {
+    return db
+      .select()
+      .from(crossmintTransactions)
+      .where(eq(crossmintTransactions.walletId, walletId))
+      .orderBy(desc(crossmintTransactions.createdAt))
+      .limit(limit);
+  },
+
+  async crossmintGetTransactionById(id: number): Promise<CrossmintTransaction | null> {
+    const [tx] = await db.select().from(crossmintTransactions).where(eq(crossmintTransactions.id, id)).limit(1);
+    return tx || null;
+  },
+
+  async crossmintUpdateTransaction(id: number, data: Partial<InsertCrossmintTransaction>): Promise<CrossmintTransaction | null> {
+    const [updated] = await db
+      .update(crossmintTransactions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(crossmintTransactions.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintGetDailySpend(walletId: number): Promise<number> {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const [result] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${crossmintTransactions.amountUsdc}), 0)` })
+      .from(crossmintTransactions)
+      .where(and(
+        eq(crossmintTransactions.walletId, walletId),
+        eq(crossmintTransactions.type, "purchase"),
+        gte(crossmintTransactions.createdAt, startOfDay),
+        sql`${crossmintTransactions.status} NOT IN ('failed')`
+      ));
+    return Number(result?.total || 0);
+  },
+
+  async crossmintGetMonthlySpend(walletId: number): Promise<number> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const [result] = await db
+      .select({ total: sql<number>`COALESCE(SUM(${crossmintTransactions.amountUsdc}), 0)` })
+      .from(crossmintTransactions)
+      .where(and(
+        eq(crossmintTransactions.walletId, walletId),
+        eq(crossmintTransactions.type, "purchase"),
+        gte(crossmintTransactions.createdAt, startOfMonth),
+        sql`${crossmintTransactions.status} NOT IN ('failed')`
+      ));
+    return Number(result?.total || 0);
+  },
+
+  async crossmintCreateApproval(data: InsertCrossmintApproval): Promise<CrossmintApproval> {
+    const [approval] = await db.insert(crossmintApprovals).values(data).returning();
+    return approval;
+  },
+
+  async crossmintGetApproval(id: number): Promise<CrossmintApproval | null> {
+    const [approval] = await db.select().from(crossmintApprovals).where(eq(crossmintApprovals.id, id)).limit(1);
+    return approval || null;
+  },
+
+  async crossmintGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<CrossmintApproval[]> {
+    const walletList = await this.crossmintGetWalletsByOwnerUid(ownerUid);
+    if (walletList.length === 0) return [];
+    const walletIds = walletList.map(w => w.id);
+    return db
+      .select()
+      .from(crossmintApprovals)
+      .where(and(
+        inArray(crossmintApprovals.walletId, walletIds),
+        eq(crossmintApprovals.status, "pending"),
+      ))
+      .orderBy(desc(crossmintApprovals.createdAt));
+  },
+
+  async crossmintDecideApproval(id: number, decision: string, decidedBy: string): Promise<CrossmintApproval | null> {
+    const [updated] = await db
+      .update(crossmintApprovals)
+      .set({ status: decision, decidedAt: new Date(), decidedBy })
+      .where(and(eq(crossmintApprovals.id, id), eq(crossmintApprovals.status, "pending")))
       .returning();
     return updated || null;
   },

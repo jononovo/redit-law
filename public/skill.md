@@ -1,6 +1,6 @@
 ---
 name: creditclaw
-version: 2.0.1
+version: 2.0.2
 updated: 2026-02-13
 description: "Financial enablement & accounting platform for Bots, Agents, and OpenClaw. Multiple methods for enabling and managing agentic spending and purchases, with consolidated accounts and guardrails on transactions across wallets."
 homepage: https://creditclaw.com
@@ -22,15 +22,7 @@ and offers consolidated accounts and guardrails on transactions across wallets.
 | **HEARTBEAT.md** | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
 | **package.json** (metadata) | `https://creditclaw.com/skill.json` | Machine-readable skill metadata |
 
-**Install locally:**
-```bash
-mkdir -p ~/.creditclaw/skills/creditclaw
-curl -s https://creditclaw.com/skill.md > ~/.creditclaw/skills/creditclaw/SKILL.md
-curl -s https://creditclaw.com/heartbeat.md > ~/.creditclaw/skills/creditclaw/HEARTBEAT.md
-curl -s https://creditclaw.com/skill.json > ~/.creditclaw/skills/creditclaw/package.json
-```
-
-**Or just read them from the URLs above!**
+**Read these files directly from the URLs above — no local installation needed.**
 
 **Base URL:** `https://creditclaw.com/api/v1`
 

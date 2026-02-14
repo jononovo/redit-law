@@ -56,6 +56,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/app/card-wallet/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/app/card-wallet">> = Specific
+  const handler = {} as typeof import("../../../app/app/card-wallet/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/app/cards/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/app/cards">> = Specific
@@ -357,6 +366,105 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bots/spending">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/bots/spending/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/approvals/decide/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/approvals/decide">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/approvals/decide/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/approvals/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/approvals">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/approvals/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/balance/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/balance">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/balance/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/bot/purchase/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/bot/purchase">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/bot/purchase/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/bot/purchase/status/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/bot/purchase/status">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/bot/purchase/status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/create/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/create">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/create/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/freeze/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/freeze">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/freeze/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/guardrails/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/guardrails">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/guardrails/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/list/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/list">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/list/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/onramp/session/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/onramp/session">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/onramp/session/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/transactions/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/transactions">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/transactions/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
