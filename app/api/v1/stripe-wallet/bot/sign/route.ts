@@ -24,6 +24,54 @@ async function handler(request: NextRequest, botId: string) {
       return NextResponse.json({ error: "Wallet is not active", status: wallet.status }, { status: 403 });
     }
 
+    const permissions = await storage.getSpendingPermissions(botId);
+
+    if (permissions) {
+      const approvalMode = permissions.approvalMode ?? "ask_for_everything";
+
+      if (approvalMode === "ask_for_everything") {
+        return NextResponse.json({
+          error: "requires_owner_approval",
+          approval_mode: "ask_for_everything",
+          message: "Your owner requires approval for all transactions. This setting can be changed from the dashboard."
+        }, { status: 403 });
+      }
+
+      if (approvalMode === "auto_approve_under_threshold") {
+        const thresholdCents = permissions.askApprovalAboveCents ?? 1000;
+        const thresholdMicro = usdToMicroUsdc(thresholdCents / 100);
+        if (amount_usdc > thresholdMicro) {
+          const tx = await storage.privyCreateTransaction({
+            walletId: wallet.id,
+            type: "x402_payment",
+            amountUsdc: amount_usdc,
+            recipientAddress: recipient_address,
+            resourceUrl: resource_url,
+            status: "requires_approval",
+          });
+
+          const approval = await storage.privyCreateApproval({
+            walletId: wallet.id,
+            transactionId: tx.id,
+            amountUsdc: amount_usdc,
+            resourceUrl: resource_url,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          });
+
+          return NextResponse.json({
+            status: "awaiting_approval",
+            approval_id: approval.id,
+          }, { status: 202 });
+        }
+      }
+
+      // auto_approve_by_category: x402 payments don't carry category metadata,
+      // so category-based approval doesn't apply here. Fall through to Rail 1
+      // guardrails where domain allow/blocklist serves a similar filtering purpose.
+    }
+    // If no spending_permissions row exists, skip global approval_mode enforcement
+    // and rely on Rail 1 guardrails below (preserves behavior for legacy bots).
+
     const guardrails = await storage.privyGetGuardrails(wallet.id);
 
     if (guardrails) {
