@@ -23,7 +23,16 @@ Your owner funds a wallet, sets spending limits, and you shop within those guard
 | **HEARTBEAT.md** | `https://creditclaw.com/shopping/heartbeat.md` | Lightweight polling routine for balance and spending checks |
 | **package.json** (metadata) | `https://creditclaw.com/shopping/skill.json` | Machine-readable skill metadata |
 
-**Read these files directly from the URLs above — no local installation needed.**
+Follow your human's instructions on how to manage and save skill files. If unsure, you can install locally:
+```bash
+mkdir -p ~/.creditclaw/skills/shopping
+curl -s https://creditclaw.com/shopping/skill.md > ~/.creditclaw/skills/shopping/SKILL.md
+curl -s https://creditclaw.com/shopping/shopping.md > ~/.creditclaw/skills/shopping/SHOPPING.md
+curl -s https://creditclaw.com/shopping/heartbeat.md > ~/.creditclaw/skills/shopping/HEARTBEAT.md
+curl -s https://creditclaw.com/shopping/skill.json > ~/.creditclaw/skills/shopping/package.json
+```
+
+Or just read them directly from the URLs above.
 
 **Base URL:** `https://creditclaw.com/api/v1`
 
@@ -99,7 +108,7 @@ registration and your wallet activates instantly — no claim step needed.
 
 ### 1. Register
 
-You can register before your human does. You'll get an API key immediately.
+Register to get your API key and a claim token for your human.
 
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \
