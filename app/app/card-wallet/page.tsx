@@ -808,7 +808,7 @@ export default function CardWalletPage() {
               <Input
                 value={guardrailForm.allowlisted_merchants}
                 onChange={(e) => setGuardrailForm({ ...guardrailForm, allowlisted_merchants: e.target.value })}
-                placeholder="amazon, walmart"
+                placeholder="amazon, shopify"
                 data-testid="input-allowlisted-merchants"
               />
               <p className="text-xs text-neutral-400 mt-1">Leave empty to allow all merchants</p>
