@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { storage } from "@/server/storage";
+import { fireWebhook, type WebhookEventType } from "@/lib/webhooks";
 
 const WEBHOOK_SECRET = process.env.CROSSMINT_WEBHOOK_SECRET;
 
@@ -12,6 +13,13 @@ const EVENT_STATUS_MAP: Record<string, { orderStatus: string; status?: string }>
   "orders.delivery.initiated": { orderStatus: "shipped" },
   "orders.delivery.completed": { orderStatus: "delivered" },
   "orders.delivery.failed": { orderStatus: "delivery_failed", status: "failed" },
+};
+
+const BOT_WEBHOOK_MAP: Record<string, WebhookEventType> = {
+  "orders.delivery.initiated": "order.shipped",
+  "orders.delivery.completed": "order.delivered",
+  "orders.payment.failed": "order.failed",
+  "orders.delivery.failed": "order.failed",
 };
 
 export async function POST(request: NextRequest) {
@@ -107,6 +115,23 @@ export async function POST(request: NextRequest) {
     await storage.crossmintUpdateTransaction(transaction.id, updates);
 
     console.log(`[Card Wallet Webhook] Updated transaction ${transaction.id}: orderStatus=${mapping.orderStatus}${mapping.status ? `, status=${mapping.status}` : ""}`);
+
+    const botEventType = BOT_WEBHOOK_MAP[eventType];
+    if (botEventType) {
+      const wallet = await storage.crossmintGetWalletById(transaction.walletId);
+      if (wallet) {
+        const bot = await storage.getBotByBotId(wallet.botId);
+        if (bot) {
+          fireWebhook(bot, botEventType, {
+            transaction_id: transaction.id,
+            order_id: orderId,
+            order_status: mapping.orderStatus,
+            product_name: transaction.productName,
+            tracking: (updates.trackingInfo as Record<string, unknown>) || transaction.trackingInfo || null,
+          }).catch(() => {});
+        }
+      }
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {

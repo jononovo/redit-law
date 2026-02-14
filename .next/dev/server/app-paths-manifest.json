@@ -1,4 +1,16 @@
 {
   "/api/auth/session/route": "app/api/auth/session/route.js",
+  "/api/v1/card-wallet/approvals/decide/route": "app/api/v1/card-wallet/approvals/decide/route.js",
+  "/api/v1/card-wallet/approvals/route": "app/api/v1/card-wallet/approvals/route.js",
+  "/api/v1/card-wallet/balance/route": "app/api/v1/card-wallet/balance/route.js",
+  "/api/v1/card-wallet/bot/purchase/route": "app/api/v1/card-wallet/bot/purchase/route.js",
+  "/api/v1/card-wallet/bot/purchase/status/route": "app/api/v1/card-wallet/bot/purchase/status/route.js",
+  "/api/v1/card-wallet/create/route": "app/api/v1/card-wallet/create/route.js",
+  "/api/v1/card-wallet/freeze/route": "app/api/v1/card-wallet/freeze/route.js",
+  "/api/v1/card-wallet/guardrails/route": "app/api/v1/card-wallet/guardrails/route.js",
+  "/api/v1/card-wallet/list/route": "app/api/v1/card-wallet/list/route.js",
+  "/api/v1/card-wallet/onramp/session/route": "app/api/v1/card-wallet/onramp/session/route.js",
+  "/api/v1/card-wallet/transactions/route": "app/api/v1/card-wallet/transactions/route.js",
+  "/app/card-wallet/page": "app/app/card-wallet/page.js",
   "/page": "app/page.js"
 }
