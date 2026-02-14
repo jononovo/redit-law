@@ -165,11 +165,16 @@
     --color-indigo-200: #c7d2ff;
     --color-indigo-600: #4f39f6;
     --color-indigo-700: #432dd7;
+    --color-indigo-800: #372aac;
+    --color-indigo-900: #312c85;
     --color-violet-50: #f5f3ff;
     --color-violet-100: #ede9fe;
+    --color-violet-200: #ddd6ff;
     --color-violet-300: #c4b4ff;
+    --color-violet-400: #a685ff;
     --color-violet-500: #8d54ff;
     --color-violet-600: #7f22fe;
+    --color-violet-700: #7008e7;
     --color-purple-50: #faf5ff;
     --color-purple-100: #f3e8ff;
     --color-purple-200: #e9d5ff;
@@ -332,11 +337,16 @@
       --color-indigo-200: lab(84.4329% 3.18977 -23.9688);
       --color-indigo-600: lab(38.4009% 52.6132 -92.3857);
       --color-indigo-700: lab(32.4486% 49.2217 -84.6695);
+      --color-indigo-800: lab(26.6645% 37.9804 -68.6402);
+      --color-indigo-900: lab(23.3911% 24.6978 -50.4718);
       --color-violet-50: lab(96.2416% 2.28849 -5.51657);
       --color-violet-100: lab(93.0838% 4.35197 -9.88284);
+      --color-violet-200: lab(87.0888% 8.53688 -19.4189);
       --color-violet-300: lab(76.7419% 18.3911 -37.0706);
+      --color-violet-400: lab(62.8239% 34.9159 -60.0512);
       --color-violet-500: lab(49.9355% 55.1776 -81.8963);
       --color-violet-600: lab(41.088% 68.9966 -91.995);
+      --color-violet-700: lab(35.2783% 67.9912 -88.793);
       --color-purple-50: lab(97.1627% 2.99937 -4.13398);
       --color-purple-100: lab(93.3333% 6.97437 -9.83434);
       --color-purple-200: lab(87.8405% 13.4282 -18.7159);
@@ -842,6 +852,10 @@
 
   .bottom-20 {
     bottom: calc(var(--spacing) * 20);
+  }
+
+  .-left-1\/2 {
+    left: -50%;
   }
 
   .-left-8 {
@@ -2664,6 +2678,10 @@
     border-color: var(--color-green-800);
   }
 
+  .border-indigo-100 {
+    border-color: var(--color-indigo-100);
+  }
+
   .border-indigo-200 {
     border-color: var(--color-indigo-200);
   }
@@ -2740,6 +2758,10 @@
 
   .border-transparent {
     border-color: #0000;
+  }
+
+  .border-violet-200 {
+    border-color: var(--color-violet-200);
   }
 
   .border-violet-300\/30 {
@@ -3332,6 +3354,14 @@
     background-color: var(--color-violet-50);
   }
 
+  .bg-violet-100 {
+    background-color: var(--color-violet-100);
+  }
+
+  .bg-violet-400 {
+    background-color: var(--color-violet-400);
+  }
+
   .bg-violet-500\/20 {
     background-color: #8d54ff33;
   }
@@ -3340,6 +3370,10 @@
     .bg-violet-500\/20 {
       background-color: color-mix(in oklab, var(--color-violet-500) 20%, transparent);
     }
+  }
+
+  .bg-violet-600 {
+    background-color: var(--color-violet-600);
   }
 
   .bg-white {
@@ -4353,6 +4387,14 @@
     color: var(--color-indigo-700);
   }
 
+  .text-indigo-800 {
+    color: var(--color-indigo-800);
+  }
+
+  .text-indigo-900 {
+    color: var(--color-indigo-900);
+  }
+
   .text-inherit {
     color: inherit;
   }
@@ -4471,6 +4513,10 @@
 
   .text-violet-600 {
     color: var(--color-violet-600);
+  }
+
+  .text-violet-700 {
+    color: var(--color-violet-700);
   }
 
   .text-white {
@@ -4836,6 +4882,16 @@
     }
   }
 
+  .shadow-violet-600\/20 {
+    --tw-shadow-color: #7f22fe33;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .shadow-violet-600\/20 {
+      --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-violet-600) 20%, transparent) var(--tw-shadow-alpha), transparent);
+    }
+  }
+
   .ring-amber-100 {
     --tw-ring-color: var(--color-amber-100);
   }
@@ -4866,6 +4922,10 @@
 
   .ring-ring {
     --tw-ring-color: hsl(var(--ring));
+  }
+
+  .ring-violet-200 {
+    --tw-ring-color: var(--color-violet-200);
   }
 
   .ring-offset-background {
@@ -5947,6 +6007,18 @@
   }
 
   @media (hover: hover) {
+    .hover\:border-violet-100:hover {
+      border-color: var(--color-violet-100);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:border-violet-200:hover {
+      border-color: var(--color-violet-200);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:bg-accent:hover {
       background-color: hsl(var(--accent));
     }
@@ -6091,6 +6163,18 @@
   }
 
   @media (hover: hover) {
+    .hover\:bg-violet-50:hover {
+      background-color: var(--color-violet-50);
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:bg-violet-700:hover {
+      background-color: var(--color-violet-700);
+    }
+  }
+
+  @media (hover: hover) {
     .hover\:bg-white:hover {
       background-color: var(--color-white);
     }
@@ -6129,6 +6213,12 @@
   @media (hover: hover) {
     .hover\:text-foreground:hover {
       color: hsl(var(--foreground));
+    }
+  }
+
+  @media (hover: hover) {
+    .hover\:text-indigo-900:hover {
+      color: var(--color-indigo-900);
     }
   }
 
@@ -7130,6 +7220,12 @@
   @media (min-width: 40rem) {
     .sm\:max-w-2xl {
       max-width: var(--container-2xl);
+    }
+  }
+
+  @media (min-width: 40rem) {
+    .sm\:max-w-lg {
+      max-width: var(--container-lg);
     }
   }
 
