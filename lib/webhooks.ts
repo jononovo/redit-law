@@ -18,7 +18,13 @@ export type WebhookEventType =
   | "wallet.spend.authorized"
   | "wallet.spend.declined"
   | "wallet.balance.low"
-  | "wallet.payment.received";
+  | "wallet.payment.received"
+  | "purchase.approved"
+  | "purchase.rejected"
+  | "purchase.expired"
+  | "order.shipped"
+  | "order.delivered"
+  | "order.failed";
 
 interface WebhookPayload {
   event: WebhookEventType;

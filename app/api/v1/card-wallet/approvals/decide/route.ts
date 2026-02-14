@@ -4,6 +4,7 @@ import { storage } from "@/server/storage";
 import { crossmintApprovalDecideSchema } from "@/shared/schema";
 import { isApprovalExpired } from "@/lib/approvals/lifecycle";
 import { createPurchaseOrder } from "@/lib/card-wallet/purchase";
+import { fireWebhook } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,15 +31,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    const bot = await storage.getBotByBotId(wallet.botId);
+
     if (isApprovalExpired(approval)) {
       await storage.crossmintDecideApproval(approval_id, "expired", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
+      if (bot) {
+        fireWebhook(bot, "purchase.expired", {
+          approval_id,
+          product_name: approval.productName,
+          product_locator: approval.productLocator,
+        }).catch(() => {});
+      }
       return NextResponse.json({ error: "Approval has expired" }, { status: 410 });
     }
 
     if (decision === "reject") {
       const updated = await storage.crossmintDecideApproval(approval_id, "rejected", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
+      if (bot) {
+        fireWebhook(bot, "purchase.rejected", {
+          approval_id,
+          product_name: approval.productName,
+          product_locator: approval.productLocator,
+        }).catch(() => {});
+      }
       return NextResponse.json({
         approval: { id: updated?.id, status: updated?.status, decided_at: updated?.decidedAt },
       });
@@ -60,7 +77,6 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const bot = await storage.getBotByBotId(wallet.botId);
       const ownerEmail = user.email || bot?.ownerEmail || "";
 
       const result = await createPurchaseOrder({
@@ -77,6 +93,17 @@ export async function POST(request: NextRequest) {
         status: "confirmed",
         orderStatus: "processing",
       });
+
+      if (bot) {
+        fireWebhook(bot, "purchase.approved", {
+          approval_id,
+          transaction_id: transaction.id,
+          order_id: result.orderId,
+          product_name: transaction.productName,
+          product_locator: transaction.productLocator,
+          amount_usdc: transaction.amountUsdc,
+        }).catch(() => {});
+      }
 
       return NextResponse.json({
         approval: { id: updatedApproval?.id, status: updatedApproval?.status, decided_at: updatedApproval?.decidedAt },

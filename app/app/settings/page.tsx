@@ -1,13 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone } from "lucide-react";
 
 interface Preferences {
   transaction_alerts: boolean;
@@ -17,6 +19,245 @@ interface Preferences {
   balance_low_usd: number;
   email_enabled: boolean;
   in_app_enabled: boolean;
+}
+
+interface MasterGuardrailsData {
+  config: {
+    max_per_tx_usdc: number;
+    daily_budget_usdc: number;
+    monthly_budget_usdc: number;
+    enabled: boolean;
+  } | null;
+  spend: {
+    daily: { rail1_usd: number; rail2_usd: number; rail4_usd: number; total_usd: number };
+    monthly: { rail1_usd: number; rail2_usd: number; rail4_usd: number; total_usd: number };
+  };
+}
+
+function SpendProgressBar({ spent, budget, label }: { spent: number; budget: number; label: string }) {
+  const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+  const isWarning = pct >= 80;
+  const isDanger = pct >= 95;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-neutral-600">{label}</span>
+        <span className={`font-medium ${isDanger ? "text-red-600" : isWarning ? "text-amber-600" : "text-neutral-900"}`}>
+          ${spent.toFixed(2)} / ${budget.toLocaleString()}
+        </span>
+      </div>
+      <div className="h-2.5 rounded-full bg-neutral-100 overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${isDanger ? "bg-red-500" : isWarning ? "bg-amber-500" : "bg-emerald-500"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function RailBreakdown({ daily, monthly }: MasterGuardrailsData["spend"]) {
+  const rails = [
+    { name: "Stripe Wallet", icon: Zap, daily: daily.rail1_usd, monthly: monthly.rail1_usd, color: "text-blue-600" },
+    { name: "Card Wallet", icon: CreditCard, daily: daily.rail2_usd, monthly: monthly.rail2_usd, color: "text-violet-600" },
+    { name: "Self-Hosted", icon: Smartphone, daily: daily.rail4_usd, monthly: monthly.rail4_usd, color: "text-orange-600" },
+  ];
+
+  const hasAnySpend = rails.some(r => r.daily > 0 || r.monthly > 0);
+  if (!hasAnySpend) return null;
+
+  return (
+    <div className="bg-neutral-50 rounded-xl p-4 space-y-2">
+      <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Per-Rail Breakdown</p>
+      <div className="grid grid-cols-3 gap-3">
+        {rails.map((r) => (
+          <div key={r.name} className="space-y-1">
+            <div className={`flex items-center gap-1.5 ${r.color}`}>
+              <r.icon className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">{r.name}</span>
+            </div>
+            <p className="text-sm font-semibold text-neutral-900">${r.daily.toFixed(2)} <span className="text-xs text-neutral-400 font-normal">today</span></p>
+            <p className="text-xs text-neutral-500">${r.monthly.toFixed(2)} this month</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MasterBudgetSection() {
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery<MasterGuardrailsData>({
+    queryKey: ["master-guardrails"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/master-guardrails");
+      if (!res.ok) throw new Error("Failed to load");
+      return res.json();
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (update: Record<string, unknown>) => {
+      const res = await fetch("/api/v1/master-guardrails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(update),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["master-guardrails"] });
+    },
+  });
+
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ max_per_tx_usdc: 500, daily_budget_usdc: 2000, monthly_budget_usdc: 10000 });
+
+  const config = data?.config;
+  const spend = data?.spend;
+  const enabled = config?.enabled ?? false;
+
+  const startEditing = () => {
+    if (config) {
+      setForm({
+        max_per_tx_usdc: config.max_per_tx_usdc,
+        daily_budget_usdc: config.daily_budget_usdc,
+        monthly_budget_usdc: config.monthly_budget_usdc,
+      });
+    }
+    setEditing(true);
+  };
+
+  const save = () => {
+    mutation.mutate({ ...form, enabled: true });
+    setEditing(false);
+  };
+
+  const toggleEnabled = (val: boolean) => {
+    if (val && !config) {
+      mutation.mutate({ ...form, enabled: true });
+    } else {
+      mutation.mutate({ enabled: val });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-neutral-400 text-sm py-4">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading master budget...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="w-5 h-5 text-emerald-600" />
+          <div>
+            <h3 className="text-md font-bold text-neutral-900">Master Budget</h3>
+            <p className="text-xs text-neutral-500">Combined spending cap across all payment rails</p>
+          </div>
+        </div>
+        <Switch
+          checked={enabled}
+          onCheckedChange={toggleEnabled}
+          data-testid="switch-master-budget-enabled"
+        />
+      </div>
+
+      {enabled && config && spend && (
+        <div className="space-y-5 pl-7">
+          <div className="space-y-3">
+            <SpendProgressBar
+              spent={spend.daily.total_usd}
+              budget={config.daily_budget_usdc}
+              label="Today"
+            />
+            <SpendProgressBar
+              spent={spend.monthly.total_usd}
+              budget={config.monthly_budget_usdc}
+              label="This Month"
+            />
+          </div>
+
+          <RailBreakdown daily={spend.daily} monthly={spend.monthly} />
+
+          {editing ? (
+            <div className="space-y-3 bg-white border border-neutral-200 rounded-xl p-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Max per transaction (USDC)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.max_per_tx_usdc}
+                  onChange={(e) => setForm(f => ({ ...f, max_per_tx_usdc: parseInt(e.target.value) || 1 }))}
+                  className="max-w-40"
+                  data-testid="input-master-max-per-tx"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Daily budget (USDC)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.daily_budget_usdc}
+                  onChange={(e) => setForm(f => ({ ...f, daily_budget_usdc: parseInt(e.target.value) || 1 }))}
+                  className="max-w-40"
+                  data-testid="input-master-daily-budget"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Monthly budget (USDC)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.monthly_budget_usdc}
+                  onChange={(e) => setForm(f => ({ ...f, monthly_budget_usdc: parseInt(e.target.value) || 1 }))}
+                  className="max-w-40"
+                  data-testid="input-master-monthly-budget"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={save} disabled={mutation.isPending} data-testid="button-master-save">
+                  {mutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                  Save
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing(false)} data-testid="button-master-cancel">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl p-4">
+              <div className="grid grid-cols-3 gap-4 text-sm flex-1">
+                <div>
+                  <p className="text-neutral-500 text-xs">Per Transaction</p>
+                  <p className="font-semibold text-neutral-900">${config.max_per_tx_usdc.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-500 text-xs">Daily Limit</p>
+                  <p className="font-semibold text-neutral-900">${config.daily_budget_usdc.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-500 text-xs">Monthly Limit</p>
+                  <p className="font-semibold text-neutral-900">${config.monthly_budget_usdc.toLocaleString()}</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={startEditing} data-testid="button-master-edit">
+                <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                Edit
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -60,6 +301,10 @@ export default function SettingsPage() {
         <h2 className="text-lg font-bold text-neutral-900 mb-1">Account Settings</h2>
         <p className="text-neutral-500 text-sm">Manage your account preferences and billing.</p>
       </div>
+
+      <Separator />
+
+      <MasterBudgetSection />
 
       <Separator />
 

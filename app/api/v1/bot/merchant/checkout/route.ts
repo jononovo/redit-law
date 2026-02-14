@@ -9,6 +9,7 @@ import { completeObfuscationEvent } from "@/lib/obfuscation-engine/events";
 import { getWindowStart } from "@/lib/rail4";
 import type { FakeProfile } from "@/lib/rail4";
 import { randomBytes } from "crypto";
+import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
 
 export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -80,6 +81,22 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
     );
   }
 
+  const isRealProfile = profile_index === card.realProfileIndex;
+
+  if (isRealProfile) {
+    const masterDecision = await evaluateMasterGuardrails(card.ownerUid, centsToMicroUsdc(amount_cents));
+    if (masterDecision.action === "block") {
+      return NextResponse.json({
+        approved: false,
+        error: "master_budget_exceeded",
+        profile_index,
+        merchant_name,
+        amount_usd: amount_cents / 100,
+        message: masterDecision.reason,
+      }, { status: 403 });
+    }
+  }
+
   const windowStart = getWindowStart(profilePerm.allowance_duration);
   const usage = await storage.getProfileAllowanceUsage(card.cardId, profile_index, windowStart);
   const currentSpent = usage?.spentCents || 0;
@@ -98,8 +115,6 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
       message: `This purchase would exceed the ${profilePerm.allowance_duration} allowance for this profile.`,
     }, { status: 403 });
   }
-
-  const isRealProfile = profile_index === card.realProfileIndex;
 
   if (isRealProfile) {
     return handleRealCheckout(bot, card, profilePerm, parsed.data, windowStart, usage);

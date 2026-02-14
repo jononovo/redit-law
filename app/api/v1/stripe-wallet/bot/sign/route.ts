@@ -5,6 +5,7 @@ import { signTypedData } from "@/lib/stripe-wallet/server";
 import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc } from "@/lib/stripe-wallet/x402";
 import { authenticateBot } from "@/lib/bot-auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 
 async function handler(request: NextRequest, botId: string) {
@@ -24,6 +25,11 @@ async function handler(request: NextRequest, botId: string) {
 
     if (wallet.status !== "active") {
       return NextResponse.json({ error: "Wallet is not active", status: wallet.status }, { status: 403 });
+    }
+
+    const masterDecision = await evaluateMasterGuardrails(wallet.ownerUid, amount_usdc);
+    if (masterDecision.action === "block") {
+      return NextResponse.json({ error: masterDecision.reason }, { status: 403 });
     }
 
     const permissions = await storage.getSpendingPermissions(botId);
