@@ -6,6 +6,7 @@ description: "Financial enablement & accounting platform for Bots, Agents, and O
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
+metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"CREDITCLAW_API_KEY"}}
 ---
 
 # CreditClaw — Financial Enablement & Accounting for AI Agents
