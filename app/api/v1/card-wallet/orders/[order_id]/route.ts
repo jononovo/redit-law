@@ -18,25 +18,14 @@ export async function GET(
       return NextResponse.json({ error: "order_id is required" }, { status: 400 });
     }
 
-    const wallets = await storage.crossmintGetWalletsByOwnerUid(user.uid);
-    if (wallets.length === 0) {
-      return NextResponse.json({ error: "No wallets found" }, { status: 404 });
-    }
-
-    const walletIds = wallets.map(w => w.id);
-
-    let transaction = null;
-    for (const wId of walletIds) {
-      const txs = await storage.crossmintGetTransactionsByWalletId(wId);
-      const found = txs.find(tx => tx.crossmintOrderId === order_id);
-      if (found) {
-        transaction = found;
-        break;
-      }
-    }
-
+    const transaction = await storage.crossmintGetTransactionByOrderId(order_id);
     if (!transaction) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const wallet = await storage.crossmintGetWalletById(transaction.walletId);
+    if (!wallet || wallet.ownerUid !== user.uid) {
+      return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
     let liveStatus: Record<string, unknown> | null = null;
@@ -60,8 +49,6 @@ export async function GET(
       console.warn("[Card Wallet] Failed to fetch live order status from CrossMint:", fetchErr);
     }
 
-    const wallet = wallets.find(w => w.id === transaction!.walletId);
-
     return NextResponse.json({
       order: {
         id: transaction.id,
@@ -77,8 +64,8 @@ export async function GET(
         shipping_address: transaction.shippingAddress,
         tracking_info: liveStatus ? ((liveStatus as any)?.fulfillment?.tracking || (liveStatus as any)?.tracking || transaction.trackingInfo) : transaction.trackingInfo,
         metadata: transaction.metadata,
-        wallet_address: wallet?.address,
-        bot_id: wallet?.botId,
+        wallet_address: wallet.address,
+        bot_id: wallet.botId,
         created_at: transaction.createdAt,
         updated_at: transaction.updatedAt,
       },

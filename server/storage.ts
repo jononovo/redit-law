@@ -125,6 +125,7 @@ export interface IStorage {
   crossmintCreateTransaction(data: InsertCrossmintTransaction): Promise<CrossmintTransaction>;
   crossmintGetTransactionsByWalletId(walletId: number, limit?: number): Promise<CrossmintTransaction[]>;
   crossmintGetTransactionById(id: number): Promise<CrossmintTransaction | null>;
+  crossmintGetTransactionByOrderId(orderId: string): Promise<CrossmintTransaction | null>;
   crossmintUpdateTransaction(id: number, data: Partial<InsertCrossmintTransaction>): Promise<CrossmintTransaction | null>;
   crossmintGetDailySpend(walletId: number): Promise<number>;
   crossmintGetMonthlySpend(walletId: number): Promise<number>;
@@ -1206,6 +1207,11 @@ export const storage: IStorage = {
 
   async crossmintGetTransactionById(id: number): Promise<CrossmintTransaction | null> {
     const [tx] = await db.select().from(crossmintTransactions).where(eq(crossmintTransactions.id, id)).limit(1);
+    return tx || null;
+  },
+
+  async crossmintGetTransactionByOrderId(orderId: string): Promise<CrossmintTransaction | null> {
+    const [tx] = await db.select().from(crossmintTransactions).where(eq(crossmintTransactions.crossmintOrderId, orderId)).limit(1);
     return tx || null;
   },
 
