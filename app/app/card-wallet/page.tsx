@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Loader2, ShoppingCart, Plus, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, Ban } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Loader2, ShoppingCart, Plus, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, Ban, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { CrossmintProvider, CrossmintEmbeddedCheckout } from "@crossmint/client-sdk-react-ui";
 
 interface WalletInfo {
   id: number;
@@ -96,6 +97,44 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function CrossmintCheckoutWrapper({ orderId, clientSecret, onError, onSuccess }: {
+  orderId: string;
+  clientSecret: string;
+  onError: () => void;
+  onSuccess: () => void;
+}) {
+  const mountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    mountTimerRef.current = setTimeout(() => {
+      if (!mounted) {
+        onError();
+      }
+    }, 15000);
+
+    return () => {
+      if (mountTimerRef.current) clearTimeout(mountTimerRef.current);
+    };
+  }, [mounted, onError]);
+
+  return (
+    <div
+      className="w-full min-h-[480px]"
+      data-testid="container-crossmint-checkout"
+      ref={() => setMounted(true)}
+    >
+      <CrossmintEmbeddedCheckout
+        orderId={orderId}
+        payment={{
+          crypto: { enabled: true },
+          fiat: { enabled: true },
+        }}
+      />
+    </div>
+  );
+}
+
 export default function CardWalletPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -110,6 +149,13 @@ export default function CardWalletPage() {
   const [selectedBotId, setSelectedBotId] = useState("");
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
+
+  const [fundDialogOpen, setFundDialogOpen] = useState(false);
+  const [fundWallet, setFundWallet] = useState<WalletInfo | null>(null);
+  const [fundAmount, setFundAmount] = useState("25");
+  const [fundLoading, setFundLoading] = useState(false);
+  const [fundOrderData, setFundOrderData] = useState<{ orderId: string; clientSecret: string } | null>(null);
+  const [fundEmbedError, setFundEmbedError] = useState(false);
 
   const [guardrailForm, setGuardrailForm] = useState({
     max_per_tx_usdc: 50,
@@ -297,6 +343,47 @@ export default function CardWalletPage() {
     toast({ title: "Address copied" });
   };
 
+  const handleOpenFund = async (wallet: WalletInfo) => {
+    setFundWallet(wallet);
+    setFundOrderData(null);
+    setFundEmbedError(false);
+    setFundDialogOpen(true);
+  };
+
+  const handleStartFund = async () => {
+    if (!fundWallet) return;
+    setFundLoading(true);
+    setFundEmbedError(false);
+    try {
+      const res = await authFetch("/api/v1/card-wallet/onramp/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: fundWallet.id, amount_usd: Number(fundAmount) }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to create funding session", variant: "destructive" });
+        setFundLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setFundOrderData({ orderId: data.order_id, clientSecret: data.client_secret });
+    } catch {
+      toast({ title: "Failed to start funding", variant: "destructive" });
+    } finally {
+      setFundLoading(false);
+    }
+  };
+
+  const handleCloseFund = () => {
+    setFundDialogOpen(false);
+    setFundWallet(null);
+    setFundOrderData(null);
+    setFundEmbedError(false);
+    setFundAmount("25");
+    fetchWallets();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -407,6 +494,15 @@ export default function CardWalletPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={wallet.status} />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenFund(wallet)}
+                        className="text-violet-600 border-violet-200 hover:bg-violet-50 gap-1"
+                        data-testid={`button-fund-${wallet.id}`}
+                      >
+                        <CreditCard className="w-4 h-4" /> Fund
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -639,6 +735,86 @@ export default function CardWalletPage() {
               Save Guardrails
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={fundDialogOpen} onOpenChange={(open) => { if (!open) handleCloseFund(); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-fund">
+          <DialogTitle>
+            Fund Wallet {fundWallet ? `— ${fundWallet.bot_name}` : ""}
+          </DialogTitle>
+          <DialogDescription>
+            Buy USDC with your credit card via CrossMint. Funds will be delivered directly to your wallet on Base.
+          </DialogDescription>
+
+          {!fundOrderData ? (
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label className="text-sm">Amount (USD)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={fundAmount}
+                  onChange={(e) => setFundAmount(e.target.value)}
+                  placeholder="25"
+                  data-testid="input-fund-amount"
+                />
+                <p className="text-xs text-neutral-400 mt-1">Minimum $1. You can fund more later.</p>
+              </div>
+              <Button
+                onClick={handleStartFund}
+                disabled={fundLoading || !fundAmount || Number(fundAmount) < 1}
+                className="w-full bg-violet-600 hover:bg-violet-700 gap-2"
+                data-testid="button-start-fund"
+              >
+                {fundLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Continue to Payment
+              </Button>
+            </div>
+          ) : fundEmbedError ? (
+            <div className="space-y-4 mt-4 text-center">
+              <p className="text-sm text-neutral-600">
+                The embedded checkout couldn't load. Click below to complete payment in a new tab.
+              </p>
+              <Button
+                onClick={() => {
+                  window.open(`https://www.crossmint.com/checkout?orderId=${fundOrderData.orderId}`, "_blank");
+                  toast({ title: "CrossMint checkout opened in a new tab" });
+                }}
+                className="w-full bg-violet-600 hover:bg-violet-700 gap-2"
+                data-testid="button-fund-redirect"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open CrossMint Checkout
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-4">
+              {process.env.NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY ? (
+                <CrossmintProvider apiKey={process.env.NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY}>
+                  <CrossmintCheckoutWrapper
+                    orderId={fundOrderData.orderId}
+                    clientSecret={fundOrderData.clientSecret}
+                    onError={() => setFundEmbedError(true)}
+                    onSuccess={() => {
+                      toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
+                      handleCloseFund();
+                    }}
+                  />
+                </CrossmintProvider>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-sm text-neutral-500 mb-4">Embedded checkout is not configured. Use the redirect instead.</p>
+                  <Button
+                    onClick={() => setFundEmbedError(true)}
+                    className="bg-violet-600 hover:bg-violet-700"
+                  >
+                    Open CrossMint Checkout
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

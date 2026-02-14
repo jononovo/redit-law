@@ -41,7 +41,8 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `/stripe-wallet` — Rail 1 landing page (Privy + x402)
 - `/app` — Dashboard overview
 - `/app/stripe-wallet` — Rail 1 dashboard (wallet list, guardrails, activity, approvals)
-- `/app/card-wallet` — Rail 2 dashboard (wallet list, guardrails, orders, approvals)
+- `/card-wallet` — Rail 2 landing page (CrossMint + Amazon)
+- `/app/card-wallet` — Rail 2 dashboard (wallet list, guardrails, orders, approvals, fund wallet)
 - `/app/cards` — Card management
 - `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
 - `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
@@ -72,6 +73,7 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `POST /api/v1/card-wallet/onramp/session` — Create fiat onramp session (fiat → USDC)
 - `GET/POST /api/v1/card-wallet/guardrails` — View/set spending guardrails (merchant allow/blocklist, limits, auto-pause)
 - `GET /api/v1/card-wallet/transactions` — List transactions/orders for a wallet
+- `GET /api/v1/card-wallet/orders/[order_id]` — Get detailed order status with live CrossMint tracking info
 - `GET /api/v1/card-wallet/approvals` — List pending purchase approvals for owner
 - `POST /api/v1/card-wallet/approvals/decide` — Approve or reject a purchase (creates order on approval)
 - `POST /api/v1/card-wallet/bot/purchase` — Bot-facing: request a commerce purchase (requires owner approval)

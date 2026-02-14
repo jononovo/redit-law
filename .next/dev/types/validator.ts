@@ -128,6 +128,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/card-wallet/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/card-wallet">> = Specific
+  const handler = {} as typeof import("../../../app/card-wallet/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/claim/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/claim">> = Specific
@@ -456,6 +465,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/onramp/session">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/card-wallet/onramp/session/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/card-wallet/orders/[order_id]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/card-wallet/orders/[order_id]">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/card-wallet/orders/[order_id]/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
