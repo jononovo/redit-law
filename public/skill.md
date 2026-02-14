@@ -20,6 +20,7 @@ and offers consolidated accounts and guardrails on transactions across wallets.
 | File | URL | Purpose |
 |------|-----|---------|
 | **SKILL.md** (this file) | `https://creditclaw.com/skill.md` | Full API reference and registration instructions |
+| **SHOPPING.md** | `https://creditclaw.com/shopping.md` | Merchant-specific purchase guide (Amazon, Shopify, URL) |
 | **HEARTBEAT.md** | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
 | **package.json** (metadata) | `https://creditclaw.com/skill.json` | Machine-readable skill metadata |
 
