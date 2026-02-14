@@ -33,6 +33,7 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 
 - **Rail 1 (Stripe Wallet):** Privy server wallets on Base chain, USDC funding via Stripe Crypto Onramp, x402 payment protocol for bot spending. Firebase Auth remains the global auth layer; Privy SDK is scoped only to Rail 1 wallet operations. Tables: `privy_wallets`, `privy_guardrails`, `privy_transactions`, `privy_approvals`. Routes: `/api/v1/stripe-wallet/*`. Lib: `lib/stripe-wallet/`. UI: `/stripe-wallet` (landing), `/app/stripe-wallet` (dashboard). Storage methods prefixed `privy*`.
 - **Rail 2 (Card Wallet):** CrossMint smart wallets on Base chain, USDC funding via fiat onramp, Amazon/commerce purchases via Orders API. Firebase Auth remains global layer; CrossMint handles wallet operations only (no Stytch). Uses merchant allow/blocklist instead of domain lists; 15-min approval TTL. Tables: `crossmint_wallets`, `crossmint_guardrails`, `crossmint_transactions`, `crossmint_approvals`. Routes: `/api/v1/card-wallet/*`. Lib: `lib/card-wallet/` (server.ts, onramp.ts, purchase.ts). Shared modules: `lib/guardrails/evaluate.ts`, `lib/approvals/lifecycle.ts`. UI: `/app/card-wallet` (dashboard). Storage methods prefixed `crossmint*`.
+- **Master Guardrails:** Cross-rail spending limits enforced at the owner level. A single `master_guardrails` table keyed by `ownerUid` stores per-transaction max, daily budget, monthly budget, and an enabled toggle. Aggregated spend is computed live across Rail 1 (`privy_transactions`), Rail 2 (`crossmint_transactions`), and Rail 4 (`checkout_confirmations` for approved real-profile purchases). Master guardrails are checked before per-rail guardrails in each bot-facing endpoint. They only block or allow (no approval threshold at master level). Unit normalization: Rail 1/2 use micro USDC natively; Rail 4 cents are converted via `centsToMicroUsdc(cents) = cents * 10,000`. Lib: `lib/guardrails/master.ts`. UI: "Master Budget" section on `/app/settings`.
 - **Rail 4 (Self-Hosted Cards):** Split-knowledge card model with obfuscation. See existing documentation below. Routes: `/api/v1/rail4/*`.
 
 ### Key Routes
@@ -92,6 +93,10 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `POST /api/v1/rail4/link-bot` — Link existing bot to a card (card must be awaiting_bot, bot must have < 3 cards)
 - `POST /api/v1/rail4/initialize` — Initialize card setup (creates card with cardId, returns missing digit positions)
 - `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions by card_id, transitions card to awaiting_bot, returns payment profiles file
+
+### Master Guardrails API
+- `GET /api/v1/master-guardrails` — Read master config + live cross-rail spend totals (daily/monthly per-rail breakdown)
+- `POST /api/v1/master-guardrails` — Create or update master guardrails (per-tx max, daily, monthly, enabled toggle)
 
 ### Authentication
 - Session cookies (httpOnly) via Firebase Admin SDK

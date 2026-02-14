@@ -677,3 +677,28 @@ export const crossmintApprovalDecideSchema = z.object({
   approval_id: z.number().int().positive(),
   decision: z.enum(["approve", "reject"]),
 });
+
+// ─── Master Guardrails (cross-rail spend limits) ─────────────────────────────
+
+export const masterGuardrails = pgTable("master_guardrails", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull().unique(),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(500),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(2000),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(10000),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("master_guardrails_owner_uid_idx").on(table.ownerUid),
+]);
+
+export type MasterGuardrail = typeof masterGuardrails.$inferSelect;
+export type InsertMasterGuardrail = typeof masterGuardrails.$inferInsert;
+
+export const upsertMasterGuardrailsSchema = z.object({
+  max_per_tx_usdc: z.number().int().min(1).max(100000).optional(),
+  daily_budget_usdc: z.number().int().min(1).max(1000000).optional(),
+  monthly_budget_usdc: z.number().int().min(1).max(10000000).optional(),
+  enabled: z.boolean().optional(),
+});

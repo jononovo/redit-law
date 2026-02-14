@@ -3,6 +3,7 @@ import { storage } from "@/server/storage";
 import { crossmintBotPurchaseSchema } from "@/shared/schema";
 import { authenticateBot } from "@/lib/bot-auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { usdToMicroUsdc } from "@/lib/card-wallet/server";
 
@@ -25,14 +26,20 @@ async function handler(request: NextRequest, botId: string) {
       return NextResponse.json({ error: "Wallet is paused", status: wallet.status }, { status: 403 });
     }
 
+    const estimatedAmountUsdc = estimated_price_usd
+      ? usdToMicroUsdc(estimated_price_usd * (quantity || 1))
+      : 0;
+
+    const masterDecision = await evaluateMasterGuardrails(wallet.ownerUid, estimatedAmountUsdc);
+    if (masterDecision.action === "block") {
+      return NextResponse.json({ error: "guardrail_violation", reason: masterDecision.reason }, { status: 403 });
+    }
+
     const guardrails = await storage.crossmintGetGuardrails(wallet.id);
     if (!guardrails) {
       return NextResponse.json({ error: "Guardrails not configured" }, { status: 500 });
     }
 
-    const estimatedAmountUsdc = estimated_price_usd
-      ? usdToMicroUsdc(estimated_price_usd * (quantity || 1))
-      : 0;
     const productLocator = `${merchant}:${product_id}`;
 
     const dailySpend = await storage.crossmintGetDailySpend(wallet.id);

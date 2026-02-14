@@ -506,6 +506,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/master-guardrails/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/master-guardrails">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/master-guardrails/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/notifications/preferences/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/notifications/preferences">> = Specific
