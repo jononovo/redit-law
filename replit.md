@@ -80,6 +80,7 @@ CreditClaw supports multiple independent payment rails, each with its own databa
 - `POST /api/v1/card-wallet/approvals/decide` — Approve or reject a purchase (creates order on approval)
 - `POST /api/v1/card-wallet/bot/purchase` — Bot-facing: request a commerce purchase (requires owner approval)
 - `GET /api/v1/card-wallet/bot/purchase/status` — Bot-facing: poll purchase/approval status
+- `POST /api/v1/card-wallet/bot/search` — Bot-facing: search Shopify product variants via CrossMint WS Search API (unstable/beta)
 
 ### Rail 4 API Endpoints
 - `POST /api/v1/bot/merchant/checkout` — Unified checkout (fake profiles → obfuscation, real profiles → wallet debit or pending approval)

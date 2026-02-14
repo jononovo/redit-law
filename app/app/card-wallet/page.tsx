@@ -808,7 +808,7 @@ export default function CardWalletPage() {
               <Input
                 value={guardrailForm.allowlisted_merchants}
                 onChange={(e) => setGuardrailForm({ ...guardrailForm, allowlisted_merchants: e.target.value })}
-                placeholder="amazon, walmart"
+                placeholder="amazon, shopify"
                 data-testid="input-allowlisted-merchants"
               />
               <p className="text-xs text-neutral-400 mt-1">Leave empty to allow all merchants</p>
@@ -954,6 +954,12 @@ export default function CardWalletPage() {
                   <StatusBadge status={orderDetailTx.order_status || "pending"} />
                 </div>
               </div>
+
+              {!orderDetailTx.tracking_info && (!orderDetailTx.product_locator || !orderDetailTx.product_locator.startsWith("amazon:")) && orderDetailTx.order_status && !["pending", "requires_approval"].includes(orderDetailTx.order_status) && (
+                <div className="bg-amber-50 border border-amber-100 rounded-lg p-3" data-testid="tracking-unavailable-note">
+                  <p className="text-xs text-amber-700">Package tracking is currently available for Amazon orders only. Check the merchant directly for shipping updates.</p>
+                </div>
+              )}
 
               {orderDetailTx.tracking_info && (
                 <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4" data-testid="tracking-info-section">

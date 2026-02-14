@@ -702,3 +702,7 @@ export const upsertMasterGuardrailsSchema = z.object({
   monthly_budget_usdc: z.number().int().min(1).max(10000000).optional(),
   enabled: z.boolean().optional(),
 });
+
+export const crossmintProductSearchSchema = z.object({
+  product_url: z.string().url().min(1).max(2000),
+});
