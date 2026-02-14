@@ -1,35 +1,35 @@
 ---
-name: creditclaw-shopping
+name: creditclaw-amazon
 version: 2.2.4
-updated: 2026-02-14T20:45:00Z
-description: "Is your claw a shopaholic? Provide payment wallets and strict controls."
+updated: 2026-02-14T21:30:00Z
+description: "Let your agent shop on Amazon with guardrailed wallets and owner approval."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
 metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"CREDITCLAW_API_KEY"}}
 ---
 
-# CreditClaw — Shopping for AI Agents
+# CreditClaw — Amazon Shopping for AI Agents
 
-CreditClaw lets your agent buy things online — Amazon products, Shopify stores, and more.
-Your owner funds a wallet, sets spending limits, and you shop within those guardrails.
+CreditClaw lets your agent buy products on Amazon with owner-controlled spending limits and approval flows.
+Your owner funds a wallet, sets guardrails, and you shop within those limits.
 
 ## Skill Files
 
 | File | URL | Purpose |
 |------|-----|---------|
-| **SKILL.md** (this file) | `https://creditclaw.com/shopping/skill.md` | Full API reference and registration instructions |
-| **SHOPPING.md** | `https://creditclaw.com/shopping/shopping.md` | Merchant-specific purchase guide (Amazon, Shopify, URL) |
-| **HEARTBEAT.md** | `https://creditclaw.com/shopping/heartbeat.md` | Lightweight polling routine for balance and spending checks |
-| **package.json** (metadata) | `https://creditclaw.com/shopping/skill.json` | Machine-readable skill metadata |
+| **SKILL.md** (this file) | `https://creditclaw.com/amazon/skill.md` | Full API reference and registration instructions |
+| **AMAZON.md** | `https://creditclaw.com/amazon/amazon.md` | Amazon purchase guide (ASIN discovery, tracking, restrictions) |
+| **HEARTBEAT.md** | `https://creditclaw.com/amazon/heartbeat.md` | Lightweight polling routine for balance and spending checks |
+| **package.json** (metadata) | `https://creditclaw.com/amazon/skill.json` | Machine-readable skill metadata |
 
 Follow your human's instructions on how to manage and save skill files. If unsure, you can install locally:
 ```bash
-mkdir -p ~/.creditclaw/skills/shopping
-curl -s https://creditclaw.com/shopping/skill.md > ~/.creditclaw/skills/shopping/SKILL.md
-curl -s https://creditclaw.com/shopping/shopping.md > ~/.creditclaw/skills/shopping/SHOPPING.md
-curl -s https://creditclaw.com/shopping/heartbeat.md > ~/.creditclaw/skills/shopping/HEARTBEAT.md
-curl -s https://creditclaw.com/shopping/skill.json > ~/.creditclaw/skills/shopping/package.json
+mkdir -p ~/.creditclaw/skills/amazon
+curl -s https://creditclaw.com/amazon/skill.md > ~/.creditclaw/skills/amazon/SKILL.md
+curl -s https://creditclaw.com/amazon/amazon.md > ~/.creditclaw/skills/amazon/AMAZON.md
+curl -s https://creditclaw.com/amazon/heartbeat.md > ~/.creditclaw/skills/amazon/HEARTBEAT.md
+curl -s https://creditclaw.com/amazon/skill.json > ~/.creditclaw/skills/amazon/package.json
 ```
 
 Or just read them directly from the URLs above.
@@ -40,22 +40,39 @@ Or just read them directly from the URLs above.
 
 ## Payment Rails
 
-CreditClaw supports multiple independent payment rails. Each rail has its own wallet type,
-funding method, and spending mechanism. You may have access to one or more rails depending
-on what your owner has configured.
+CreditClaw supports multiple independent payment rails. **Amazon purchases use Rail 2 (Card Wallet).**
 
 | Rail | Method | Status | Spending Mechanism |
 |------|--------|--------|-------------------|
+| **Card Wallet (Rail 2)** | USDC wallet on Base chain, Amazon/commerce purchases | Live | `POST /card-wallet/bot/purchase` (owner approval) |
 | **Wallet** | Prepaid wallet funded by owner | Live | `POST /bot/wallet/purchase` (direct debit) |
 | **Self-Hosted Cards** | Owner's own cards with split-knowledge privacy | Live | `POST /bot/merchant/checkout` (human approval) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
 
 Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
-your active wallet status, or use the rail-specific endpoints below.
+your active wallet status. For Amazon shopping, you need an active Card Wallet (Rail 2).
 
-**For merchant-specific purchase details (Amazon, Shopify, URLs), see [shopping.md](https://creditclaw.com/shopping/shopping.md).**
+**For Amazon-specific purchase details (ASIN discovery, tracking, restrictions), see [amazon.md](https://creditclaw.com/amazon/amazon.md).**
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
+
+---
+
+## Shopping at Amazon.com
+
+CreditClaw lets you buy physical products on Amazon through Rail 2 (Card Wallet). Your owner funds the wallet with USDC, and CreditClaw handles the conversion to fiat and places a real Amazon order.
+
+**How it works:**
+1. You find the product's ASIN (the 10-character code in any Amazon product URL, e.g. `B01DFKC2SO`)
+2. You call `POST /card-wallet/bot/purchase` with the ASIN and a US shipping address
+3. Your owner approves the purchase (within 15 minutes)
+4. Amazon ships the product — you get full tracking (carrier, tracking number, ETA)
+
+**Key facts:**
+- US shipping addresses only
+- No digital products, gift cards, or hazmat items
+- Always confirm the product with the user before purchasing
+- Full guide: [amazon.md](https://creditclaw.com/amazon/amazon.md)
 
 ---
 
@@ -86,7 +103,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 ## End-to-End Flow
 
 ```
-1. You fetch this skill file from creditclaw.com/shopping/skill.md
+1. You fetch this skill file from creditclaw.com/amazon/skill.md
 2. You call POST /bots/register → get apiKey + claimToken
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
