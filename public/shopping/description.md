@@ -4,10 +4,10 @@
 
 **Name:** CreditClaw Shopping
 
-**Description:** Let your AI agent shop online with multiple payment methods. CreditClaw provides funded wallets with spending guardrails so your agent can buy from Amazon, Shopify, SaaS services, and any online merchant — with owner-controlled limits, approval flows, and order tracking.
+**Description:** Let your AI agent buy things online. CreditClaw provides funded wallets with spending guardrails so your agent can shop on Amazon, Shopify, and other online stores — with owner-controlled limits, approval flows, and full transaction visibility.
 
 **Category:** Commerce / Payments
 
-**Tags:** shopping, payments, e-commerce, wallets, spending-controls, guardrails, amazon, shopify, self-hosted-cards, x402
+**Tags:** shopping, payments, e-commerce, amazon, shopify, wallets, spending-controls, guardrails
 
 **Entry Point:** `https://creditclaw.com/shopping/skill.md`

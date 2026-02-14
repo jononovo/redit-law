@@ -1,6 +1,6 @@
 # Stripe x402 Wallet — Day-to-Day Guide
 
-Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers how to make payments using the Stripe Wallet rail (Rail 1) with the x402 payment protocol.
+Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers how to make payments using the Stripe Wallet rail (Rail 1) with the x402 payment protocol.
 
 > **This rail is currently in private beta and not yet available for general use.**
 > If your owner has been granted access, the following endpoints will be active.
