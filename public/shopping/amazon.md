@@ -1,8 +1,8 @@
 # Amazon Shopping — Purchase Guide
 
-Companion to [skill.md](https://creditclaw.com/amazon/skill.md). Covers how to buy products on Amazon using CreditClaw Rail 2 (Card Wallet).
+Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers how to buy products on Amazon using CreditClaw's Pre-paid Wallet.
 
-**Prerequisite:** Your owner must have set up a Card Wallet for you. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up a Pre-paid Wallet for you. Check `GET /bot/wallet/check` first.
 
 ---
 
@@ -10,7 +10,7 @@ Companion to [skill.md](https://creditclaw.com/amazon/skill.md). Covers how to b
 
 You request a purchase → CreditClaw checks your owner's guardrails → your owner approves → CreditClaw places the order on Amazon → you get tracking updates.
 
-All Amazon purchases go through **Rail 2** (Card Wallet). Your wallet holds USDC. CreditClaw handles the conversion to fiat and places a real Amazon order on your behalf.
+All Amazon purchases go through the **Pre-paid Wallet**. Your wallet holds USDC. CreditClaw handles the conversion to fiat and places a real Amazon order on your behalf.
 
 **Endpoint:** `POST /card-wallet/bot/purchase`
 

@@ -1,183 +1,106 @@
-# Shopping — Merchant Purchase Guide
+# Shopping — How to Buy Things
 
-Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers how to buy things using CreditClaw.
+Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers general purchasing patterns, merchant types, and practical tips for shopping with CreditClaw.
 
-**Prerequisite:** Your owner must have set up a wallet for you. Check `GET /bot/wallet/check` first.
-
----
-
-## Which Rail to Use
-
-| Use Case | Rail | Endpoint |
-|----------|------|----------|
-| Amazon, Shopify, supported merchants | Card Wallet (Rail 2) | `POST /card-wallet/bot/purchase` |
-| x402 agent-to-agent or x402-enabled checkouts | Stripe Wallet (Rail 1) | `POST /stripe-wallet/bot/sign` |
-| Any other online store | Self-Hosted Card (Rail 4) | `POST /bot/merchant/checkout` |
-
-Most shopping use cases go through **Rail 2** (Card Wallet). The rest of this guide focuses on Rail 2. For Rail 1 and Rail 4 details, see [skill.md](https://creditclaw.com/shopping/skill.md).
+**Prerequisite:** You must be registered and claimed. Check `GET /bot/wallet/check` before attempting any purchase.
 
 ---
 
-## Supported Merchants
+## Before Every Purchase
 
-| Merchant | Locator Format | Variant Lookup | Order Tracking |
-|----------|---------------|----------------|----------------|
-| Amazon | `amazon:{ASIN}` | Not needed | Full (ship/deliver/fail) |
-| Shopify | `shopify:{url}:{variantId}` | Required | Order placed only |
-| Any URL | `url:{url}:{variant}` | Not needed | Order placed only |
-
----
-
-## Purchase Flow
-
-1. Build your request (see merchant sections below for `product_id` format)
-2. `POST /card-wallet/bot/purchase` — returns 202 with `approval_id`, `transaction_id`, and `expires_at`
-3. Poll `GET /card-wallet/bot/purchase/status?approval_id=X` every ~30s until `expires_at`
-4. Owner has 15 minutes to approve or reject
-5. On approval: order is placed, status becomes `processing`
-6. Amazon orders progress through `shipped` → `delivered`; others stay at `processing`
-
-### Purchase Request
-
-```bash
-curl -X POST https://creditclaw.com/api/v1/card-wallet/bot/purchase \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchant": "amazon",
-    "product_id": "B0EXAMPLE123",
-    "quantity": 1,
-    "product_name": "Wireless Mouse",
-    "estimated_price_usd": 29.99,
-    "shipping_address": {
-      "name": "Jane Smith",
-      "line1": "123 Main St",
-      "city": "San Francisco",
-      "state": "CA",
-      "zip": "94111",
-      "country": "US"
-    }
-  }'
-```
-
-| Field | Required | Notes |
-|-------|----------|-------|
-| `merchant` | Yes | `amazon`, `shopify`, or `url` |
-| `product_id` | Yes | Format depends on merchant (see below) |
-| `quantity` | Yes | 1–100 |
-| `product_name` | Yes | Human-readable name for approval screen |
-| `estimated_price_usd` | Yes | Best estimate — actual charge may differ slightly |
-| `shipping_address` | Yes | US addresses only. Fields: `name`, `line1`, `line2` (optional), `city`, `state`, `zip`, `country` |
+1. **Check your wallet status** — `GET /bot/wallet/check` to confirm you have an active wallet with sufficient balance
+2. **Check spending permissions** — `GET /bot/wallet/spending` to see your limits, approval mode, and any blocked categories
+3. **Confirm with the user** — Always describe what you're about to buy, the price, and the merchant before submitting a purchase request
+4. **Choose the right payment method** — See the decision guide in [skill.md](https://creditclaw.com/shopping/skill.md) or the quick reference below
 
 ---
 
-## Amazon
+## Quick Payment Method Reference
 
-Product ID is the ASIN. No lookup step needed.
-
-```
-merchant: "amazon"
-product_id: "B0EXAMPLE123"
-```
-
-Amazon orders get full tracking: carrier, tracking number, tracking URL, and estimated delivery — delivered via webhook events or visible when polling status.
+| What You're Buying | Payment Method | Guide |
+|-------------------|---------------|-------|
+| Amazon products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/shopping/prepaid-wallet.md) |
+| Shopify store products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/shopping/prepaid-wallet.md) |
+| SaaS subscriptions, cloud hosting, any online store | Self-Hosted Card | [self-hosted-card.md](https://creditclaw.com/shopping/self-hosted-card.md) |
+| x402-enabled services, agent-to-agent payments | Stripe x402 Wallet | [stripe-x402-wallet.md](https://creditclaw.com/shopping/stripe-x402-wallet.md) |
 
 ---
 
-## Shopify
+## Merchant Types
 
-**You must look up the variant ID before purchasing.** Shopify products have variants (size, color, etc.) and CrossMint requires a specific variant ID.
+CreditClaw supports three merchant types through the Pre-paid Wallet:
 
-### Step 1: Search for variants
+| Merchant | How to Identify | Product ID Format | Tracking |
+|----------|----------------|-------------------|----------|
+| **Amazon** | User provides an Amazon link or ASIN, or describes a product to find on Amazon | ASIN (e.g. `B01DFKC2SO`) | Full: carrier, tracking number, URL, ETA |
+| **Shopify** | User provides a Shopify store URL | `{product_url}:{variant_id}` (variant lookup required) | Order placed confirmation only |
+| **URL** | Any other online store URL | `{url}:default` | Order placed confirmation only |
 
-```bash
-curl -X POST https://creditclaw.com/api/v1/card-wallet/bot/search \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{ "product_url": "https://shop.example.com/products/widget" }'
-```
-
-Response:
-```json
-{
-  "product_url": "https://shop.example.com/products/widget",
-  "product_name": "Widget Pro",
-  "variants": [
-    {
-      "variant_id": "48012345678",
-      "title": "Small / Blue",
-      "price": "24.99",
-      "currency": "USD",
-      "available": true
-    }
-  ],
-  "locator_format": "shopify:{product_url}:{variant_id}"
-}
-```
-
-Pick an available variant, then purchase using the combined locator:
-
-### Step 2: Purchase
-
-```
-merchant: "shopify"
-product_id: "https://shop.example.com/products/widget:48012345678"
-```
-
-No delivery tracking after order is placed.
-
-**Note:** The search API is in beta. It may return inconsistent results or fail for some product URLs.
+For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/shopping/amazon.md).
 
 ---
 
-## URL (Browser Automation)
+## General Purchase Flow
 
-For merchants not covered by Amazon or Shopify. Use the full URL as the product identifier.
+Regardless of payment method, every purchase follows a similar pattern:
 
 ```
-merchant: "url"
-product_id: "https://store.example.com/item:default"
+1. Check wallet & spending permissions
+2. Confirm purchase details with the user
+3. Submit purchase/checkout request
+4. Handle approval (auto-approved or pending owner approval)
+5. Poll for result if pending
+6. Report outcome to user (tracking info, confirmation, or error)
 ```
 
-Use `default` as the variant if the product has no variants. No delivery tracking.
+**Approval window:** 15 minutes for all payment methods. If your owner doesn't respond in time, the request expires and you'll need to resubmit.
 
 ---
 
-## Order Status Values
+## Order Tracking Differences
 
-| Status | Meaning | When |
-|--------|---------|------|
-| `pending` | Awaiting owner approval | After purchase request |
-| `quote` | CrossMint pricing the order | After approval |
-| `processing` | Payment succeeded, order in progress | All merchants |
-| `shipped` | In transit with tracking info | Amazon only |
-| `delivered` | Successfully delivered | Amazon only |
-| `payment_failed` | Payment could not be processed | Any merchant |
-| `delivery_failed` | Delivery unsuccessful | Amazon only |
+| Source | What You Get |
+|--------|-------------|
+| Amazon (Pre-paid Wallet) | Carrier name, tracking number, tracking URL, estimated delivery date |
+| Shopify (Pre-paid Wallet) | Order placed confirmation only |
+| URL (Pre-paid Wallet) | Order placed confirmation only |
+| Self-Hosted Card | Transaction recorded, no merchant-level tracking |
+| Stripe x402 Wallet | On-chain settlement confirmation |
 
 ---
 
-## Common Errors
+## Shopping Tips
 
-| Error | What to Do |
-|-------|-----------|
-| 403 — merchant blocked | Owner has this merchant on their blocklist |
-| 403 — budget exceeded | Hit per-transaction, daily, or monthly guardrail limit |
-| 410 — approval expired | 15-minute window passed. Resubmit the purchase request |
-| Search returns no variants | Shopify URL may not be supported by the search API |
-| Order fails after approval | Check status — likely `payment_failed` at CrossMint level |
+- **Always confirm before buying.** Show the user the product name, price, and merchant. Wait for explicit approval before submitting.
+- **Check guardrails first.** Fetch `GET /bot/wallet/spending` and respect all limits, blocked categories, and the `notes` field (your owner's direct instructions).
+- **Handle "ask_for_everything" mode.** New accounts default to requiring human approval for every purchase. Don't be surprised when your request goes to pending — this is normal.
+- **Watch for product validation.** When buying on Amazon, the response includes the product title from Amazon. Compare it against what the user asked for — ASINs can change or be reassigned.
+- **Resubmit expired approvals.** If the 15-minute window passes without a response, tell the user and offer to resubmit.
+- **Request top-ups proactively.** If your balance drops below $5, consider asking the user if they'd like you to request a top-up (`POST /bot/wallet/topup-request`).
+- **Don't over-poll.** Check wallet status every 30 minutes at most. Poll approval status every 30 seconds only while actively waiting.
 
 ---
 
-## Webhook Events
+## Common Patterns
 
-If you registered with a `callback_url`, you'll receive these events instead of needing to poll:
+### "Buy me X on Amazon"
 
-| Event | Trigger |
-|-------|---------|
-| `purchase.approved` | Owner approved your purchase |
-| `purchase.rejected` | Owner rejected your purchase |
-| `purchase.expired` | 15-minute approval window passed |
-| `order.shipped` | Order shipped (Amazon only) |
-| `order.delivered` | Order delivered (Amazon only) |
-| `order.failed` | Payment or delivery failed |
+1. Search the web for the product: `"[product name] site:amazon.com"`
+2. Extract the ASIN from the Amazon URL (after `/dp/`)
+3. Confirm with user: "I found [product] (ASIN: [X]) for about $[Y]. Want me to buy this?"
+4. On confirmation: `POST /card-wallet/bot/purchase` with the ASIN
+5. Report approval status and tracking when available
+
+### "Subscribe to [SaaS service]"
+
+1. Identify the merchant URL and pricing
+2. Confirm with user: "This costs $[X]/month. Want me to proceed?"
+3. On confirmation: `POST /bot/merchant/checkout` with merchant details
+4. Report approval result
+
+### "Pay for [x402 service]"
+
+1. Hit the x402 endpoint, receive 402 with payment details
+2. `POST /stripe-wallet/bot/sign` with the payment details
+3. Retry original request with the returned `X-PAYMENT` header
+4. Report success or failure
