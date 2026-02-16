@@ -9,7 +9,7 @@ updated: 2026-02-14T22:00:00Z
 Run this routine periodically to stay aware of your wallet status,
 spending permissions, and balance across all active rails.
 
-Full API reference: https://creditclaw.com/creditcard/skill.md
+Full API reference: https://creditclaw.com/stripe/skill.md
 
 ---
 

@@ -1,6 +1,6 @@
 # Amazon Shopping — Purchase Guide
 
-Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers how to buy products on Amazon using CreditClaw's Pre-paid Wallet.
+Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers how to buy products on Amazon using CreditClaw's Pre-paid Wallet.
 
 **Prerequisite:** Your owner must have set up a Pre-paid Wallet for you. Check `GET /bot/wallet/check` first.
 

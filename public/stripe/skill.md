@@ -1,15 +1,15 @@
 ---
-name: creditclaw-creditcard
-version: 2.3.0
+name: stripe-wallet
+version: 2.3.2
 updated: 2026-02-14T22:00:00Z
-description: "Let your agent shop online with guardrailed wallets, multiple payment methods, and owner approval."
+description: "Easy-to-use agentic wallets powered by Stripe. Use your existing Stripe/Link to top-up this versatile x402 wallet for any purchases or A2A payments."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
 metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"CREDITCLAW_API_KEY"}}
 ---
 
-# CreditClaw — Shopping for AI Agents
+# CreditClaw — Stripe-powered wallets and payments for AI Agents
 
 CreditClaw lets your agent buy things online — Amazon products, Shopify stores, SaaS subscriptions, and more.
 Your owner funds a wallet, sets spending limits, and you shop within those guardrails.
@@ -18,26 +18,26 @@ Your owner funds a wallet, sets spending limits, and you shop within those guard
 
 | File | URL | Purpose |
 |------|-----|---------|
-| **SKILL.md** (this file) | `https://creditclaw.com/creditcard/skill.md` | Registration, setup, payment method guide, and API reference |
-| **SHOPPING.md** | `https://creditclaw.com/creditcard/shopping.md` | General purchasing guide — merchant types, tips, common patterns |
-| **AMAZON.md** | `https://creditclaw.com/creditcard/amazon.md` | Amazon-specific guide — ASIN discovery, restrictions, tracking |
-| **PREPAID-WALLET.md** | `https://creditclaw.com/creditcard/prepaid-wallet.md` | Pre-paid Wallet (Rail 2) — purchase flow, merchant formats, order tracking |
-| **SELF-HOSTED-CARD.md** | `https://creditclaw.com/creditcard/self-hosted-card.md` | Self-Hosted Card (Rail 4) — checkout flow, approval, multi-card handling |
-| **STRIPE-X402-WALLET.md** | `https://creditclaw.com/creditcard/stripe-x402-wallet.md` | Stripe x402 Wallet (Rail 1) — x402 signing, USDC balance, guardrails |
-| **HEARTBEAT.md** | `https://creditclaw.com/creditcard/heartbeat.md` | Lightweight polling routine for balance and spending checks |
-| **package.json** (metadata) | `https://creditclaw.com/creditcard/skill.json` | Machine-readable skill metadata |
+| **SKILL.md** (this file) | `https://creditclaw.com/stripe/skill.md` | Registration, setup, payment method guide, and API reference |
+| **SHOPPING.md** | `https://creditclaw.com/stripe/shopping.md` | General purchasing guide — merchant types, tips, common patterns |
+| **AMAZON.md** | `https://creditclaw.com/stripe/amazon.md` | Amazon-specific guide — ASIN discovery, restrictions, tracking |
+| **PREPAID-WALLET.md** | `https://creditclaw.com/stripe/prepaid-wallet.md` | Pre-paid Wallet (Rail 2) — purchase flow, merchant formats, order tracking |
+| **SELF-HOSTED-CARD.md** | `https://creditclaw.com/stripe/self-hosted-card.md` | Self-Hosted Card (Rail 4) — checkout flow, approval, multi-card handling |
+| **STRIPE-X402-WALLET.md** | `https://creditclaw.com/stripe/stripe-x402-wallet.md` | Stripe x402 Wallet (Rail 1) — x402 signing, USDC balance, guardrails |
+| **HEARTBEAT.md** | `https://creditclaw.com/stripe/heartbeat.md` | Lightweight polling routine for balance and spending checks |
+| **package.json** (metadata) | `https://creditclaw.com/stripe/skill.json` | Machine-readable skill metadata |
 
 Follow your human's instructions on how to manage and save skill files. If unsure, you can install locally:
 ```bash
-mkdir -p ~/.creditclaw/skills/creditcard
-curl -s https://creditclaw.com/creditcard/skill.md > ~/.creditclaw/skills/creditcard/SKILL.md
-curl -s https://creditclaw.com/creditcard/shopping.md > ~/.creditclaw/skills/creditcard/SHOPPING.md
-curl -s https://creditclaw.com/creditcard/amazon.md > ~/.creditclaw/skills/creditcard/AMAZON.md
-curl -s https://creditclaw.com/creditcard/prepaid-wallet.md > ~/.creditclaw/skills/creditcard/PREPAID-WALLET.md
-curl -s https://creditclaw.com/creditcard/self-hosted-card.md > ~/.creditclaw/skills/creditcard/SELF-HOSTED-CARD.md
-curl -s https://creditclaw.com/creditcard/stripe-x402-wallet.md > ~/.creditclaw/skills/creditcard/STRIPE-X402-WALLET.md
-curl -s https://creditclaw.com/creditcard/heartbeat.md > ~/.creditclaw/skills/creditcard/HEARTBEAT.md
-curl -s https://creditclaw.com/creditcard/skill.json > ~/.creditclaw/skills/creditcard/package.json
+mkdir -p ~/.creditclaw/skills/stripe
+curl -s https://creditclaw.com/stripe/skill.md > ~/.creditclaw/skills/stripe/SKILL.md
+curl -s https://creditclaw.com/stripe/shopping.md > ~/.creditclaw/skills/stripe/SHOPPING.md
+curl -s https://creditclaw.com/stripe/amazon.md > ~/.creditclaw/skills/stripe/AMAZON.md
+curl -s https://creditclaw.com/stripe/prepaid-wallet.md > ~/.creditclaw/skills/stripe/PREPAID-WALLET.md
+curl -s https://creditclaw.com/stripe/self-hosted-card.md > ~/.creditclaw/skills/stripe/SELF-HOSTED-CARD.md
+curl -s https://creditclaw.com/stripe/stripe-x402-wallet.md > ~/.creditclaw/skills/stripe/STRIPE-X402-WALLET.md
+curl -s https://creditclaw.com/stripe/heartbeat.md > ~/.creditclaw/skills/stripe/HEARTBEAT.md
+curl -s https://creditclaw.com/stripe/skill.json > ~/.creditclaw/skills/stripe/package.json
 ```
 
 Or just read them directly from the URLs above.
@@ -52,9 +52,9 @@ CreditClaw supports multiple payment methods. Your owner chooses which ones to e
 
 | Payment Method | Best For | Status | Day-to-Day Guide |
 |---------------|----------|--------|-----------------|
-| **Pre-paid Wallet** | Amazon, Shopify, supported merchants | Live | [prepaid-wallet.md](https://creditclaw.com/creditcard/prepaid-wallet.md) |
-| **Self-Hosted Card** | SaaS, cloud hosting, any online store | Live | [self-hosted-card.md](https://creditclaw.com/creditcard/self-hosted-card.md) |
-| **Stripe x402 Wallet** | x402 services, agent-to-agent payments | Private Beta | [stripe-x402-wallet.md](https://creditclaw.com/creditcard/stripe-x402-wallet.md) |
+| **Pre-paid Wallet** | Amazon, Shopify, supported merchants | Live | [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md) |
+| **Self-Hosted Card** | SaaS, cloud hosting, any online store | Live | [self-hosted-card.md](https://creditclaw.com/stripe/self-hosted-card.md) |
+| **Stripe x402 Wallet** | x402 services, agent-to-agent payments | Private Beta | [stripe-x402-wallet.md](https://creditclaw.com/stripe/stripe-x402-wallet.md) |
 
 Check `GET /bot/wallet/check` to see your active wallet status and which payment methods are available to you.
 
@@ -70,9 +70,9 @@ Check `GET /bot/wallet/check` to see your active wallet status and which payment
 | Pay an x402-enabled API or service | Stripe x402 Wallet | On-chain USDC settlement via x402 protocol |
 | Send payment to another agent | Stripe x402 Wallet | Agent-to-agent via x402 |
 
-**For general shopping advice and tips, see [shopping.md](https://creditclaw.com/creditcard/shopping.md).**
+**For general shopping advice and tips, see [shopping.md](https://creditclaw.com/stripe/shopping.md).**
 
-**For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/creditcard/amazon.md).**
+**For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/stripe/amazon.md).**
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -105,7 +105,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 ## End-to-End Flow
 
 ```
-1. You fetch this skill file from creditclaw.com/creditcard/skill.md
+1. You fetch this skill file from creditclaw.com/stripe/skill.md
 2. You call POST /bots/register → get apiKey + claimToken
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
@@ -502,7 +502,7 @@ Use the Pre-paid Wallet to buy products from Amazon, Shopify stores, and other s
 
 **Key endpoint:** `POST /card-wallet/bot/purchase`
 
-**Full guide:** [prepaid-wallet.md](https://creditclaw.com/creditcard/prepaid-wallet.md)
+**Full guide:** [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md)
 
 ---
 
@@ -512,7 +512,7 @@ Use self-hosted cards to make purchases at any online merchant — SaaS subscrip
 
 **Key endpoint:** `POST /bot/merchant/checkout`
 
-**Full guide:** [self-hosted-card.md](https://creditclaw.com/creditcard/self-hosted-card.md)
+**Full guide:** [self-hosted-card.md](https://creditclaw.com/stripe/self-hosted-card.md)
 
 ---
 
@@ -524,7 +524,7 @@ Use the Stripe x402 Wallet for x402-enabled services and agent-to-agent payments
 
 **Key endpoint:** `POST /stripe-wallet/bot/sign`
 
-**Full guide:** [stripe-x402-wallet.md](https://creditclaw.com/creditcard/stripe-x402-wallet.md)
+**Full guide:** [stripe-x402-wallet.md](https://creditclaw.com/stripe/stripe-x402-wallet.md)
 
 ---
 

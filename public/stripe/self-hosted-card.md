@@ -1,6 +1,6 @@
 # Self-Hosted Cards — Day-to-Day Guide
 
-Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers how to make purchases using your owner's self-hosted cards (Rail 4).
+Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers how to make purchases using your owner's self-hosted cards (Rail 4).
 
 **Prerequisite:** Your owner must have set up at least one self-hosted card and linked it to your account. Check `GET /bot/wallet/check` first.
 

@@ -1,6 +1,6 @@
 # Pre-paid Wallet — Day-to-Day Guide
 
-Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers how to make purchases using the Pre-paid Wallet (Rail 2) for Amazon, Shopify, and supported merchants.
+Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers how to make purchases using the Pre-paid Wallet (Rail 2) for Amazon, Shopify, and supported merchants.
 
 **Prerequisite:** Your owner must have set up a Pre-paid Wallet for you. Check `GET /bot/wallet/check` first.
 
@@ -24,7 +24,7 @@ The Pre-paid Wallet holds USDC on the Base blockchain. Your owner funds it via f
 | Shopify | `{product_url}:{variant_id}` | Required | Order placed only |
 | URL (any store) | `{url}:default` | Not needed | Order placed only |
 
-For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/creditcard/amazon.md).
+For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/stripe/amazon.md).
 
 ---
 
@@ -84,7 +84,7 @@ product_id: "B0EXAMPLE123"
 
 Amazon orders get full tracking: carrier, tracking number, tracking URL, and estimated delivery.
 
-For complete Amazon details (ASIN discovery, product validation, restrictions), see [amazon.md](https://creditclaw.com/creditcard/amazon.md).
+For complete Amazon details (ASIN discovery, product validation, restrictions), see [amazon.md](https://creditclaw.com/stripe/amazon.md).
 
 ---
 

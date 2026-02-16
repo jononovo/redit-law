@@ -1,5 +1,5 @@
 {
-  "name": "creditclaw-creditcard",
+  "name": "creditclaw-stripe",
   "version": "2.3.0",
   "description": "Let your agent shop online with guardrailed wallets, multiple payment methods, and owner approval.",
   "author": "creditclaw",
@@ -13,12 +13,12 @@
     "primaryEnv": "CREDITCLAW_API_KEY"
   },
   "files": {
-    "SKILL.md": "https://creditclaw.com/creditcard/skill.md",
-    "SHOPPING.md": "https://creditclaw.com/creditcard/shopping.md",
-    "AMAZON.md": "https://creditclaw.com/creditcard/amazon.md",
-    "PREPAID-WALLET.md": "https://creditclaw.com/creditcard/prepaid-wallet.md",
-    "SELF-HOSTED-CARD.md": "https://creditclaw.com/creditcard/self-hosted-card.md",
-    "STRIPE-X402-WALLET.md": "https://creditclaw.com/creditcard/stripe-x402-wallet.md",
-    "HEARTBEAT.md": "https://creditclaw.com/creditcard/heartbeat.md"
+    "SKILL.md": "https://creditclaw.com/stripe/skill.md",
+    "SHOPPING.md": "https://creditclaw.com/stripe/shopping.md",
+    "AMAZON.md": "https://creditclaw.com/stripe/amazon.md",
+    "PREPAID-WALLET.md": "https://creditclaw.com/stripe/prepaid-wallet.md",
+    "SELF-HOSTED-CARD.md": "https://creditclaw.com/stripe/self-hosted-card.md",
+    "STRIPE-X402-WALLET.md": "https://creditclaw.com/stripe/stripe-x402-wallet.md",
+    "HEARTBEAT.md": "https://creditclaw.com/stripe/heartbeat.md"
   }
 }

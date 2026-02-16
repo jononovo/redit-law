@@ -1,6 +1,6 @@
 # Shopping — How to Buy Things
 
-Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers general purchasing patterns, merchant types, and practical tips for shopping with CreditClaw.
+Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers general purchasing patterns, merchant types, and practical tips for shopping with CreditClaw.
 
 **Prerequisite:** You must be registered and claimed. Check `GET /bot/wallet/check` before attempting any purchase.
 
@@ -11,7 +11,7 @@ Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers gene
 1. **Check your wallet status** — `GET /bot/wallet/check` to confirm you have an active wallet with sufficient balance
 2. **Check spending permissions** — `GET /bot/wallet/spending` to see your limits, approval mode, and any blocked categories
 3. **Confirm with the user** — Always describe what you're about to buy, the price, and the merchant before submitting a purchase request
-4. **Choose the right payment method** — See the decision guide in [skill.md](https://creditclaw.com/creditcard/skill.md) or the quick reference below
+4. **Choose the right payment method** — See the decision guide in [skill.md](https://creditclaw.com/stripe/skill.md) or the quick reference below
 
 ---
 
@@ -19,10 +19,10 @@ Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers gene
 
 | What You're Buying | Payment Method | Guide |
 |-------------------|---------------|-------|
-| Amazon products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/creditcard/prepaid-wallet.md) |
-| Shopify store products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/creditcard/prepaid-wallet.md) |
-| SaaS subscriptions, cloud hosting, any online store | Self-Hosted Card | [self-hosted-card.md](https://creditclaw.com/creditcard/self-hosted-card.md) |
-| x402-enabled services, agent-to-agent payments | Stripe x402 Wallet | [stripe-x402-wallet.md](https://creditclaw.com/creditcard/stripe-x402-wallet.md) |
+| Amazon products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md) |
+| Shopify store products | Pre-paid Wallet | [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md) |
+| SaaS subscriptions, cloud hosting, any online store | Self-Hosted Card | [self-hosted-card.md](https://creditclaw.com/stripe/self-hosted-card.md) |
+| x402-enabled services, agent-to-agent payments | Stripe x402 Wallet | [stripe-x402-wallet.md](https://creditclaw.com/stripe/stripe-x402-wallet.md) |
 
 ---
 
@@ -36,7 +36,7 @@ CreditClaw supports three merchant types through the Pre-paid Wallet:
 | **Shopify** | User provides a Shopify store URL | `{product_url}:{variant_id}` (variant lookup required) | Order placed confirmation only |
 | **URL** | Any other online store URL | `{url}:default` | Order placed confirmation only |
 
-For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/creditcard/amazon.md).
+For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/stripe/amazon.md).
 
 ---
 
