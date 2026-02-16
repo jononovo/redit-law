@@ -1,0 +1,25 @@
+Current Architecture
+User/owner identity lives entirely in Firebase Auth. Your database references users only via owner_uid (the Firebase UID) scattered across tables like bots, wallets, payment_methods, rail4_cards, notifications, etc. The session system (lib/auth/session.ts) verifies tokens against Firebase and pulls basic profile info (uid, email, displayName, photoURL) on-the-fly from Firebase Admin SDK — nothing is persisted locally.
+This works because:
+
+Bots don't need a user account to register — POST /api/v1/bots/register is public and IP-rate-limited. The bot gets an API key and operates independently until an owner claims it.
+Owner claiming just stamps a owner_uid onto the bot and wallet rows. Firebase is the single source of truth for "who is this person."
+
+Where This Gets Risky
+For a financial platform, relying solely on Firebase for user data has real downsides:
+Compliance and audit trail. Financial regulations (KYC/AML, even basic money transmitter rules) typically require you to maintain your own records of who your users are, when they onboarded, and what identity verification was done. If Firebase has an outage or you ever need to migrate, you have no local record of your users — just orphaned owner_uid strings.
+Data integrity. Right now if you need to answer "show me all users and their aggregate financial activity," you'd have to cross-reference Firebase Auth's user list with scattered owner_uid references across half a dozen tables. A local users table with uid, email, created_at, stripe_customer_id, and onboarded_at would make this trivial.
+The v1 context doc actually had a users table in its original schema design (with stripe_customer_id, stripe_account_id, financial_account_id). It looks like this was dropped when the implementation went live, and user data was left in Firebase only.
+Recommendation
+You should add a users (or owners) table. It doesn't need to replace Firebase Auth — Firebase still handles authentication. But you should mirror the essentials on your side:
+users
+├── id (serial PK)
+├── uid (text, unique) — Firebase UID
+├── email (text)
+├── display_name (text, nullable)
+├── stripe_customer_id (text, nullable)
+├── onboarded_at (timestamp, nullable)
+├── created_at (timestamp)
+├── updated_at (timestamp)
+Then populate it on first login (upsert when the session is created). This gives you a local source of truth for user identity, makes compliance queries straightforward, and doesn't change your auth flow at all — Firebase still does the authentication, your table just keeps a record.
+For a platform handling real money, having your own user records isn't just "nice to have" — it's essentially table stakes for any future compliance review or audit.
