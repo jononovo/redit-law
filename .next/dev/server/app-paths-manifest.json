@@ -1,10 +1,5 @@
 {
   "/api/auth/session/route": "app/api/auth/session/route.js",
-  "/api/v1/skills/analyze/route": "app/api/v1/skills/analyze/route.js",
-  "/api/v1/skills/drafts/[id]/publish/route": "app/api/v1/skills/drafts/[id]/publish/route.js",
-  "/api/v1/skills/drafts/[id]/route": "app/api/v1/skills/drafts/[id]/route.js",
-  "/api/v1/skills/drafts/route": "app/api/v1/skills/drafts/route.js",
-  "/app/skills/review/[id]/page": "app/app/skills/review/[id]/page.js",
   "/app/skills/review/page": "app/app/skills/review/page.js",
   "/page": "app/page.js"
 }
