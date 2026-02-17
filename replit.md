@@ -56,6 +56,15 @@ A `/skills/` module provides a curated library of vendor shopping skills.
 - `/app/settings`: Account settings
 - `/onboarding`: Guided setup wizard
 
+### Skill Builder Module
+An LLM-powered tool that analyzes vendor websites and generates procurement skill files automatically.
+- **Builder Core** (`lib/procurement-skills/builder/`): 4-pass analysis (API probing, LLM checkout flow analysis, business feature detection, protocol support checking) with per-field confidence scoring.
+- **Database Tables:** `skill_drafts` (vendor analysis results with confidence scores) and `skill_evidence` (provenance records for each field).
+- **API Routes:** `POST /api/v1/skills/analyze` (trigger analysis), `GET /api/v1/skills/drafts` (list), `GET/PATCH/DELETE /api/v1/skills/drafts/[id]` (CRUD), `POST /api/v1/skills/drafts/[id]/publish` (approve and generate SKILL.md).
+- **Review UI:** `/app/skills/review` (draft queue with analyze form) and `/app/skills/review/[id]` (detail editor with confidence badges, evidence snippets, field overrides, publish/reject buttons).
+- **Security:** SSRF-safe fetching with DNS resolution validation, private IP blocking (IPv4/IPv6), redirect validation, HTTPS-only.
+- **Tests:** 41 API endpoint tests covering full draft lifecycle.
+
 ### API Endpoints
 CreditClaw provides distinct API endpoints for each rail and for master guardrails, facilitating wallet management, transactions, approvals, and guardrail configuration. Bot-facing APIs allow for purchase requests, status polling, and skill discovery. Owner-facing APIs manage cards, guardrails, and approvals.
 
@@ -72,3 +81,4 @@ CreditClaw provides distinct API endpoints for each rail and for master guardrai
 - **SendGrid:** Transactional email services.
 - **shadcn/ui:** UI component library.
 - **React Query (@tanstack/react-query):** Server state management.
+- **Anthropic (@anthropic-ai/sdk):** LLM-powered vendor analysis for Skill Builder.
