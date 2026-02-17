@@ -27,6 +27,7 @@ export const skillVersions = pgTable("skill_versions", {
   skillMd: text("skill_md").notNull(),                    // Generated SKILL.md content (frozen)
   skillJson: jsonb("skill_json"),                         // Structured metadata (frozen)
   paymentsMd: text("payments_md"),                        // Payment instructions (frozen)
+  descriptionMd: text("description_md"),                  // Listing info: slug, name, description, version, category (frozen)
   checksum: text("checksum").notNull(),                   // SHA-256 of vendorData JSON
   changeType: text("change_type").notNull(),              // "initial" | "edit" | "community_update" | "rollback"
   changeSummary: text("change_summary"),                  // Human-readable: "Updated checkout methods, added bulk pricing"
@@ -133,7 +134,7 @@ export async function rollbackToVersion(
   rolledBackBy: string,
   reason: string
 ): Promise<SkillVersion> {
-  // 1. Fetch the target version's frozen vendorData, skillMd, skillJson, paymentsMd
+  // 1. Fetch the target version's frozen vendorData, skillMd, skillJson, paymentsMd, descriptionMd
   // 2. Deactivate the current active version (isActive = false)
   // 3. Create a NEW version entry with:
   //    - All content from target version
@@ -223,7 +224,7 @@ Location: `/app/skills/review/[id]/versions` (linked from the review detail page
 
 ## 2. Multi-File Skill Packages
 
-Each vendor skill is a bundle of three files. All three are generated from the same `VendorSkill` data and frozen together as a version.
+Each vendor skill is a bundle of four files. All four are generated from the same `VendorSkill` data and frozen together as a version.
 
 ### 2.1 File Structure
 
@@ -232,6 +233,7 @@ Each vendor skill is a bundle of three files. All three are generated from the s
 | `SKILL.md` | Agent-facing instructions — how to search, browse, add to cart, checkout at this vendor | Existing generator (`lib/procurement-skills/generator.ts`) |
 | `skill.json` | Structured metadata for programmatic consumption — capabilities, checkout methods, search patterns, config | `VendorSkill` object serialized with computed fields |
 | `payments.md` | CreditClaw-specific payment instructions — which wallet endpoint to use, spending limit info, rail requirements | Generated from vendor's checkout methods + CreditClaw payment config |
+| `description.md` | Human-readable listing card — slug, name, description, version, category, key stats. Makes manual/programmatic export to external hubs easy | Generated from VendorSkill summary fields |
 
 ### 2.2 skill.json Format
 
@@ -350,16 +352,65 @@ export function generatePaymentsMd(vendor: VendorSkill): string {
 }
 ```
 
-### 2.4 Vendor Detail Page Updates
+### 2.4 description.md Generator
 
-The existing vendor detail pages at `/skills/[vendor]` are updated to display all three files with a tabbed interface:
+```typescript
+// lib/procurement-skills/package/description-md.ts
+
+export function generateDescriptionMd(vendor: VendorSkill, version: string): string {
+  let md = `# ${vendor.name}\n\n`;
+
+  md += `| Field | Value |\n`;
+  md += `|-------|-------|\n`;
+  md += `| **Slug** | \`${vendor.slug}\` |\n`;
+  md += `| **Version** | ${version} |\n`;
+  md += `| **Category** | ${vendor.category} |\n`;
+  md += `| **URL** | ${vendor.url} |\n`;
+  md += `| **Maturity** | ${vendor.maturity} |\n`;
+  md += `| **Agent Friendliness** | ${computeAgentFriendliness(vendor)}/5 |\n\n`;
+
+  md += `## Description\n\n`;
+  md += generateVendorDescription(vendor);
+  md += `\n\n`;
+
+  md += `## Capabilities\n\n`;
+  for (const cap of vendor.capabilities) {
+    md += `- ${cap}\n`;
+  }
+  md += `\n`;
+
+  md += `## Checkout Methods\n\n`;
+  for (const method of vendor.checkoutMethods) {
+    md += `- ${method}\n`;
+  }
+  md += `\n`;
+
+  md += `---\n`;
+  md += `*Powered by [CreditClaw](https://creditclaw.com) — Prepaid spending controls for AI agents.*\n`;
+
+  return md;
+}
+
+function generateVendorDescription(vendor: VendorSkill): string {
+  // Auto-generate a listing description from vendor capabilities
+  const caps = vendor.capabilities.join(", ");
+  const methods = vendor.checkoutMethods.join(", ");
+  return `Procurement skill for ${vendor.name} (${vendor.category}). ` +
+    `Supports: ${caps}. ` +
+    `Checkout via: ${methods}.`;
+}
+```
+
+### 2.5 Vendor Detail Page Updates
+
+The existing vendor detail pages at `/skills/[vendor]` are updated to display all four files with a tabbed interface:
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │  ← Back to Catalog    Staples Business               │
 │  v1.2.1 · Verified · ⭐⭐⭐⭐                        │
 │                                                      │
-│  [SKILL.md]  [skill.json]  [payments.md]   [Download]│
+│  [SKILL.md] [skill.json] [payments.md] [description.md] [Download]│
 │  ─────────                                           │
 │  ┌──────────────────────────────────────────────────┐│
 │  │ # Staples Business                               ││
@@ -422,6 +473,7 @@ export interface ExportReportItem {
     skillMd: string;
     skillJson: object;
     paymentsMd: string;
+    descriptionMd: string;
   };
 }
 
@@ -452,7 +504,7 @@ POST /api/v1/skills/export/mark-batch
      → Bulk mark multiple skills as exported (auth required)
 
 GET  /api/v1/skills/export/download/:vendorSlug
-     → Download the complete skill package (SKILL.md + skill.json + payments.md)
+     → Download the complete skill package (SKILL.md + skill.json + payments.md + description.md)
      → Applies any programmatic tweaks for the destination
 ```
 
@@ -498,8 +550,9 @@ export function transformForExport(
   skillMd: string,
   skillJson: SkillJsonPackage,
   paymentsMd: string,
+  descriptionMd: string,
   options: ExportOptions
-): { skillMd: string; skillJson: SkillJsonPackage; paymentsMd: string } {
+): { skillMd: string; skillJson: SkillJsonPackage; paymentsMd: string; descriptionMd: string } {
   let transformedMd = skillMd;
   const transformedJson = { ...skillJson };
 
@@ -514,6 +567,7 @@ export function transformForExport(
     skillMd: transformedMd,
     skillJson: transformedJson,
     paymentsMd: options.includePaymentsMd !== false ? paymentsMd : "",
+    descriptionMd,
   };
 }
 ```
@@ -539,7 +593,7 @@ export function transformForExport(
 ## 5. Test Plan
 
 ### Versioning Tests
-- Version created on draft publish with correct semver, snapshot data, and all three files
+- Version created on draft publish with correct semver, snapshot data, and all four files
 - Only one active version per vendor slug at any time
 - Version history returns ordered list (newest first)
 - Checksum validates integrity of frozen data
@@ -556,7 +610,8 @@ export function transformForExport(
 ### Multi-File Tests
 - skill.json contains all required fields from VendorSkill
 - payments.md includes correct rails based on checkout methods
-- All three files frozen in version snapshot
+- description.md includes slug, name, version, category, capabilities, checkout methods
+- All four files frozen in version snapshot
 - Files served correctly from vendor detail page
 
 ### Export Tests
@@ -564,4 +619,4 @@ export function transformForExport(
 - Mark-exported updates export tracking
 - Bulk mark works for multiple skills
 - Programmatic tweaks applied correctly per destination
-- Download returns all three files
+- Download returns all four files
