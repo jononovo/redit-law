@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NewCardModal } from "@/components/dashboard/new-card-modal";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
@@ -32,6 +34,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [newCardModalOpen, setNewCardModalOpen] = useState(false);
 
   return (
     <aside className="w-64 bg-white border-r border-neutral-100 h-screen fixed left-0 top-0 flex flex-col z-50">
@@ -41,11 +44,17 @@ export function Sidebar() {
       </div>
 
       <div className="px-4 mb-6">
-        <Button className="w-full justify-start gap-2 rounded-xl bg-primary hover:bg-primary/90 shadow-md shadow-primary/20">
+        <Button
+          onClick={() => setNewCardModalOpen(true)}
+          className="w-full justify-start gap-2 rounded-xl bg-primary hover:bg-primary/90 shadow-md shadow-primary/20"
+          data-testid="button-new-card"
+        >
             <Plus className="w-4 h-4" />
             <span>New Card</span>
         </Button>
       </div>
+
+      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
 
       <nav className="flex-1 px-4 space-y-1">
         {navItems.map((item) => {
