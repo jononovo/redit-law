@@ -200,6 +200,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/skills/[vendor]/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/skills/[vendor]">> = Specific
+  const handler = {} as typeof import("../../../app/skills/[vendor]/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/skills/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/skills">> = Specific
+  const handler = {} as typeof import("../../../app/skills/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/stripe-wallet/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/stripe-wallet">> = Specific
@@ -294,6 +312,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bot/payments/links">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/bot/payments/links/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/bot/skills/[vendor]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bot/skills/[vendor]">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/bot/skills/[vendor]/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/bot/skills/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bot/skills">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/bot/skills/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

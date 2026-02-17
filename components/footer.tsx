@@ -22,6 +22,7 @@ export function Footer() {
               <li><Link href="/how-it-works" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-how-it-works">How It Works</Link></li>
               <li><Link href="/allowance" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-allowance">Allowance</Link></li>
               <li><Link href="/safety" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-safety">Safety</Link></li>
+              <li><Link href="/skills" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-skills">Vendor Skills</Link></li>
               <li><Link href="/onboarding" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-onboarding">Get Started</Link></li>
             </ul>
           </div>
