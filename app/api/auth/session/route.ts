@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSessionCookie, destroySession, getCurrentUser } from "@/lib/auth/session";
 import { adminAuth } from "@/lib/firebase/admin";
+import { storage } from "@/server/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest) {
     await createSessionCookie(idToken);
 
     const user = await adminAuth.getUser(decodedToken.uid);
+
+    await storage.upsertOwner(user.uid, {
+      email: user.email || "",
+      displayName: user.displayName || null,
+    });
 
     return NextResponse.json({
       uid: user.uid,
