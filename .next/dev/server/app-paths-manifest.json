@@ -4,9 +4,15 @@
   "/api/v1/bots/mine/route": "app/api/v1/bots/mine/route.js",
   "/api/v1/notifications/unread-count/route": "app/api/v1/notifications/unread-count/route.js",
   "/api/v1/payment-links/route": "app/api/v1/payment-links/route.js",
+  "/api/v1/stripe-wallet/approvals/route": "app/api/v1/stripe-wallet/approvals/route.js",
+  "/api/v1/stripe-wallet/list/route": "app/api/v1/stripe-wallet/list/route.js",
+  "/api/v1/stripe-wallet/transactions/route": "app/api/v1/stripe-wallet/transactions/route.js",
   "/api/v1/wallet/balance/route": "app/api/v1/wallet/balance/route.js",
   "/api/v1/webhooks/health/route": "app/api/v1/webhooks/health/route.js",
   "/api/v1/webhooks/route": "app/api/v1/webhooks/route.js",
+  "/app/card-wallet/page": "app/app/card-wallet/page.js",
   "/app/page": "app/app/page.js",
+  "/app/self-hosted/page": "app/app/self-hosted/page.js",
+  "/app/stripe-wallet/page": "app/app/stripe-wallet/page.js",
   "/page": "app/page.js"
 }
