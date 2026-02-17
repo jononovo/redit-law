@@ -5,7 +5,7 @@ import {
   rail4Cards, obfuscationEvents, obfuscationState, profileAllowanceUsage, checkoutConfirmations,
   privyWallets, privyGuardrails, privyTransactions, privyApprovals,
   crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
-  owners, masterGuardrails, skillDrafts, skillEvidence,
+  owners, masterGuardrails, skillDrafts, skillEvidence, skillSubmitterProfiles,
   type Owner, type InsertOwner,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
@@ -37,6 +37,7 @@ import {
   type MasterGuardrail, type InsertMasterGuardrail,
   type SkillDraft, type InsertSkillDraft,
   type SkillEvidence, type InsertSkillEvidence,
+  type SkillSubmitterProfile, type InsertSkillSubmitterProfile,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -214,6 +215,12 @@ export interface IStorage {
   deleteSkillDraft(id: number): Promise<void>;
   createSkillEvidence(data: InsertSkillEvidence): Promise<SkillEvidence>;
   getSkillEvidenceByDraftId(draftId: number): Promise<SkillEvidence[]>;
+
+  // ─── Skill Submitter Profiles ──────────────────────────────────────
+  upsertSubmitterProfile(ownerUid: string, data: Partial<InsertSkillSubmitterProfile>): Promise<SkillSubmitterProfile>;
+  getSubmitterProfile(ownerUid: string): Promise<SkillSubmitterProfile | null>;
+  incrementSubmitterStat(ownerUid: string, field: "skillsSubmitted" | "skillsPublished" | "skillsRejected"): Promise<void>;
+  listSkillDraftsBySubmitter(ownerUid: string): Promise<SkillDraft[]>;
 }
 
 export const storage: IStorage = {
@@ -1495,5 +1502,42 @@ export const storage: IStorage = {
 
   async getSkillEvidenceByDraftId(draftId: number): Promise<SkillEvidence[]> {
     return db.select().from(skillEvidence).where(eq(skillEvidence.draftId, draftId)).orderBy(skillEvidence.field);
+  },
+
+  async upsertSubmitterProfile(ownerUid: string, data: Partial<InsertSkillSubmitterProfile>): Promise<SkillSubmitterProfile> {
+    const existing = await db.select().from(skillSubmitterProfiles).where(eq(skillSubmitterProfiles.ownerUid, ownerUid)).limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(skillSubmitterProfiles)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(skillSubmitterProfiles.ownerUid, ownerUid))
+        .returning();
+      return updated;
+    }
+    const [profile] = await db.insert(skillSubmitterProfiles)
+      .values({ ownerUid, ...data })
+      .returning();
+    return profile;
+  },
+
+  async getSubmitterProfile(ownerUid: string): Promise<SkillSubmitterProfile | null> {
+    const [profile] = await db.select().from(skillSubmitterProfiles).where(eq(skillSubmitterProfiles.ownerUid, ownerUid)).limit(1);
+    return profile ?? null;
+  },
+
+  async incrementSubmitterStat(ownerUid: string, field: "skillsSubmitted" | "skillsPublished" | "skillsRejected"): Promise<void> {
+    const existing = await db.select().from(skillSubmitterProfiles).where(eq(skillSubmitterProfiles.ownerUid, ownerUid)).limit(1);
+    if (existing.length === 0) {
+      await db.insert(skillSubmitterProfiles).values({ ownerUid, [field]: 1 });
+    } else {
+      await db.update(skillSubmitterProfiles)
+        .set({ [field]: sql`${skillSubmitterProfiles[field]} + 1`, updatedAt: new Date() })
+        .where(eq(skillSubmitterProfiles.ownerUid, ownerUid));
+    }
+  },
+
+  async listSkillDraftsBySubmitter(ownerUid: string): Promise<SkillDraft[]> {
+    return db.select().from(skillDrafts)
+      .where(eq(skillDrafts.submitterUid, ownerUid))
+      .orderBy(desc(skillDrafts.createdAt));
   },
 };

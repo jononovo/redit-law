@@ -13,7 +13,8 @@ import {
   Shield,
   Wallet,
   ShoppingCart,
-  Sparkles
+  Sparkles,
+  Send
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ const navItems = [
   { icon: ShoppingCart, label: "Card Wallet", href: "/app/card-wallet" },
   { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
+  { icon: Send, label: "Submit Skill", href: "/app/skills/submit" },
   { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
   { icon: Settings, label: "Settings", href: "/app/settings" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },

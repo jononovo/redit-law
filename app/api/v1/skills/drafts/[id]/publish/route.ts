@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { generateVendorSkill } from "@/lib/procurement-skills/generator";
 import type { VendorSkill } from "@/lib/procurement-skills/types";
@@ -8,6 +9,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const draftId = parseInt(id, 10);
     if (isNaN(draftId)) {
@@ -47,11 +53,17 @@ export async function POST(
 
     const updated = await storage.updateSkillDraft(draftId, { status: "published" });
 
+    if (draft.submitterUid && draft.submissionSource === "community") {
+      await storage.incrementSubmitterStat(draft.submitterUid, "skillsPublished");
+    }
+
     return NextResponse.json({
       id: updated!.id,
       status: "published",
       vendorSlug: updated!.vendorSlug,
       skillMd,
+      submitterType: draft.submitterType,
+      submitterName: draft.submitterName,
       message: "Draft published successfully. To add this vendor to the live registry, add it to lib/procurement-skills/registry.ts.",
     });
   } catch (error: unknown) {

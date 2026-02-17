@@ -14,6 +14,9 @@ import {
   ExternalLink,
   Loader2,
   Sparkles,
+  Award,
+  Users,
+  Bot,
 } from "lucide-react";
 
 type DraftSummary = {
@@ -27,6 +30,9 @@ type DraftSummary = {
   confidence: Record<string, number>;
   vendorName: string;
   createdBy: string;
+  submitterName: string | null;
+  submitterType: string;
+  submissionSource: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -42,6 +48,7 @@ export default function SkillReviewPage() {
   const [drafts, setDrafts] = useState<DraftSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [analyzeUrl, setAnalyzeUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -85,6 +92,10 @@ export default function SkillReviewPage() {
     }
     setAnalyzing(false);
   };
+
+  const filteredDrafts = drafts.filter(d =>
+    sourceFilter === "all" || d.submissionSource === sourceFilter
+  );
 
   const avgConfidence = (conf: Record<string, number>) => {
     const vals = Object.values(conf);
@@ -152,28 +163,51 @@ export default function SkillReviewPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {["all", "pending", "reviewed", "published", "rejected"].map(s => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              statusFilter === s
-                ? "bg-primary text-white"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-            }`}
-            data-testid={`button-filter-${s}`}
-          >
-            {s === "all" ? "All" : STATUS_CONFIG[s]?.label || s}
-          </button>
-        ))}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {["all", "pending", "reviewed", "published", "rejected"].map(s => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                statusFilter === s
+                  ? "bg-primary text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+              data-testid={`button-filter-${s}`}
+            >
+              {s === "all" ? "All" : STATUS_CONFIG[s]?.label || s}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          {[
+            { key: "all", label: "All Sources", icon: null },
+            { key: "admin", label: "Admin", icon: <Bot className="w-3 h-3" /> },
+            { key: "community", label: "Community", icon: <Users className="w-3 h-3" /> },
+          ].map(s => (
+            <button
+              key={s.key}
+              onClick={() => setSourceFilter(s.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                sourceFilter === s.key
+                  ? "bg-neutral-800 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+              data-testid={`button-source-${s.key}`}
+            >
+              {s.icon}
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
-      ) : drafts.length === 0 ? (
+      ) : filteredDrafts.length === 0 ? (
         <div className="text-center py-12 text-neutral-400" data-testid="text-empty-state">
           <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p className="font-medium">No drafts yet</p>
@@ -181,7 +215,7 @@ export default function SkillReviewPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {drafts.map(draft => {
+          {filteredDrafts.map(draft => {
             const statusInfo = STATUS_CONFIG[draft.status] || STATUS_CONFIG.pending;
             const conf = avgConfidence(draft.confidence);
             return (
@@ -194,12 +228,32 @@ export default function SkillReviewPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div>
-                      <h3 className="font-bold text-base" data-testid={`text-draft-name-${draft.id}`}>
-                        {draft.vendorName}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-base" data-testid={`text-draft-name-${draft.id}`}>
+                          {draft.vendorName}
+                        </h3>
+                        {draft.submissionSource === "community" && (
+                          draft.submitterType === "official" ? (
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[10px] font-semibold flex items-center gap-0.5">
+                              <Award className="w-3 h-3" />
+                              Official
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[10px] font-semibold flex items-center gap-0.5">
+                              <Users className="w-3 h-3" />
+                              Community
+                            </Badge>
+                          )
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-neutral-400">{draft.vendorUrl}</span>
                         <ExternalLink className="w-3 h-3 text-neutral-400" />
+                        {draft.submitterName && (
+                          <span className="text-xs text-neutral-400">
+                            by {draft.submitterName}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
