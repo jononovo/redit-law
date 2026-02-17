@@ -6,6 +6,7 @@ import {
   privyWallets, privyGuardrails, privyTransactions, privyApprovals,
   crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
   owners, masterGuardrails, skillDrafts, skillEvidence, skillSubmitterProfiles,
+  skillVersions, skillExports,
   type Owner, type InsertOwner,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
@@ -38,6 +39,8 @@ import {
   type SkillDraft, type InsertSkillDraft,
   type SkillEvidence, type InsertSkillEvidence,
   type SkillSubmitterProfile, type InsertSkillSubmitterProfile,
+  type SkillVersion, type InsertSkillVersion,
+  type SkillExport, type InsertSkillExport,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -221,6 +224,19 @@ export interface IStorage {
   getSubmitterProfile(ownerUid: string): Promise<SkillSubmitterProfile | null>;
   incrementSubmitterStat(ownerUid: string, field: "skillsSubmitted" | "skillsPublished" | "skillsRejected"): Promise<void>;
   listSkillDraftsBySubmitter(ownerUid: string): Promise<SkillDraft[]>;
+
+  // ─── Skill Versioning ───────────────────────────────────────────────
+  createSkillVersion(data: InsertSkillVersion): Promise<SkillVersion>;
+  getSkillVersion(id: number): Promise<SkillVersion | null>;
+  getActiveVersion(vendorSlug: string): Promise<SkillVersion | null>;
+  listVersionsByVendor(vendorSlug: string): Promise<SkillVersion[]>;
+  deactivateVersions(vendorSlug: string): Promise<void>;
+
+  // ─── Skill Exports ──────────────────────────────────────────────────
+  createSkillExport(data: InsertSkillExport): Promise<SkillExport>;
+  getLastExport(vendorSlug: string, destination: string): Promise<SkillExport | null>;
+  listExportsByDestination(destination: string): Promise<SkillExport[]>;
+  createSkillExportBatch(items: InsertSkillExport[]): Promise<SkillExport[]>;
 }
 
 export const storage: IStorage = {
@@ -1539,5 +1555,58 @@ export const storage: IStorage = {
     return db.select().from(skillDrafts)
       .where(eq(skillDrafts.submitterUid, ownerUid))
       .orderBy(desc(skillDrafts.createdAt));
+  },
+
+  async createSkillVersion(data: InsertSkillVersion): Promise<SkillVersion> {
+    const [version] = await db.insert(skillVersions).values(data).returning();
+    return version;
+  },
+
+  async getSkillVersion(id: number): Promise<SkillVersion | null> {
+    const [version] = await db.select().from(skillVersions).where(eq(skillVersions.id, id)).limit(1);
+    return version ?? null;
+  },
+
+  async getActiveVersion(vendorSlug: string): Promise<SkillVersion | null> {
+    const [version] = await db.select().from(skillVersions)
+      .where(and(eq(skillVersions.vendorSlug, vendorSlug), eq(skillVersions.isActive, true)))
+      .limit(1);
+    return version ?? null;
+  },
+
+  async listVersionsByVendor(vendorSlug: string): Promise<SkillVersion[]> {
+    return db.select().from(skillVersions)
+      .where(eq(skillVersions.vendorSlug, vendorSlug))
+      .orderBy(desc(skillVersions.createdAt));
+  },
+
+  async deactivateVersions(vendorSlug: string): Promise<void> {
+    await db.update(skillVersions)
+      .set({ isActive: false })
+      .where(and(eq(skillVersions.vendorSlug, vendorSlug), eq(skillVersions.isActive, true)));
+  },
+
+  async createSkillExport(data: InsertSkillExport): Promise<SkillExport> {
+    const [exp] = await db.insert(skillExports).values(data).returning();
+    return exp;
+  },
+
+  async getLastExport(vendorSlug: string, destination: string): Promise<SkillExport | null> {
+    const [exp] = await db.select().from(skillExports)
+      .where(and(eq(skillExports.vendorSlug, vendorSlug), eq(skillExports.destination, destination)))
+      .orderBy(desc(skillExports.exportedAt))
+      .limit(1);
+    return exp ?? null;
+  },
+
+  async listExportsByDestination(destination: string): Promise<SkillExport[]> {
+    return db.select().from(skillExports)
+      .where(eq(skillExports.destination, destination))
+      .orderBy(desc(skillExports.exportedAt));
+  },
+
+  async createSkillExportBatch(items: InsertSkillExport[]): Promise<SkillExport[]> {
+    if (items.length === 0) return [];
+    return db.insert(skillExports).values(items).returning();
   },
 };
