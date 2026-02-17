@@ -133,6 +133,12 @@ RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: appl
 check_status "POST /master-guardrails requires auth" "401" "$RESPONSE"
 
 echo ""
+echo "--- Owner Endpoints Authentication ---"
+
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE_URL/api/v1/owners/onboarded")
+check_status "POST /owners/onboarded requires auth" "401" "$RESPONSE"
+
+echo ""
 echo "--- Page Rendering ---"
 
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/app/card-wallet")
