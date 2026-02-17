@@ -1,19 +1,18 @@
-# CreditClaw — ClawHub Publishing & Skill Versioning Technical Plan
+# CreditClaw — Skill Versioning & External Hub Publishing Technical Plan
 
 ## Overview
 
 Two interconnected features that extend the procurement skills module:
 
-1. **ClawHub Publishing** — Package vendor skills as standalone, distributable units so agents outside CreditClaw's core platform can discover, install, and use them (still requiring CreditClaw for payment).
-2. **Skill Versioning & Diffing** — Full version history per vendor skill with semantic diffing, rollback, and automatic regression detection tied to the feedback loop.
+1. **Skill Versioning & Diffing** — Full version history per vendor skill with semantic diffing and manual rollback. Every publish, edit, or community update creates an immutable version snapshot.
+2. **Multi-File Skill Packages** — Skills become bundles of `SKILL.md` + `skill.json` + `payments.md`, displayed on existing vendor detail pages at `/skills/[vendor]`.
+3. **External Hub Export** — A pipeline to package skills for listing on external marketing sites (ClawHub.ai, skills.sh). These are separate websites — not part of CreditClaw. Export is manual (weekly report of new/updated skills) with optional future automation.
 
-These features share a common dependency: every published package references a specific version, and every version can be diffed, rolled back, or flagged by security scans.
+The skill content is **identical everywhere** — CreditClaw is the single source of truth, and the same package is displayed on our vendor pages and listed on external hubs. Any minor differences (branding, URLs) are applied programmatically at export time.
 
 ---
 
 ## 1. Skill Versioning & Diffing
-
-Versioning is the foundation — ClawHub packages reference versions, so this must be built first.
 
 ### 1.1 Database Schema
 
@@ -26,8 +25,10 @@ export const skillVersions = pgTable("skill_versions", {
   version: text("version").notNull(),                    // semver: "1.0.0", "1.1.0"
   vendorData: jsonb("vendor_data").notNull(),             // Full VendorSkill snapshot (frozen)
   skillMd: text("skill_md").notNull(),                    // Generated SKILL.md content (frozen)
+  skillJson: jsonb("skill_json"),                         // Structured metadata (frozen)
+  paymentsMd: text("payments_md"),                        // Payment instructions (frozen)
   checksum: text("checksum").notNull(),                   // SHA-256 of vendorData JSON
-  changeType: text("change_type").notNull(),              // "initial" | "edit" | "community_update" | "rollback" | "auto_rollback"
+  changeType: text("change_type").notNull(),              // "initial" | "edit" | "community_update" | "rollback"
   changeSummary: text("change_summary"),                  // Human-readable: "Updated checkout methods, added bulk pricing"
   changedFields: jsonb("changed_fields").$type<string[]>(), // ["checkoutMethods", "capabilities", "shipping.freeThreshold"]
   previousVersionId: integer("previous_version_id"),      // FK to prior version (null for initial)
@@ -35,7 +36,7 @@ export const skillVersions = pgTable("skill_versions", {
   sourceType: text("source_type").notNull(),              // "registry" | "draft" | "community"
   sourceDraftId: integer("source_draft_id"),              // FK to skill_drafts if from builder
   isActive: boolean("is_active").default(true).notNull(), // Only one active version per slug
-  feedbackAtPublish: jsonb("feedback_at_publish"),        // Snapshot of success rate at time of publish
+  exportedAt: timestamp("exported_at"),                   // When this version was last exported to external hubs
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -46,7 +47,7 @@ export const skillVersions = pgTable("skill_versions", {
 
 ### 1.2 Version Creation Rules
 
-Versions are created automatically at these trigger points:
+Versions are created at these trigger points:
 
 | Trigger | changeType | How |
 |---------|-----------|-----|
@@ -54,13 +55,12 @@ Versions are created automatically at these trigger points:
 | Draft published via review UI | `edit` | Reviewer approves a Skill Builder draft → new minor version |
 | Community submission published | `community_update` | Community draft approved → new minor version |
 | Manual edit in review UI | `edit` | Reviewer modifies fields and saves → new patch version |
-| Rollback via UI | `rollback` | Admin clicks "Rollback" → reactivates a prior version snapshot |
-| Auto-rollback from feedback | `auto_rollback` | Success rate drops below threshold → system reverts to last good version |
+| Admin rollback via UI | `rollback` | Admin clicks "Rollback" → creates new version entry with old data |
 
 **Semver logic:**
 - Breaking changes to `checkoutMethods` or `capabilities` → bump minor (1.0.0 → 1.1.0)
 - Non-breaking changes (tips, shipping, notes) → bump patch (1.0.0 → 1.0.1)
-- Rollbacks do not change version — they create a new version entry with the old data and incremented patch
+- Rollbacks create a new version entry with the old data and incremented patch
 
 ### 1.3 Semantic Diff Algorithm
 
@@ -122,6 +122,8 @@ export function computeVersionDiff(
 
 ### 1.4 Rollback Mechanism
 
+Manual rollback only — admin-initiated through the review UI.
+
 ```typescript
 // lib/procurement-skills/versioning/rollback.ts
 
@@ -131,18 +133,16 @@ export async function rollbackToVersion(
   rolledBackBy: string,
   reason: string
 ): Promise<SkillVersion> {
-  // 1. Fetch the target version's frozen vendorData and skillMd
+  // 1. Fetch the target version's frozen vendorData, skillMd, skillJson, paymentsMd
   // 2. Deactivate the current active version (isActive = false)
   // 3. Create a NEW version entry with:
-  //    - vendorData from target version
-  //    - skillMd from target version
+  //    - All content from target version
   //    - changeType: "rollback"
   //    - changeSummary: reason
   //    - previousVersionId: current active version's id
   //    - isActive: true
   //    - Bumped patch version
-  // 4. Update the live registry if the vendor is in the static registry
-  //    (flag for manual sync — static registry requires code change)
+  // 4. Flag for manual sync if vendor is in the static registry
   // 5. Return the new version entry
 }
 ```
@@ -154,7 +154,7 @@ GET  /api/v1/skills/versions?vendor=staples
      → List all versions for a vendor, newest first
 
 GET  /api/v1/skills/versions/:id
-     → Get a specific version with full vendorData + skillMd
+     → Get a specific version with full vendorData + all files
 
 GET  /api/v1/skills/versions/:id/diff?compare=:otherId
      → Compute and return semantic diff between two versions
@@ -162,9 +162,10 @@ GET  /api/v1/skills/versions/:id/diff?compare=:otherId
 POST /api/v1/skills/versions/:id/rollback
      Body: { reason: string }
      → Rollback to this version (creates new version entry)
+     → Auth required (admin)
 
-GET  /api/v1/skills/versions/:id/skillmd
-     → Download the frozen SKILL.md for this version
+GET  /api/v1/skills/versions/:id/files
+     → Download all files for this version (SKILL.md, skill.json, payments.md)
 ```
 
 ### 1.6 Version History UI
@@ -181,7 +182,7 @@ Location: `/app/skills/review/[id]/versions` (linked from the review detail page
 │  │ v1.2.1  (active)           Feb 17, 2026     ││
 │  │ ● rollback · "Reverted: checkout broke"     ││
 │  │ By: admin@creditclaw.com                    ││
-│  │ [View] [Diff with previous] [SKILL.md]      ││
+│  │ [View] [Diff with previous] [Files]         ││
 │  ├─────────────────────────────────────────────┤│
 │  │ v1.2.0                     Feb 15, 2026     ││
 │  │ ● community_update · "Added bulk pricing"   ││
@@ -218,423 +219,303 @@ Location: `/app/skills/review/[id]/versions` (linked from the review detail page
 └─────────────────────────────────────────────────┘
 ```
 
-### 1.7 Feedback Loop Integration (Auto-Rollback)
+---
 
-When the feedback loop detects a success rate drop:
+## 2. Multi-File Skill Packages
+
+Each vendor skill is a bundle of three files. All three are generated from the same `VendorSkill` data and frozen together as a version.
+
+### 2.1 File Structure
+
+| File | Purpose | Generated From |
+|------|---------|---------------|
+| `SKILL.md` | Agent-facing instructions — how to search, browse, add to cart, checkout at this vendor | Existing generator (`lib/procurement-skills/generator.ts`) |
+| `skill.json` | Structured metadata for programmatic consumption — capabilities, checkout methods, search patterns, config | `VendorSkill` object serialized with computed fields |
+| `payments.md` | CreditClaw-specific payment instructions — which wallet endpoint to use, spending limit info, rail requirements | Generated from vendor's checkout methods + CreditClaw payment config |
+
+### 2.2 skill.json Format
 
 ```typescript
-// lib/procurement-skills/versioning/auto-rollback.ts
+// lib/procurement-skills/package/skill-json.ts
 
-export async function checkForAutoRollback(vendorSlug: string): Promise<void> {
-  const currentVersion = await storage.getActiveVersion(vendorSlug);
-  if (!currentVersion) return;
+export interface SkillJsonPackage {
+  slug: string;
+  name: string;
+  version: string;
+  category: VendorCategory;
+  url: string;
 
-  const currentFeedback = await storage.getSkillFeedback(vendorSlug, { days: 7 });
-  const currentSuccessRate = computeSuccessRate(currentFeedback);
+  checkoutMethods: CheckoutMethod[];
+  capabilities: VendorCapability[];
+  maturity: SkillMaturity;
+  agentFriendliness: number;
 
-  const publishFeedback = currentVersion.feedbackAtPublish as FeedbackSnapshot | null;
-  const publishSuccessRate = publishFeedback?.successRate ?? 1.0;
+  search: {
+    pattern: string;
+    urlTemplate?: string;
+    productIdFormat?: string;
+  };
 
-  // Auto-rollback conditions:
-  // 1. Success rate dropped >20% since this version was published
-  // 2. At least 10 events in the window (avoid noise from small samples)
-  // 3. Previous version had a better success rate
-  if (
-    currentSuccessRate < publishSuccessRate - 0.20 &&
-    currentFeedback.length >= 10
-  ) {
-    const previousVersion = await storage.getVersionById(currentVersion.previousVersionId);
-    if (previousVersion) {
-      await rollbackToVersion(
-        vendorSlug,
-        previousVersion.id,
-        "system",
-        `Auto-rollback: success rate dropped from ${(publishSuccessRate * 100).toFixed(0)}% to ${(currentSuccessRate * 100).toFixed(0)}%`
-      );
-      await notifyAutoRollback(vendorSlug, currentVersion.version, previousVersion.version);
-    }
-  }
+  checkout: {
+    guestCheckout: boolean;
+    taxExemptField: boolean;
+    poNumberField: boolean;
+  };
+
+  shipping: {
+    freeThreshold?: number;
+    estimatedDays: string;
+    businessShipping: boolean;
+  };
+
+  methodConfig: Record<string, {
+    locatorFormat?: string;
+    searchEndpoint?: string;
+    requiresAuth: boolean;
+    notes: string;
+  }>;
+
+  tips: string[];
+
+  creditclaw: {
+    requiredRails: string[];
+    paymentEndpoint: string;
+    walletTypes: string[];
+  };
+
+  generatedBy: "skill_builder" | "manual";
+  lastVerified: string;
 }
+
+export function generateSkillJson(vendor: VendorSkill): SkillJsonPackage {
+  return {
+    slug: vendor.slug,
+    name: vendor.name,
+    version: vendor.version,
+    category: vendor.category,
+    url: vendor.url,
+    checkoutMethods: vendor.checkoutMethods,
+    capabilities: vendor.capabilities,
+    maturity: vendor.maturity,
+    agentFriendliness: computeAgentFriendliness(vendor),
+    search: vendor.search,
+    checkout: vendor.checkout,
+    shipping: vendor.shipping,
+    methodConfig: vendor.methodConfig as Record<string, any>,
+    tips: vendor.tips,
+    creditclaw: {
+      requiredRails: inferRequiredRails(vendor),
+      paymentEndpoint: "/api/v1/bot/wallets/:walletId/purchase",
+      walletTypes: inferWalletTypes(vendor),
+    },
+    generatedBy: vendor.generatedBy,
+    lastVerified: vendor.lastVerified,
+  };
+}
+```
+
+### 2.3 payments.md Generator
+
+```typescript
+// lib/procurement-skills/package/payments-md.ts
+
+export function generatePaymentsMd(vendor: VendorSkill): string {
+  const rails = inferRequiredRails(vendor);
+
+  let md = `# Payment Instructions — ${vendor.name}\n\n`;
+  md += `All purchases through this skill are processed via CreditClaw.\n\n`;
+
+  md += `## Required Payment Rails\n\n`;
+  for (const rail of rails) {
+    md += `- **${RAIL_LABELS[rail]}**\n`;
+  }
+
+  md += `\n## Making a Purchase\n\n`;
+  md += `1. Confirm the item and price with your owner's spending limits\n`;
+  md += `2. Submit purchase request: \`POST /api/v1/bot/wallets/:walletId/purchase\`\n`;
+  md += `3. Include the vendor, item details, and total amount\n`;
+  md += `4. CreditClaw enforces guardrails (per-transaction caps, daily/monthly limits, category blocks)\n`;
+  md += `5. If approved, payment is processed through the configured rail\n\n`;
+
+  md += `## Spending Limits\n\n`;
+  md += `Your spending limits are set by your owner and enforced by CreditClaw:\n`;
+  md += `- Per-transaction maximum\n`;
+  md += `- Daily spending cap\n`;
+  md += `- Monthly spending cap\n`;
+  md += `- Category-based restrictions\n\n`;
+
+  md += `Do NOT use personal payment methods or bypass CreditClaw payment rails.\n`;
+
+  return md;
+}
+```
+
+### 2.4 Vendor Detail Page Updates
+
+The existing vendor detail pages at `/skills/[vendor]` are updated to display all three files with a tabbed interface:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  ← Back to Catalog    Staples Business               │
+│  v1.2.1 · Verified · ⭐⭐⭐⭐                        │
+│                                                      │
+│  [SKILL.md]  [skill.json]  [payments.md]   [Download]│
+│  ─────────                                           │
+│  ┌──────────────────────────────────────────────────┐│
+│  │ # Staples Business                               ││
+│  │                                                   ││
+│  │ ## Search                                         ││
+│  │ URL: https://www.staples.com/search?query={q}     ││
+│  │ Product ID format: Item Number                    ││
+│  │                                                   ││
+│  │ ## Checkout Flow                                  ││
+│  │ 1. Search for product...                          ││
+│  │ 2. Add to cart...                                 ││
+│  │ ...                                               ││
+│  └──────────────────────────────────────────────────┘│
+│                                                      │
+│  Version History (3 versions)        [View All →]    │
+│  v1.2.1 — Rollback: checkout fix    Feb 17           │
+│  v1.2.0 — Added bulk pricing        Feb 15           │
+│  v1.1.0 — Updated checkout methods  Feb 10           │
+└──────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. ClawHub Publishing
+## 3. External Hub Export
 
-### 2.1 Package Format
+ClawHub.ai and skills.sh are separate marketing websites that list skills to attract users. They are **not part of CreditClaw** — they're external sites that receive skill data from CreditClaw.
 
-A ClawHub package is a JSON manifest + the generated SKILL.md, stored in the database and served via API.
-
-```typescript
-// lib/clawhub/types.ts
-
-export interface ClawHubPackage {
-  slug: string;                     // "staples-business" — matches vendor slug
-  name: string;                     // "Staples Business Procurement Skill"
-  description: string;              // Auto-generated from vendor capabilities
-  version: string;                  // Semver, matches skill version
-  versionId: number;                // FK to skill_versions.id
-  checksum: string;                 // SHA-256 of the SKILL.md content
-
-  metadata: {
-    category: VendorCategory;
-    checkoutMethods: CheckoutMethod[];
-    capabilities: VendorCapability[];
-    maturity: SkillMaturity;
-    agentFriendliness: number;
-    submitterType: "official" | "community" | "creditclaw";
-  };
-
-  requirements: {
-    creditclaw: boolean;            // Always true — payment requires CreditClaw
-    minApiVersion: string;          // Minimum CreditClaw API version needed
-    rails: string[];                // Which payment rails this skill needs: ["stripe_wallet", "card_wallet"]
-  };
-
-  distribution: {
-    downloadUrl: string;            // /api/v1/clawhub/packages/:slug/download
-    installCommand: string;         // "clawhub install staples-business"
-    size: number;                   // SKILL.md file size in bytes
-  };
-
-  publisher: {
-    name: string;                   // "CreditClaw" or community submitter name
-    type: "creditclaw" | "official" | "community";
-    verified: boolean;
-  };
-
-  stats: {
-    installs: number;
-    activeAgents: number;
-    successRate: number | null;
-    lastUpdated: string;
-  };
-
-  createdAt: string;
-  updatedAt: string;
-}
-```
-
-### 2.2 Database Schema
+### 3.1 Export Tracking
 
 ```typescript
 // In shared/schema.ts
 
-export const clawHubPackages = pgTable("clawhub_packages", {
+export const skillExports = pgTable("skill_exports", {
   id: serial("id").primaryKey(),
-  slug: text("slug").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  currentVersionId: integer("current_version_id").notNull(), // FK to skill_versions
-  metadata: jsonb("metadata").notNull(),
-  requirements: jsonb("requirements").notNull(),
-  publisherName: text("publisher_name").notNull(),
-  publisherType: text("publisher_type").notNull(),           // "creditclaw" | "official" | "community"
-  isPublished: boolean("is_published").default(false).notNull(),
-  isListed: boolean("is_listed").default(true).notNull(),    // Unlisted packages exist but don't appear in search
-  installs: integer("installs").default(0).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  vendorSlug: text("vendor_slug").notNull(),
+  versionId: integer("version_id").notNull(),           // FK to skill_versions
+  destination: text("destination").notNull(),            // "clawhub" | "skills_sh"
+  exportedBy: text("exported_by"),                       // Firebase UID or "system"
+  exportedAt: timestamp("exported_at").defaultNow().notNull(),
 });
 
-export const clawHubInstalls = pgTable("clawhub_installs", {
-  id: serial("id").primaryKey(),
-  packageSlug: text("package_slug").notNull(),
-  botId: text("bot_id").notNull(),
-  ownerUid: text("owner_uid").notNull(),
-  versionAtInstall: text("version_at_install").notNull(),
-  isActive: boolean("is_active").default(true).notNull(),
-  installedAt: timestamp("installed_at").defaultNow().notNull(),
-  lastUsedAt: timestamp("last_used_at"),
-});
-
-// Index on (packageSlug, botId) for deduplication
-// Index on (ownerUid) for listing user's installed packages
+// Index on (vendorSlug, destination) for checking export status
 ```
 
-### 2.3 Publishing Pipeline
+### 3.2 Weekly Export Report
 
-```
-Registry Entry or Approved Draft
-        │
-        ▼
-  Create Skill Version (§1.2)
-        │
-        ▼
-  Generate SKILL.md from frozen VendorSkill
-        │
-        ▼
-  Compute checksum (SHA-256)
-        │
-        ▼
-  Create/update ClawHub Package entry
-  (link to version, set metadata, compute requirements)
-        │
-        ▼
-  Package is live on the public registry API
-```
+An admin-facing report that surfaces which skills are new or updated since the last export to each hub.
 
 ```typescript
-// lib/clawhub/publish.ts
+// lib/procurement-skills/export/report.ts
 
-export async function publishToClawHub(
-  vendorSlug: string,
-  versionId: number
-): Promise<ClawHubPackage> {
-  const version = await storage.getSkillVersion(versionId);
-  if (!version) throw new Error("Version not found");
-
-  const vendorData = version.vendorData as VendorSkill;
-  const skillMd = version.skillMd;
-  const checksum = computeSHA256(skillMd);
-
-  const requirements = {
-    creditclaw: true,
-    minApiVersion: "1.0.0",
-    rails: inferRequiredRails(vendorData),
+export interface ExportReportItem {
+  vendorSlug: string;
+  vendorName: string;
+  currentVersion: string;
+  lastExportedVersion: string | null;  // null = never exported
+  changesSinceExport: string[];        // List of changed fields
+  status: "new" | "updated" | "up_to_date";
+  files: {
+    skillMd: string;
+    skillJson: object;
+    paymentsMd: string;
   };
-
-  const metadata = {
-    category: vendorData.category,
-    checkoutMethods: vendorData.checkoutMethods,
-    capabilities: vendorData.capabilities,
-    maturity: vendorData.maturity,
-    agentFriendliness: computeAgentFriendliness(vendorData),
-    submitterType: version.sourceType === "community" ? "community" : "creditclaw",
-  };
-
-  // Upsert package
-  const pkg = await storage.upsertClawHubPackage({
-    slug: vendorSlug,
-    name: `${vendorData.name} Procurement Skill`,
-    description: generateDescription(vendorData),
-    currentVersionId: versionId,
-    metadata,
-    requirements,
-    publisherName: version.sourceType === "community"
-      ? (version.publishedBy || "Community")
-      : "CreditClaw",
-    publisherType: version.sourceType === "community" ? "community" : "creditclaw",
-    isPublished: true,
-  });
-
-  return pkg;
 }
 
-function inferRequiredRails(vendor: VendorSkill): string[] {
-  const rails: string[] = [];
-  if (vendor.checkoutMethods.includes("x402")) rails.push("stripe_wallet");
-  if (vendor.checkoutMethods.includes("crossmint_world")) rails.push("card_wallet");
-  if (vendor.checkoutMethods.includes("self_hosted_card")) rails.push("self_hosted");
-  if (rails.length === 0) rails.push("stripe_wallet"); // Default
-  return rails;
+export async function generateExportReport(
+  destination: "clawhub" | "skills_sh"
+): Promise<ExportReportItem[]> {
+  // 1. Get all active versions
+  // 2. For each, check the last export to this destination
+  // 3. If never exported → status: "new"
+  // 4. If exported but version changed → status: "updated", compute diff
+  // 5. If exported and version matches → status: "up_to_date"
+  // 6. Return sorted: new first, then updated, exclude up_to_date
 }
 ```
 
-### 2.4 Public Registry API
-
-These endpoints are publicly readable but download/install requires a valid CreditClaw API key.
+### 3.3 Export API & UI
 
 ```
-Public (no auth):
-GET  /api/v1/clawhub/packages
-     ?category=hardware
-     ?checkout=acp,native_api
-     ?capability=bulk_pricing
-     ?search=staples
-     ?sort=installs|updated|friendliness
-     → Paginated list of published packages
+GET  /api/v1/skills/export/report?destination=clawhub
+     → Weekly export report (auth required)
 
-GET  /api/v1/clawhub/packages/:slug
-     → Full package metadata + current version info
+POST /api/v1/skills/export/mark-exported
+     Body: { vendorSlug, versionId, destination }
+     → Mark a skill as exported to a destination (auth required)
 
-GET  /api/v1/clawhub/packages/:slug/versions
-     → Version history for a package
+POST /api/v1/skills/export/mark-batch
+     Body: { items: [{ vendorSlug, versionId }], destination }
+     → Bulk mark multiple skills as exported (auth required)
 
-
-Authenticated (requires CreditClaw bot API key):
-GET  /api/v1/clawhub/packages/:slug/download
-     Headers: Authorization: Bearer <bot-api-key>
-     → Returns the SKILL.md content for the current version
-     → Increments install counter
-     → Records install in clawhub_installs
-
-POST /api/v1/clawhub/packages/:slug/install
-     Headers: Authorization: Bearer <bot-api-key>
-     Body: { botId: string }
-     → Registers this bot as an active user of the package
-     → Returns: { skillMd, version, requirements, paymentConfig }
-
-DELETE /api/v1/clawhub/packages/:slug/install
-     Headers: Authorization: Bearer <bot-api-key>
-     Body: { botId: string }
-     → Uninstalls the package for this bot
+GET  /api/v1/skills/export/download/:vendorSlug
+     → Download the complete skill package (SKILL.md + skill.json + payments.md)
+     → Applies any programmatic tweaks for the destination
 ```
 
-### 2.5 Payment Enforcement
+**Export UI** at `/app/skills/export`:
 
-The SKILL.md itself is not secret — it's markdown describing how to shop at a vendor. The enforcement happens at the payment layer:
+```
+┌──────────────────────────────────────────────────────┐
+│  Skill Export                                        │
+│                                                      │
+│  Destination: [ClawHub.ai ▼]  Last export: Feb 10    │
+│                                                      │
+│  ┌─ New Skills (3) ─────────────────────────────────┐│
+│  │ ☐ Grainger Industrial       v1.0.0  [Download]   ││
+│  │ ☐ Fastenal                  v1.0.0  [Download]   ││
+│  │ ☐ McMaster-Carr             v1.0.0  [Download]   ││
+│  └──────────────────────────────────────────────────┘│
+│                                                      │
+│  ┌─ Updated Skills (2) ────────────────────────────┐ │
+│  │ ☐ Staples Business  v1.1.0 → v1.2.1  [Diff]    │ │
+│  │     Changed: checkoutMethods, capabilities      │ │
+│  │ ☐ Home Depot        v1.0.0 → v1.0.1  [Diff]    │ │
+│  │     Changed: shipping.freeThreshold             │ │
+│  └──────────────────────────────────────────────────┘│
+│                                                      │
+│  [Mark Selected as Exported]  [Download All as ZIP]  │
+└──────────────────────────────────────────────────────┘
+```
 
-1. **Every SKILL.md references CreditClaw payment endpoints.** The generated skill files instruct agents to use CreditClaw's payment API for purchases, not arbitrary payment methods.
-2. **Install tracking.** When a bot installs a package, CreditClaw knows which skills it's using. If a bot tries to make a purchase through a skill without a valid CreditClaw wallet, the payment API rejects it.
-3. **API key gating on download.** Bots must authenticate to download skill files, creating a billing relationship.
+### 3.4 Programmatic Tweaks at Export
+
+When exporting for external hubs, minor adjustments can be applied:
 
 ```typescript
-// In the SKILL.md generator, always include:
-const PAYMENT_FOOTER = `
-## Payment
-All purchases through this skill MUST be processed via CreditClaw.
-- Wallet endpoint: POST /api/v1/bot/wallets/:walletId/purchase
-- Payment methods: Controlled by your CreditClaw wallet configuration
-- Spending limits: Enforced by your owner's guardrails
+// lib/procurement-skills/export/transform.ts
 
-Do NOT use personal payment methods or bypass CreditClaw payment rails.
-`;
-```
-
-### 2.6 ClawHub Catalog Page
-
-Location: `/clawhub` (public, no auth required)
-
-**Layout:**
-```
-┌────────────────────────────────────────────────────────┐
-│  🦞 ClawHub — Skill Packages for AI Agents            │
-│                                                        │
-│  Search: [________________________] [Filter ▼]         │
-│                                                        │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
-│  │ 📦 Staples   │ │ 📦 Amazon    │ │ 📦 Home Depot│   │
-│  │ Business     │ │ Business     │ │              │   │
-│  │              │ │              │ │              │   │
-│  │ v1.2.1       │ │ v2.0.0       │ │ v1.0.0       │   │
-│  │ ⭐⭐⭐⭐     │ │ ⭐⭐⭐⭐⭐  │ │ ⭐⭐⭐       │   │
-│  │ 142 installs │ │ 891 installs │ │ 37 installs  │   │
-│  │              │ │              │ │              │   │
-│  │ [native_api] │ │ [crossmint]  │ │ [browser]    │   │
-│  │ [bulk] [tax] │ │ [api] [track]│ │ [guest]      │   │
-│  │              │ │              │ │              │   │
-│  │ By CreditClaw│ │ By CreditClaw│ │ Community    │   │
-│  │ [Install]    │ │ [Install]    │ │ [Install]    │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘   │
-│                                                        │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐   │
-│  │ ...          │ │ ...          │ │ ...          │   │
-│  └──────────────┘ └──────────────┘ └──────────────┘   │
-└────────────────────────────────────────────────────────┘
-```
-
-**Package Detail Page** (`/clawhub/[slug]`):
-```
-┌────────────────────────────────────────────────────────┐
-│  ← Back to ClawHub                                     │
-│                                                        │
-│  📦 Staples Business Procurement Skill                 │
-│  v1.2.1 · By CreditClaw · ⭐⭐⭐⭐ (4/5)             │
-│  142 installs · 94% success rate                       │
-│                                                        │
-│  [Install]  [View SKILL.md]  [Version History]         │
-│                                                        │
-│  ┌─ Requirements ─────────────────────────────────┐    │
-│  │ ✓ CreditClaw account required                  │    │
-│  │ ✓ Payment rails: Stripe Wallet, Card Wallet    │    │
-│  │ ✓ Min API version: 1.0.0                       │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                        │
-│  ┌─ Capabilities ─────────────────────────────────┐    │
-│  │ ✅ Price Lookup  ✅ Stock Check  ✅ Bulk Pricing│    │
-│  │ ✅ Tax Exemption ✅ PO Numbers  ❌ Returns     │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                        │
-│  ┌─ Checkout Methods ─────────────────────────────┐    │
-│  │ 1. native_api (preferred)                      │    │
-│  │ 2. self_hosted_card (fallback)                  │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                        │
-│  ┌─ SKILL.md Preview ─────────────────────────────┐    │
-│  │ # Staples Business                             │    │
-│  │ ## Checkout Flow                               │    │
-│  │ 1. Search: GET /search?query={q}               │    │
-│  │ 2. Add to cart: POST /cart/add                  │    │
-│  │ ...                                             │    │
-│  └────────────────────────────────────────────────┘    │
-│                                                        │
-│  ┌─ Recent Versions ──────────────────────────────┐    │
-│  │ v1.2.1 (current) - Rollback: checkout fix      │    │
-│  │ v1.2.0 - Added bulk pricing capability          │    │
-│  │ v1.1.0 - Updated checkout methods               │    │
-│  │ v1.0.0 - Initial publish                        │    │
-│  │ [View Full History]                              │    │
-│  └────────────────────────────────────────────────┘    │
-└────────────────────────────────────────────────────────┘
-```
-
----
-
-## 3. Integration Points
-
-### 3.1 Version → Package Sync
-
-When a new skill version is created (via publish, community update, or rollback), automatically update the ClawHub package:
-
-```typescript
-// Post-publish hook in the draft publish flow
-async function onVersionCreated(version: SkillVersion): Promise<void> {
-  const existingPackage = await storage.getClawHubPackage(version.vendorSlug);
-  if (existingPackage) {
-    await publishToClawHub(version.vendorSlug, version.id);
-  }
-  // If no package exists, admin must explicitly create it first
+export interface ExportOptions {
+  destination: "clawhub" | "skills_sh";
+  includeBranding?: boolean;         // Add CreditClaw attribution
+  includePaymentsMd?: boolean;       // Some hubs may not need payment instructions
 }
-```
 
-### 3.2 Security Scanner → Diff Analysis
+export function transformForExport(
+  skillMd: string,
+  skillJson: SkillJsonPackage,
+  paymentsMd: string,
+  options: ExportOptions
+): { skillMd: string; skillJson: SkillJsonPackage; paymentsMd: string } {
+  let transformedMd = skillMd;
+  const transformedJson = { ...skillJson };
 
-When the security scanner runs on updates (Future C), it consumes the version diff:
-
-```typescript
-async function securityScanOnUpdate(newVersionId: number): Promise<SecurityReport> {
-  const newVersion = await storage.getSkillVersion(newVersionId);
-  const previousVersion = newVersion.previousVersionId
-    ? await storage.getSkillVersion(newVersion.previousVersionId)
-    : null;
-
-  if (previousVersion) {
-    const diff = computeVersionDiff(
-      previousVersion.vendorData as VendorSkill,
-      newVersion.vendorData as VendorSkill
-    );
-
-    // Flag suspicious patterns in diffs:
-    // - URLs changed to different domains
-    // - New methodConfig pointing to non-vendor endpoints
-    // - Tips that mention sending credentials somewhere
-    return scanDiffForThreats(diff, newVersion);
+  if (options.includeBranding !== false) {
+    transformedMd += `\n\n---\n*Powered by [CreditClaw](https://creditclaw.com) — Prepaid spending controls for AI agents.*\n`;
   }
 
-  return scanFreshSkill(newVersion);
+  // Any destination-specific URL or formatting tweaks go here
+  // The core content stays identical
+
+  return {
+    skillMd: transformedMd,
+    skillJson: transformedJson,
+    paymentsMd: options.includePaymentsMd !== false ? paymentsMd : "",
+  };
 }
-```
-
-### 3.3 Feedback Loop → Auto-Rollback → Package Update
-
-```
-Bot reports failure
-      │
-      ▼
-recordSkillFeedback() updates success rate
-      │
-      ▼
-checkForAutoRollback() evaluates thresholds
-      │ (if triggered)
-      ▼
-rollbackToVersion() creates new version entry
-      │
-      ▼
-onVersionCreated() updates ClawHub package
-      │
-      ▼
-Bots downloading the package now get the rolled-back version
 ```
 
 ---
@@ -643,40 +524,44 @@ Bots downloading the package now get the rolled-back version
 
 | Phase | What | Depends On |
 |-------|------|-----------|
-| **Phase 1** | `skill_versions` table + version creation on publish | Existing draft publish flow |
-| **Phase 2** | Diff algorithm + diff API | Phase 1 |
-| **Phase 3** | Version history UI + rollback UI | Phase 1 + 2 |
-| **Phase 4** | `clawhub_packages` + `clawhub_installs` tables | Phase 1 |
-| **Phase 5** | ClawHub publish pipeline + public registry API | Phase 4 |
-| **Phase 6** | ClawHub catalog page + package detail page | Phase 5 |
-| **Phase 7** | Install/download endpoints with API key auth | Phase 5 |
-| **Phase 8** | Auto-rollback from feedback loop | Phase 3 + Feedback Loop (§3 of v3 plan) |
-| **Phase 9** | Security scanner diff integration | Phase 2 + Security Scanner (Future C) |
+| **Phase 1** | `skill_versions` table + version creation on draft publish | Existing draft publish flow |
+| **Phase 2** | Multi-file generators: `skill.json` + `payments.md` | Phase 1 |
+| **Phase 3** | Diff algorithm + diff API routes | Phase 1 |
+| **Phase 4** | Version history UI + rollback UI | Phase 1 + 3 |
+| **Phase 5** | Vendor detail page updates (tabbed file view + version history) | Phase 2 |
+| **Phase 6** | `skill_exports` table + export report API | Phase 1 |
+| **Phase 7** | Export UI at `/app/skills/export` | Phase 6 |
 
-**Estimated scope:** ~8 phases, each independently deployable and testable.
+**Seven phases, each independently deployable and testable.**
 
 ---
 
 ## 5. Test Plan
 
 ### Versioning Tests
-- Version created on draft publish (correct semver, snapshot data)
-- Version diff detects added/removed/changed fields with correct severity
-- Rollback creates new version with old data, deactivates current
+- Version created on draft publish with correct semver, snapshot data, and all three files
 - Only one active version per vendor slug at any time
-- Version history returns ordered list
+- Version history returns ordered list (newest first)
 - Checksum validates integrity of frozen data
+- Rollback creates new version with old data, deactivates current
+- Rollback bumps patch version correctly
 
-### ClawHub Tests
-- Package created from version with correct metadata
-- Public registry API returns published packages only
-- Download requires valid API key (401 without)
-- Install increments counter and records in clawhub_installs
-- Uninstall deactivates the install record
-- Package auto-updates when new version published
-- Search/filter by category, checkout method, capability
+### Diff Tests
+- Diff detects added/removed/changed fields with correct severity
+- Array diffs (checkoutMethods, capabilities) show added/removed items
+- Nested object diffs (shipping, checkout) work correctly
+- Empty diff when comparing identical versions
+- Summary string generated correctly
 
-### Integration Tests
-- End-to-end: submit vendor → analyze → publish draft → version created → package published → bot downloads
-- Rollback propagates to package
-- Auto-rollback triggers on success rate drop (mock feedback data)
+### Multi-File Tests
+- skill.json contains all required fields from VendorSkill
+- payments.md includes correct rails based on checkout methods
+- All three files frozen in version snapshot
+- Files served correctly from vendor detail page
+
+### Export Tests
+- Export report correctly identifies new/updated/up-to-date skills
+- Mark-exported updates export tracking
+- Bulk mark works for multiple skills
+- Programmatic tweaks applied correctly per destination
+- Download returns all three files
