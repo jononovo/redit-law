@@ -624,6 +624,9 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/notification
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/webhooks
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/payment-links
 curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/activity-log
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/v1/master-guardrails
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/master-guardrails
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/v1/owners/onboarded
 ```
 
 **Expected:** All return `401`
@@ -696,6 +699,89 @@ done
 
 ---
 
+## Section 12: Owners Table & Master Guardrails (Onboarding)
+
+### Test 12.1 — Owners table exists and accepts upserts
+
+```sql
+-- Verify table structure
+SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'owners' ORDER BY ordinal_position;
+-- Expected: id (integer), uid (text), email (text), display_name (text), stripe_customer_id (text), onboarded_at (timestamp), created_at (timestamp), updated_at (timestamp)
+
+-- Insert a test owner
+INSERT INTO owners (uid, email, display_name)
+VALUES ('test-owner-upsert', 'test-upsert@example.com', 'Test Owner')
+ON CONFLICT (uid) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW()
+RETURNING *;
+-- Expected: 1 row returned with uid = 'test-owner-upsert'
+
+-- Upsert same uid with new display name
+INSERT INTO owners (uid, email, display_name)
+VALUES ('test-owner-upsert', 'test-upsert@example.com', 'Updated Name')
+ON CONFLICT (uid) DO UPDATE SET display_name = EXCLUDED.display_name, updated_at = NOW()
+RETURNING *;
+-- Expected: display_name = 'Updated Name', same id as first insert
+```
+
+---
+
+### Test 12.2 — Master guardrails API rejects unauthenticated requests
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/v1/master-guardrails
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/v1/master-guardrails -H "Content-Type: application/json" -d '{"max_per_tx_usdc": 25}'
+```
+
+**Expected:** Both return `401`
+
+---
+
+### Test 12.3 — Onboarded endpoint rejects unauthenticated requests
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/v1/owners/onboarded
+```
+
+**Expected:** `401`
+
+---
+
+### Test 12.4 — Master guardrails validates input
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:5000/api/v1/master-guardrails \
+  -H "Content-Type: application/json" \
+  -H "Cookie: session=VALID_SESSION_COOKIE" \
+  -d '{"max_per_tx_usdc": -5}'
+```
+
+**Expected:** HTTP 400 (validation error: min value is 1)
+
+---
+
+### Test 12.5 — Simulate onboarding master guardrails save via database
+
+Since the onboarding complete step POSTs to /api/v1/master-guardrails (requires auth), verify the database logic directly:
+
+```sql
+-- Simulate what onboarding saves: $25/tx, $50/day, $500/mo (from cents: 2500, 5000, 50000 ÷ 100)
+INSERT INTO master_guardrails (owner_uid, max_per_tx_usdc, daily_budget_usdc, monthly_budget_usdc, enabled)
+VALUES ('test-onboard-owner', 25, 50, 500, true)
+ON CONFLICT (owner_uid) DO UPDATE SET
+  max_per_tx_usdc = EXCLUDED.max_per_tx_usdc,
+  daily_budget_usdc = EXCLUDED.daily_budget_usdc,
+  monthly_budget_usdc = EXCLUDED.monthly_budget_usdc,
+  updated_at = NOW()
+RETURNING *;
+-- Expected: Values match the cents÷100 conversion (25, 50, 500)
+
+-- Stamp onboarded_at
+UPDATE owners SET onboarded_at = NOW() WHERE uid = 'test-onboard-owner';
+-- (only works if owner row exists)
+```
+
+---
+
 ## Cleanup
 
 After running all tests, clean up test data:
@@ -707,6 +793,8 @@ DELETE FROM topup_requests WHERE bot_id IN (SELECT bot_id FROM bots WHERE owner_
 DELETE FROM pairing_codes WHERE owner_uid LIKE 'test-%';
 DELETE FROM bots WHERE owner_email LIKE '%@example.com' AND (bot_name LIKE 'TestBot-%' OR bot_name LIKE 'PairedBot-%' OR bot_name LIKE 'RateBot-%' OR bot_name LIKE 'UnclaimedBot-%' OR bot_name LIKE 'BadCodeBot' OR bot_name LIKE 'ExpiredPairBot' OR bot_name LIKE 'ReusePairedBot' OR bot_name LIKE 'TestBot-WH-%');
 DELETE FROM waitlist_entries WHERE email LIKE 'waitlist-test-%@example.com' OR email = 'duplicate-waitlist@example.com';
+DELETE FROM owners WHERE uid LIKE 'test-%';
+DELETE FROM master_guardrails WHERE owner_uid LIKE 'test-%';
 ```
 
 ---
@@ -751,3 +839,8 @@ DELETE FROM waitlist_entries WHERE email LIKE 'waitlist-test-%@example.com' OR e
 | 10.2 | Waitlist submission | 200 | Public |
 | 10.3 | Waitlist duplicate | 200/409 | Public |
 | 11.1 | All public pages render | 200 | Pages |
+| 12.1 | Owners table upsert via DB | — | Owners |
+| 12.2 | Master guardrails auth check | 401 | Auth |
+| 12.3 | Onboarded endpoint auth check | 401 | Auth |
+| 12.4 | Master guardrails input validation | 400 | Validation |
+| 12.5 | Onboarding guardrails save via DB | — | Onboarding |

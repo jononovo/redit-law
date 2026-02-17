@@ -1,29 +1,38 @@
 ---
-name: creditclaw
-version: 2.2.0
-updated: 2026-02-13
-description: "Give your agent spending power. Financial management for Agents and OpenClaw bots."
+name: creditclaw-shopping
+version: 2.2.4
+updated: 2026-02-14T20:45:00Z
+description: "Is your claw a shopaholic? Provide payment wallets and strict controls."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
 metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"CREDITCLAW_API_KEY"}}
 ---
 
-# CreditClaw — Financial Enablement & Accounting for AI Agents
+# CreditClaw — Shopping for AI Agents
 
-CreditClaw.com is a financial enablement & accounting platform for Bots, Agents, and OpenClaw.
-It provides multiple methods for enabling and managing agentic spending and purchases,
-and offers consolidated accounts and guardrails on transactions across wallets.
+CreditClaw lets your agent buy things online — Amazon products, Shopify stores, and more.
+Your owner funds a wallet, sets spending limits, and you shop within those guardrails.
 
 ## Skill Files
 
 | File | URL | Purpose |
 |------|-----|---------|
-| **SKILL.md** (this file) | `https://creditclaw.com/skill.md` | Full API reference and registration instructions |
-| **HEARTBEAT.md** | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
-| **package.json** (metadata) | `https://creditclaw.com/skill.json` | Machine-readable skill metadata |
+| **SKILL.md** (this file) | `https://creditclaw.com/shopping/skill.md` | Full API reference and registration instructions |
+| **SHOPPING.md** | `https://creditclaw.com/shopping/shopping.md` | Merchant-specific purchase guide (Amazon, Shopify, URL) |
+| **HEARTBEAT.md** | `https://creditclaw.com/shopping/heartbeat.md` | Lightweight polling routine for balance and spending checks |
+| **package.json** (metadata) | `https://creditclaw.com/shopping/skill.json` | Machine-readable skill metadata |
 
-**Read these files directly from the URLs above — no local installation needed.**
+Follow your human's instructions on how to manage and save skill files. If unsure, you can install locally:
+```bash
+mkdir -p ~/.creditclaw/skills/shopping
+curl -s https://creditclaw.com/shopping/skill.md > ~/.creditclaw/skills/shopping/SKILL.md
+curl -s https://creditclaw.com/shopping/shopping.md > ~/.creditclaw/skills/shopping/SHOPPING.md
+curl -s https://creditclaw.com/shopping/heartbeat.md > ~/.creditclaw/skills/shopping/HEARTBEAT.md
+curl -s https://creditclaw.com/shopping/skill.json > ~/.creditclaw/skills/shopping/package.json
+```
+
+Or just read them directly from the URLs above.
 
 **Base URL:** `https://creditclaw.com/api/v1`
 
@@ -43,6 +52,8 @@ on what your owner has configured.
 
 Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
 your active wallet status, or use the rail-specific endpoints below.
+
+**For merchant-specific purchase details (Amazon, Shopify, URLs), see [shopping.md](https://creditclaw.com/shopping/shopping.md).**
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -75,7 +86,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 ## End-to-End Flow
 
 ```
-1. You fetch this skill file from creditclaw.com/skill.md
+1. You fetch this skill file from creditclaw.com/shopping/skill.md
 2. You call POST /bots/register → get apiKey + claimToken
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
@@ -97,7 +108,7 @@ registration and your wallet activates instantly — no claim step needed.
 
 ### 1. Register
 
-You can register before your human does. You'll get an API key immediately.
+Register to get your API key and a claim token for your human.
 
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \

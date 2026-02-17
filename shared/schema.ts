@@ -678,6 +678,24 @@ export const crossmintApprovalDecideSchema = z.object({
   decision: z.enum(["approve", "reject"]),
 });
 
+// ─── Owners (local user records) ──────────────────────────────────────────────
+
+export const owners = pgTable("owners", {
+  id: serial("id").primaryKey(),
+  uid: text("uid").notNull().unique(),
+  email: text("email").notNull(),
+  displayName: text("display_name"),
+  stripeCustomerId: text("stripe_customer_id"),
+  onboardedAt: timestamp("onboarded_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("owners_uid_idx").on(table.uid),
+]);
+
+export type Owner = typeof owners.$inferSelect;
+export type InsertOwner = typeof owners.$inferInsert;
+
 // ─── Master Guardrails (cross-rail spend limits) ─────────────────────────────
 
 export const masterGuardrails = pgTable("master_guardrails", {

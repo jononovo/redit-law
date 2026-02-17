@@ -1,48 +1,78 @@
 ---
-name: creditclaw
-version: 2.2.0
-updated: 2026-02-13
-description: "Give your agent spending power. Financial management for Agents and OpenClaw bots."
+name: stripe-wallet
+version: 2.3.2
+updated: 2026-02-14T22:00:00Z
+description: "Easy-to-use agentic wallets powered by Stripe. Use your existing Stripe/Link to top-up this versatile x402 wallet for any purchases or A2A payments."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
 metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"CREDITCLAW_API_KEY"}}
 ---
 
-# CreditClaw — Financial Enablement & Accounting for AI Agents
+# CreditClaw — Stripe-powered wallets and payments for AI Agents
 
-CreditClaw.com is a financial enablement & accounting platform for Bots, Agents, and OpenClaw.
-It provides multiple methods for enabling and managing agentic spending and purchases,
-and offers consolidated accounts and guardrails on transactions across wallets.
+CreditClaw lets your agent buy things online — Amazon products, Shopify stores, SaaS subscriptions, and more.
+Your owner funds a wallet, sets spending limits, and you shop within those guardrails.
 
 ## Skill Files
 
 | File | URL | Purpose |
 |------|-----|---------|
-| **SKILL.md** (this file) | `https://creditclaw.com/skill.md` | Full API reference and registration instructions |
-| **HEARTBEAT.md** | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
-| **package.json** (metadata) | `https://creditclaw.com/skill.json` | Machine-readable skill metadata |
+| **SKILL.md** (this file) | `https://creditclaw.com/stripe/skill.md` | Registration, setup, payment method guide, and API reference |
+| **SHOPPING.md** | `https://creditclaw.com/stripe/shopping.md` | General purchasing guide — merchant types, tips, common patterns |
+| **AMAZON.md** | `https://creditclaw.com/stripe/amazon.md` | Amazon-specific guide — ASIN discovery, restrictions, tracking |
+| **PREPAID-WALLET.md** | `https://creditclaw.com/stripe/prepaid-wallet.md` | Pre-paid Wallet (Rail 2) — purchase flow, merchant formats, order tracking |
+| **SELF-HOSTED-CARD.md** | `https://creditclaw.com/stripe/self-hosted-card.md` | Self-Hosted Card (Rail 4) — checkout flow, approval, multi-card handling |
+| **STRIPE-X402-WALLET.md** | `https://creditclaw.com/stripe/stripe-x402-wallet.md` | Stripe x402 Wallet (Rail 1) — x402 signing, USDC balance, guardrails |
+| **HEARTBEAT.md** | `https://creditclaw.com/stripe/heartbeat.md` | Lightweight polling routine for balance and spending checks |
+| **package.json** (metadata) | `https://creditclaw.com/stripe/skill.json` | Machine-readable skill metadata |
 
-**Read these files directly from the URLs above — no local installation needed.**
+Follow your human's instructions on how to manage and save skill files. If unsure, you can install locally:
+```bash
+mkdir -p ~/.creditclaw/skills/stripe
+curl -s https://creditclaw.com/stripe/skill.md > ~/.creditclaw/skills/stripe/SKILL.md
+curl -s https://creditclaw.com/stripe/shopping.md > ~/.creditclaw/skills/stripe/SHOPPING.md
+curl -s https://creditclaw.com/stripe/amazon.md > ~/.creditclaw/skills/stripe/AMAZON.md
+curl -s https://creditclaw.com/stripe/prepaid-wallet.md > ~/.creditclaw/skills/stripe/PREPAID-WALLET.md
+curl -s https://creditclaw.com/stripe/self-hosted-card.md > ~/.creditclaw/skills/stripe/SELF-HOSTED-CARD.md
+curl -s https://creditclaw.com/stripe/stripe-x402-wallet.md > ~/.creditclaw/skills/stripe/STRIPE-X402-WALLET.md
+curl -s https://creditclaw.com/stripe/heartbeat.md > ~/.creditclaw/skills/stripe/HEARTBEAT.md
+curl -s https://creditclaw.com/stripe/skill.json > ~/.creditclaw/skills/stripe/package.json
+```
+
+Or just read them directly from the URLs above.
 
 **Base URL:** `https://creditclaw.com/api/v1`
 
 ---
 
-## Payment Rails
+## Payment Methods
 
-CreditClaw supports multiple independent payment rails. Each rail has its own wallet type,
-funding method, and spending mechanism. You may have access to one or more rails depending
-on what your owner has configured.
+CreditClaw supports multiple payment methods. Your owner chooses which ones to enable for you.
 
-| Rail | Method | Status | Spending Mechanism |
-|------|--------|--------|-------------------|
-| **Wallet** | Prepaid wallet funded by owner | Live | `POST /bot/wallet/purchase` (direct debit) |
-| **Self-Hosted Cards** | Owner's own cards with split-knowledge privacy | Live | `POST /bot/merchant/checkout` (human approval) |
-| **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
+| Payment Method | Best For | Status | Day-to-Day Guide |
+|---------------|----------|--------|-----------------|
+| **Pre-paid Wallet** | Amazon, Shopify, supported merchants | Live | [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md) |
+| **Self-Hosted Card** | SaaS, cloud hosting, any online store | Live | [self-hosted-card.md](https://creditclaw.com/stripe/self-hosted-card.md) |
+| **Stripe x402 Wallet** | x402 services, agent-to-agent payments | Private Beta | [stripe-x402-wallet.md](https://creditclaw.com/stripe/stripe-x402-wallet.md) |
 
-Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
-your active wallet status, or use the rail-specific endpoints below.
+Check `GET /bot/wallet/check` to see your active wallet status and which payment methods are available to you.
+
+### Which Payment Method Should I Use?
+
+| I need to... | Use | Why |
+|-------------|-----|-----|
+| Buy something on Amazon | Pre-paid Wallet | Full order tracking, ASIN-based purchasing |
+| Buy from a Shopify store | Pre-paid Wallet | Variant lookup + direct ordering |
+| Pay for a SaaS subscription | Self-Hosted Card | Works with any merchant that accepts cards |
+| Pay for cloud hosting (AWS, DigitalOcean, etc.) | Self-Hosted Card | Works with any merchant that accepts cards |
+| Buy from any online store | Self-Hosted Card | Works with any merchant URL |
+| Pay an x402-enabled API or service | Stripe x402 Wallet | On-chain USDC settlement via x402 protocol |
+| Send payment to another agent | Stripe x402 Wallet | Agent-to-agent via x402 |
+
+**For general shopping advice and tips, see [shopping.md](https://creditclaw.com/stripe/shopping.md).**
+
+**For Amazon-specific details (ASIN discovery, restrictions, tracking), see [amazon.md](https://creditclaw.com/stripe/amazon.md).**
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -75,7 +105,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 ## End-to-End Flow
 
 ```
-1. You fetch this skill file from creditclaw.com/skill.md
+1. You fetch this skill file from creditclaw.com/stripe/skill.md
 2. You call POST /bots/register → get apiKey + claimToken
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
@@ -97,7 +127,7 @@ registration and your wallet activates instantly — no claim step needed.
 
 ### 1. Register
 
-You can register before your human does. You'll get an API key immediately.
+Register to get your API key and a claim token for your human.
 
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \
@@ -466,221 +496,35 @@ Optional query parameters:
 
 ---
 
-## Self-Hosted Cards (Rail 4)
+## Pre-paid Wallet (Rail 2)
 
-If your owner has set up self-hosted cards, you can make purchases at online merchants
-using a checkout flow with human approval. This rail uses a split-knowledge privacy model —
-your owner provides card details through CreditClaw's secure setup, and you never see
-the actual card numbers.
+Use the Pre-paid Wallet to buy products from Amazon, Shopify stores, and other supported merchants. Your owner funds the wallet with USDC via fiat onramp. CreditClaw handles the conversion to fiat and places a real order with the merchant.
 
-### How Self-Hosted Card Checkout Works
+**Key endpoint:** `POST /card-wallet/bot/purchase`
 
-1. You submit a checkout request with merchant and amount details
-2. CreditClaw evaluates the request against your card's permissions
-3. If the amount is within your auto-approved allowance, it processes immediately
-4. If the amount exceeds the threshold, your owner receives an approval request (email with secure link)
-5. You poll for the result
-6. Once approved, the transaction is recorded
-
-### Make a Self-Hosted Card Checkout
-
-```bash
-curl -X POST https://creditclaw.com/api/v1/bot/merchant/checkout \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "profile_index": 1,
-    "merchant_name": "DigitalOcean",
-    "merchant_url": "https://cloud.digitalocean.com",
-    "item_name": "Droplet hosting - 1 month",
-    "amount_cents": 1200,
-    "category": "cloud_compute"
-  }'
-```
-
-**Request fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `profile_index` | Yes | The payment profile index assigned to you |
-| `merchant_name` | Yes | Merchant name (1-200 chars) |
-| `merchant_url` | Yes | Merchant website URL |
-| `item_name` | Yes | What you're buying |
-| `amount_cents` | Yes | Amount in cents (integer) |
-| `card_id` | No | Required if you have multiple cards; auto-selects if only one |
-| `category` | No | Spending category |
-| `task_id` | No | Your internal task reference |
-
-**Response (auto-approved — within allowance):**
-```json
-{
-  "status": "approved",
-  "transaction_id": "txn_abc123",
-  "amount_usd": 12.00,
-  "message": "Transaction approved within allowance."
-}
-```
-
-**Response (requires human approval):**
-```json
-{
-  "status": "pending_approval",
-  "confirmation_id": "conf_xyz789",
-  "message": "Your owner has been sent an approval request. Poll /bot/merchant/checkout/status to check the result.",
-  "expires_in_minutes": 15
-}
-```
-
-### Poll for Approval Result
-
-If you received `pending_approval`, poll for the result:
-
-```bash
-curl "https://creditclaw.com/api/v1/bot/merchant/checkout/status?confirmation_id=conf_xyz789" \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-**Response values:**
-| Status | Meaning |
-|--------|---------|
-| `pending` | Owner hasn't responded yet — poll again in 30 seconds |
-| `approved` | Owner approved — proceed with your task |
-| `rejected` | Owner declined — do not proceed |
-| `expired` | 15-minute approval window passed — try again if needed |
-
-**Multi-card note:** If your owner has linked you to multiple self-hosted cards, you must include `card_id` in
-your checkout request. If you only have one active card, `card_id` is optional and will auto-select.
-
-**Rate limit:** 30 requests per hour (checkout), 30 requests per hour (status polling).
+**Full guide:** [prepaid-wallet.md](https://creditclaw.com/stripe/prepaid-wallet.md)
 
 ---
 
-## Stripe Wallet — x402 / USDC (Private Beta)
+## Self-Hosted Card (Rail 4)
 
-> **This rail is currently in private beta and not yet available for general use.**
-> If your owner has been granted access, the following endpoints will be active.
-> Otherwise, these endpoints will return `404`. Check back for updates.
+Use self-hosted cards to make purchases at any online merchant — SaaS subscriptions, cloud hosting, domain registrations, and more. Your owner provides their own card details through CreditClaw's secure setup, and you never see the actual card numbers.
 
-The Stripe Wallet rail provides USDC-based wallets on the Base blockchain with spending
-via the x402 payment protocol. Your owner funds the wallet using Stripe's fiat-to-crypto
-onramp (credit card → USDC), and you spend by requesting cryptographic payment signatures
-that are settled on-chain.
+**Key endpoint:** `POST /bot/merchant/checkout`
 
-### How x402 Signing Works
+**Full guide:** [self-hosted-card.md](https://creditclaw.com/stripe/self-hosted-card.md)
 
-When you encounter a service that returns HTTP `402 Payment Required` with x402 payment
-details, you request a signature from CreditClaw:
+---
 
-1. You send the payment details to `POST /stripe-wallet/bot/sign`
-2. CreditClaw enforces your owner's guardrails (per-tx limit, daily budget, monthly budget, domain allow/blocklist, approval threshold)
-3. If approved, CreditClaw signs an EIP-712 `TransferWithAuthorization` message and returns an `X-PAYMENT` header
-4. You retry your original request with the `X-PAYMENT` header attached
-5. The facilitator verifies the signature and settles USDC on-chain
+## Stripe x402 Wallet (Private Beta)
 
-### Request x402 Payment Signature
+> **This rail is currently in private beta.** These endpoints may return `404` if not enabled for your account.
 
-```bash
-curl -X POST https://creditclaw.com/api/v1/stripe-wallet/bot/sign \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "resource_url": "https://api.example.com/v1/data",
-    "amount_usdc": 500000,
-    "recipient_address": "0x1234...abcd"
-  }'
-```
+Use the Stripe x402 Wallet for x402-enabled services and agent-to-agent payments. USDC on Base chain, settled on-chain via the x402 payment protocol.
 
-**Request fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `resource_url` | Yes | The x402 endpoint URL you're paying for |
-| `amount_usdc` | Yes | Amount in micro-USDC (6 decimals). 1000000 = $1.00 |
-| `recipient_address` | Yes | The merchant's 0x wallet address from the 402 response |
-| `valid_before` | No | Unix timestamp for signature expiry |
+**Key endpoint:** `POST /stripe-wallet/bot/sign`
 
-**Response (approved — HTTP 200):**
-```json
-{
-  "x_payment_header": "eyJ0eXAiOi...",
-  "signature": "0xabc123..."
-}
-```
-
-Use the `x_payment_header` value as-is in your retry request:
-```bash
-curl https://api.example.com/v1/data \
-  -H "X-PAYMENT: eyJ0eXAiOi..."
-```
-
-**Response (requires approval — HTTP 202):**
-```json
-{
-  "status": "awaiting_approval",
-  "approval_id": 15
-}
-```
-
-When you receive a 202, your owner has been notified. Poll the approvals endpoint
-or wait approximately 5 minutes before retrying.
-
-**Response (declined — HTTP 403):**
-```json
-{
-  "error": "Amount exceeds per-transaction limit",
-  "max": 10.00
-}
-```
-
-Other possible decline errors:
-- `"Wallet is not active"` — wallet is paused or frozen
-- `"Would exceed daily budget"` — daily spending limit reached
-- `"Would exceed monthly budget"` — monthly cap reached
-- `"Domain not on allowlist"` — resource URL not in allowed domains
-- `"Domain is blocklisted"` — resource URL is blocked
-- `"Insufficient USDC balance"` — not enough funds
-
-**Guardrail checks (in order):**
-1. Wallet active? (not paused/frozen)
-2. Amount ≤ per-transaction limit?
-3. Daily cumulative + amount ≤ daily budget?
-4. Monthly cumulative + amount ≤ monthly budget?
-5. Domain on allowlist? (if allowlist is set)
-6. Domain not on blocklist?
-7. Amount below approval threshold? (if set)
-8. Sufficient USDC balance?
-
-### Check Stripe Wallet Balance
-
-```bash
-curl "https://creditclaw.com/api/v1/stripe-wallet/balance?wallet_id=1" \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Response:
-```json
-{
-  "wallet_id": 1,
-  "balance_usdc": 25000000,
-  "balance_usd": "25.00",
-  "status": "active",
-  "chain": "base"
-}
-```
-
-### View Stripe Wallet Transactions
-
-```bash
-curl "https://creditclaw.com/api/v1/stripe-wallet/transactions?wallet_id=1&limit=10" \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-**Transaction types:**
-| Type | Meaning |
-|------|---------|
-| `deposit` | Owner funded the wallet via Stripe onramp (fiat → USDC) |
-| `x402_payment` | You made an x402 payment |
-| `refund` | A payment was refunded |
-
-**Rate limit:** 30 requests per hour (signing), 12 requests per hour (balance/transactions).
+**Full guide:** [stripe-x402-wallet.md](https://creditclaw.com/stripe/stripe-x402-wallet.md)
 
 ---
 
@@ -703,6 +547,14 @@ Base URL: `https://creditclaw.com/api/v1`
 | GET | `/bot/payments/links` | List your payment links. Supports `?status=` and `?limit=N`. | 12/hr |
 | GET | `/bot/wallet/transactions` | List transaction history. Supports `?limit=N` (default 50, max 100). | 12/hr |
 
+### Pre-paid Wallet Endpoints (Rail 2)
+
+| Method | Endpoint | Description | Rate Limit |
+|--------|----------|-------------|------------|
+| POST | `/card-wallet/bot/purchase` | Submit a purchase request (Amazon, Shopify, URL). | 30/hr |
+| GET | `/card-wallet/bot/purchase/status` | Poll for purchase approval and order status. | 30/hr |
+| POST | `/card-wallet/bot/search` | Search Shopify product variants (beta). | 10/hr |
+
 ### Self-Hosted Card Endpoints (Rail 4)
 
 | Method | Endpoint | Description | Rate Limit |
@@ -710,7 +562,7 @@ Base URL: `https://creditclaw.com/api/v1`
 | POST | `/bot/merchant/checkout` | Submit a purchase for approval/processing. | 30/hr |
 | GET | `/bot/merchant/checkout/status` | Poll for human approval result. | 30/hr |
 
-### Stripe Wallet Endpoints (Private Beta)
+### Stripe x402 Wallet Endpoints (Private Beta)
 
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|------------|

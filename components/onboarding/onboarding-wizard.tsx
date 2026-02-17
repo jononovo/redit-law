@@ -6,12 +6,7 @@ import { X } from "lucide-react";
 import { ChoosePath } from "./steps/choose-path";
 import { ClaimToken } from "./steps/claim-token";
 import { PairingCode } from "./steps/pairing-code";
-import { ApprovalMode } from "./steps/approval-mode";
-import { ApprovalThreshold } from "./steps/approval-threshold";
 import { SpendingLimits } from "./steps/spending-limits";
-import { BlockedCategories } from "./steps/blocked-categories";
-import { ApprovedCategories } from "./steps/approved-categories";
-import { SpecialInstructions } from "./steps/special-instructions";
 import { ConnectBot } from "./steps/connect-bot";
 import { AddPayment } from "./steps/add-payment";
 import { FundWallet } from "./steps/fund-wallet";
@@ -23,14 +18,9 @@ interface WizardState {
   botName: string | null;
   botConnected: boolean;
   pairingCode: string | null;
-  approvalMode: "ask_for_everything" | "auto_approve_under_threshold" | "auto_approve_by_category";
-  askApprovalAboveCents: number;
   perTransactionCents: number;
   dailyCents: number;
   monthlyCents: number;
-  approvedCategories: string[];
-  blockedCategories: string[];
-  notes: string;
   paymentMethodAdded: boolean;
   fundedAmountCents: number;
 }
@@ -39,12 +29,7 @@ type StepId =
   | "choose-path"
   | "claim-token"
   | "pairing-code"
-  | "approval-mode"
-  | "approval-threshold"
   | "spending-limits"
-  | "blocked-categories"
-  | "approved-categories"
-  | "special-instructions"
   | "connect-bot"
   | "add-payment"
   | "fund-wallet"
@@ -56,14 +41,9 @@ const initialState: WizardState = {
   botName: null,
   botConnected: false,
   pairingCode: null,
-  approvalMode: "ask_for_everything",
-  askApprovalAboveCents: 1000,
   perTransactionCents: 2500,
   dailyCents: 5000,
   monthlyCents: 50000,
-  approvedCategories: [],
-  blockedCategories: ["gambling", "adult_content", "cryptocurrency", "cash_advances"],
-  notes: "",
   paymentMethodAdded: false,
   fundedAmountCents: 0,
 };
@@ -83,20 +63,7 @@ export function OnboardingWizard() {
       steps.push("pairing-code");
     }
 
-    steps.push("approval-mode");
-
-    if (state.approvalMode === "auto_approve_under_threshold") {
-      steps.push("approval-threshold");
-    }
-
     steps.push("spending-limits");
-    steps.push("blocked-categories");
-
-    if (state.approvalMode === "auto_approve_by_category") {
-      steps.push("approved-categories");
-    }
-
-    steps.push("special-instructions");
 
     if (!state.botConnected) {
       steps.push("connect-bot");
@@ -111,7 +78,7 @@ export function OnboardingWizard() {
     steps.push("complete");
 
     return steps;
-  }, [state.entryPath, state.approvalMode, state.botConnected, state.paymentMethodAdded]);
+  }, [state.entryPath, state.botConnected, state.paymentMethodAdded]);
 
   const animateTransition = useCallback((direction: "forward" | "back", callback: () => void) => {
     setTransitionClass(direction === "forward" ? "wizard-step-exit" : "wizard-step-exit-back");
@@ -189,34 +156,6 @@ export function OnboardingWizard() {
           />
         );
 
-      case "approval-mode":
-        return (
-          <ApprovalMode
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            onBack={goBack}
-            onNext={(mode) => {
-              setState((s) => ({ ...s, approvalMode: mode }));
-              goForward();
-            }}
-            defaultMode={state.approvalMode}
-          />
-        );
-
-      case "approval-threshold":
-        return (
-          <ApprovalThreshold
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            onBack={goBack}
-            onNext={(thresholdCents) => {
-              setState((s) => ({ ...s, askApprovalAboveCents: thresholdCents }));
-              goForward();
-            }}
-            defaultCents={state.askApprovalAboveCents}
-          />
-        );
-
       case "spending-limits":
         return (
           <SpendingLimits
@@ -230,48 +169,6 @@ export function OnboardingWizard() {
             defaultPerTx={state.perTransactionCents}
             defaultDaily={state.dailyCents}
             defaultMonthly={state.monthlyCents}
-          />
-        );
-
-      case "blocked-categories":
-        return (
-          <BlockedCategories
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            onBack={goBack}
-            onNext={(blocked) => {
-              setState((s) => ({ ...s, blockedCategories: blocked }));
-              goForward();
-            }}
-            defaultBlocked={state.blockedCategories}
-          />
-        );
-
-      case "approved-categories":
-        return (
-          <ApprovedCategories
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            onBack={goBack}
-            onNext={(approved) => {
-              setState((s) => ({ ...s, approvedCategories: approved }));
-              goForward();
-            }}
-            defaultApproved={state.approvedCategories}
-          />
-        );
-
-      case "special-instructions":
-        return (
-          <SpecialInstructions
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-            onBack={goBack}
-            onNext={(notes) => {
-              setState((s) => ({ ...s, notes }));
-              goForward();
-            }}
-            defaultNotes={state.notes}
           />
         );
 

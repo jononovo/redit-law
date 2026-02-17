@@ -65,8 +65,8 @@ export function SpendingLimits({ currentStep, totalSteps, onBack, onNext, defaul
 
   return (
     <WizardStep
-      title="Set your bot's spending limits"
-      subtitle="These protect you from unexpected charges."
+      title="Set your master spending limits"
+      subtitle="These limits apply across all payment methods you add."
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}

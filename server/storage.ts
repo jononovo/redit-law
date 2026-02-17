@@ -5,7 +5,8 @@ import {
   rail4Cards, obfuscationEvents, obfuscationState, profileAllowanceUsage, checkoutConfirmations,
   privyWallets, privyGuardrails, privyTransactions, privyApprovals,
   crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
-  masterGuardrails,
+  owners, masterGuardrails,
+  type Owner, type InsertOwner,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
@@ -38,6 +39,9 @@ import {
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
 export interface IStorage {
+  getOwnerByUid(uid: string): Promise<Owner | null>;
+  upsertOwner(uid: string, data: Partial<InsertOwner>): Promise<Owner>;
+
   createBot(data: InsertBot): Promise<Bot>;
   getBotByClaimToken(token: string): Promise<Bot | null>;
   getBotByBotId(botId: string): Promise<Bot | null>;
@@ -1294,6 +1298,30 @@ export const storage: IStorage = {
       .where(and(eq(crossmintApprovals.id, id), eq(crossmintApprovals.status, "pending")))
       .returning();
     return updated || null;
+  },
+
+  // ─── Owners ──────────────────────────────────────────────────────────
+
+  async getOwnerByUid(uid: string): Promise<Owner | null> {
+    const [row] = await db.select().from(owners).where(eq(owners.uid, uid)).limit(1);
+    return row || null;
+  },
+
+  async upsertOwner(uid: string, data: Partial<InsertOwner>): Promise<Owner> {
+    const existing = await this.getOwnerByUid(uid);
+    if (existing) {
+      const [updated] = await db
+        .update(owners)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(owners.uid, uid))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(owners)
+      .values({ uid, email: data.email || "", ...data })
+      .returning();
+    return created;
   },
 
   // ─── Master Guardrails (cross-rail spend limits) ───────────────────
