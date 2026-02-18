@@ -1,0 +1,291 @@
+# CreditClaw Procurement Skills — Technical Plan
+
+## Concept
+
+A new public-facing module at `creditclaw.com/skills/` that serves vendor-specific SKILL.md files for major retailers. Bots hit a discovery API to find which vendors are available, then fetch the relevant skill file to learn how to shop that vendor. CreditClaw becomes the procurement layer — not just payments.
+
+---
+
+## Architecture
+
+### New Files
+
+```
+lib/procurement-skills/
+  registry.ts          ← master vendor catalog (the source of truth)
+  generator.ts         ← builds SKILL.md content from vendor config
+
+app/api/v1/bot/skills/
+  route.ts             ← GET: list all vendor skills (discovery endpoint)
+  [vendor]/route.ts    ← GET: serve a specific vendor's SKILL.md
+
+app/skills/
+  page.tsx             ← public browsable directory (human-facing)
+  [vendor]/page.tsx    ← rendered skill preview page per vendor
+```
+
+### No new DB tables needed. The registry is a static TypeScript config — vendors don't change at runtime.
+
+---
+
+## Vendor Registry (the tricky part)
+
+Each vendor entry encodes everything an agent needs to shop there. This is the core data model:
+
+```typescript
+// lib/procurement-skills/registry.ts
+
+export interface VendorSkill {
+  slug: string;                    // "walmart-business"
+  name: string;                    // "Walmart Business"
+  category: "retail" | "office" | "hardware" | "electronics" | "industrial";
+  tier: "native" | "guided" | "generic";  // native = API (amazon), guided = browser skill, generic = url: fallback
+  url: string;                     // "https://business.walmart.com"
+  
+  // What makes each vendor unique — the stuff agents actually need to know
+  search: {
+    pattern: string;               // "Use the search bar at top. Filter by 'Business Price' for bulk discounts."
+    bulkPricing: boolean;          // Does the site show qty-based pricing?
+    loginRequired: boolean;        // Must be logged in to see prices?
+    apiAvailable: boolean;         // Can search via API instead of browser?
+  };
+  
+  checkout: {
+    guestCheckout: boolean;        // Can buy without an account?
+    taxExemptField: boolean;       // Has a tax exemption certificate upload/entry?
+    poNumberField: boolean;        // Accepts purchase order numbers?
+    savedPaymentMethods: boolean;  // Can store CreditClaw card for repeat purchases?
+  };
+
+  shipping: {
+    freeThreshold?: number;        // Free shipping above $X
+    businessShipping: boolean;     // Has business/bulk shipping options
+    estimatedDays: string;         // "2-5 business days"
+  };
+
+  // CreditClaw integration specifics
+  creditclaw: {
+    merchantType: "amazon" | "shopify" | "url";  // Which locator to use for purchase endpoint
+    locatorFormat: string;         // "amazon:{ASIN}" or "url:{product_url}"
+    searchEndpoint?: string;       // "/api/v1/card-wallet/bot/search" if applicable
+    trackingSupported: boolean;
+  };
+
+  notes: string[];                 // Vendor-specific gotchas and tips
+}
+
+export const VENDOR_REGISTRY: VendorSkill[] = [
+  {
+    slug: "amazon",
+    name: "Amazon",
+    category: "retail",
+    tier: "native",
+    url: "https://www.amazon.com",
+    search: { pattern: "Search by product name or ASIN. No login needed to browse.", bulkPricing: false, loginRequired: false, apiAvailable: true },
+    checkout: { guestCheckout: false, taxExemptField: false, poNumberField: false, savedPaymentMethods: false },
+    shipping: { freeThreshold: 35, businessShipping: false, estimatedDays: "1-5 business days" },
+    creditclaw: { merchantType: "amazon", locatorFormat: "amazon:{ASIN}", trackingSupported: true },
+    notes: ["Use ASIN for fastest checkout — no browser needed", "Crossmint handles fulfillment end-to-end"]
+  },
+  {
+    slug: "amazon-business",
+    name: "Amazon Business",
+    category: "retail",
+    tier: "guided",
+    url: "https://business.amazon.com",
+    search: { pattern: "Search normally. Look for 'Business Price' and 'Quantity Discounts' badges.", bulkPricing: true, loginRequired: true, apiAvailable: false },
+    checkout: { guestCheckout: false, taxExemptField: true, poNumberField: true, savedPaymentMethods: true },
+    shipping: { freeThreshold: 25, businessShipping: true, estimatedDays: "1-5 business days" },
+    creditclaw: { merchantType: "url", locatorFormat: "url:{product_url}", trackingSupported: false },
+    notes: ["Requires Amazon Business account — owner must set up beforehand", "Tax exemption certs can be uploaded in account settings", "Quantity discounts often beat consumer Amazon by 15-40%"]
+  },
+  // ... walmart, walmart-business, staples, home-depot, lowes, uline, grainger, 
+  //     mcmaster-carr, office-depot, newegg, bh-photo, etc.
+];
+```
+
+---
+
+## SKILL.md Generator
+
+Converts a `VendorSkill` config into a properly formatted Agent Skills markdown file:
+
+```typescript
+// lib/procurement-skills/generator.ts
+
+export function generateVendorSkill(vendor: VendorSkill): string {
+  return `---
+name: creditclaw-shop-${vendor.slug}
+version: 1.0.0
+description: "Shop ${vendor.name} using CreditClaw payment rails"
+homepage: https://creditclaw.com/skills/${vendor.slug}
+requires: [creditclaw]
+---
+
+# Shopping at ${vendor.name}
+
+**Store URL:** ${vendor.url}
+**Checkout type:** ${vendor.tier === "native" ? "API-based (no browser needed)" : "Browser checkout — requires browser automation"}
+**CreditClaw merchant type:** \`${vendor.creditclaw.merchantType}\`
+**Locator format:** \`${vendor.creditclaw.locatorFormat}\`
+
+## How to Search
+
+${vendor.search.pattern}
+${vendor.search.bulkPricing ? "\n> **Bulk pricing available.** Look for quantity discount tiers and compare unit prices." : ""}
+${vendor.search.loginRequired ? "\n> ⚠️ **Login required** to see prices. Your owner must configure account credentials." : ""}
+
+## How to Checkout
+
+${vendor.checkout.guestCheckout ? "Guest checkout is available — no account needed." : "Account login required before checkout."}
+${vendor.checkout.poNumberField ? "- This vendor accepts PO numbers — enter one if your owner's spending rules require it." : ""}
+${vendor.checkout.taxExemptField ? "- Tax exemption field available at checkout. Check if your owner has uploaded a tax certificate." : ""}
+
+Use your CreditClaw card details from \`GET /bot/wallet/card\` to pay.
+${vendor.creditclaw.searchEndpoint ? `\nCall \`POST ${vendor.creditclaw.searchEndpoint}\` with the product URL to get variant/pricing info before purchasing.` : ""}
+
+## Shipping
+
+${vendor.shipping.freeThreshold ? `Free shipping on orders over $${vendor.shipping.freeThreshold}.` : "No standard free shipping threshold."}
+Estimated delivery: ${vendor.shipping.estimatedDays}
+${vendor.shipping.businessShipping ? "Business/bulk shipping rates available." : ""}
+
+## Tips
+
+${vendor.notes.map(n => `- ${n}`).join("\n")}
+
+## Making the Purchase
+
+\`\`\`bash
+curl -X POST https://creditclaw.com/api/v1/card-wallet/bot/purchase \\
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "merchant": "${vendor.creditclaw.merchantType}",
+    "product_id": "${vendor.creditclaw.locatorFormat}",
+    "shipping_address": { ... }
+  }'
+\`\`\`
+
+${vendor.creditclaw.trackingSupported ? "Order tracking is available via `GET /api/v1/card-wallet/bot/orders`." : "Order tracking is not yet available for this vendor. Monitor your email for shipping confirmation."}
+`;
+}
+```
+
+---
+
+## Bot-Facing Discovery API
+
+The key endpoint — lets bots programmatically find and load the right skill:
+
+```typescript
+// app/api/v1/bot/skills/route.ts
+// GET /api/v1/bot/skills?category=hardware&search=lowes
+
+import { VENDOR_REGISTRY } from "@/lib/procurement-skills/registry";
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const category = url.searchParams.get("category");
+  const search = url.searchParams.get("search")?.toLowerCase();
+
+  let vendors = VENDOR_REGISTRY;
+
+  if (category) {
+    vendors = vendors.filter(v => v.category === category);
+  }
+  if (search) {
+    vendors = vendors.filter(v =>
+      v.name.toLowerCase().includes(search) ||
+      v.slug.includes(search)
+    );
+  }
+
+  return NextResponse.json({
+    vendors: vendors.map(v => ({
+      slug: v.slug,
+      name: v.name,
+      category: v.category,
+      tier: v.tier,
+      url: v.url,
+      skill_url: `https://creditclaw.com/api/v1/bot/skills/${v.slug}`,
+      guest_checkout: v.checkout.guestCheckout,
+      bulk_pricing: v.search.bulkPricing,
+      free_shipping_above: v.shipping.freeThreshold ?? null,
+    })),
+    total: vendors.length,
+  });
+}
+```
+
+```typescript
+// app/api/v1/bot/skills/[vendor]/route.ts
+// GET /api/v1/bot/skills/walmart-business → returns raw SKILL.md
+
+export async function GET(_req: NextRequest, { params }: { params: { vendor: string } }) {
+  const vendor = VENDOR_REGISTRY.find(v => v.slug === params.vendor);
+  if (!vendor) return NextResponse.json({ error: "vendor_not_found" }, { status: 404 });
+
+  const skillMd = generateVendorSkill(vendor);
+
+  return new NextResponse(skillMd, {
+    headers: { "Content-Type": "text/markdown; charset=utf-8" },
+  });
+}
+```
+
+---
+
+## Public Skills Directory Page
+
+A simple browsable page at `/skills` — human-facing, shows all available vendor skills with categories and links. Same design system as the rest of the site (Plus Jakarta Sans, pastels, rounded corners). Basically a grid of vendor cards grouped by category.
+
+No auth required. This is public marketing + bot discovery.
+
+---
+
+## Procurement Meta-Skill
+
+Reference this from the main `shopping.md` or the core `skill.md`:
+
+```markdown
+## Comparison Shopping
+
+When asked to procure an item across vendors:
+
+1. `GET /api/v1/bot/skills?search={query}` to find relevant vendors
+2. Fetch each vendor's skill file from the `skill_url`
+3. Search for the item on 2-3 vendors using each skill's instructions
+4. Compare: price, shipping cost, delivery time, bulk discounts
+5. Present comparison to owner (or auto-purchase if within guardrails)
+```
+
+---
+
+## Vendor Launch List
+
+| Vendor | Slug | Tier | Category | Priority |
+|--------|------|------|----------|----------|
+| Amazon | `amazon` | native | retail | ✅ Already live |
+| Shopify (any store) | `shopify` | native | retail | ✅ Already live |
+| Amazon Business | `amazon-business` | guided | retail | P1 |
+| Walmart | `walmart` | guided | retail | P1 |
+| Walmart Business | `walmart-business` | guided | retail | P1 |
+| Staples | `staples` | guided | office | P1 |
+| Home Depot | `home-depot` | guided | hardware | P1 |
+| Lowe's | `lowes` | guided | hardware | P1 |
+| Office Depot | `office-depot` | guided | office | P2 |
+| Uline | `uline` | guided | industrial | P2 |
+| Grainger | `grainger` | guided | industrial | P2 |
+| McMaster-Carr | `mcmaster-carr` | guided | industrial | P2 |
+| Newegg | `newegg` | guided | electronics | P2 |
+| B&H Photo | `bh-photo` | guided | electronics | P2 |
+
+---
+
+## What This Doesn't Include (Future)
+
+- **Account credential management** — storing vendor logins per owner (needed for business accounts)
+- **Price caching / price watch** — periodic scraping to track prices over time
+- **Vendor API integrations** — if Walmart or Staples ever ship public purchase APIs, upgrade from "guided" to "native"
+- **ClawHub publishing** — packaging each vendor skill as a standalone ClawHub installable
