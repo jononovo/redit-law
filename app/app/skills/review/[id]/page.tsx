@@ -18,6 +18,8 @@ import {
   Check,
   Download,
   Sparkles,
+  Award,
+  Users,
 } from "lucide-react";
 import { CHECKOUT_METHOD_LABELS, CAPABILITY_LABELS, CATEGORY_LABELS } from "@/lib/procurement-skills/types";
 import type { CheckoutMethod, VendorCapability, VendorCategory } from "@/lib/procurement-skills/types";
@@ -40,6 +42,10 @@ type DraftDetail = {
   status: string;
   autoPublish: boolean;
   createdBy: string;
+  submitterUid: string | null;
+  submitterName: string | null;
+  submitterType: string;
+  submissionSource: string;
   warnings: string[];
   evidence: EvidenceItem[];
   createdAt: string;
@@ -312,6 +318,19 @@ export default function SkillDraftDetailPage({ params }: { params: Promise<{ id:
                 {draft.vendorUrl} <ExternalLink className="w-3 h-3" />
               </a>
               <Badge className={`${statusInfo.color} border text-xs`}>{statusInfo.label}</Badge>
+              {draft.submissionSource === "community" && (
+                draft.submitterType === "official" ? (
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs flex items-center gap-0.5">
+                    <Award className="w-3 h-3" />
+                    Official
+                  </Badge>
+                ) : (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs flex items-center gap-0.5">
+                    <Users className="w-3 h-3" />
+                    Community
+                  </Badge>
+                )
+              )}
               {draft.autoPublish && (
                 <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
                   <Sparkles className="w-3 h-3 mr-1" />
@@ -345,6 +364,20 @@ export default function SkillDraftDetailPage({ params }: { params: Promise<{ id:
         }`} data-testid="text-message">
           {message.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
           {message.text}
+        </div>
+      )}
+
+      {draft.submissionSource === "community" && draft.submitterName && (
+        <div className="bg-neutral-50 border border-neutral-200 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+            {draft.submitterName[0]?.toUpperCase() || "?"}
+          </div>
+          <div>
+            <div className="text-sm font-medium">{draft.submitterName}</div>
+            <div className="text-xs text-neutral-400">
+              Submitted {new Date(draft.createdAt).toLocaleDateString()}
+            </div>
+          </div>
         </div>
       )}
 

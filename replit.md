@@ -44,6 +44,14 @@ A `/skills/` module provides a curated library of vendor shopping skills.
 - **Catalog Page:** Public browsable directory with search, filters, vendor cards, and friendliness scores.
 - **Vendor Detail Pages:** Per-vendor pages with capabilities, checkout details, and `SKILL.md` preview.
 
+### Community Submissions Module
+Registered users can submit vendor websites for analysis, contributing to the procurement skills library.
+- **Submission API:** `POST /api/v1/skills/submissions` (authenticated, triggers 4-pass analysis), `GET /api/v1/skills/submissions/mine` (list user's own submissions with profile stats).
+- **Submitter Profiles:** `skill_submitter_profiles` table tracks per-user submission counts (submitted, published, rejected).
+- **Trust Badges:** Submissions are tagged as "official" (email domain matches vendor domain) or "community" (all others).
+- **Review Integration:** Community submissions feed into the existing review queue at `/app/skills/review` with source filtering (Admin/Community) and submitter attribution badges.
+- **Submission UI:** `/app/skills/submit` provides a form to submit vendor URLs, view submission history, and track acceptance rates.
+
 ### Key Routes
 - `/`: Consumer landing page
 - `/claim`: Bot claim page
@@ -53,6 +61,7 @@ A `/skills/` module provides a curated library of vendor shopping skills.
 - `/app/card-wallet`: Rail 2 dashboard
 - `/app/self-hosted`: Self-hosted card management (Rail 4)
 - `/app/transactions`: Transaction history
+- `/app/skills/submit`: Community vendor skill submission
 - `/app/settings`: Account settings
 - `/onboarding`: Guided setup wizard
 

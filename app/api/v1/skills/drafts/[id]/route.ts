@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { updateSkillDraftSchema } from "@/shared/schema";
 
@@ -7,6 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const draftId = parseInt(id, 10);
     if (isNaN(draftId)) {
@@ -30,6 +36,10 @@ export async function GET(
       status: draft.status,
       autoPublish: draft.autoPublish,
       createdBy: draft.createdBy,
+      submitterUid: draft.submitterUid,
+      submitterName: draft.submitterName,
+      submitterType: draft.submitterType,
+      submissionSource: draft.submissionSource,
       warnings: draft.warnings,
       evidence: evidence.map(e => ({
         id: e.id,
@@ -52,6 +62,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const draftId = parseInt(id, 10);
     if (isNaN(draftId)) {
@@ -82,6 +97,10 @@ export async function PATCH(
 
     const updated = await storage.updateSkillDraft(draftId, updateData);
 
+    if (parsed.data.status === "rejected" && existing.submitterUid && existing.submissionSource === "community") {
+      await storage.incrementSubmitterStat(existing.submitterUid, "skillsRejected");
+    }
+
     return NextResponse.json({
       id: updated!.id,
       vendorSlug: updated!.vendorSlug,
@@ -100,6 +119,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const draftId = parseInt(id, 10);
     if (isNaN(draftId)) {

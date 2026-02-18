@@ -735,12 +735,18 @@ export const skillDrafts = pgTable("skill_drafts", {
   status: text("status").notNull().default("pending"),
   autoPublish: boolean("auto_publish").notNull().default(false),
   createdBy: text("created_by").notNull().default("skill_builder"),
+  submitterUid: text("submitter_uid"),
+  submitterEmail: text("submitter_email"),
+  submitterName: text("submitter_name"),
+  submitterType: text("submitter_type").notNull().default("system"),
+  submissionSource: text("submission_source").notNull().default("admin"),
   warnings: text("warnings").array().notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
   index("skill_drafts_status_idx").on(table.status),
   index("skill_drafts_vendor_slug_idx").on(table.vendorSlug),
+  index("skill_drafts_submitter_uid_idx").on(table.submitterUid),
 ]);
 
 export type SkillDraft = typeof skillDrafts.$inferSelect;
@@ -761,7 +767,25 @@ export const skillEvidence = pgTable("skill_evidence", {
 export type SkillEvidence = typeof skillEvidence.$inferSelect;
 export type InsertSkillEvidence = typeof skillEvidence.$inferInsert;
 
+export const skillSubmitterProfiles = pgTable("skill_submitter_profiles", {
+  ownerUid: text("owner_uid").primaryKey(),
+  displayName: text("display_name"),
+  email: text("email"),
+  skillsSubmitted: integer("skills_submitted").notNull().default(0),
+  skillsPublished: integer("skills_published").notNull().default(0),
+  skillsRejected: integer("skills_rejected").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type SkillSubmitterProfile = typeof skillSubmitterProfiles.$inferSelect;
+export type InsertSkillSubmitterProfile = typeof skillSubmitterProfiles.$inferInsert;
+
 export const analyzeVendorSchema = z.object({
+  url: z.string().url().min(1).max(2000),
+});
+
+export const submitVendorSchema = z.object({
   url: z.string().url().min(1).max(2000),
 });
 

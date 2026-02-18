@@ -128,6 +128,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/app/skills/submit/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/app/skills/submit">> = Specific
+  const handler = {} as typeof import("../../../app/app/skills/submit/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/app/stripe-wallet/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/app/stripe-wallet">> = Specific
@@ -834,6 +843,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/skills/drafts">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/skills/drafts/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/skills/submissions/mine/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/skills/submissions/mine">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/skills/submissions/mine/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/skills/submissions/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/skills/submissions">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/skills/submissions/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

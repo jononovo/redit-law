@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const status = url.searchParams.get("status") || undefined;
 
@@ -20,6 +26,9 @@ export async function GET(request: NextRequest) {
         confidence: d.confidence,
         vendorName: (d.vendorData as Record<string, unknown>)?.name || d.vendorSlug || "Unknown",
         createdBy: d.createdBy,
+        submitterName: d.submitterName,
+        submitterType: d.submitterType,
+        submissionSource: d.submissionSource,
         createdAt: d.createdAt,
         updatedAt: d.updatedAt,
       })),
