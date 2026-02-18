@@ -5,7 +5,7 @@ import {
   rail4Cards, obfuscationEvents, obfuscationState, profileAllowanceUsage, checkoutConfirmations,
   privyWallets, privyGuardrails, privyTransactions, privyApprovals,
   crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
-  owners, masterGuardrails,
+  owners, masterGuardrails, skillDrafts, skillEvidence,
   type Owner, type InsertOwner,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
@@ -35,6 +35,8 @@ import {
   type CrossmintTransaction, type InsertCrossmintTransaction,
   type CrossmintApproval, type InsertCrossmintApproval,
   type MasterGuardrail, type InsertMasterGuardrail,
+  type SkillDraft, type InsertSkillDraft,
+  type SkillEvidence, type InsertSkillEvidence,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -202,6 +204,16 @@ export interface IStorage {
   upsertMasterGuardrails(ownerUid: string, data: Partial<InsertMasterGuardrail>): Promise<MasterGuardrail>;
   getMasterDailySpend(ownerUid: string): Promise<{ rail1: number; rail2: number; rail4: number; total: number }>;
   getMasterMonthlySpend(ownerUid: string): Promise<{ rail1: number; rail2: number; rail4: number; total: number }>;
+
+  // ─── Skill Builder (draft management) ──────────────────────────────
+  createSkillDraft(data: InsertSkillDraft): Promise<SkillDraft>;
+  createSkillDraftWithEvidence(draftData: InsertSkillDraft, evidenceData: InsertSkillEvidence[]): Promise<SkillDraft>;
+  getSkillDraft(id: number): Promise<SkillDraft | null>;
+  listSkillDrafts(status?: string): Promise<SkillDraft[]>;
+  updateSkillDraft(id: number, data: Partial<InsertSkillDraft>): Promise<SkillDraft | null>;
+  deleteSkillDraft(id: number): Promise<void>;
+  createSkillEvidence(data: InsertSkillEvidence): Promise<SkillEvidence>;
+  getSkillEvidenceByDraftId(draftId: number): Promise<SkillEvidence[]>;
 }
 
 export const storage: IStorage = {
@@ -1435,5 +1447,53 @@ export const storage: IStorage = {
     const rail4Cents = Number(r4?.total || 0);
     const rail4 = rail4Cents * 10_000;
     return { rail1, rail2, rail4, total: rail1 + rail2 + rail4 };
+  },
+
+  async createSkillDraft(data: InsertSkillDraft): Promise<SkillDraft> {
+    const [draft] = await db.insert(skillDrafts).values(data).returning();
+    return draft;
+  },
+
+  async createSkillDraftWithEvidence(draftData: InsertSkillDraft, evidenceData: InsertSkillEvidence[]): Promise<SkillDraft> {
+    return db.transaction(async (tx) => {
+      const [draft] = await tx.insert(skillDrafts).values(draftData).returning();
+      if (evidenceData.length > 0) {
+        await tx.insert(skillEvidence).values(
+          evidenceData.map(ev => ({ ...ev, draftId: draft.id }))
+        );
+      }
+      return draft;
+    });
+  },
+
+  async getSkillDraft(id: number): Promise<SkillDraft | null> {
+    const [draft] = await db.select().from(skillDrafts).where(eq(skillDrafts.id, id)).limit(1);
+    return draft ?? null;
+  },
+
+  async listSkillDrafts(status?: string): Promise<SkillDraft[]> {
+    if (status) {
+      return db.select().from(skillDrafts).where(eq(skillDrafts.status, status)).orderBy(desc(skillDrafts.createdAt));
+    }
+    return db.select().from(skillDrafts).orderBy(desc(skillDrafts.createdAt));
+  },
+
+  async updateSkillDraft(id: number, data: Partial<InsertSkillDraft>): Promise<SkillDraft | null> {
+    const [draft] = await db.update(skillDrafts).set({ ...data, updatedAt: new Date() }).where(eq(skillDrafts.id, id)).returning();
+    return draft ?? null;
+  },
+
+  async deleteSkillDraft(id: number): Promise<void> {
+    await db.delete(skillEvidence).where(eq(skillEvidence.draftId, id));
+    await db.delete(skillDrafts).where(eq(skillDrafts.id, id));
+  },
+
+  async createSkillEvidence(data: InsertSkillEvidence): Promise<SkillEvidence> {
+    const [evidence] = await db.insert(skillEvidence).values(data).returning();
+    return evidence;
+  },
+
+  async getSkillEvidenceByDraftId(draftId: number): Promise<SkillEvidence[]> {
+    return db.select().from(skillEvidence).where(eq(skillEvidence.draftId, draftId)).orderBy(skillEvidence.field);
   },
 };

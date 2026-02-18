@@ -1,7 +1,7 @@
 # CreditClaw.com
 
 ## Overview
-CreditClaw is a prepaid spending controls platform designed for AI agents within the OpenClaw ecosystem. It allows owners to fund bot wallets using their own credit cards and enforce strict spending limits, including per-transaction, daily, monthly caps, category blocking, and approval modes. The platform offers a consumer landing page with immediate sign-up and a waitlist for future virtual card issuance, alongside a dashboard for managing wallets, transactions, and spending controls. The project's vision is to provide a secure and controlled financial environment for AI agents, emphasizing a prepaid model rather than credit lines. It also includes features for bots to get paid through payment links and advanced "Split-Knowledge Card Model" for enhanced privacy and obfuscation during transactions.
+CreditClaw is a prepaid spending controls platform designed for AI agents within the OpenClaw ecosystem. It enables owners to fund bot wallets using their credit cards and enforce strict spending limits (per-transaction, daily, monthly caps, category blocking, approval modes). The platform offers a consumer landing page for immediate sign-up, a waitlist for virtual card issuance, and a dashboard for managing wallets, transactions, and spending controls. Its core purpose is to provide a secure and controlled financial environment for AI agents, focusing on a prepaid model. It also supports bots receiving payments via links and features a "Split-Knowledge Card Model" for enhanced transaction privacy. The project aims to become the leading financial control and payment solution for AI agents.
 
 ## User Preferences
 - **Design theme:** "Fun Consumer" — 3D clay/claymation aesthetic, coral lobster mascot, bright pastels (orange/blue/purple)
@@ -15,107 +15,70 @@ CreditClaw is a prepaid spending controls platform designed for AI agents within
 ## System Architecture
 
 ### Stack
-The platform is built on Next.js 16 (App Router), utilizing Firebase Auth (client SDK and Admin SDK) for authentication with httpOnly session cookies. PostgreSQL is the primary database, accessed via Drizzle ORM. Styling is managed with Tailwind CSS v4 and PostCSS, with UI components from shadcn/ui. React Query handles state management.
+The platform uses Next.js 16 (App Router), Firebase Auth (client/Admin SDK) with httpOnly session cookies, PostgreSQL via Drizzle ORM, Tailwind CSS v4, PostCSS, shadcn/ui for components, and React Query for state management.
 
 ### Core Features and Design
-CreditClaw features a dual interface: a public consumer landing page and a protected dashboard. Key functionalities include bot registration and claiming, integrated Stripe for wallet funding, and comprehensive spending controls (limits, category blocking, approval modes) enforced server-side. A bot-facing API allows bots to check wallet status, make purchases, request top-ups, and view transaction history. Authentication uses Firebase for owners and Bearer API tokens for bots.
+CreditClaw features a public landing page and a protected dashboard. Key functionalities include bot registration, Stripe integration for wallet funding, and server-side enforced spending controls. A bot-facing API allows bots to check wallet status, make purchases, request top-ups, and view transaction history. Authentication is via Firebase for owners and Bearer API tokens for bots.
 
-The system supports multiple payment methods per owner, webhook notifications for bots (with HMAC-SHA256 signatures and exponential backoff retries), and owner-facing notifications (in-app and email alerts based on preferences). Operational safety nets include daily wallet reconciliation, health checks, and alerts for failed webhook deliveries.
+The system supports multiple payment methods per owner, webhook notifications for bots (HMAC-SHA256, exponential backoff), and owner notifications (in-app, email). Operational safety includes daily wallet reconciliation and health checks.
 
-Advanced features include:
-- **Payment Links:** Bots can generate Stripe Checkout Sessions for receiving payments, crediting their wallets automatically upon completion.
-- **Wallet Freeze:** Owners can freeze bot wallets, preventing transactions and triggering notifications.
-- **Owners Table:** Local `owners` table tracks users (uid, email, display_name, stripe_customer_id, onboarded_at). Upserted on every login via session POST handler. Firebase Auth remains the authentication layer; this table stores local metadata.
-- **Onboarding Wizard:** A streamlined ~7-step wizard facilitates new bot owner setup, supporting both "bot-first" (claim token) and "owner-first" (pairing code) flows. Steps: Choose Path → Claim/Pairing → Master Spending Limits → Connect Bot → Add Payment → Fund Wallet → Complete. Onboarding always saves spending limits to master guardrails (account-wide defaults) via POST /api/v1/master-guardrails, converting cents to whole USD (cents ÷ 100). No per-bot spending settings are saved during onboarding. Per-bot approval modes, categories, and notes are configured later from the dashboard. Stamps onboarded_at on the owners table upon completion.
-- **Split-Knowledge Card Model (Rail 4):** This advanced privacy feature uses payment profiles files (formerly "decoy files"), real profile indexes, and obfuscation events to manage bot card configurations and transactions. Setup wizard (11 steps in new-card mode): Card Name → Use Case → Welcome → Card Details → Permissions → Download → Instructions Overview → File Editing Guide → Address Guide → Success → Connect Bot (optional). Card status lifecycle: pending_setup → awaiting_bot (setup complete) → active (bot connected). The File Editing Guide shows the user's actual profile number and masked card number with an auto-toggling incomplete/complete switch (5-second interval, pauses on hover/click). The Address Guide shows the address section with the same toggle. Permissions editable post-setup via three-dot menu on each card. Per-card detail page shows filtered transaction ledger. Includes human approval workflow via HMAC-signed email links (15-min TTL), bot polling for confirmation results, and per-profile allowance tracking with confirmation-exempt thresholds.
+Advanced features:
+- **Payment Links:** Bots generate Stripe Checkout Sessions for receiving payments.
+- **Wallet Freeze:** Owners can freeze bot wallets, preventing transactions.
+- **Onboarding Wizard:** A ~7-step wizard for new bot owner setup, supporting "bot-first" or "owner-first" flows. It configures master spending limits (account-wide defaults).
+- **Split-Knowledge Card Model (Rail 4):** Manages bot card configurations and transactions using payment profiles and obfuscation. Includes a multi-step setup wizard and a human approval workflow for transactions via HMAC-signed email links.
 
 ### Multi-Rail Architecture
-CreditClaw supports multiple independent payment rails, each with its own database tables, API routes, components, and lib files. Rails are strongly segmented — no cross-contamination of schemas or logic.
+CreditClaw employs a multi-rail architecture, segmenting payment rails with independent database tables, API routes, and components.
+- **Rail 1 (Stripe Wallet):** Uses Privy server wallets on Base chain, USDC funding via Stripe Crypto Onramp, and x402 payment protocol.
+- **Rail 2 (Card Wallet):** Uses CrossMint smart wallets on Base chain, USDC funding via fiat onramp, and Amazon/commerce purchases via Orders API. Employs merchant allow/blocklists.
+- **Master Guardrails:** Owner-level, cross-rail spending limits stored in a `master_guardrails` table. These guardrails are checked before per-rail guardrails and aggregate spend across all active rails.
+- **Rail 4 (Self-Hosted Cards):** Implements the Split-Knowledge card model with obfuscation.
 
-- **Rail 1 (Stripe Wallet):** Privy server wallets on Base chain, USDC funding via Stripe Crypto Onramp, x402 payment protocol for bot spending. Firebase Auth remains the global auth layer; Privy SDK is scoped only to Rail 1 wallet operations. Tables: `privy_wallets`, `privy_guardrails`, `privy_transactions`, `privy_approvals`. Routes: `/api/v1/stripe-wallet/*`. Lib: `lib/stripe-wallet/`. UI: `/stripe-wallet` (landing), `/app/stripe-wallet` (dashboard). Storage methods prefixed `privy*`.
-- **Rail 2 (Card Wallet):** CrossMint smart wallets on Base chain, USDC funding via fiat onramp, Amazon/commerce purchases via Orders API. Firebase Auth remains global layer; CrossMint handles wallet operations only (no Stytch). Uses merchant allow/blocklist instead of domain lists; 15-min approval TTL. Tables: `crossmint_wallets`, `crossmint_guardrails`, `crossmint_transactions`, `crossmint_approvals`. Routes: `/api/v1/card-wallet/*`. Lib: `lib/card-wallet/` (server.ts, onramp.ts, purchase.ts). Shared modules: `lib/guardrails/evaluate.ts`, `lib/approvals/lifecycle.ts`. UI: `/app/card-wallet` (dashboard). Storage methods prefixed `crossmint*`.
-- **Master Guardrails:** Cross-rail spending limits enforced at the owner level. A single `master_guardrails` table keyed by `ownerUid` stores per-transaction max, daily budget, monthly budget, and an enabled toggle. Aggregated spend is computed live across Rail 1 (`privy_transactions`), Rail 2 (`crossmint_transactions`), and Rail 4 (`checkout_confirmations` for approved real-profile purchases). Master guardrails are checked before per-rail guardrails in each bot-facing endpoint. They only block or allow (no approval threshold at master level). Unit normalization: Rail 1/2 use micro USDC natively; Rail 4 cents are converted via `centsToMicroUsdc(cents) = cents * 10,000`. Lib: `lib/guardrails/master.ts`. UI: "Master Budget" section on `/app/settings`.
-- **Rail 4 (Self-Hosted Cards):** Split-knowledge card model with obfuscation. See existing documentation below. Routes: `/api/v1/rail4/*`.
+### Procurement Skills Module
+A `/skills/` module provides a curated library of vendor shopping skills.
+- **Types:** Defines CheckoutMethod taxonomy, VendorCapability, SkillMaturity, and VendorSkill interface.
+- **Registry:** A static TypeScript catalog of 14 vendors with capabilities, checkout methods, and tips.
+- **Generator:** Converts VendorSkill configs into `SKILL.md` files for agents.
+- **Discovery API:** Bot-facing endpoints to discover and load vendor skills.
+- **Catalog Page:** Public browsable directory with search, filters, vendor cards, and friendliness scores.
+- **Vendor Detail Pages:** Per-vendor pages with capabilities, checkout details, and `SKILL.md` preview.
 
 ### Key Routes
-- `/` — Consumer landing page
-- `/claim` — Bot claim page
-- `/stripe-wallet` — Rail 1 landing page (Privy + x402)
-- `/app` — Dashboard overview
-- `/app/stripe-wallet` — Rail 1 dashboard (wallet list, guardrails, activity, approvals)
-- `/card-wallet` — Rail 2 landing page (CrossMint + Amazon)
-- `/app/card-wallet` — Rail 2 dashboard (wallet list, guardrails, orders, approvals, fund wallet)
-- `/app/cards` — Card management
-- `/app/self-hosted` — Self-hosted card management (Rail 4 split-knowledge)
-- `/app/self-hosted/[cardId]` — Per-card detail page with transaction ledger
-- `/app/transactions` — Transaction history
-- `/app/settings` — Account settings
-- `/onboarding` — Guided setup wizard (authenticated)
-- `/payment/success` — Post-payment success page (public)
-- `/payment/cancelled` — Post-payment cancel page (public)
+- `/`: Consumer landing page
+- `/claim`: Bot claim page
+- `/skills`: Vendor procurement skills catalog
+- `/app`: Dashboard overview
+- `/app/stripe-wallet`: Rail 1 dashboard
+- `/app/card-wallet`: Rail 2 dashboard
+- `/app/self-hosted`: Self-hosted card management (Rail 4)
+- `/app/transactions`: Transaction history
+- `/app/settings`: Account settings
+- `/onboarding`: Guided setup wizard
 
-### Rail 1 API Endpoints (Stripe Wallet)
-- `POST /api/v1/stripe-wallet/create` — Create a Privy server wallet for a bot
-- `GET /api/v1/stripe-wallet/list` — List owner's Stripe Wallets with balances and guardrails
-- `GET /api/v1/stripe-wallet/balance` — Get single wallet balance
-- `POST /api/v1/stripe-wallet/freeze` — Pause/activate a wallet
-- `POST /api/v1/stripe-wallet/onramp/session` — Create Stripe Crypto Onramp session (fiat → USDC)
-- `GET/POST /api/v1/stripe-wallet/guardrails` — View/set spending guardrails
-- `POST /api/v1/stripe-wallet/bot/sign` — Bot-facing: sign x402 EIP-712 transfer authorization (enforces guardrails)
-- `GET /api/v1/stripe-wallet/transactions` — List transactions for a wallet
-- `GET /api/v1/stripe-wallet/approvals` — List pending approvals for owner
-- `POST /api/v1/stripe-wallet/approvals/decide` — Approve or reject a pending payment
-- `POST /api/v1/stripe-wallet/webhooks/stripe` — Stripe webhook for onramp fulfillment
+### Skill Builder Module
+An LLM-powered tool that analyzes vendor websites and generates procurement skill files automatically.
+- **Builder Core** (`lib/procurement-skills/builder/`): 4-pass analysis (API probing, LLM checkout flow analysis, business feature detection, protocol support checking) with per-field confidence scoring.
+- **Database Tables:** `skill_drafts` (vendor analysis results with confidence scores) and `skill_evidence` (provenance records for each field).
+- **API Routes:** `POST /api/v1/skills/analyze` (trigger analysis), `GET /api/v1/skills/drafts` (list), `GET/PATCH/DELETE /api/v1/skills/drafts/[id]` (CRUD), `POST /api/v1/skills/drafts/[id]/publish` (approve and generate SKILL.md).
+- **Review UI:** `/app/skills/review` (draft queue with analyze form) and `/app/skills/review/[id]` (detail editor with confidence badges, evidence snippets, field overrides, publish/reject buttons).
+- **Security:** SSRF-safe fetching with DNS resolution validation, private IP blocking (IPv4/IPv6), redirect validation, HTTPS-only.
+- **Tests:** 41 API endpoint tests covering full draft lifecycle.
 
-### Rail 2 API Endpoints (Card Wallet)
-- `POST /api/v1/card-wallet/create` — Create a CrossMint smart wallet for a bot
-- `GET /api/v1/card-wallet/list` — List owner's Card Wallets with balances, guardrails, and merchant controls
-- `GET /api/v1/card-wallet/balance` — Get single wallet balance (queries CrossMint chain balance)
-- `POST /api/v1/card-wallet/freeze` — Pause/activate a wallet
-- `POST /api/v1/card-wallet/onramp/session` — Create fiat onramp session (fiat → USDC)
-- `GET/POST /api/v1/card-wallet/guardrails` — View/set spending guardrails (merchant allow/blocklist, limits, auto-pause)
-- `GET /api/v1/card-wallet/transactions` — List transactions/orders for a wallet
-- `GET /api/v1/card-wallet/orders/[order_id]` — Get detailed order status with live CrossMint tracking info
-- `POST /api/v1/card-wallet/webhooks/crossmint` — CrossMint webhook handler for order lifecycle events (Svix signature verification)
-- `GET /api/v1/card-wallet/approvals` — List pending purchase approvals for owner
-- `POST /api/v1/card-wallet/approvals/decide` — Approve or reject a purchase (creates order on approval)
-- `POST /api/v1/card-wallet/bot/purchase` — Bot-facing: request a commerce purchase (requires owner approval)
-- `GET /api/v1/card-wallet/bot/purchase/status` — Bot-facing: poll purchase/approval status
-- `POST /api/v1/card-wallet/bot/search` — Bot-facing: search Shopify product variants via CrossMint WS Search API (unstable/beta)
-
-### Rail 4 API Endpoints
-- `POST /api/v1/bot/merchant/checkout` — Unified checkout (fake profiles → obfuscation, real profiles → wallet debit or pending approval)
-- `GET /api/v1/bot/merchant/checkout/status` — Bot polls for human approval result
-- `GET/POST /api/v1/rail4/confirm/[id]` — HMAC-signed approval page (HTML) and processing
-- `GET /api/v1/rail4/confirmations` — Owner lists pending approvals
-- `GET/PATCH /api/v1/rail4/permissions` — Profile permissions editor
-- `GET /api/v1/rail4/cards` — List owner's self-hosted cards
-- `POST /api/v1/rail4/create-bot` — Owner-initiated bot creation for self-hosted cards (one bot per account)
-- `GET /api/v1/rail4/owner-bot` — Returns owner's bot (if any) and card count (max 3 cards per bot)
-- `POST /api/v1/rail4/link-bot` — Link existing bot to a card (card must be awaiting_bot, bot must have < 3 cards)
-- `POST /api/v1/rail4/initialize` — Initialize card setup (creates card with cardId, returns missing digit positions)
-- `POST /api/v1/rail4/submit-owner-data` — Submit missing digits/expiry/permissions by card_id, transitions card to awaiting_bot, returns payment profiles file
-
-### Master Guardrails API
-- `GET /api/v1/master-guardrails` — Read master config + live cross-rail spend totals (daily/monthly per-rail breakdown)
-- `POST /api/v1/master-guardrails` — Create or update master guardrails (per-tx max, daily, monthly, enabled toggle)
-
-### Authentication
-- Session cookies (httpOnly) via Firebase Admin SDK
-- Firebase ID token Bearer auth fallback via `lib/auth-fetch.ts` for dashboard API calls
-- Bot API uses Bearer API tokens via `withBotApi` middleware
-- HMAC-SHA256 signed approval links require `CONFIRMATION_HMAC_SECRET` or `CRON_SECRET` env var
+### API Endpoints
+CreditClaw provides distinct API endpoints for each rail and for master guardrails, facilitating wallet management, transactions, approvals, and guardrail configuration. Bot-facing APIs allow for purchase requests, status polling, and skill discovery. Owner-facing APIs manage cards, guardrails, and approvals.
 
 ## External Dependencies
-- **Firebase Auth:** User authentication and authorization (global layer across all rails).
-- **PostgreSQL:** Primary database for all application data.
-- **Drizzle ORM:** Object-Relational Mapper for database interactions.
-- **Stripe:** Payment processing for funding wallets, managing payment methods, payment links, and Crypto Onramp (Rail 1).
-- **Privy (@privy-io/node):** Server wallet management on Base chain (Rail 1 only). Env vars: `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET`, `PRIVY_AUTHORIZATION_KEY`.
-- **viem:** Ethereum utility library for EIP-712 typed data construction (Rail 1).
-- **canonicalize:** JSON canonicalization for Privy authorization signatures (Rail 1).
-- **CrossMint:** Smart wallet creation, fiat onramp, and commerce orders API (Rail 2). Env vars: `CROSSMINT_SERVER_API_KEY`, `NEXT_PUBLIC_CROSSMINT_CLIENT_API_KEY`, `CROSSMINT_WEBHOOK_SECRET`. Webhook verification uses Svix library.
-- **Svix:** Webhook signature verification for CrossMint order lifecycle events (Rail 2).
-- **SendGrid:** Transactional email services for notifications.
+- **Firebase Auth:** User authentication and authorization.
+- **PostgreSQL:** Primary application database.
+- **Drizzle ORM:** Database interaction.
+- **Stripe:** Payment processing for funding, payment links, and Crypto Onramp.
+- **Privy (@privy-io/node):** Server wallet management (Rail 1).
+- **viem:** Ethereum utility library (Rail 1).
+- **canonicalize:** JSON canonicalization for signatures (Rail 1).
+- **CrossMint:** Smart wallet creation, fiat onramp, and commerce orders API (Rail 2).
+- **Svix:** Webhook signature verification for CrossMint (Rail 2).
+- **SendGrid:** Transactional email services.
 - **shadcn/ui:** UI component library.
-- **React Query (@tanstack/react-query):** Server state management and data fetching.
+- **React Query (@tanstack/react-query):** Server state management.
+- **Anthropic (@anthropic-ai/sdk):** LLM-powered vendor analysis for Skill Builder.

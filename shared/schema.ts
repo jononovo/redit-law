@@ -724,3 +724,48 @@ export const upsertMasterGuardrailsSchema = z.object({
 export const crossmintProductSearchSchema = z.object({
   product_url: z.string().url().min(1).max(2000),
 });
+
+export const skillDrafts = pgTable("skill_drafts", {
+  id: serial("id").primaryKey(),
+  vendorUrl: text("vendor_url").notNull(),
+  vendorSlug: text("vendor_slug"),
+  vendorData: jsonb("vendor_data").notNull(),
+  confidence: jsonb("confidence").notNull(),
+  reviewNeeded: text("review_needed").array().notNull().default([]),
+  status: text("status").notNull().default("pending"),
+  autoPublish: boolean("auto_publish").notNull().default(false),
+  createdBy: text("created_by").notNull().default("skill_builder"),
+  warnings: text("warnings").array().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("skill_drafts_status_idx").on(table.status),
+  index("skill_drafts_vendor_slug_idx").on(table.vendorSlug),
+]);
+
+export type SkillDraft = typeof skillDrafts.$inferSelect;
+export type InsertSkillDraft = typeof skillDrafts.$inferInsert;
+
+export const skillEvidence = pgTable("skill_evidence", {
+  id: serial("id").primaryKey(),
+  draftId: integer("draft_id").notNull(),
+  field: text("field").notNull(),
+  source: text("source").notNull(),
+  url: text("url"),
+  snippet: text("snippet"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("skill_evidence_draft_id_idx").on(table.draftId),
+]);
+
+export type SkillEvidence = typeof skillEvidence.$inferSelect;
+export type InsertSkillEvidence = typeof skillEvidence.$inferInsert;
+
+export const analyzeVendorSchema = z.object({
+  url: z.string().url().min(1).max(2000),
+});
+
+export const updateSkillDraftSchema = z.object({
+  vendorData: z.record(z.any()).optional(),
+  status: z.enum(["pending", "reviewed", "published", "rejected"]).optional(),
+});
