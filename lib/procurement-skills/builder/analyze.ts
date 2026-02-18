@@ -60,11 +60,11 @@ export async function analyzeVendor(url: string): Promise<BuilderOutput> {
     "bulk_pricing", "tax_exemption", "account_creation", "order_tracking", "returns", "po_numbers",
   ];
 
-  const llm = llmResult.analysis;
+  const llm = llmResult.analysis as Record<string, unknown>;
   const mergedCapabilities = [
     ...new Set([
       ...businessResult.capabilities,
-      ...(llm.capabilities || []),
+      ...((llm.capabilities as string[]) || []),
       "price_lookup",
     ]),
   ].filter((c): c is VendorCapability => validCapabilities.includes(c as VendorCapability));
