@@ -751,8 +751,7 @@ function Nav() {
                             alt: "CreditClaw Logo",
                             width: 40,
                             height: 40,
-                            className: "object-contain",
-                            unoptimized: true
+                            className: "object-contain"
                         }, void 0, false, {
                             fileName: "[project]/components/nav.tsx",
                             lineNumber: 17,

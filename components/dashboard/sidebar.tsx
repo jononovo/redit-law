@@ -43,7 +43,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 bg-white border-r border-neutral-100 h-screen fixed left-0 top-0 flex flex-col z-50">
       <div className="p-6 flex items-center gap-3">
-        <Image src="/images/logo-claw-chip.png" alt="CreditClaw" width={32} height={32} className="object-contain" unoptimized />
+        <Image src="/images/logo-claw-chip.png" alt="CreditClaw" width={32} height={32} className="object-contain" />
         <span className="font-bold text-lg tracking-tight text-neutral-900">CreditClaw</span>
       </div>
 
