@@ -34,6 +34,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
 - **Rail 2 (Card Wallet):** Uses CrossMint smart wallets on Base chain, USDC funding via fiat onramp, and Amazon/commerce purchases via Orders API. Employs merchant allow/blocklists.
 - **Master Guardrails:** Owner-level, cross-rail spending limits stored in a `master_guardrails` table. These guardrails are checked before per-rail guardrails and aggregate spend across all active rails.
 - **Rail 4 (Self-Hosted Cards):** Implements the Split-Knowledge card model with obfuscation.
+- **Rail 5 (Sub-Agent Cards):** Encrypted card files + ephemeral sub-agents. Owner encrypts card client-side (AES-256-GCM), downloads encrypted `.md` file, CreditClaw stores only the decryption key. At checkout, a disposable sub-agent gets the key, decrypts, pays, and is deleted. DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm}`. Dashboard: `/app/sub-agent-cards`. Setup wizard: 7-step with Web Crypto encryption.
 
 ### Procurement Skills Module
 A `/skills/` module provides a curated library of vendor shopping skills.
@@ -60,6 +61,7 @@ Registered users can submit vendor websites for analysis, contributing to the pr
 - `/app/stripe-wallet`: Rail 1 dashboard
 - `/app/card-wallet`: Rail 2 dashboard
 - `/app/self-hosted`: Self-hosted card management (Rail 4)
+- `/app/sub-agent-cards`: Sub-agent card management (Rail 5)
 - `/app/transactions`: Transaction history
 - `/app/skills/submit`: Community vendor skill submission
 - `/app/skills/review/[id]/versions`: Version history with diff view and rollback
