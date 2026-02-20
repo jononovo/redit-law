@@ -41,6 +41,9 @@ import {
   type SkillSubmitterProfile, type InsertSkillSubmitterProfile,
   type SkillVersion, type InsertSkillVersion,
   type SkillExport, type InsertSkillExport,
+  rail5Cards, rail5Checkouts,
+  type Rail5Card, type InsertRail5Card,
+  type Rail5Checkout, type InsertRail5Checkout,
 } from "@/shared/schema";
 import { eq, and, isNull, desc, sql, gte, lte, inArray } from "drizzle-orm";
 
@@ -237,6 +240,19 @@ export interface IStorage {
   getLastExport(vendorSlug: string, destination: string): Promise<SkillExport | null>;
   listExportsByDestination(destination: string): Promise<SkillExport[]>;
   createSkillExportBatch(items: InsertSkillExport[]): Promise<SkillExport[]>;
+
+  // ─── Rail 5: Sub-Agent Cards (Encrypted + Ephemeral) ───────────────
+  createRail5Card(data: InsertRail5Card): Promise<Rail5Card>;
+  getRail5CardByCardId(cardId: string): Promise<Rail5Card | null>;
+  getRail5CardsByOwnerUid(ownerUid: string): Promise<Rail5Card[]>;
+  getRail5CardByBotId(botId: string): Promise<Rail5Card | null>;
+  updateRail5Card(cardId: string, data: Partial<InsertRail5Card>): Promise<Rail5Card | null>;
+  deleteRail5Card(cardId: string): Promise<void>;
+
+  createRail5Checkout(data: InsertRail5Checkout): Promise<Rail5Checkout>;
+  getRail5CheckoutById(checkoutId: string): Promise<Rail5Checkout | null>;
+  updateRail5Checkout(checkoutId: string, data: Partial<InsertRail5Checkout>): Promise<Rail5Checkout | null>;
+  getRail5CheckoutsByCardId(cardId: string, limit?: number): Promise<Rail5Checkout[]>;
 }
 
 export const storage: IStorage = {
@@ -1608,5 +1624,67 @@ export const storage: IStorage = {
   async createSkillExportBatch(items: InsertSkillExport[]): Promise<SkillExport[]> {
     if (items.length === 0) return [];
     return db.insert(skillExports).values(items).returning();
+  },
+
+  // ─── Rail 5: Sub-Agent Cards (Encrypted + Ephemeral) ───────────────
+
+  async createRail5Card(data: InsertRail5Card): Promise<Rail5Card> {
+    const [card] = await db.insert(rail5Cards).values(data).returning();
+    return card;
+  },
+
+  async getRail5CardByCardId(cardId: string): Promise<Rail5Card | null> {
+    const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.cardId, cardId)).limit(1);
+    return card || null;
+  },
+
+  async getRail5CardsByOwnerUid(ownerUid: string): Promise<Rail5Card[]> {
+    return db.select().from(rail5Cards).where(eq(rail5Cards.ownerUid, ownerUid)).orderBy(desc(rail5Cards.createdAt));
+  },
+
+  async getRail5CardByBotId(botId: string): Promise<Rail5Card | null> {
+    const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.botId, botId)).limit(1);
+    return card || null;
+  },
+
+  async updateRail5Card(cardId: string, data: Partial<InsertRail5Card>): Promise<Rail5Card | null> {
+    const [updated] = await db
+      .update(rail5Cards)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rail5Cards.cardId, cardId))
+      .returning();
+    return updated || null;
+  },
+
+  async deleteRail5Card(cardId: string): Promise<void> {
+    await db.delete(rail5Cards).where(eq(rail5Cards.cardId, cardId));
+  },
+
+  async createRail5Checkout(data: InsertRail5Checkout): Promise<Rail5Checkout> {
+    const [checkout] = await db.insert(rail5Checkouts).values(data).returning();
+    return checkout;
+  },
+
+  async getRail5CheckoutById(checkoutId: string): Promise<Rail5Checkout | null> {
+    const [checkout] = await db.select().from(rail5Checkouts).where(eq(rail5Checkouts.checkoutId, checkoutId)).limit(1);
+    return checkout || null;
+  },
+
+  async updateRail5Checkout(checkoutId: string, data: Partial<InsertRail5Checkout>): Promise<Rail5Checkout | null> {
+    const [updated] = await db
+      .update(rail5Checkouts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(rail5Checkouts.checkoutId, checkoutId))
+      .returning();
+    return updated || null;
+  },
+
+  async getRail5CheckoutsByCardId(cardId: string, limit = 50): Promise<Rail5Checkout[]> {
+    return db
+      .select()
+      .from(rail5Checkouts)
+      .where(eq(rail5Checkouts.cardId, cardId))
+      .orderBy(desc(rail5Checkouts.createdAt))
+      .limit(limit);
   },
 };

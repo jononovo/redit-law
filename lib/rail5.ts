@@ -1,0 +1,59 @@
+import { randomBytes } from "crypto";
+
+export function generateRail5CardId(): string {
+  return "r5card_" + randomBytes(8).toString("hex");
+}
+
+export function generateRail5CheckoutId(): string {
+  return "r5chk_" + randomBytes(8).toString("hex");
+}
+
+export function validateKeyMaterial(keyHex: string, ivHex: string, tagHex: string): { valid: boolean; error?: string } {
+  if (!/^[0-9a-f]{64}$/i.test(keyHex)) {
+    return { valid: false, error: "key_hex must be 64 hex characters (32 bytes)" };
+  }
+  if (!/^[0-9a-f]{24}$/i.test(ivHex)) {
+    return { valid: false, error: "iv_hex must be 24 hex characters (12 bytes)" };
+  }
+  if (!/^[0-9a-f]{32}$/i.test(tagHex)) {
+    return { valid: false, error: "tag_hex must be 32 hex characters (16 bytes)" };
+  }
+  return { valid: true };
+}
+
+export function buildSpawnPayload(params: {
+  checkoutId: string;
+  merchantName: string;
+  merchantUrl: string;
+  itemName: string;
+  amountCents: number;
+  encryptedFilename: string;
+}): {
+  task: string;
+  cleanup: string;
+  runTimeoutSeconds: number;
+  label: string;
+} {
+  const amountUsd = (params.amountCents / 100).toFixed(2);
+  return {
+    task: [
+      "You are a checkout agent. Your job is to complete a purchase.",
+      "",
+      `Merchant: ${params.merchantName}`,
+      `URL: ${params.merchantUrl}`,
+      `Item: ${params.itemName}`,
+      `Amount: $${amountUsd}`,
+      "",
+      "Steps:",
+      `1. Call POST /api/v1/bot/rail5/key with { "checkout_id": "${params.checkoutId}" } to get the decryption key.`,
+      `2. Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> ${params.encryptedFilename}`,
+      "3. Use the decrypted card details to complete checkout at the merchant URL.",
+      `4. Call POST /api/v1/bot/rail5/confirm with { "checkout_id": "${params.checkoutId}", "status": "success" } when done.`,
+      '5. If checkout fails, call confirm with { "status": "failed" } instead.',
+      `6. Announce the result: "Purchase of ${params.itemName} at ${params.merchantName} — SUCCESS" or "— FAILED".`,
+    ].join("\n"),
+    cleanup: "delete",
+    runTimeoutSeconds: 300,
+    label: `checkout-${params.merchantName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30)}`,
+  };
+}
