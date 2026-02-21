@@ -15,6 +15,10 @@ export const BOT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   "/api/v1/bot/merchant/checkout": { maxRequests: 30, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/merchant/checkout/status": { maxRequests: 60, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/tasks/next": { maxRequests: 12, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/rail5/checkout": { maxRequests: 30, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/rail5/key": { maxRequests: 30, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/rail5/confirm": { maxRequests: 30, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/rail5/checkout/status": { maxRequests: 60, windowMs: 60 * 60 * 1000 },
 };
 
 export function checkBotRateLimit(botId: string, endpoint: string): { allowed: boolean; retryAfterSeconds?: number } {

@@ -400,3 +400,92 @@ export async function sendCheckoutApprovalEmail({
     return { sent: false, reason: "send_failed" };
   }
 }
+
+export async function sendRail5ApprovalEmail({
+  ownerEmail,
+  botName,
+  merchantName,
+  itemName,
+  amountUsd,
+  checkoutId,
+  hmacToken,
+}: {
+  ownerEmail: string;
+  botName: string;
+  merchantName: string;
+  itemName: string;
+  amountUsd: number;
+  checkoutId: string;
+  hmacToken: string;
+}) {
+  if (!SENDGRID_API_KEY) {
+    console.warn("SENDGRID_API_KEY not set — skipping Rail 5 approval email");
+    return { sent: false, reason: "no_api_key" };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://creditclaw.com";
+  const approvalUrl = `${baseUrl}/api/v1/rail5/approve/${checkoutId}?token=${hmacToken}`;
+
+  const msg = {
+    to: ownerEmail,
+    from: { email: FROM_EMAIL, name: "CreditClaw" },
+    subject: `🦞 Sub-agent checkout needs approval — $${amountUsd.toFixed(2)} at ${merchantName}`,
+    html: `<div style="max-width: 480px; margin: 0 auto; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; color: #333;">
+  <div style="text-align: center; padding: 24px 0;">
+    <span style="font-size: 40px;">🦞</span>
+    <h1 style="font-size: 22px; font-weight: 800; color: #1a1a2e; margin: 8px 0 0;">CreditClaw</h1>
+    <p style="color: #888; font-size: 14px; margin-top: 4px;">Sub-Agent Card Approval</p>
+  </div>
+
+  <div style="background: #f9fafb; border-radius: 16px; padding: 32px; border: 1px solid #e5e7eb;">
+    <div style="text-align: center; margin-bottom: 8px;">
+      <span style="background: #dbeafe; color: #1e40af; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 999px;">Rail 5 • Encrypted Card</span>
+    </div>
+    <div style="text-align: center; margin-bottom: 24px;">
+      <p style="font-size: 36px; font-weight: 800; color: #1a1a2e; margin: 0;">$${amountUsd.toFixed(2)}</p>
+    </div>
+
+    <div style="background: white; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Bot</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${botName}</td>
+        </tr>
+        <tr style="border-top: 1px solid #f0f0f0;">
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Merchant</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${merchantName}</td>
+        </tr>
+        <tr style="border-top: 1px solid #f0f0f0;">
+          <td style="padding: 8px 0; color: #888; font-size: 14px;">Item</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #1a1a2e; font-size: 14px;">${itemName}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="color: #666; font-size: 13px; text-align: center; margin-bottom: 16px; line-height: 1.5;">
+      Approving will allow a disposable sub-agent to decrypt and use the card. The sub-agent is automatically deleted after checkout.
+    </p>
+
+    <a href="${approvalUrl}" style="display: block; background: #22c55e; color: white; text-align: center; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 16px; margin-bottom: 12px;">
+      Review &amp; Approve &rarr;
+    </a>
+
+    <p style="color: #888; font-size: 12px; text-align: center; margin: 0;">
+      This link expires in 15 minutes.
+    </p>
+  </div>
+
+  <p style="color: #aaa; font-size: 12px; text-align: center; margin-top: 24px; line-height: 1.5;">
+    You received this because this purchase exceeds your approval threshold.
+  </p>
+</div>`,
+  };
+
+  try {
+    await sgMail.send(msg);
+    return { sent: true };
+  } catch (error: any) {
+    console.error("SendGrid Rail 5 approval email failed:", error?.response?.body || error?.message);
+    return { sent: false, reason: "send_failed" };
+  }
+}

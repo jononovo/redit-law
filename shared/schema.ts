@@ -823,6 +823,92 @@ export const skillExports = pgTable("skill_exports", {
 export type SkillExport = typeof skillExports.$inferSelect;
 export type InsertSkillExport = typeof skillExports.$inferInsert;
 
+// ─── Rail 5: Sub-Agent Cards (Encrypted + Ephemeral) ─────────────────────────
+
+export const rail5Cards = pgTable("rail5_cards", {
+  id: serial("id").primaryKey(),
+  cardId: text("card_id").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  botId: text("bot_id"),
+  cardName: text("card_name").notNull().default("Untitled Card"),
+  encryptedKeyHex: text("encrypted_key_hex").notNull().default(""),
+  encryptedIvHex: text("encrypted_iv_hex").notNull().default(""),
+  encryptedTagHex: text("encrypted_tag_hex").notNull().default(""),
+  cardLast4: text("card_last4").notNull().default(""),
+  cardBrand: text("card_brand").notNull().default("visa"),
+  spendingLimitCents: integer("spending_limit_cents").notNull().default(5000),
+  dailyLimitCents: integer("daily_limit_cents").notNull().default(10000),
+  monthlyLimitCents: integer("monthly_limit_cents").notNull().default(50000),
+  humanApprovalAboveCents: integer("human_approval_above_cents").notNull().default(2500),
+  status: text("status").notNull().default("pending_setup"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("rail5_cards_card_id_idx").on(table.cardId),
+  index("rail5_cards_owner_uid_idx").on(table.ownerUid),
+  index("rail5_cards_bot_id_idx").on(table.botId),
+  index("rail5_cards_status_idx").on(table.status),
+]);
+
+export const rail5Checkouts = pgTable("rail5_checkouts", {
+  id: serial("id").primaryKey(),
+  checkoutId: text("checkout_id").notNull().unique(),
+  cardId: text("card_id").notNull(),
+  botId: text("bot_id").notNull(),
+  ownerUid: text("owner_uid").notNull(),
+  merchantName: text("merchant_name").notNull(),
+  merchantUrl: text("merchant_url").notNull(),
+  itemName: text("item_name").notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  category: text("category"),
+  status: text("status").notNull().default("approved"),
+  keyDelivered: boolean("key_delivered").notNull().default(false),
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("rail5_checkouts_checkout_id_idx").on(table.checkoutId),
+  index("rail5_checkouts_card_id_idx").on(table.cardId),
+  index("rail5_checkouts_bot_id_idx").on(table.botId),
+  index("rail5_checkouts_status_idx").on(table.status),
+]);
+
+export type Rail5Card = typeof rail5Cards.$inferSelect;
+export type InsertRail5Card = typeof rail5Cards.$inferInsert;
+export type Rail5Checkout = typeof rail5Checkouts.$inferSelect;
+export type InsertRail5Checkout = typeof rail5Checkouts.$inferInsert;
+
+export const rail5InitializeSchema = z.object({
+  card_name: z.string().min(1).max(200),
+  card_last4: z.string().length(4).regex(/^\d{4}$/),
+  card_brand: z.enum(["visa", "mastercard", "amex", "discover"]),
+});
+
+export const rail5SubmitKeySchema = z.object({
+  card_id: z.string().min(1),
+  key_hex: z.string().length(64).regex(/^[0-9a-f]{64}$/i),
+  iv_hex: z.string().length(24).regex(/^[0-9a-f]{24}$/i),
+  tag_hex: z.string().length(32).regex(/^[0-9a-f]{32}$/i),
+  spending_limit_cents: z.number().int().min(100).max(10000000).optional(),
+  daily_limit_cents: z.number().int().min(100).max(10000000).optional(),
+  monthly_limit_cents: z.number().int().min(100).max(100000000).optional(),
+  human_approval_above_cents: z.number().int().min(0).max(10000000).optional(),
+});
+
+export const rail5CheckoutRequestSchema = z.object({
+  merchant_name: z.string().min(1).max(200),
+  merchant_url: z.string().min(1).max(2000),
+  item_name: z.string().min(1).max(500),
+  amount_cents: z.number().int().min(1).max(10000000),
+  category: z.string().max(100).optional(),
+});
+
+export const rail5ConfirmSchema = z.object({
+  checkout_id: z.string().min(1),
+  status: z.enum(["success", "failed"]),
+  merchant_name: z.string().max(200).optional(),
+});
+
 export const analyzeVendorSchema = z.object({
   url: z.string().url().min(1).max(2000),
 });
