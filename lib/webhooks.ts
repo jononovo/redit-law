@@ -24,7 +24,9 @@ export type WebhookEventType =
   | "purchase.expired"
   | "order.shipped"
   | "order.delivered"
-  | "order.failed";
+  | "order.failed"
+  | "rail5.checkout.completed"
+  | "rail5.checkout.failed";
 
 interface WebhookPayload {
   event: WebhookEventType;

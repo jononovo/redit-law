@@ -764,3 +764,105 @@ up to 5 attempts.
 - **Poll responsibly.** Use `GET /bot/wallet/check` no more than every 10 minutes unless you are actively waiting for a top-up.
 - **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
+- **Rail 5 sub-agents are ephemeral.** They are deleted after checkout. Never store decrypted card data.
+
+---
+
+## Rail 5: Sub-Agent Card Checkout
+
+Rail 5 lets you purchase from any merchant using an encrypted card file. Your main agent never sees card details — a disposable sub-agent handles decryption and checkout.
+
+### Prerequisites
+
+- Your owner has created a Rail 5 card and linked it to your bot
+- The encrypted card file (e.g. `Card-Harry-26-Visa.md`) is in your workspace
+- The `decrypt.js` script is in your workspace
+
+### Step 1: Request Checkout
+
+```
+POST /api/v1/bot/rail5/checkout
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "merchant_name": "DigitalOcean",
+  "merchant_url": "https://cloud.digitalocean.com/billing",
+  "item_name": "Droplet hosting - 1 month",
+  "amount_cents": 1200,
+  "category": "cloud_compute"
+}
+```
+
+**Response (approved):**
+```json
+{
+  "approved": true,
+  "checkout_id": "r5chk_abc123",
+  "spawn_payload": {
+    "task": "You are a checkout agent...",
+    "cleanup": "delete",
+    "runTimeoutSeconds": 300,
+    "label": "checkout-digitalocean"
+  }
+}
+```
+
+If the amount exceeds the owner's approval threshold, you'll get `"status": "pending_approval"` instead. Wait and retry.
+
+### Step 2: Spawn Sub-Agent
+
+Use the spawn payload from Step 1 to create an ephemeral sub-agent:
+
+```
+sessions_spawn({ task: spawn_payload.task, cleanup: "delete", runTimeoutSeconds: 300 })
+```
+
+Your job as the main agent is done. Wait for the sub-agent's announcement.
+
+### Step 3: Sub-Agent Gets Key
+
+The sub-agent calls:
+
+```
+POST /api/v1/bot/rail5/key
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{ "checkout_id": "r5chk_abc123" }
+```
+
+**Response:** `{ "key_hex": "...", "iv_hex": "...", "tag_hex": "..." }`
+
+This is single-use. The key cannot be retrieved again for this checkout.
+
+### Step 4: Sub-Agent Decrypts
+
+Run the deterministic decrypt script:
+
+```
+node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-Harry-26-Visa.md
+```
+
+This outputs the card JSON (number, CVV, expiry, name, address).
+
+### Step 5: Sub-Agent Confirms
+
+After completing (or failing) checkout at the merchant:
+
+```
+POST /api/v1/bot/rail5/confirm
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{ "checkout_id": "r5chk_abc123", "status": "success" }
+```
+
+Use `"status": "failed"` if checkout didn't work. On success, your wallet is debited.
+
+### Rail 5 Webhook Events
+
+| Event | When |
+|-------|------|
+| `rail5.checkout.completed` | Sub-agent confirmed successful checkout |
+| `rail5.checkout.failed` | Sub-agent reported checkout failure |
