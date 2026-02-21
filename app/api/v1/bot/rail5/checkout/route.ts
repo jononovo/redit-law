@@ -107,6 +107,23 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
         body: `Your bot wants to spend $${(amount_cents / 100).toFixed(2)} at ${merchant_name} for "${item_name}". This exceeds your approval threshold.`,
         botId: bot.botId,
       }).catch(() => {});
+
+      try {
+        const { generateRail5ApprovalToken } = await import("@/app/api/v1/rail5/approve/[checkoutId]/route");
+        const hmacToken = generateRail5ApprovalToken(checkoutId);
+        const { sendRail5ApprovalEmail } = await import("@/lib/email");
+        await sendRail5ApprovalEmail({
+          ownerEmail: owner.email,
+          botName: bot.botName,
+          merchantName: merchant_name,
+          itemName: item_name,
+          amountUsd: amount_cents / 100,
+          checkoutId,
+          hmacToken,
+        });
+      } catch (e) {
+        console.error("Failed to send Rail 5 approval email:", e);
+      }
     }
 
     return NextResponse.json({

@@ -389,6 +389,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/v1/bot/rail5/checkout/status/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bot/rail5/checkout/status">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/bot/rail5/checkout/status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../../app/api/v1/bot/rail5/confirm/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/bot/rail5/confirm">> = Specific
@@ -870,6 +879,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail4/submit-owner-data">> = Specific
   const handler = {} as typeof import("../../../app/api/v1/rail4/submit-owner-data/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../../app/api/v1/rail5/approve/[checkoutId]/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/v1/rail5/approve/[checkoutId]">> = Specific
+  const handler = {} as typeof import("../../../app/api/v1/rail5/approve/[checkoutId]/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

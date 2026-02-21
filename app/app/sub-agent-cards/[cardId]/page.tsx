@@ -2,12 +2,23 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, CreditCard, Shield, Bot, Snowflake, Play } from "lucide-react";
+import { ArrowLeft, Loader2, CreditCard, Shield, Bot, Snowflake, Play, Clock, CheckCircle2, XCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardVisual } from "@/components/dashboard/card-visual";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
+
+interface Rail5Checkout {
+  checkout_id: string;
+  merchant_name: string;
+  item_name: string;
+  amount_cents: number;
+  status: string;
+  key_delivered: boolean;
+  confirmed_at: string | null;
+  created_at: string;
+}
 
 interface Rail5CardDetail {
   card_id: string;
@@ -21,6 +32,7 @@ interface Rail5CardDetail {
   monthly_limit_cents: number;
   human_approval_above_cents: number;
   created_at: string;
+  checkouts: Rail5Checkout[];
 }
 
 const BRAND_LABELS: Record<string, string> = {
@@ -28,6 +40,15 @@ const BRAND_LABELS: Record<string, string> = {
   mastercard: "Mastercard",
   amex: "Amex",
   discover: "Discover",
+};
+
+const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; color: string; bg: string; label: string }> = {
+  approved: { icon: CheckCircle2, color: "text-blue-600", bg: "bg-blue-50", label: "Approved" },
+  completed: { icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", label: "Completed" },
+  pending_approval: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50", label: "Pending Approval" },
+  denied: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", label: "Denied" },
+  expired: { icon: AlertTriangle, color: "text-neutral-500", bg: "bg-neutral-50", label: "Expired" },
+  failed: { icon: XCircle, color: "text-red-600", bg: "bg-red-50", label: "Failed" },
 };
 
 export default function Rail5CardDetailPage() {
@@ -66,7 +87,7 @@ export default function Rail5CardDetailPage() {
       });
       if (res.ok) {
         const updated = await res.json();
-        setCard(updated);
+        setCard((prev) => prev ? { ...prev, ...updated } : prev);
         toast({ title: newStatus === "frozen" ? "Card frozen" : "Card unfrozen" });
       } else {
         toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
@@ -168,6 +189,43 @@ export default function Rail5CardDetailPage() {
           <p className="text-sm text-neutral-700 font-mono bg-neutral-50 rounded-xl p-3" data-testid="text-r5-bot-id">{card.bot_id}</p>
         ) : (
           <p className="text-sm text-neutral-400" data-testid="text-r5-no-bot">No bot linked yet.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-4">
+        <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+          <ShoppingCart className="w-5 h-5 text-purple-600" /> Checkout History
+        </h3>
+        {card.checkouts && card.checkouts.length > 0 ? (
+          <div className="space-y-3">
+            {card.checkouts.map((c) => {
+              const cfg = STATUS_CONFIG[c.status] || STATUS_CONFIG.failed;
+              const Icon = cfg.icon;
+              return (
+                <div key={c.checkout_id} className={`flex items-center gap-4 p-4 rounded-xl ${cfg.bg}`} data-testid={`checkout-row-${c.checkout_id}`}>
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${cfg.color}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-neutral-900 truncate">{c.item_name}</p>
+                    <p className="text-xs text-neutral-500">{c.merchant_name}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold text-neutral-900">{formatLimit(c.amount_cents)}</p>
+                    <p className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0 hidden sm:block">
+                    <p className="text-xs text-neutral-400">
+                      {new Date(c.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <ShoppingCart className="w-8 h-8 text-neutral-200 mx-auto mb-2" />
+            <p className="text-sm text-neutral-400">No checkouts yet.</p>
+          </div>
         )}
       </div>
 

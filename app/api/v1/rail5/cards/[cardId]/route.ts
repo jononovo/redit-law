@@ -106,6 +106,8 @@ export async function GET(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  const checkouts = await storage.getRail5CheckoutsByCardId(card.cardId, 50);
+
   return NextResponse.json({
     card_id: card.cardId,
     card_name: card.cardName,
@@ -118,5 +120,15 @@ export async function GET(
     monthly_limit_cents: card.monthlyLimitCents,
     human_approval_above_cents: card.humanApprovalAboveCents,
     created_at: card.createdAt.toISOString(),
+    checkouts: checkouts.map((c) => ({
+      checkout_id: c.checkoutId,
+      merchant_name: c.merchantName,
+      item_name: c.itemName,
+      amount_cents: c.amountCents,
+      status: c.status,
+      key_delivered: c.keyDelivered,
+      confirmed_at: c.confirmedAt?.toISOString() || null,
+      created_at: c.createdAt.toISOString(),
+    })),
   });
 }
