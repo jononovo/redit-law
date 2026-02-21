@@ -1,7 +1,15 @@
 {
   "/api/auth/session/route": "app/api/auth/session/route.js",
+  "/api/v1/bot/rail5/checkout/route": "app/api/v1/bot/rail5/checkout/route.js",
+  "/api/v1/bot/rail5/checkout/status/route": "app/api/v1/bot/rail5/checkout/status/route.js",
+  "/api/v1/bot/rail5/confirm/route": "app/api/v1/bot/rail5/confirm/route.js",
+  "/api/v1/bot/rail5/key/route": "app/api/v1/bot/rail5/key/route.js",
   "/api/v1/notifications/unread-count/route": "app/api/v1/notifications/unread-count/route.js",
+  "/api/v1/rail5/approve/[checkoutId]/route": "app/api/v1/rail5/approve/[checkoutId]/route.js",
+  "/api/v1/rail5/cards/[cardId]/route": "app/api/v1/rail5/cards/[cardId]/route.js",
   "/api/v1/rail5/cards/route": "app/api/v1/rail5/cards/route.js",
+  "/api/v1/rail5/initialize/route": "app/api/v1/rail5/initialize/route.js",
+  "/api/v1/rail5/submit-key/route": "app/api/v1/rail5/submit-key/route.js",
   "/app/sub-agent-cards/page": "app/app/sub-agent-cards/page.js",
   "/page": "app/page.js"
 }
