@@ -60,11 +60,11 @@ export async function analyzeVendor(url: string): Promise<BuilderOutput> {
     "bulk_pricing", "tax_exemption", "account_creation", "order_tracking", "returns", "po_numbers",
   ];
 
-  const llm = llmResult.analysis;
+  const llm = llmResult.analysis as Record<string, unknown>;
   const mergedCapabilities = [
     ...new Set([
       ...businessResult.capabilities,
-      ...(llm.capabilities || []),
+      ...((llm.capabilities as string[]) || []),
       "price_lookup",
     ]),
   ].filter((c): c is VendorCapability => validCapabilities.includes(c as VendorCapability));
@@ -84,8 +84,8 @@ export async function analyzeVendor(url: string): Promise<BuilderOutput> {
   }
 
   const draft: Partial<VendorSkill> = {
-    slug: llm.slug || fallbackSlug,
-    name: llm.name || domain,
+    slug: (llm.slug as string) || fallbackSlug,
+    name: (llm.name as string) || domain,
     category: (validCategories.includes(llm.category as VendorCategory) ? llm.category : "retail") as VendorCategory,
     url: baseUrl,
     checkoutMethods: apiResult.methods,
@@ -93,21 +93,21 @@ export async function analyzeVendor(url: string): Promise<BuilderOutput> {
     maturity: "draft" as const,
     methodConfig,
     search: {
-      pattern: llm.searchPattern || `Search by product name on ${domain}`,
-      urlTemplate: llm.searchUrlTemplate,
-      productIdFormat: llm.productIdFormat,
+      pattern: (llm.searchPattern as string) || `Search by product name on ${domain}`,
+      urlTemplate: llm.searchUrlTemplate as string | undefined,
+      productIdFormat: llm.productIdFormat as string | undefined,
     },
     checkout: {
-      guestCheckout: llm.guestCheckout ?? false,
-      taxExemptField: llm.taxExemptField ?? false,
-      poNumberField: llm.poNumberField ?? false,
+      guestCheckout: (llm.guestCheckout as boolean) ?? false,
+      taxExemptField: (llm.taxExemptField as boolean) ?? false,
+      poNumberField: (llm.poNumberField as boolean) ?? false,
     },
     shipping: {
-      freeThreshold: llm.freeShippingThreshold ?? undefined,
-      estimatedDays: llm.estimatedDeliveryDays || "5-10 business days",
-      businessShipping: llm.businessShipping ?? false,
+      freeThreshold: (llm.freeShippingThreshold as number) ?? undefined,
+      estimatedDays: (llm.estimatedDeliveryDays as string) || "5-10 business days",
+      businessShipping: (llm.businessShipping as boolean) ?? false,
     },
-    tips: llm.tips || [`Visit ${baseUrl} to browse products`, "Check product availability before purchasing"],
+    tips: (llm.tips as string[]) || [`Visit ${baseUrl} to browse products`, "Check product availability before purchasing"],
     version: "1.0.0",
     lastVerified: new Date().toISOString().split("T")[0],
     generatedBy: "skill_builder" as const,
@@ -119,7 +119,7 @@ export async function analyzeVendor(url: string): Promise<BuilderOutput> {
   if (!confidence["search"]) confidence["search"] = llm.searchUrlTemplate ? 0.7 : 0.4;
   if (!confidence["checkout"]) confidence["checkout"] = llm.guestCheckout !== undefined ? 0.7 : 0.4;
   if (!confidence["shipping"]) confidence["shipping"] = llm.freeShippingThreshold !== undefined ? 0.7 : 0.4;
-  if (!confidence["tips"]) confidence["tips"] = llm.tips && llm.tips.length > 0 ? 0.7 : 0.3;
+  if (!confidence["tips"]) confidence["tips"] = llm.tips && (llm.tips as string[]).length > 0 ? 0.7 : 0.3;
 
   const reviewNeeded = Object.entries(confidence)
     .filter(([_, conf]) => conf < 0.7)

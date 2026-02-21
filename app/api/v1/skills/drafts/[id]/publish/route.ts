@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { generateVendorSkill } from "@/lib/procurement-skills/generator";
+import { prepareVersionData } from "@/lib/procurement-skills/versioning";
 import type { VendorSkill } from "@/lib/procurement-skills/types";
+import type { SourceType } from "@/lib/procurement-skills/versioning";
 
 export async function POST(
   _req: NextRequest,
@@ -40,16 +41,35 @@ export async function POST(
       );
     }
 
-    let skillMd: string;
-    try {
-      skillMd = generateVendorSkill(vendorData as unknown as VendorSkill);
-    } catch (genError: unknown) {
-      const genMessage = genError instanceof Error ? genError.message : "Unknown error";
-      return NextResponse.json(
-        { error: "generation_failed", message: `SKILL.md generation failed: ${genMessage}` },
-        { status: 400 }
-      );
-    }
+    const vendor = vendorData as unknown as VendorSkill;
+    const vendorSlug = vendor.slug || draft.vendorSlug || "";
+
+    const existingVersion = await storage.getActiveVersion(vendorSlug);
+
+    const sourceType: SourceType = draft.submissionSource === "community" ? "community" : "draft";
+    const changeType = existingVersion ? (sourceType === "community" ? "community_update" : "edit") : "initial";
+
+    const versionData = prepareVersionData({
+      vendorSlug,
+      vendorData: vendor,
+      changeType: changeType as any,
+      changeSummary: existingVersion
+        ? `Published from draft #${draftId}`
+        : `Initial publish from draft #${draftId}`,
+      publishedBy: user.uid,
+      sourceType,
+      sourceDraftId: draftId,
+      previousVersion: existingVersion
+        ? {
+            id: existingVersion.id,
+            version: existingVersion.version,
+            vendorData: existingVersion.vendorData as unknown as VendorSkill,
+          }
+        : undefined,
+    });
+
+    await storage.deactivateVersions(vendorSlug);
+    const newVersion = await storage.createSkillVersion(versionData);
 
     const updated = await storage.updateSkillDraft(draftId, { status: "published" });
 
@@ -61,10 +81,12 @@ export async function POST(
       id: updated!.id,
       status: "published",
       vendorSlug: updated!.vendorSlug,
-      skillMd,
+      skillMd: versionData.skillMd,
+      version: newVersion.version,
+      versionId: newVersion.id,
       submitterType: draft.submitterType,
       submitterName: draft.submitterName,
-      message: "Draft published successfully. To add this vendor to the live registry, add it to lib/procurement-skills/registry.ts.",
+      message: "Draft published successfully with version tracking.",
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

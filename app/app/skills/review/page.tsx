@@ -110,6 +110,11 @@ export default function SkillReviewPage() {
           <h1 className="text-2xl font-bold" data-testid="text-review-heading">Skill Builder</h1>
           <p className="text-neutral-500 text-sm mt-1">Analyze vendor websites and generate procurement skills</p>
         </div>
+        <Link href="/app/skills/export">
+          <Button variant="outline" className="rounded-xl" data-testid="link-export-page">
+            Export Skills
+          </Button>
+        </Link>
       </div>
 
       <div className="bg-white rounded-2xl border border-neutral-200 p-6" data-testid="analyze-section">

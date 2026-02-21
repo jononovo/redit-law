@@ -781,6 +781,48 @@ export const skillSubmitterProfiles = pgTable("skill_submitter_profiles", {
 export type SkillSubmitterProfile = typeof skillSubmitterProfiles.$inferSelect;
 export type InsertSkillSubmitterProfile = typeof skillSubmitterProfiles.$inferInsert;
 
+export const skillVersions = pgTable("skill_versions", {
+  id: serial("id").primaryKey(),
+  vendorSlug: text("vendor_slug").notNull(),
+  version: text("version").notNull(),
+  vendorData: jsonb("vendor_data").notNull(),
+  skillMd: text("skill_md").notNull(),
+  skillJson: jsonb("skill_json"),
+  paymentsMd: text("payments_md"),
+  descriptionMd: text("description_md"),
+  checksum: text("checksum").notNull(),
+  changeType: text("change_type").notNull(),
+  changeSummary: text("change_summary"),
+  changedFields: jsonb("changed_fields").$type<string[]>(),
+  previousVersionId: integer("previous_version_id"),
+  publishedBy: text("published_by"),
+  sourceType: text("source_type").notNull(),
+  sourceDraftId: integer("source_draft_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  exportedAt: timestamp("exported_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("skill_versions_vendor_active_idx").on(table.vendorSlug, table.isActive),
+  index("skill_versions_vendor_created_idx").on(table.vendorSlug, table.createdAt),
+]);
+
+export type SkillVersion = typeof skillVersions.$inferSelect;
+export type InsertSkillVersion = typeof skillVersions.$inferInsert;
+
+export const skillExports = pgTable("skill_exports", {
+  id: serial("id").primaryKey(),
+  vendorSlug: text("vendor_slug").notNull(),
+  versionId: integer("version_id").notNull(),
+  destination: text("destination").notNull(),
+  exportedBy: text("exported_by"),
+  exportedAt: timestamp("exported_at").defaultNow().notNull(),
+}, (table) => [
+  index("skill_exports_vendor_dest_idx").on(table.vendorSlug, table.destination),
+]);
+
+export type SkillExport = typeof skillExports.$inferSelect;
+export type InsertSkillExport = typeof skillExports.$inferInsert;
+
 export const analyzeVendorSchema = z.object({
   url: z.string().url().min(1).max(2000),
 });

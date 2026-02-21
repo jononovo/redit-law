@@ -337,6 +337,9 @@ export default function SkillDraftDetailPage({ params }: { params: Promise<{ id:
                   Auto-publish eligible
                 </Badge>
               )}
+              <Link href={`/app/skills/review/${id}/versions`} className="text-xs text-primary font-medium hover:underline flex items-center gap-1" data-testid="link-version-history">
+                Version History →
+              </Link>
             </div>
           </div>
         </div>
