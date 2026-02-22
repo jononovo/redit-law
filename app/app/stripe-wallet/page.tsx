@@ -268,24 +268,47 @@ export default function StripeWalletPage() {
       const data = await res.json();
       const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
+      console.log("[Onramp] API response:", {
+        hasClientSecret: !!data.client_secret,
+        clientSecretPrefix: data.client_secret?.substring(0, 20),
+        hasRedirectUrl: !!data.redirect_url,
+        redirectUrl: data.redirect_url,
+        sessionId: data.session_id,
+        walletAddress: data.wallet_address,
+      });
+      console.log("[Onramp] publishableKey:", publishableKey ? `${publishableKey.substring(0, 12)}...` : "NOT SET");
+      console.log("[Onramp] isInIframe:", window.self !== window.top);
+
       if (publishableKey) {
         setOnrampDialogOpen(true);
 
         try {
+          console.log("[Onramp] Loading Stripe scripts...");
           await loadScript("https://js.stripe.com/clover/stripe.js");
+          console.log("[Onramp] stripe.js loaded");
           await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
+          console.log("[Onramp] crypto-onramp-outer.js loaded");
 
           const StripeOnramp = (window as any).StripeOnramp;
+          console.log("[Onramp] StripeOnramp global:", typeof StripeOnramp);
           if (!StripeOnramp) throw new Error("SDK not loaded");
 
           const stripeOnramp = StripeOnramp(publishableKey);
+          console.log("[Onramp] stripeOnramp instance created:", typeof stripeOnramp);
+
           const session = stripeOnramp.createSession({
             clientSecret: data.client_secret,
           });
+          console.log("[Onramp] session created:", typeof session, Object.keys(session || {}));
 
           onrampSessionRef.current = session;
 
+          session.addEventListener("onramp_ui_loaded", (e: any) => {
+            console.log("[Onramp] EVENT onramp_ui_loaded:", e);
+          });
+
           session.addEventListener("onramp_session_updated", (e: any) => {
+            console.log("[Onramp] EVENT onramp_session_updated:", e?.payload?.session?.status, e);
             const status = e?.payload?.session?.status;
             if (status === "fulfillment_complete") {
               toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
@@ -293,14 +316,31 @@ export default function StripeWalletPage() {
             }
           });
 
+          session.addEventListener("onramp_ui_modal_opened", (e: any) => {
+            console.log("[Onramp] EVENT onramp_ui_modal_opened:", e);
+          });
+
+          session.addEventListener("onramp_ui_modal_closed", (e: any) => {
+            console.log("[Onramp] EVENT onramp_ui_modal_closed:", e);
+          });
+
           setTimeout(() => {
+            console.log("[Onramp] Attempting mount, ref exists:", !!onrampMountRef.current);
             if (onrampMountRef.current) {
+              console.log("[Onramp] Mount target dimensions:", onrampMountRef.current.offsetWidth, "x", onrampMountRef.current.offsetHeight);
               session.mount(onrampMountRef.current);
+              console.log("[Onramp] session.mount() called successfully");
+              setTimeout(() => {
+                const iframes = onrampMountRef.current?.querySelectorAll("iframe");
+                console.log("[Onramp] Iframes in mount target after 2s:", iframes?.length, Array.from(iframes || []).map((f: any) => ({ src: f.src, width: f.offsetWidth, height: f.offsetHeight })));
+              }, 2000);
+            } else {
+              console.error("[Onramp] Mount ref is null!");
             }
             setOnrampLoading(false);
           }, 100);
         } catch (embeddedErr) {
-          console.error("Embedded onramp failed, falling back to hosted:", embeddedErr);
+          console.error("[Onramp] Embedded onramp FAILED:", embeddedErr);
           setOnrampDialogOpen(false);
           if (data.redirect_url) {
             window.open(data.redirect_url, "_blank");
