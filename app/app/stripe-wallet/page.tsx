@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -744,28 +745,45 @@ export default function StripeWalletPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={onrampDialogOpen} onOpenChange={(open) => { if (!open) handleCloseOnramp(); }}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-onramp">
-          <DialogTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-600" />
-            Fund Wallet {onrampWallet ? `— ${onrampWallet.bot_name}` : ""}
-          </DialogTitle>
-          <DialogDescription>
+      <Sheet open={onrampDialogOpen} onOpenChange={(open) => { if (!open) handleCloseOnramp(); }}>
+        <SheetContent
+          side="right"
+          size="lg"
+          overlayTitle={onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
+          overlayDescription="Buy USDC with your credit card via Stripe. Funds will be delivered directly to your wallet on Base."
+          className="overflow-y-auto p-0"
+          data-testid="drawer-onramp"
+        >
+          <SheetTitle className="sr-only">
+            {onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
+          </SheetTitle>
+          <SheetDescription className="sr-only">
             Buy USDC with your credit card via Stripe. Funds will be delivered directly to your wallet on Base.
-          </DialogDescription>
-          <div className="mt-4 min-h-[500px] relative">
+          </SheetDescription>
+          <div className="p-6 md:hidden border-b border-border">
+            <div className="flex items-center gap-2 pr-8">
+              <DollarSign className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <h2 className="text-lg font-semibold text-foreground">
+                {onrampWallet ? `Fund: "${onrampWallet.bot_name}"` : "Fund Wallet"}
+              </h2>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Buy USDC via Stripe. Funds go directly to your wallet on Base.
+            </p>
+          </div>
+          <div className="flex-1 relative min-h-[500px]">
             {onrampLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                  <p className="text-sm text-neutral-500">Loading Stripe onramp...</p>
+                  <p className="text-sm text-muted-foreground">Loading Stripe onramp...</p>
                 </div>
               </div>
             )}
-            <div ref={onrampMountRef} id="stripe-onramp-element" className="w-full min-h-[480px]" data-testid="container-onramp-widget" />
+            <div ref={onrampMountRef} id="stripe-onramp-element" className="w-full min-h-[480px] p-4" data-testid="container-onramp-widget" />
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
