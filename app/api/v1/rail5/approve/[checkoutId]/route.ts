@@ -1,27 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
-import { createHmac } from "crypto";
+import { verifyRail5ApprovalToken, isRail5ApprovalExpired } from "@/lib/rail5";
 
-const CONFIRMATION_SECRET = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
-if (!CONFIRMATION_SECRET) {
-  console.error("CRITICAL: CONFIRMATION_HMAC_SECRET or CRON_SECRET must be set for Rail 5 approval link security.");
-}
-const APPROVAL_TTL_MS = 15 * 60 * 1000;
-
-function verifyHmac(checkoutId: string, token: string): boolean {
-  if (!CONFIRMATION_SECRET) return false;
-  const expected = createHmac("sha256", CONFIRMATION_SECRET)
-    .update(`rail5:${checkoutId}`)
-    .digest("hex");
-  return token === expected;
-}
-
-export function generateRail5ApprovalToken(checkoutId: string): string {
-  if (!CONFIRMATION_SECRET) throw new Error("CONFIRMATION_HMAC_SECRET not configured");
-  return createHmac("sha256", CONFIRMATION_SECRET)
-    .update(`rail5:${checkoutId}`)
-    .digest("hex");
-}
+export { generateRail5ApprovalToken } from "@/lib/rail5";
 
 export async function GET(
   request: NextRequest,
@@ -30,7 +11,7 @@ export async function GET(
   const { checkoutId } = await params;
   const token = request.nextUrl.searchParams.get("token");
 
-  if (!token || !verifyHmac(checkoutId, token)) {
+  if (!token || !verifyRail5ApprovalToken(checkoutId, token)) {
     return new NextResponse(renderPage("Invalid Link", "This approval link is invalid or has been tampered with."), {
       status: 403,
       headers: { "Content-Type": "text/html" },
@@ -55,8 +36,7 @@ export async function GET(
     });
   }
 
-  const elapsed = Date.now() - new Date(checkout.createdAt).getTime();
-  if (elapsed > APPROVAL_TTL_MS) {
+  if (isRail5ApprovalExpired(new Date(checkout.createdAt))) {
     await storage.updateRail5Checkout(checkoutId, { status: "expired" });
     return new NextResponse(renderPage("Expired", "This approval request has expired. The purchase was not completed."), {
       status: 200,
@@ -87,7 +67,7 @@ export async function POST(
   }
 
   const { action, token } = body;
-  if (!token || !verifyHmac(checkoutId, token)) {
+  if (!token || !verifyRail5ApprovalToken(checkoutId, token)) {
     return NextResponse.json({ error: "invalid_token" }, { status: 403 });
   }
 
@@ -104,8 +84,7 @@ export async function POST(
     return NextResponse.json({ error: "already_decided", status: checkout.status }, { status: 409 });
   }
 
-  const elapsed = Date.now() - new Date(checkout.createdAt).getTime();
-  if (elapsed > APPROVAL_TTL_MS) {
+  if (isRail5ApprovalExpired(new Date(checkout.createdAt))) {
     await storage.updateRail5Checkout(checkoutId, { status: "expired" });
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }

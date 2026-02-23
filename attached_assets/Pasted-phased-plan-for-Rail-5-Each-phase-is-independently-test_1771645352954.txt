@@ -1,0 +1,62 @@
+phased plan for Rail 5. Each phase is independently testable before moving on.
+
+Rail 5: Sub-Agent Cards — Build Plan
+Phase 1: Data Foundation
+What: Schema, storage layer, and helpers — no API routes yet.
+* Add rail5_cards table to shared/schema.ts (with insert schema + types)
+* Add rail5_checkouts table for tracking checkout requests (checkout_id, card_id, bot_id, merchant details, amount, status like approved/pending_approval/key_delivered/completed/failed, timestamps)
+* Add Rail 5 CRUD methods to server/storage.ts
+* Add lib/rail5.ts with helpers: card ID generator (r5card_ + hex), key length validators, spawn payload builder
+* Add rate limit entries for the bot-facing endpoints
+Test: Run the app, confirm migration succeeds, verify no errors. Can spot-check with a quick DB query to confirm the tables exist.
+
+Phase 2: Owner Setup (API + UI)
+What: The owner can create a Rail 5 card, encrypt in-browser, download the file, and store the key on CreditClaw.
+* POST /api/v1/rail5/initialize — create card record (pending_setup), return card_id
+* POST /api/v1/rail5/submit-key — store key/iv/tag hex, set status to active
+* GET /api/v1/rail5/cards — list owner's Rail 5 cards
+* Dashboard page at /app/sub-agent-cards with card listing
+* rail5-setup-wizard.tsx — 7-step wizard with client-side Web Crypto encryption + file download
+* Card detail page at /app/sub-agent-cards/[cardId]
+Test: Walk through the wizard end-to-end. Verify:
+* Card record appears in the database with key material but zero card data
+* Encrypted .md file downloads to your machine
+* Cards list page shows the new card with last4/brand display info
+* Status transitions from pending_setup to active
+
+Phase 3: Bot Checkout Flow
+What: The bot can request a checkout, a sub-agent gets the decryption key (single-use), and the decrypt script works.
+* POST /api/v1/bot/rail5/checkout — validate spending limits + master guardrails, create checkout record, return spawn payload (or pending_approval if above threshold)
+* POST /api/v1/bot/rail5/key — return decryption key for a checkout (single-use, marks key_delivered)
+* Add public/decrypt.js — deterministic Node.js decrypt script
+* Wire up rate limiting on all three bot endpoints
+Test: Use curl to simulate the bot flow:
+1. POST checkout with valid bot token → get spawn payload + checkout_id
+2. POST key with checkout_id → get key material back
+3. POST key again → should be rejected (single-use)
+4. POST checkout exceeding spending limit → should be declined
+5. Run decrypt.js locally with the key against the encrypted file from Phase 2 → should output the original card JSON
+
+Phase 4: Confirmation + Wallet + Notifications
+What: The sub-agent confirms the purchase, wallet gets debited, owner gets notified.
+* POST /api/v1/bot/rail5/confirm — finalize transaction: atomic wallet debit, create transaction record, fire webhook (rail5.checkout.completed), send owner notification, update spend aggregates
+* Human approval flow for purchases above threshold: approval email with HMAC-signed link, approval page, status polling endpoint
+* Add Rail 5 section to the dashboard card manager for viewing checkout history
+* Freeze/unfreeze support for Rail 5 cards
+Test:
+1. Full end-to-end: checkout → key → confirm → verify wallet balance decreased and transaction record exists
+2. Confirm with amount above approval threshold → verify it gates on owner approval
+3. Freeze a card → verify checkout is rejected
+4. Check that webhook fires and owner notification appears
+
+What's shared (no duplication needed)
+These already exist and Rail 5 just plugs into them:
+* withBotApi middleware (auth + rate limiting)
+* Bot auth (lib/bot-auth.ts)
+* Wallet balance + spending controls
+* Master guardrails
+* Webhook delivery system
+* Owner notification system
+* Firebase session cookie auth
+
+Want me to start building Phase 1?

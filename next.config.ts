@@ -5,10 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  env: {
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
-  },
+  env: {},
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
