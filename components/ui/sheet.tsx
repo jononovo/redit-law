@@ -57,6 +57,14 @@ const sheetVariants = cva(
   }
 )
 
+const sizeToWidth: Record<string, string> = {
+  default: "sm:right-[24rem]",
+  md: "sm:right-[28rem]",
+  lg: "sm:right-[32rem]",
+  xl: "sm:right-[36rem]",
+  full: "right-0",
+};
+
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
@@ -71,7 +79,10 @@ const SheetContent = React.forwardRef<
   <SheetPortal>
     <SheetOverlay />
     {(overlayTitle || overlayDescription) && (
-      <div className="fixed inset-0 z-50 pointer-events-none hidden md:flex items-center justify-center pr-[33%]">
+      <div className={cn(
+        "fixed top-0 bottom-0 left-0 right-[75%] z-50 pointer-events-none hidden md:flex items-center justify-center",
+        sizeToWidth[size || "default"] || sizeToWidth.default
+      )}>
         <div className="text-center max-w-md px-8">
           {overlayTitle && (
             <h2 className="text-2xl font-bold text-white mb-2">{overlayTitle}</h2>
