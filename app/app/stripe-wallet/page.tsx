@@ -506,10 +506,10 @@ export default function StripeWalletPage() {
                           ) : (
                             <button
                               onClick={() => { setLinkTarget(wallet); setLinkBotId(""); }}
-                              className="font-semibold text-white/80 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
+                              className="font-semibold text-amber-300 hover:text-amber-200 flex items-center gap-1.5 cursor-pointer transition-colors"
                               data-testid={`button-add-agent-${wallet.id}`}
                             >
-                              <Bot className="w-4 h-4" />
+                              <Plus className="w-4 h-4" />
                               Add Agent
                             </button>
                           )}
