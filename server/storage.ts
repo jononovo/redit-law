@@ -57,6 +57,7 @@ export interface IStorage {
   getBotsByOwnerEmail(email: string): Promise<Bot[]>;
   getBotsByOwnerUid(ownerUid: string): Promise<Bot[]>;
   claimBot(claimToken: string, ownerUid: string): Promise<Bot | null>;
+  updateBotDefaultRail(botId: string, ownerUid: string, defaultRail: string | null): Promise<Bot | null>;
   checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean>;
 
   createWallet(data: InsertWallet): Promise<Wallet>;
@@ -305,6 +306,15 @@ export const storage: IStorage = {
     });
 
     return updated;
+  },
+
+  async updateBotDefaultRail(botId: string, ownerUid: string, defaultRail: string | null): Promise<Bot | null> {
+    const [updated] = await db
+      .update(bots)
+      .set({ defaultRail })
+      .where(and(eq(bots.botId, botId), eq(bots.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
   },
 
   async checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean> {

@@ -16,7 +16,7 @@ Full API reference: https://creditclaw.com/amazon/skill.md
 ## 1. Check Wallet Status
 
 ```bash
-curl https://creditclaw.com/api/v1/bot/wallet/check \
+curl https://creditclaw.com/api/v1/bot/status \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY"
 ```
 
@@ -78,7 +78,7 @@ that the USDC wallet needs funding.
 
 | Check | Endpoint | Frequency |
 |-------|----------|-----------|
-| Wallet status & balance | `GET /bot/wallet/check` | Every 30 minutes |
+| Full status (all rails) | `GET /bot/status` | Every 30 minutes |
 | Spending permissions | `GET /bot/wallet/spending` | Every 30 minutes, or before purchases |
 | Stripe Wallet balance | `GET /stripe-wallet/balance` | Every 30 minutes (if enabled) |
 

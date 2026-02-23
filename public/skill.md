@@ -41,8 +41,11 @@ on what your owner has configured.
 | **Self-Hosted Cards** | Owner's own cards with split-knowledge privacy | Live | `POST /bot/merchant/checkout` (human approval) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
 
-Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
-your active wallet status, or use the rail-specific endpoints below.
+Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
+your full status across all connected rails, or use the rail-specific endpoints below.
+
+> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
+> Use `GET /bot/status` instead for a complete cross-rail view.
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -80,7 +83,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
 5. Your wallet activates
-6. You poll GET /bot/wallet/check periodically to monitor balance
+6. You poll GET /bot/status periodically to monitor balance across all rails
 7. You check GET /bot/wallet/spending for your owner's permission rules
 8. You spend via the rail your owner has enabled for you
 9. When balance is low, you request a top-up or generate a payment link
@@ -184,37 +187,66 @@ Once your human claims you with the token, they unlock:
 
 Your human can log in anytime to monitor your spending, adjust limits, or fund your wallet.
 
-### 3. Check Wallet Status (Heartbeat)
+### 3. Check Full Status (Recommended)
 
-Use this lightweight endpoint to poll your wallet status. Recommended
-interval: every 30 minutes, or before any purchase.
+Use this endpoint to see your complete status across all payment rails.
+Recommended interval: every 30 minutes, or before any purchase.
 
 ```bash
-curl https://creditclaw.com/api/v1/bot/wallet/check \
+curl https://creditclaw.com/api/v1/bot/status \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY"
 ```
 
-Response (after claiming, with funds):
+Response (active bot with multiple rails):
 ```json
 {
-  "wallet_status": "active",
-  "balance_usd": 50.00,
-  "spending_limits": {
-    "per_transaction_usd": 25.00,
-    "monthly_usd": 500.00,
-    "monthly_spent_usd": 12.50,
-    "monthly_remaining_usd": 487.50
+  "bot_id": "bot_abc123",
+  "bot_name": "ShopperBot",
+  "status": "active",
+  "default_rail": "card_wallet",
+  "active_rails": ["card_wallet", "stripe_wallet", "self_hosted_cards"],
+  "rails": {
+    "card_wallet": {
+      "status": "active",
+      "balance_usd": 50.00,
+      "spending_limits": {
+        "per_transaction_usd": 25.00,
+        "monthly_usd": 500.00,
+        "monthly_spent_usd": 12.50,
+        "monthly_remaining_usd": 487.50
+      }
+    },
+    "stripe_wallet": {
+      "status": "active",
+      "balance_usd": 100.00,
+      "address": "0x..."
+    },
+    "self_hosted_cards": {
+      "status": "active",
+      "card_count": 2,
+      "cards": [
+        { "card_id": "card_xyz", "card_name": "Amazon Card", "use_case": "amazon" }
+      ]
+    }
   },
-  "pending_topups": 0
+  "master_guardrails": {
+    "per_transaction_usd": 500,
+    "daily_budget_usd": 2000,
+    "monthly_budget_usd": 10000
+  }
 }
 ```
 
 Response (before claiming):
 ```json
 {
-  "wallet_status": "pending",
-  "balance_usd": 0,
-  "message": "Owner has not claimed this bot yet. Share your claim token with your human."
+  "bot_id": "bot_abc123",
+  "bot_name": "ShopperBot",
+  "status": "pending",
+  "default_rail": null,
+  "message": "Owner has not claimed this bot yet. Share your claim token with your human.",
+  "rails": {},
+  "master_guardrails": null
 }
 ```
 
@@ -222,11 +254,36 @@ Response (before claiming):
 | Status | Meaning |
 |--------|---------|
 | `pending` | Registered but owner hasn't claimed yet |
-| `active` | Wallet funded and ready to use |
-| `empty` | Wallet is active but $0 balance — request a top-up |
+| `active` | At least one rail is connected |
+| `frozen` | Owner has frozen this bot — no transactions allowed |
+| `inactive` | Claimed but no rails connected yet |
 
-If `wallet_status` is `pending`, remind your human about the claim link.
-If `balance_usd` < 5.00, consider requesting a top-up.
+**Rail keys:**
+| Key | Rail | Spending Mechanism |
+|-----|------|-------------------|
+| `card_wallet` | Prepaid wallet | `POST /bot/wallet/purchase` |
+| `stripe_wallet` | Stripe/x402 wallet | `POST /stripe-wallet/bot/sign` |
+| `shopping_wallet` | Shopping wallet | `POST /card-wallet/bot/purchase` |
+| `self_hosted_cards` | Self-hosted cards | `POST /bot/merchant/checkout` |
+| `sub_agent_cards` | Sub-agent cards | `POST /bot/rail5/checkout` |
+
+If `default_rail` is set, prefer that rail for purchases when multiple are available.
+If `status` is `pending`, remind your human about the claim link.
+
+**Rate limit:** 6 requests per hour.
+
+---
+
+#### Legacy: Check Wallet Status
+
+> **Deprecated.** Use `GET /bot/status` instead for a complete cross-rail view.
+
+```bash
+curl https://creditclaw.com/api/v1/bot/wallet/check \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+This endpoint returns only prepaid wallet status. It continues to work for backward compatibility.
 
 **Rate limit:** 6 requests per hour.
 
@@ -364,7 +421,7 @@ Response:
 - They log in to their dashboard and fund your wallet using their saved card.
 - Once payment completes, your balance updates automatically.
 
-Poll `GET /bot/wallet/check` to see when the balance increases.
+Poll `GET /bot/status` to see when the balance increases across any rail.
 
 **Rate limit:** 3 requests per hour.
 
@@ -761,7 +818,7 @@ up to 5 attempts.
 - **Balance can reach $0.** Purchases will be declined. Ask your human if they'd like you to request a top-up.
 - **Payment links expire in 24 hours.** Generate a new one if needed.
 - **One bot = one wallet per rail.** Your wallet is unique to you and linked to your owner's account. You may have wallets on multiple rails.
-- **Poll responsibly.** Use `GET /bot/wallet/check` no more than every 10 minutes unless you are actively waiting for a top-up.
+- **Poll responsibly.** Use `GET /bot/status` no more than every 10 minutes unless you are actively waiting for a top-up.
 - **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
 - **Rail 5 sub-agents are ephemeral.** They are deleted after checkout. Never store decrypted card data.

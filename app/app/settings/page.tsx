@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone } from "lucide-react";
+import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone, Bot, ChevronDown } from "lucide-react";
 
 interface Preferences {
   transaction_alerts: boolean;
@@ -260,6 +260,101 @@ function MasterBudgetSection() {
   );
 }
 
+interface BotInfo {
+  bot_id: string;
+  bot_name: string;
+  default_rail: string | null;
+}
+
+const RAIL_OPTIONS = [
+  { value: "card_wallet", label: "Prepaid Wallet", icon: CreditCard, color: "text-emerald-600" },
+  { value: "stripe_wallet", label: "Stripe Wallet", icon: Zap, color: "text-blue-600" },
+  { value: "shopping_wallet", label: "Shopping Wallet", icon: CreditCard, color: "text-violet-600" },
+  { value: "self_hosted_cards", label: "Self-Hosted Cards", icon: Smartphone, color: "text-orange-600" },
+  { value: "sub_agent_cards", label: "Sub-Agent Cards", icon: Shield, color: "text-pink-600" },
+];
+
+function DefaultRailSection() {
+  const queryClient = useQueryClient();
+
+  const { data: botsData, isLoading } = useQuery<{ bots: BotInfo[] }>({
+    queryKey: ["my-bots"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/bots/mine");
+      if (!res.ok) throw new Error("Failed to load");
+      return res.json();
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async ({ bot_id, default_rail }: { bot_id: string; default_rail: string | null }) => {
+      const res = await fetch("/api/v1/bots/default-rail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id, default_rail }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-bots"] });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-neutral-400 text-sm py-4">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading bots...
+      </div>
+    );
+  }
+
+  const bots = botsData?.bots || [];
+  if (bots.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Bot className="w-5 h-5 text-emerald-600" />
+        <div>
+          <h3 className="text-md font-bold text-neutral-900">Default Payment Rail</h3>
+          <p className="text-xs text-neutral-500">Set the preferred payment method for each bot</p>
+        </div>
+      </div>
+
+      <div className="space-y-3 pl-7">
+        {bots.map((bot) => (
+          <div key={bot.bot_id} className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl p-4 max-w-lg" data-testid={`row-bot-rail-${bot.bot_id}`}>
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">{bot.bot_name}</p>
+              <p className="text-xs text-neutral-400 font-mono">{bot.bot_id}</p>
+            </div>
+            <div className="relative">
+              <select
+                value={bot.default_rail || ""}
+                onChange={(e) => {
+                  const val = e.target.value || null;
+                  mutation.mutate({ bot_id: bot.bot_id, default_rail: val });
+                }}
+                className="appearance-none bg-neutral-50 border border-neutral-200 rounded-lg pl-3 pr-8 py-1.5 text-sm text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                disabled={mutation.isPending}
+                data-testid={`select-default-rail-${bot.bot_id}`}
+              >
+                <option value="">Auto (no preference)</option>
+                {RAIL_OPTIONS.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -305,6 +400,10 @@ export default function SettingsPage() {
       <Separator />
 
       <MasterBudgetSection />
+
+      <Separator />
+
+      <DefaultRailSection />
 
       <Separator />
 

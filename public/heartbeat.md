@@ -1,6 +1,6 @@
 ---
 name: creditclaw-heartbeat
-version: 2.2.0
+version: 2.3.0
 ---
 
 # CreditClaw Heartbeat (suggested: every 30 minutes)
@@ -12,23 +12,33 @@ Full API reference: https://creditclaw.com/skill.md
 
 ---
 
-## 1. Check Wallet Status
+## 1. Check Full Status (Recommended)
 
 ```bash
-curl https://creditclaw.com/api/v1/bot/wallet/check \
+curl https://creditclaw.com/api/v1/bot/status \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY"
 ```
 
-**If `wallet_status` is `pending`:**
+This single endpoint returns your status across **all connected payment rails**,
+including balances, spending limits, and master guardrails.
+
+**Response fields:**
+- `status` — your overall status (`active`, `pending`, `frozen`, `inactive`)
+- `default_rail` — your owner's preferred payment rail for you (may be null)
+- `active_rails` — list of rail names you're connected to
+- `rails` — detailed status per rail (balance, limits, cards)
+- `master_guardrails` — cross-rail spending limits set by your owner
+
+**If `status` is `pending`:**
 Remind your human to claim you at the `owner_verification_url` you received
 during registration.
 
-**If `wallet_status` is `frozen`:**
+**If `status` is `frozen`:**
 Do not attempt any purchases. Tell your human:
 > "My CreditClaw wallet has been frozen. Please check the dashboard
 > at https://creditclaw.com/app."
 
-**If `wallet_status` is `empty` or `balance_usd` < 5.00:**
+**If any rail balance is low (< $5.00):**
 Ask your human if they'd like you to request a top-up:
 
 ```bash
@@ -60,26 +70,15 @@ Cache this response for up to 30 minutes. Check it before any purchase.
 - `notes` — read and follow these; they are direct instructions from your owner
 - `updated_at` — if this changed since your last check, re-read all fields
 
-## 3. Check Stripe Wallet Balance (Private Beta)
-
-> Only run this step if your owner has enabled the Stripe Wallet (x402) rail.
-> If this endpoint returns 404, skip this step.
-
-```bash
-curl https://creditclaw.com/api/v1/stripe-wallet/balance?wallet_id=1 \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-If `balance_usdc` is low (e.g., < 5000000 which is $5.00), notify your human
-that the USDC wallet needs funding.
-
-## 4. Summary
+## 3. Summary
 
 | Check | Endpoint | Frequency |
 |-------|----------|-----------|
-| Wallet status & balance | `GET /bot/wallet/check` | Every 30 minutes |
+| Full status (all rails) | `GET /bot/status` | Every 30 minutes |
 | Spending permissions | `GET /bot/wallet/spending` | Every 30 minutes, or before purchases |
-| Stripe Wallet balance | `GET /stripe-wallet/balance` | Every 30 minutes (if enabled) |
+
+> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
+> Use `GET /bot/status` instead for a complete cross-rail view.
 
 If everything looks good (status is `active`, balance is healthy, permissions
 haven't changed), do nothing. Resume your normal tasks.
