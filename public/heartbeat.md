@@ -70,12 +70,46 @@ Cache this response for up to 30 minutes. Check it before any purchase.
 - `notes` — read and follow these; they are direct instructions from your owner
 - `updated_at` — if this changed since your last check, re-read all fields
 
-## 3. Summary
+## 3. Per-Rail Detail Checks (As Needed)
+
+If you need deeper operational data for a specific rail before a purchase —
+like remaining allowances, approval thresholds, or guardrail budgets — use:
+
+| Rail | Endpoint | What You Get |
+|------|----------|--------------|
+| Stripe Wallet | `GET /bot/check/rail1` | Balance, guardrails, domain rules, pending approvals |
+| Shopping Wallet | `GET /bot/check/rail2` | Balance, guardrails, merchant allow/blocklists |
+| Self-Hosted Cards | `GET /bot/check/rail4` | Per-profile allowance remaining, approval mode |
+| Sub-Agent Cards | `GET /bot/check/rail5` | Spending limits, approval threshold |
+
+All return `{ "status": "inactive" }` if you're not connected to that rail.
+
+**Rate limit:** 6 requests per hour per endpoint.
+
+## 4. Pre-Purchase Dry Run (Rail 4)
+
+Before an expensive self-hosted card purchase, test if it would pass:
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/check/rail4/test \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "merchant_name": "Amazon", "amount_cents": 5000, "profile_index": 1 }'
+```
+
+Returns `allowed` (yes/no), `requires_approval`, and a `limits_snapshot`
+showing remaining budgets — with zero side effects.
+
+**Rate limit:** 12 requests per hour.
+
+## 5. Summary
 
 | Check | Endpoint | Frequency |
 |-------|----------|-----------|
 | Full status (all rails) | `GET /bot/status` | Every 30 minutes |
 | Spending permissions | `GET /bot/wallet/spending` | Every 30 minutes, or before purchases |
+| Rail detail | `GET /bot/check/rail{1,2,4,5}` | Before purchases on that rail |
+| Preflight test | `POST /bot/check/rail4/test` | Before expensive Rail 4 purchases |
 
 > **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
 > Use `GET /bot/status` instead for a complete cross-rail view.
