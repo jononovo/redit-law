@@ -1,0 +1,22 @@
+The plan is well-structured and the task breakdown is clean. A few things:
+
+T002 — check where bot linking actually happens. The plan says app/api/v1/rail5/cards/[cardId]/route.ts but I'd verify that's where bot linking occurs. In Rail 4, bot linking happens via a dedicated /api/v1/rail4/link-bot/route.ts endpoint. Rail 5 might have a similar dedicated route, or it might be part of the wizard's submit flow. Fire the webhook wherever the bot_id actually gets written to the rail5_cards row — get that wrong and the webhook never fires.
+
+T003 — the relay endpoint is the riskiest piece. The encrypted card content passes through CreditClaw's server in the request body. Even though it's not persisted, it's in server memory and potentially in request logs. Make sure: no request body logging on this endpoint, the payload is forwarded immediately and not buffered unnecessarily, and the endpoint docs are clear that CreditClaw is acting as a transient relay. This is the one place where the "CreditClaw never sees card data" claim gets thin — it's encrypted, so CreditClaw can't read it, but it is technically handling it. Worth a comment in the code explaining why this is acceptable.
+
+T004 — the step reorder looks right but check the data dependencies. The current flow has spending limits at step 4 (after encrypt). You're moving limits to step 3 (before bot linking). That's fine. But make sure the encryption step (now step 5) still has access to the limits data — it might need them for the card file content or the submit-key call. Trace the data flow through the wizard state to make sure nothing breaks.
+
+T005 — "If delivery fails: fall back to standard download" needs to be seamless. The user shouldn't see an error modal and then have to click a separate download button. If delivery fails, the backup download should already be happening (since it's non-optional), so the user just sees "Couldn't reach your bot — use the backup file that was just downloaded." One message, no extra action required from the user.
+
+T006 — the message templates look good. The card_id inclusion and the GET /bot/status self-discovery reference are both there. One small thing: the direct delivery version says "Your encrypted card has been delivered and is ready to use" but the bot still needs to call GET /bot/rail5/key at checkout time to get the decryption key. It's not fully ready to use until checkout — it's ready to attempt checkout. Minor wording, but bots are literal.
+
+What's missing: The plan doesn't mention updating the rails.updated webhook to also fire from Rail 4 link-bot, Rail 2 wallet creation, and Rail 1 wallet creation. You agreed on a unified webhook — but the tasks only wire it up for Rail 5. That's fine as a starting point, but note that it's incomplete. You'll want a follow-up task to add rails.updated firing across all rails, otherwise it's a Rail 5-only event dressed up as a universal one.
+
+Otherwise, this is solid. Build it.
+
+
+
+
+
+
+Claude

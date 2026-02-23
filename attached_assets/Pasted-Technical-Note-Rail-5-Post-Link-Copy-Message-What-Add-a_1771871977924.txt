@@ -1,0 +1,28 @@
+Technical Note: Rail 5 Post-Link Copy Message
+What: Add a dynamic, copyable message to the Rail 5 setup wizard confirmation screen (step 7, "Card Ready!") so the owner can paste it directly to their bot.
+Message template (populated from wizard state):
+You've been linked to a new Sub-Agent Card on CreditClaw.
+
+Card: {card_name} (••••{last4})
+Per-Checkout Limit: ${per_checkout_limit}
+Daily / Monthly: ${daily_limit} / ${monthly_limit}
+
+To use this card:
+1. Call GET /api/v1/bot/status to confirm your updated rails
+2. At checkout, use POST /api/v1/bot/rail5/checkout
+3. Request decryption key via GET /api/v1/bot/rail5/key
+4. Full guide: https://creditclaw.com/skill.md (Rail 5 section)
+Where: Step 7 of Rail5SetupWizard (components/dashboard/rail5-setup-wizard.tsx), below the card summary, above the "Done" button. Styled as a code block with a "Copy to Clipboard" button.
+Data source: All values already available in the wizard's state from previous steps — card name, last4, spending limits. No new API calls needed.
+Webhook (optional, separate task): Also fire a rail5.card.linked event via the existing webhook system if the bot has a callback_url configured. The copy-paste message remains the primary UX regardless.I I think we should have a unified web hook that informs the bot of any new cards/wallets or updates,... not create specific endpoints for information about specific rails.Does that make sense?1:38 PMYes, that makes total sense. One webhook event that says "your payment methods changed, call /bot/status to see the update." Not separate events for each rail.
+Something like:
+Event: rails.updated
+Payload:
+json{
+  "event": "rails.updated",
+  "action": "card_linked",
+  "rail": "rail5",
+  "message": "A new Sub-Agent Card has been linked to your account. Call GET /bot/status for details."
+}
+The action field covers all cases: card_linked, card_removed, wallet_created, wallet_frozen, limits_updated, rail_activated, etc. The bot doesn't need to parse the payload — it just sees "something changed" and calls /bot/status to get the current picture.
+This way you're not building rail-specific webhook events every time you add or change a rail. One event, one handler, one response pattern. The bot always knows what to do: refresh its status.

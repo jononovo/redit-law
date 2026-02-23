@@ -26,7 +26,9 @@ export type WebhookEventType =
   | "order.delivered"
   | "order.failed"
   | "rail5.checkout.completed"
-  | "rail5.checkout.failed";
+  | "rail5.checkout.failed"
+  | "rails.updated"
+  | "rail5.card.delivered";
 
 interface WebhookPayload {
   event: WebhookEventType;
@@ -86,8 +88,8 @@ export async function fireWebhook(
   bot: Bot,
   eventType: WebhookEventType,
   data: Record<string, unknown>,
-): Promise<void> {
-  if (!bot.callbackUrl || !bot.webhookSecret) return;
+): Promise<boolean> {
+  if (!bot.callbackUrl || !bot.webhookSecret) return false;
 
   const payload: WebhookPayload = {
     event: eventType,
@@ -119,6 +121,7 @@ export async function fireWebhook(
       responseStatus: result.status,
       responseBody: result.body,
     });
+    return true;
   } else {
     const nextRetry = getNextRetryAt(1);
     await storage.updateWebhookDelivery(delivery.id, {
@@ -129,6 +132,7 @@ export async function fireWebhook(
       responseStatus: result.status,
       responseBody: result.body,
     });
+    return false;
   }
 }
 
@@ -227,4 +231,30 @@ export async function retryAllPendingWebhooks(): Promise<number> {
     }
   }
   return retried;
+}
+
+export type RailsUpdatedAction =
+  | "card_linked"
+  | "card_removed"
+  | "limits_updated"
+  | "card_frozen"
+  | "card_unfrozen"
+  | "card_created"
+  | "card_deleted";
+
+export async function fireRailsUpdated(
+  bot: Bot,
+  action: RailsUpdatedAction,
+  rail: string,
+  extra?: Record<string, unknown>,
+): Promise<void> {
+  const data: Record<string, unknown> = {
+    action,
+    rail,
+    bot_id: bot.botId,
+    message: `A Sub-Agent Card has been ${action.replace("_", " ")}. Call GET /bot/status for details.`,
+    ...extra,
+  };
+
+  await fireWebhook(bot, "rails.updated", data);
 }
