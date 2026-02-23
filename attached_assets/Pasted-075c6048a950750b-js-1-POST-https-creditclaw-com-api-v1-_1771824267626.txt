@@ -1,0 +1,21 @@
+075c6048a950750b.js:1  POST https://creditclaw.com/api/v1/card-wallet/onramp/session 500 (Internal Server Error)
+r @ 075c6048a950750b.js:1
+await in r
+eA @ 398bf2a38611ffa0.js:1
+sY @ 4af27f77bd5de33b.js:1
+(anonymous) @ 4af27f77bd5de33b.js:1
+tD @ 4af27f77bd5de33b.js:1
+s3 @ 4af27f77bd5de33b.js:1
+fC @ 4af27f77bd5de33b.js:1
+fP @ 4af27f77bd5de33b.js:1
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fcreditclaw.com%2Fapp%2Fcard-wallet&title=CreditClaw%20-%20Give%20your%20bot%20a%20card&referrer=&muid=eb37a581-c025-4016-a4d7-a0652a01a9618e0e7f&sid=62764352-f590-4d0f-a01d-8373db6f3e4f2f5046&version=6&preview=false&__shared_params__[version]=clover:1 Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+m.stripe.network/inner.html#url=https%3A%2F%2Fcreditclaw.com%2Fapp%2Fcard-wallet&title=CreditClaw%20-%20Give%20your%20bot%20a%20card&referrer=&muid=eb37a581-c025-4016-a4d7-a0652a01a9618e0e7f&sid=62764352-f590-4d0f-a01d-8373db6f3e4f2f5046&version=6&preview=false&__shared_params__[version]=clover:1 Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+js.stripe.com/v3/controller-with-preconnect-86f9b198ed9dbbd2003cab5cffae6b1f.html#__shared_params__[version]=clover&__shared_params__[light_experiment_assignments]=%7B%22token%22%3A%226f1d0b83-bf51-4912-af6e-3c727fe4f4db%22%2C%22assignments%22%3A%7B%22elements_accessory_frame_rendering_v5%22%3A%22treatment%22%7D%7D&apiKey=pk_live_51IGl6AK7jbIybp9HyUU8XmuuDKrU1gRgTfP0dhn2ipdPXsNAzMfLWLgAAdwk091g7sKl4sg78fltn1yFOFruJean009N70ysJH&apiVersion=2025-09-30.clover&stripeJsId=6f1d0b83-bf51-4912-af6e-3c727fe4f4db&stripeObjId=sobj-99cd0b3c-ff68-4235-98f9-7e9f243b0eea&firstStripeInstanceCreatedLatency=26&controllerCount=1&isCheckout=false&stripeJsLoadTime=1771824177409&manualBrowserDeprecationRollout=false&mids[guid]=NA&mids[muid]=eb37a581-c025-4016-a4d7-a0652a01a9618e0e7f&mids[sid]=62764352-f590-4d0f-a01d-8373db6f3e4f2f5046&referrer=https%3A%2F%2Fcreditclaw.com%2Fapp%2Fcard-wallet&controllerId=__privateStripeController4441:1 Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
+card-wallet:1 Unchecked runtime.lastError: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received
