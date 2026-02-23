@@ -44,9 +44,6 @@ on what your owner has configured.
 Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails, or use the rail-specific endpoints below.
 
-> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
-> Use `GET /bot/status` instead for a complete cross-rail view.
-
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
 ---
@@ -474,19 +471,6 @@ Response (blocked):
 **Rate limit:** 12 requests per hour.
 
 ---
-
-#### Legacy: Check Wallet Status
-
-> **Deprecated.** Use `GET /bot/status` instead for a complete cross-rail view.
-
-```bash
-curl https://creditclaw.com/api/v1/bot/wallet/check \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-This endpoint returns only prepaid wallet status. It continues to work for backward compatibility.
-
-**Rate limit:** 6 requests per hour.
 
 ### 4. Check Spending Permissions (Before Every Purchase)
 
@@ -953,7 +937,7 @@ Base URL: `https://creditclaw.com/api/v1`
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|------------|
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. | 3/hr per IP |
-| GET | `/bot/wallet/check` | Lightweight heartbeat: balance, status, limits. | 6/hr |
+| GET | `/bot/status` | Full cross-rail status: balances, limits, master guardrails. | 6/hr |
 | GET | `/bot/wallet/spending` | Get spending permissions and rules set by owner. | 6/hr |
 | POST | `/bot/wallet/purchase` | Make a purchase (wallet debit). | 30/hr |
 | POST | `/bot/wallet/topup-request` | Ask owner to add funds. Sends email notification. | 3/hr |

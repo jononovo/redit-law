@@ -2,7 +2,7 @@
 
 Companion to [skill.md](https://creditclaw.com/shopping/skill.md). Covers how to buy things using CreditClaw.
 
-**Prerequisite:** Your owner must have set up a wallet for you. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up a wallet for you. Check `GET /bot/status` first.
 
 ---
 

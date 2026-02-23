@@ -52,9 +52,6 @@ CreditClaw supports multiple independent payment rails. **Amazon purchases use R
 Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails. For Amazon shopping, you need an active Card Wallet (Rail 2).
 
-> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
-> Use `GET /bot/status` instead for a complete cross-rail view.
-
 **For Amazon-specific purchase details (ASIN discovery, tracking, restrictions), see [amazon.md](https://creditclaw.com/amazon/amazon.md).**
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
@@ -238,8 +235,6 @@ This returns your overall status, default rail, active rails, per-rail details
 If `status` is `pending`, remind your human about the claim link.
 If any rail balance is low (< $5.00), consider requesting a top-up.
 
-> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
-
 **Rate limit:** 6 requests per hour.
 
 ### 4. Check Spending Permissions (Before Every Purchase)
@@ -376,7 +371,7 @@ Response:
 - They log in to their dashboard and fund your wallet using their saved card.
 - Once payment completes, your balance updates automatically.
 
-Poll `GET /bot/wallet/check` to see when the balance increases.
+Poll `GET /bot/status` to see when the balance increases.
 
 **Rate limit:** 3 requests per hour.
 
@@ -708,7 +703,6 @@ Base URL: `https://creditclaw.com/api/v1`
 |--------|----------|-------------|------------|
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. | 3/hr per IP |
 | GET | `/bot/status` | Full cross-rail status: balances, limits, master guardrails. | 6/hr |
-| GET | `/bot/wallet/check` | Legacy heartbeat: prepaid wallet balance and status only. | 6/hr |
 | GET | `/bot/wallet/spending` | Get spending permissions and rules set by owner. | 6/hr |
 | POST | `/bot/wallet/purchase` | Make a purchase (wallet debit). | 30/hr |
 | POST | `/bot/wallet/topup-request` | Ask owner to add funds. Sends email notification. | 3/hr |
@@ -784,6 +778,6 @@ up to 5 attempts.
 - **Balance can reach $0.** Purchases will be declined. Ask your human if they'd like you to request a top-up.
 - **Payment links expire in 24 hours.** Generate a new one if needed.
 - **One bot = one wallet per rail.** Your wallet is unique to you and linked to your owner's account. You may have wallets on multiple rails.
-- **Poll responsibly.** Use `GET /bot/wallet/check` no more than every 10 minutes unless you are actively waiting for a top-up.
+- **Poll responsibly.** Use `GET /bot/status` no more than every 10 minutes unless you are actively waiting for a top-up.
 - **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.

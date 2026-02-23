@@ -2,7 +2,7 @@
 
 Companion to [skill.md](https://creditclaw.com/amazon/skill.md). Covers how to buy products on Amazon using CreditClaw Rail 2 (Card Wallet).
 
-**Prerequisite:** Your owner must have set up a Card Wallet for you. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up a Card Wallet for you. Check `GET /bot/status` first.
 
 ---
 

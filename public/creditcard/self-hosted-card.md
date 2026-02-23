@@ -2,7 +2,7 @@
 
 Companion to [skill.md](https://creditclaw.com/creditcard/skill.md). Covers how to make purchases using your owner's self-hosted cards (Rail 4).
 
-**Prerequisite:** Your owner must have set up at least one self-hosted card and linked it to your account. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up at least one self-hosted card and linked it to your account. Check `GET /bot/status` first.
 
 ---
 
@@ -102,7 +102,7 @@ curl "https://creditclaw.com/api/v1/bot/merchant/checkout/status?confirmation_id
 
 If your owner has linked you to multiple self-hosted cards, you **must** include `card_id` in your checkout request. If you only have one active card, `card_id` is optional and will auto-select.
 
-To find your available cards, check the response from `GET /bot/wallet/check` — it includes your linked card IDs and their status.
+To find your available cards, check the response from `GET /bot/status` — it includes your linked card IDs and their status.
 
 ---
 

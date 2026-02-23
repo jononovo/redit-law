@@ -112,8 +112,5 @@ showing remaining budgets — with zero side effects.
 | Rail detail | `GET /bot/check/rail{1,2,4,5}` | Before purchases on that rail |
 | Preflight test | `POST /bot/check/rail4/test` | Before expensive Rail 4 purchases |
 
-> **Legacy:** `GET /bot/wallet/check` still works but only shows prepaid wallet status.
-> Use `GET /bot/status` instead for a complete cross-rail view.
-
 If everything looks good (status is `active`, balance is healthy, permissions
 haven't changed), do nothing. Resume your normal tasks.
