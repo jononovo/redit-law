@@ -1,7 +1,7 @@
 ---
 name: creditclaw
-version: 2.2.0
-updated: 2026-02-13
+version: 2.3.0
+updated: 2026-02-23
 description: "Give your agent spending power. Financial management for Agents and OpenClaw bots."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
@@ -41,8 +41,8 @@ on what your owner has configured.
 | **Self-Hosted Cards** | Owner's own cards with split-knowledge privacy | Live | `POST /bot/merchant/checkout` (human approval) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
 
-Your owner chooses which rails to enable for you. Check `GET /bot/wallet/check` to see
-your active wallet status, or use the rail-specific endpoints below.
+Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
+your full status across all connected rails, or use the rail-specific endpoints below.
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -80,7 +80,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
 5. Your wallet activates
-6. You poll GET /bot/wallet/check periodically to monitor balance
+6. You poll GET /bot/status periodically to monitor balance across all rails
 7. You check GET /bot/wallet/spending for your owner's permission rules
 8. You spend via the rail your owner has enabled for you
 9. When balance is low, you request a top-up or generate a payment link
@@ -184,37 +184,66 @@ Once your human claims you with the token, they unlock:
 
 Your human can log in anytime to monitor your spending, adjust limits, or fund your wallet.
 
-### 3. Check Wallet Status (Heartbeat)
+### 3. Check Full Status (Recommended)
 
-Use this lightweight endpoint to poll your wallet status. Recommended
-interval: every 30 minutes, or before any purchase.
+Use this endpoint to see your complete status across all payment rails.
+Recommended interval: every 30 minutes, or before any purchase.
 
 ```bash
-curl https://creditclaw.com/api/v1/bot/wallet/check \
+curl https://creditclaw.com/api/v1/bot/status \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY"
 ```
 
-Response (after claiming, with funds):
+Response (active bot with multiple rails):
 ```json
 {
-  "wallet_status": "active",
-  "balance_usd": 50.00,
-  "spending_limits": {
-    "per_transaction_usd": 25.00,
-    "monthly_usd": 500.00,
-    "monthly_spent_usd": 12.50,
-    "monthly_remaining_usd": 487.50
+  "bot_id": "bot_abc123",
+  "bot_name": "ShopperBot",
+  "status": "active",
+  "default_rail": "card_wallet",
+  "active_rails": ["card_wallet", "stripe_wallet", "self_hosted_cards"],
+  "rails": {
+    "card_wallet": {
+      "status": "active",
+      "balance_usd": 50.00,
+      "spending_limits": {
+        "per_transaction_usd": 25.00,
+        "monthly_usd": 500.00,
+        "monthly_spent_usd": 12.50,
+        "monthly_remaining_usd": 487.50
+      }
+    },
+    "stripe_wallet": {
+      "status": "active",
+      "balance_usd": 100.00,
+      "address": "0x..."
+    },
+    "self_hosted_cards": {
+      "status": "active",
+      "card_count": 2,
+      "cards": [
+        { "card_id": "card_xyz", "card_name": "Amazon Card", "use_case": "amazon" }
+      ]
+    }
   },
-  "pending_topups": 0
+  "master_guardrails": {
+    "per_transaction_usd": 500,
+    "daily_budget_usd": 2000,
+    "monthly_budget_usd": 10000
+  }
 }
 ```
 
 Response (before claiming):
 ```json
 {
-  "wallet_status": "pending",
-  "balance_usd": 0,
-  "message": "Owner has not claimed this bot yet. Share your claim token with your human."
+  "bot_id": "bot_abc123",
+  "bot_name": "ShopperBot",
+  "status": "pending",
+  "default_rail": null,
+  "message": "Owner has not claimed this bot yet. Share your claim token with your human.",
+  "rails": {},
+  "master_guardrails": null
 }
 ```
 
@@ -222,13 +251,226 @@ Response (before claiming):
 | Status | Meaning |
 |--------|---------|
 | `pending` | Registered but owner hasn't claimed yet |
-| `active` | Wallet funded and ready to use |
-| `empty` | Wallet is active but $0 balance — request a top-up |
+| `active` | At least one rail is connected |
+| `frozen` | Owner has frozen this bot — no transactions allowed |
+| `inactive` | Claimed but no rails connected yet |
 
-If `wallet_status` is `pending`, remind your human about the claim link.
-If `balance_usd` < 5.00, consider requesting a top-up.
+**Rail keys:**
+| Key | Rail | Spending Mechanism |
+|-----|------|-------------------|
+| `card_wallet` | Prepaid wallet | `POST /bot/wallet/purchase` |
+| `stripe_wallet` | Stripe/x402 wallet | `POST /stripe-wallet/bot/sign` |
+| `shopping_wallet` | Shopping wallet | `POST /card-wallet/bot/purchase` |
+| `self_hosted_cards` | Self-hosted cards | `POST /bot/merchant/checkout` |
+| `sub_agent_cards` | Sub-agent cards | `POST /bot/rail5/checkout` |
+
+If `default_rail` is set, prefer that rail for purchases when multiple are available.
+If `status` is `pending`, remind your human about the claim link.
 
 **Rate limit:** 6 requests per hour.
+
+### Per-Rail Detail Checks
+
+When you need deeper operational info about a specific rail — like remaining allowances,
+guardrail budgets, approval modes, or domain restrictions — use the per-rail check endpoints.
+
+#### Rail 1: Stripe Wallet Detail
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail1 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response (active):
+```json
+{
+  "status": "active",
+  "balance_usd": 100.00,
+  "address": "0x...",
+  "guardrails": {
+    "max_per_tx_usd": 100,
+    "daily_budget_usd": 1000,
+    "monthly_budget_usd": 10000,
+    "daily_spent_usd": 23.50,
+    "daily_remaining_usd": 976.50,
+    "monthly_spent_usd": 147.00,
+    "monthly_remaining_usd": 9853.00,
+    "require_approval_above_usd": 50
+  },
+  "domain_rules": {
+    "allowlisted": ["api.openai.com"],
+    "blocklisted": []
+  },
+  "pending_approvals": 0
+}
+```
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
+#### Rail 2: Shopping Wallet Detail
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail2 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response (active):
+```json
+{
+  "status": "active",
+  "balance_usd": 250.00,
+  "address": "0x...",
+  "guardrails": {
+    "max_per_tx_usd": 100,
+    "daily_budget_usd": 500,
+    "monthly_budget_usd": 2000,
+    "daily_spent_usd": 45.00,
+    "daily_remaining_usd": 455.00,
+    "monthly_spent_usd": 320.00,
+    "monthly_remaining_usd": 1680.00,
+    "require_approval_above_usd": 0
+  },
+  "merchant_rules": {
+    "allowlisted": ["amazon.com"],
+    "blocklisted": ["gambling.com"]
+  }
+}
+```
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
+#### Rail 4: Self-Hosted Card Detail
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail4 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response (active):
+```json
+{
+  "status": "active",
+  "card_count": 1,
+  "cards": [
+    {
+      "card_id": "card_xyz",
+      "card_name": "Business Visa",
+      "use_case": "general",
+      "status": "active",
+      "profiles": [
+        {
+          "profile_index": 1,
+          "allowance_usd": 50,
+          "spent_usd": 12,
+          "remaining_usd": 38,
+          "resets_at": "2026-03-01T00:00:00.000Z"
+        }
+      ],
+      "approval_mode": "above_exempt",
+      "approval_threshold_usd": 25
+    }
+  ]
+}
+```
+
+**Key fields:**
+- `profiles[].remaining_usd` — how much you can still spend this period without approval
+- `approval_mode` — `all` (always needs approval), `above_exempt` (auto-approve under threshold), `none` (never needs approval)
+- `approval_threshold_usd` — transactions below this amount are auto-approved when mode is `above_exempt`
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
+#### Rail 5: Sub-Agent Card Detail
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail5 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response (active):
+```json
+{
+  "status": "active",
+  "card_id": "r5_abc123",
+  "card_name": "Shopping Card",
+  "card_brand": "visa",
+  "last4": "4532",
+  "limits": {
+    "per_transaction_usd": 50.00,
+    "daily_usd": 100.00,
+    "monthly_usd": 500.00,
+    "human_approval_above_usd": 25.00
+  }
+}
+```
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
+### Dry-Run / Preflight Check (Rail 4)
+
+Before committing to a purchase, test whether it would be allowed — with no side effects.
+This checks profile allowances, master guardrails, and approval requirements.
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/check/rail4/test \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "merchant_name": "Amazon",
+    "amount_cents": 2500,
+    "profile_index": 1
+  }'
+```
+
+**Request fields:**
+| Field | Required | Description |
+|-------|----------|-------------|
+| `merchant_name` | Yes | Merchant name (1-200 chars) |
+| `amount_cents` | Yes | Amount in cents (integer) |
+| `profile_index` | Yes | Payment profile index (1-6) |
+| `card_id` | No | Specify card if you have multiple |
+
+Response (allowed):
+```json
+{
+  "allowed": true,
+  "requires_approval": false,
+  "reason": null,
+  "limits_snapshot": {
+    "allowance_remaining_usd": 38,
+    "master_daily_remaining_usd": 976.50,
+    "master_monthly_remaining_usd": 9853.00
+  }
+}
+```
+
+Response (blocked):
+```json
+{
+  "allowed": false,
+  "requires_approval": true,
+  "reason": ["exceeds_profile_allowance", "exceeds_master_daily_budget"],
+  "limits_snapshot": {
+    "allowance_remaining_usd": 5.00,
+    "master_daily_remaining_usd": 10.00,
+    "master_monthly_remaining_usd": 500.00
+  }
+}
+```
+
+**Use this before expensive purchases** to avoid surprise declines.
+
+**Rate limit:** 12 requests per hour.
+
+---
 
 ### 4. Check Spending Permissions (Before Every Purchase)
 
@@ -364,7 +606,7 @@ Response:
 - They log in to their dashboard and fund your wallet using their saved card.
 - Once payment completes, your balance updates automatically.
 
-Poll `GET /bot/wallet/check` to see when the balance increases.
+Poll `GET /bot/status` to see when the balance increases across any rail.
 
 **Rate limit:** 3 requests per hour.
 
@@ -695,13 +937,23 @@ Base URL: `https://creditclaw.com/api/v1`
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|------------|
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. | 3/hr per IP |
-| GET | `/bot/wallet/check` | Lightweight heartbeat: balance, status, limits. | 6/hr |
+| GET | `/bot/status` | Full cross-rail status: balances, limits, master guardrails. | 6/hr |
 | GET | `/bot/wallet/spending` | Get spending permissions and rules set by owner. | 6/hr |
 | POST | `/bot/wallet/purchase` | Make a purchase (wallet debit). | 30/hr |
 | POST | `/bot/wallet/topup-request` | Ask owner to add funds. Sends email notification. | 3/hr |
 | POST | `/bot/payments/create-link` | Generate a Stripe payment link to charge anyone. | 10/hr |
 | GET | `/bot/payments/links` | List your payment links. Supports `?status=` and `?limit=N`. | 12/hr |
 | GET | `/bot/wallet/transactions` | List transaction history. Supports `?limit=N` (default 50, max 100). | 12/hr |
+
+### Per-Rail Detail Endpoints
+
+| Method | Endpoint | Description | Rate Limit |
+|--------|----------|-------------|------------|
+| GET | `/bot/check/rail1` | Stripe Wallet detail: balance, guardrails, domain rules, pending approvals. | 6/hr |
+| GET | `/bot/check/rail2` | Shopping Wallet detail: balance, guardrails, merchant rules. | 6/hr |
+| GET | `/bot/check/rail4` | Self-Hosted Card detail: profiles, allowances, approval mode. | 6/hr |
+| GET | `/bot/check/rail5` | Sub-Agent Card detail: limits, approval threshold. | 6/hr |
+| POST | `/bot/check/rail4/test` | Dry-run preflight: test if a purchase would be allowed (no side effects). | 12/hr |
 
 ### Self-Hosted Card Endpoints (Rail 4)
 
@@ -761,7 +1013,7 @@ up to 5 attempts.
 - **Balance can reach $0.** Purchases will be declined. Ask your human if they'd like you to request a top-up.
 - **Payment links expire in 24 hours.** Generate a new one if needed.
 - **One bot = one wallet per rail.** Your wallet is unique to you and linked to your owner's account. You may have wallets on multiple rails.
-- **Poll responsibly.** Use `GET /bot/wallet/check` no more than every 10 minutes unless you are actively waiting for a top-up.
+- **Poll responsibly.** Use `GET /bot/status` no more than every 10 minutes unless you are actively waiting for a top-up.
 - **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
 - **Rail 5 sub-agents are ephemeral.** They are deleted after checkout. Never store decrypted card data.

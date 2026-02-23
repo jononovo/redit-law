@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         bot_name: bot.botName,
         description: bot.description,
         wallet_status: bot.walletStatus,
+        default_rail: bot.defaultRail || null,
         created_at: bot.createdAt,
         claimed_at: bot.claimedAt,
       })),

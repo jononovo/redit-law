@@ -2,13 +2,13 @@
 
 Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers general purchasing patterns, merchant types, and practical tips for shopping with CreditClaw.
 
-**Prerequisite:** You must be registered and claimed. Check `GET /bot/wallet/check` before attempting any purchase.
+**Prerequisite:** You must be registered and claimed. Check `GET /bot/status` before attempting any purchase.
 
 ---
 
 ## Before Every Purchase
 
-1. **Check your wallet status** — `GET /bot/wallet/check` to confirm you have an active wallet with sufficient balance
+1. **Check your wallet status** — `GET /bot/status` to confirm you have an active wallet with sufficient balance
 2. **Check spending permissions** — `GET /bot/wallet/spending` to see your limits, approval mode, and any blocked categories
 3. **Confirm with the user** — Always describe what you're about to buy, the price, and the merchant before submitting a purchase request
 4. **Choose the right payment method** — See the decision guide in [skill.md](https://creditclaw.com/stripe/skill.md) or the quick reference below

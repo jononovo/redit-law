@@ -14,6 +14,7 @@ export const bots = pgTable("bots", {
   walletStatus: text("wallet_status").notNull().default("pending"),
   callbackUrl: text("callback_url"),
   webhookSecret: text("webhook_secret"),
+  defaultRail: text("default_rail"),
   claimedAt: timestamp("claimed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone } from "lucide-react";
+import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone, Bot, ChevronDown } from "lucide-react";
 
 interface Preferences {
   transaction_alerts: boolean;
@@ -260,6 +260,152 @@ function MasterBudgetSection() {
   );
 }
 
+interface RailInfo {
+  status: string;
+  balance_usd?: number;
+  card_count?: number;
+}
+
+interface BotWithRails {
+  bot_id: string;
+  bot_name: string;
+  wallet_status: string;
+  default_rail: string | null;
+  active_rails: string[];
+  rails: Record<string, RailInfo>;
+}
+
+const RAIL_META: Record<string, { label: string; shortLabel: string; icon: typeof CreditCard; bg: string; text: string; border: string }> = {
+  card_wallet: { label: "Prepaid Wallet", shortLabel: "Prepaid", icon: CreditCard, bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
+  stripe_wallet: { label: "Stripe Wallet", shortLabel: "Stripe", icon: Zap, bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  shopping_wallet: { label: "Shopping Wallet", shortLabel: "Shopping", icon: CreditCard, bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+  self_hosted_cards: { label: "Self-Hosted Cards", shortLabel: "Self-Hosted", icon: Smartphone, bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  sub_agent_cards: { label: "Sub-Agent Cards", shortLabel: "Sub-Agent", icon: Shield, bg: "bg-pink-50", text: "text-pink-700", border: "border-pink-200" },
+};
+
+function RailBadge({ railKey, rail }: { railKey: string; rail: RailInfo }) {
+  const meta = RAIL_META[railKey];
+  if (!meta) return null;
+  const Icon = meta.icon;
+
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${meta.bg} ${meta.border}`} data-testid={`badge-rail-${railKey}`}>
+      <Icon className={`w-3.5 h-3.5 ${meta.text}`} />
+      <span className={`text-xs font-medium ${meta.text}`}>{meta.shortLabel}</span>
+      {rail.balance_usd !== undefined && (
+        <span className={`text-xs ${meta.text} opacity-75`}>${rail.balance_usd.toFixed(2)}</span>
+      )}
+      {rail.card_count !== undefined && (
+        <span className={`text-xs ${meta.text} opacity-75`}>{rail.card_count} card{rail.card_count !== 1 ? "s" : ""}</span>
+      )}
+    </div>
+  );
+}
+
+function BotRailManagement() {
+  const queryClient = useQueryClient();
+
+  const { data: botsData, isLoading } = useQuery<{ bots: BotWithRails[] }>({
+    queryKey: ["bots-rails"],
+    queryFn: async () => {
+      const res = await fetch("/api/v1/bots/rails");
+      if (!res.ok) throw new Error("Failed to load");
+      return res.json();
+    },
+  });
+
+  const mutation = useMutation({
+    mutationFn: async ({ bot_id, default_rail }: { bot_id: string; default_rail: string | null }) => {
+      const res = await fetch("/api/v1/bots/default-rail", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id, default_rail }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bots-rails"] });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-neutral-400 text-sm py-4">
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Loading bots...
+      </div>
+    );
+  }
+
+  const bots = botsData?.bots || [];
+  if (bots.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Bot className="w-5 h-5 text-emerald-600" />
+        <div>
+          <h3 className="text-md font-bold text-neutral-900">Bot Payment Rails</h3>
+          <p className="text-xs text-neutral-500">View connected rails and set preferred payment method per bot</p>
+        </div>
+      </div>
+
+      <div className="space-y-3 pl-7">
+        {bots.map((bot) => (
+          <div key={bot.bot_id} className="bg-white border border-neutral-200 rounded-xl p-4 space-y-3" data-testid={`row-bot-rail-${bot.bot_id}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">{bot.bot_name}</p>
+                <p className="text-xs text-neutral-400 font-mono">{bot.bot_id}</p>
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                bot.wallet_status === "active" ? "bg-emerald-50 text-emerald-700" :
+                bot.wallet_status === "frozen" ? "bg-red-50 text-red-700" :
+                "bg-neutral-100 text-neutral-500"
+              }`} data-testid={`status-bot-${bot.bot_id}`}>
+                {bot.wallet_status}
+              </span>
+            </div>
+
+            {bot.active_rails.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {bot.active_rails.map(railKey => (
+                  <RailBadge key={railKey} railKey={railKey} rail={bot.rails[railKey]} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400 italic">No payment rails connected</p>
+            )}
+
+            <div className="flex items-center gap-3 pt-1 border-t border-neutral-100">
+              <span className="text-xs text-neutral-500 whitespace-nowrap">Default rail:</span>
+              <div className="relative flex-1 max-w-xs">
+                <select
+                  value={bot.default_rail || ""}
+                  onChange={(e) => {
+                    const val = e.target.value || null;
+                    mutation.mutate({ bot_id: bot.bot_id, default_rail: val });
+                  }}
+                  className="w-full appearance-none bg-neutral-50 border border-neutral-200 rounded-lg pl-3 pr-8 py-1.5 text-sm text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  disabled={mutation.isPending}
+                  data-testid={`select-default-rail-${bot.bot_id}`}
+                >
+                  <option value="">Auto (no preference)</option>
+                  {Object.entries(RAIL_META).map(([value, meta]) => (
+                    <option key={value} value={value}>{meta.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -305,6 +451,10 @@ export default function SettingsPage() {
       <Separator />
 
       <MasterBudgetSection />
+
+      <Separator />
+
+      <BotRailManagement />
 
       <Separator />
 

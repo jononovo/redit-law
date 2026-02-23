@@ -2,7 +2,7 @@
 
 Companion to [skill.md](https://creditclaw.com/stripe/skill.md). Covers how to make purchases using the Pre-paid Wallet (Rail 2) for Amazon, Shopify, and supported merchants.
 
-**Prerequisite:** Your owner must have set up a Pre-paid Wallet for you. Check `GET /bot/wallet/check` first.
+**Prerequisite:** Your owner must have set up a Pre-paid Wallet for you. Check `GET /bot/status` first.
 
 ---
 
