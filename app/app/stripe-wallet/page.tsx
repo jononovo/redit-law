@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +86,13 @@ export default function StripeWalletPage() {
     require_approval_above: null as number | null,
   });
   const [savingGuardrails, setSavingGuardrails] = useState(false);
+
+  const [unlinkTarget, setUnlinkTarget] = useState<WalletInfo | null>(null);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
+
+  const [linkTarget, setLinkTarget] = useState<WalletInfo | null>(null);
+  const [linkBotId, setLinkBotId] = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -226,6 +234,55 @@ export default function StripeWalletPage() {
       }
     } catch {
       toast({ title: "Error", variant: "destructive" });
+    }
+  }
+
+  async function handleUnlinkBot() {
+    if (!unlinkTarget) return;
+    setUnlinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/stripe-wallet/unlink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: unlinkTarget.id }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot unlinked", description: `Bot has been unlinked from this wallet.` });
+        setUnlinkTarget(null);
+        fetchWallets();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to unlink bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setUnlinkLoading(false);
+    }
+  }
+
+  async function handleLinkBot() {
+    if (!linkTarget || !linkBotId) return;
+    setLinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/stripe-wallet/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: linkTarget.id, bot_id: linkBotId }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot linked", description: "Bot has been linked to this wallet." });
+        setLinkTarget(null);
+        setLinkBotId("");
+        fetchWallets();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to link bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setLinkLoading(false);
     }
   }
 
@@ -444,7 +501,18 @@ export default function StripeWalletPage() {
                           <Wallet className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
+                          {wallet.bot_id ? (
+                            <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
+                          ) : (
+                            <button
+                              onClick={() => { setLinkTarget(wallet); setLinkBotId(""); }}
+                              className="font-semibold text-emerald-300 hover:text-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors"
+                              data-testid={`button-add-agent-${wallet.id}`}
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add Agent
+                            </button>
+                          )}
                           <button
                             onClick={() => copyAddress(wallet.address)}
                             className="text-xs text-white/60 hover:text-white/90 flex items-center gap-1 cursor-pointer transition-colors"
@@ -455,13 +523,36 @@ export default function StripeWalletPage() {
                           </button>
                         </div>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
-                        wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
-                        "bg-white/10 text-white/70 border border-white/20"
-                      }`} data-testid={`badge-status-${wallet.id}`}>
-                        {wallet.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
+                          wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
+                          "bg-white/10 text-white/70 border border-white/20"
+                        }`} data-testid={`badge-status-${wallet.id}`}>
+                          {wallet.status}
+                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/15 transition-colors cursor-pointer"
+                              data-testid={`button-wallet-menu-${wallet.id}`}
+                            >
+                              <MoreVertical className="w-4 h-4 text-white/70" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {wallet.bot_id && (
+                              <DropdownMenuItem
+                                onClick={() => setUnlinkTarget(wallet)}
+                                data-testid={`menu-unlink-bot-${wallet.id}`}
+                              >
+                                <Unlink className="w-4 h-4 mr-2" />
+                                Unlink Bot
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
 
                     <div className="mb-5 relative z-10">
@@ -784,6 +875,74 @@ export default function StripeWalletPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!linkTarget} onOpenChange={(open) => { if (!open) { setLinkTarget(null); setLinkBotId(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-500" />
+            Link Agent to Wallet
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Select a bot to link to this wallet. The bot will be able to use this wallet for transactions.
+          </DialogDescription>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>Select Bot</Label>
+              <select
+                className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
+                value={linkBotId}
+                onChange={(e) => setLinkBotId(e.target.value)}
+                data-testid="select-bot-link"
+              >
+                <option value="">Choose a bot...</option>
+                {bots.map((bot) => (
+                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setLinkTarget(null); setLinkBotId(""); }} disabled={linkLoading} data-testid="button-link-cancel">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLinkBot}
+                disabled={!linkBotId || linkLoading}
+                className="bg-primary hover:bg-primary/90"
+                data-testid="button-link-confirm"
+              >
+                {linkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Link Bot
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!unlinkTarget} onOpenChange={(open) => { if (!open) setUnlinkTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Unlink className="w-5 h-5 text-red-500" />
+            Unlink Bot
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Are you sure you want to unlink <span className="font-semibold text-neutral-900">"{unlinkTarget?.bot_name}"</span> from this wallet? The bot will no longer be able to use this wallet for transactions.
+          </DialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setUnlinkTarget(null)} disabled={unlinkLoading} data-testid="button-unlink-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUnlinkBot}
+              disabled={unlinkLoading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-unlink-confirm"
+            >
+              {unlinkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Unlink Bot
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
