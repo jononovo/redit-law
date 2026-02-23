@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { fireRailsUpdated } from "@/lib/webhooks";
 import { z } from "zod";
 
 const patchSchema = z.object({
@@ -70,6 +71,28 @@ export async function PATCH(
   }
 
   const updated = await storage.updateRail5Card(cardId, updates);
+
+  if (data.bot_id !== undefined) {
+    const targetBotId = data.bot_id || card.botId;
+    if (targetBotId) {
+      const bot = await storage.getBotByBotId(targetBotId);
+      if (bot) {
+        const action = data.bot_id ? "card_linked" as const : "card_removed" as const;
+        fireRailsUpdated(bot, action, "rail5", { card_id: cardId }).catch(() => {});
+      }
+    }
+  }
+
+  if (data.status !== undefined && (data.status === "frozen" || data.status === "active")) {
+    const botId = updated!.botId;
+    if (botId) {
+      const bot = await storage.getBotByBotId(botId);
+      if (bot) {
+        const action = data.status === "frozen" ? "card_frozen" as const : "card_unfrozen" as const;
+        fireRailsUpdated(bot, action, "rail5", { card_id: cardId }).catch(() => {});
+      }
+    }
+  }
 
   return NextResponse.json({
     card_id: updated!.cardId,
