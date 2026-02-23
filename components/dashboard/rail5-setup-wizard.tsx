@@ -765,7 +765,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <h2 className="text-2xl font-bold text-neutral-900">Card Ready!</h2>
               <p className="text-sm text-neutral-500 mt-2">
                 {directDeliverySucceeded
-                  ? "Your encrypted card has been delivered to your bot and is ready to use."
+                  ? "Your encrypted card has been delivered to your bot and is ready for checkout."
                   : "Your encrypted card has been set up successfully."}
               </p>
             </div>
@@ -804,7 +804,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             <div className="relative">
               <div className="bg-neutral-900 rounded-xl p-4 text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed">
                 {directDeliverySucceeded
-                  ? `Your encrypted card has been delivered and is ready to use.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
+                  ? `Your encrypted card has been delivered and ready for checkout.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
                   : `Place the downloaded Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md file in your bot's OpenClaw workspace.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`}
               </div>
               <Button
@@ -814,7 +814,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 data-testid="button-r5-copy-message"
                 onClick={() => {
                   const msg = directDeliverySucceeded
-                    ? `Your encrypted card has been delivered and is ready to use.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
+                    ? `Your encrypted card has been delivered and ready for checkout.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
                     : `Place the downloaded Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md file in your bot's OpenClaw workspace.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`;
                   navigator.clipboard.writeText(msg).then(() => {
                     setCopied(true);
