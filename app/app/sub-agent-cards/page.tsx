@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal, Snowflake, Play, Lock } from "lucide-react";
+import { Loader2, Shield, Plus, CreditCard, Eye, Copy, Bot, MoreHorizontal, Snowflake, Play, Lock, Unlink } from "lucide-react";
 import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 import { CardVisual } from "@/components/dashboard/card-visual";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
@@ -19,11 +20,17 @@ interface Rail5CardInfo {
   card_last4: string;
   status: string;
   bot_id: string | null;
+  bot_name: string | null;
   spending_limit_cents: number;
   daily_limit_cents: number;
   monthly_limit_cents: number;
   human_approval_above_cents: number;
   created_at: string;
+}
+
+interface BotInfo {
+  bot_id: string;
+  bot_name: string;
 }
 
 const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["purple", "dark", "blue", "primary"];
@@ -45,6 +52,13 @@ export default function SubAgentCardsPage() {
   const [freezeTarget, setFreezeTarget] = useState<Rail5CardInfo | null>(null);
   const [freezeLoading, setFreezeLoading] = useState(false);
 
+  const [bots, setBots] = useState<BotInfo[]>([]);
+  const [linkTarget, setLinkTarget] = useState<Rail5CardInfo | null>(null);
+  const [linkBotId, setLinkBotId] = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [unlinkTarget, setUnlinkTarget] = useState<Rail5CardInfo | null>(null);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
+
   const fetchCards = useCallback(async () => {
     try {
       const res = await authFetch("/api/v1/rail5/cards");
@@ -58,13 +72,24 @@ export default function SubAgentCardsPage() {
     }
   }, []);
 
+  const fetchBots = useCallback(async () => {
+    try {
+      const res = await authFetch("/api/v1/bots/mine");
+      if (res.ok) {
+        const data = await res.json();
+        setBots(data.bots || []);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (user) {
       fetchCards();
+      fetchBots();
     } else {
       setLoading(false);
     }
-  }, [user, fetchCards]);
+  }, [user, fetchCards, fetchBots]);
 
   function handleCopyCardId(cardId: string) {
     navigator.clipboard.writeText(cardId);
@@ -100,6 +125,55 @@ export default function SubAgentCardsPage() {
     } finally {
       setFreezeLoading(false);
       setFreezeTarget(null);
+    }
+  }
+
+  async function handleLinkBot() {
+    if (!linkTarget || !linkBotId) return;
+    setLinkLoading(true);
+    try {
+      const res = await authFetch(`/api/v1/rail5/cards/${linkTarget.card_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id: linkBotId }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot linked", description: "Bot has been linked to this card." });
+        setLinkTarget(null);
+        setLinkBotId("");
+        fetchCards();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to link bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setLinkLoading(false);
+    }
+  }
+
+  async function handleUnlinkBot() {
+    if (!unlinkTarget) return;
+    setUnlinkLoading(true);
+    try {
+      const res = await authFetch(`/api/v1/rail5/cards/${unlinkTarget.card_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id: null }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot unlinked", description: "Bot has been unlinked from this card." });
+        setUnlinkTarget(null);
+        fetchCards();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to unlink bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setUnlinkLoading(false);
     }
   }
 
@@ -159,6 +233,74 @@ export default function SubAgentCardsPage() {
             >
               {freezeLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {freezeTarget?.status === "frozen" ? "Unfreeze" : "Freeze"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!linkTarget} onOpenChange={(open) => { if (!open) { setLinkTarget(null); setLinkBotId(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-500" />
+            Link Agent to Card
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Select a bot to link to <span className="font-semibold text-neutral-900">"{linkTarget?.card_name}"</span>. The bot will be able to use this card for purchases.
+          </DialogDescription>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>Select Bot</Label>
+              <select
+                className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
+                value={linkBotId}
+                onChange={(e) => setLinkBotId(e.target.value)}
+                data-testid="select-r5-bot-link"
+              >
+                <option value="">Choose a bot...</option>
+                {bots.map((bot) => (
+                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setLinkTarget(null); setLinkBotId(""); }} disabled={linkLoading} data-testid="button-r5-link-cancel">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLinkBot}
+                disabled={!linkBotId || linkLoading}
+                className="bg-primary hover:bg-primary/90"
+                data-testid="button-r5-link-confirm"
+              >
+                {linkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Link Bot
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!unlinkTarget} onOpenChange={(open) => { if (!open) setUnlinkTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Unlink className="w-5 h-5 text-red-500" />
+            Unlink Bot
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Are you sure you want to unlink <span className="font-semibold text-neutral-900">"{unlinkTarget?.bot_name}"</span> from this card? The bot will no longer be able to use this card for purchases.
+          </DialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setUnlinkTarget(null)} disabled={unlinkLoading} data-testid="button-r5-unlink-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUnlinkBot}
+              disabled={unlinkLoading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-r5-unlink-confirm"
+            >
+              {unlinkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Unlink Bot
             </Button>
           </div>
         </DialogContent>
@@ -232,24 +374,46 @@ export default function SubAgentCardsPage() {
                     <div className="w-px bg-neutral-100 my-1" />
                   </>
                 )}
-                {card.bot_id && (
+                {card.bot_id ? (
                   <>
                     <div
                       className="flex-1 flex items-center justify-center gap-2 text-xs text-blue-600 font-medium"
                       data-testid={`badge-r5-bot-link-${card.card_id}`}
                     >
-                      <Bot className="w-4 h-4" /> Linked
+                      <Bot className="w-4 h-4" /> {card.bot_name || "Linked"}
                     </div>
+                    <div className="w-px bg-neutral-100 my-1" />
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="flex-1 text-xs gap-2 text-emerald-600 font-semibold cursor-pointer hover:bg-emerald-50 rounded-lg transition-colors"
+                      onClick={() => { setLinkTarget(card); setLinkBotId(""); }}
+                      data-testid={`button-r5-add-agent-${card.card_id}`}
+                    >
+                      <Plus className="w-4 h-4" /> Add Agent
+                    </Button>
                     <div className="w-px bg-neutral-100 my-1" />
                   </>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors" data-testid={`button-r5-more-${card.card_id}`}>
+                    <Button variant="ghost" className="text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors px-3" data-testid={`button-r5-more-${card.card_id}`}>
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {!card.bot_id && (
+                      <DropdownMenuItem onClick={() => { setLinkTarget(card); setLinkBotId(""); }} data-testid={`menu-r5-link-${card.card_id}`}>
+                        <Plus className="w-4 h-4 mr-2" /> Link Agent
+                      </DropdownMenuItem>
+                    )}
+                    {card.bot_id && (
+                      <DropdownMenuItem onClick={() => setUnlinkTarget(card)} data-testid={`menu-r5-unlink-${card.card_id}`}>
+                        <Unlink className="w-4 h-4 mr-2" /> Unlink Bot
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => handleCopyCardId(card.card_id)} data-testid={`menu-r5-copy-${card.card_id}`}>
                       <Copy className="w-4 h-4 mr-2" /> Copy Card ID
                     </DropdownMenuItem>
