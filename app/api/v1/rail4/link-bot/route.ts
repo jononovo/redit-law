@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -50,6 +51,8 @@ export async function POST(request: NextRequest) {
     botId: bot.botId,
     status: "active",
   } as any);
+
+  fireRailsUpdated(bot, "card_linked", "rail4", { card_id }).catch(() => {});
 
   return NextResponse.json({
     status: "active",

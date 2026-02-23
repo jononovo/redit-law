@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -31,6 +32,14 @@ export async function POST(request: NextRequest) {
 
   const newStatus = frozen ? "frozen" : "active";
   await storage.updateRail4CardByCardId(card_id, { status: newStatus } as any);
+
+  if (card.botId) {
+    const bot = await storage.getBotByBotId(card.botId);
+    if (bot) {
+      const action = frozen ? "card_frozen" as const : "card_unfrozen" as const;
+      fireRailsUpdated(bot, action, "rail4", { card_id }).catch(() => {});
+    }
+  }
 
   return NextResponse.json({
     card_id,

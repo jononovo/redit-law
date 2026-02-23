@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +22,14 @@ export async function POST(request: NextRequest) {
 
     if (!updated) {
       return NextResponse.json({ error: "Wallet not found or not owned by you" }, { status: 404 });
+    }
+
+    if (updated.botId) {
+      const bot = await storage.getBotByBotId(updated.botId);
+      if (bot) {
+        const action = frozen ? "wallet_frozen" as const : "wallet_unfrozen" as const;
+        fireRailsUpdated(bot, action, "rail1", { wallet_id: updated.id }).catch(() => {});
+      }
     }
 
     return NextResponse.json({

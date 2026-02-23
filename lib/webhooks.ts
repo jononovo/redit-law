@@ -240,7 +240,13 @@ export type RailsUpdatedAction =
   | "card_frozen"
   | "card_unfrozen"
   | "card_created"
-  | "card_deleted";
+  | "card_deleted"
+  | "wallet_created"
+  | "wallet_linked"
+  | "wallet_unlinked"
+  | "wallet_frozen"
+  | "wallet_unfrozen"
+  | "wallet_funded";
 
 export async function fireRailsUpdated(
   bot: Bot,
@@ -252,7 +258,7 @@ export async function fireRailsUpdated(
     action,
     rail,
     bot_id: bot.botId,
-    message: `A Sub-Agent Card has been ${action.replace("_", " ")}. Call GET /bot/status for details.`,
+    message: `Your payment methods have been updated (${action.replace(/_/g, " ")}). Call GET /bot/status for details.`,
     ...extra,
   };
 

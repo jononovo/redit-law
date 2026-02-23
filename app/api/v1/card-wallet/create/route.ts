@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { createCrossmintWalletSchema } from "@/shared/schema";
 import { createSmartWallet } from "@/lib/card-wallet/server";
+import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest) {
     });
 
     await storage.crossmintUpsertGuardrails(wallet.id, {});
+
+    fireRailsUpdated(bot, "wallet_created", "rail2", { wallet_id: wallet.id }).catch(() => {});
 
     return NextResponse.json({
       wallet_id: wallet.id,
