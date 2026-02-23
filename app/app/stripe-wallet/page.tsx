@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -89,6 +89,10 @@ export default function StripeWalletPage() {
 
   const [unlinkTarget, setUnlinkTarget] = useState<WalletInfo | null>(null);
   const [unlinkLoading, setUnlinkLoading] = useState(false);
+
+  const [linkTarget, setLinkTarget] = useState<WalletInfo | null>(null);
+  const [linkBotId, setLinkBotId] = useState("");
+  const [linkLoading, setLinkLoading] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -254,6 +258,31 @@ export default function StripeWalletPage() {
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
     } finally {
       setUnlinkLoading(false);
+    }
+  }
+
+  async function handleLinkBot() {
+    if (!linkTarget || !linkBotId) return;
+    setLinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/stripe-wallet/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: linkTarget.id, bot_id: linkBotId }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot linked", description: "Bot has been linked to this wallet." });
+        setLinkTarget(null);
+        setLinkBotId("");
+        fetchWallets();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to link bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setLinkLoading(false);
     }
   }
 
@@ -472,7 +501,18 @@ export default function StripeWalletPage() {
                           <Wallet className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
+                          {wallet.bot_id ? (
+                            <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
+                          ) : (
+                            <button
+                              onClick={() => { setLinkTarget(wallet); setLinkBotId(""); }}
+                              className="font-semibold text-white/80 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
+                              data-testid={`button-add-agent-${wallet.id}`}
+                            >
+                              <Bot className="w-4 h-4" />
+                              Add Agent
+                            </button>
+                          )}
                           <button
                             onClick={() => copyAddress(wallet.address)}
                             className="text-xs text-white/60 hover:text-white/90 flex items-center gap-1 cursor-pointer transition-colors"
@@ -835,6 +875,48 @@ export default function StripeWalletPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!linkTarget} onOpenChange={(open) => { if (!open) { setLinkTarget(null); setLinkBotId(""); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-500" />
+            Link Agent to Wallet
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Select a bot to link to this wallet. The bot will be able to use this wallet for transactions.
+          </DialogDescription>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>Select Bot</Label>
+              <select
+                className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
+                value={linkBotId}
+                onChange={(e) => setLinkBotId(e.target.value)}
+                data-testid="select-bot-link"
+              >
+                <option value="">Choose a bot...</option>
+                {bots.map((bot) => (
+                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => { setLinkTarget(null); setLinkBotId(""); }} disabled={linkLoading} data-testid="button-link-cancel">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLinkBot}
+                disabled={!linkBotId || linkLoading}
+                className="bg-primary hover:bg-primary/90"
+                data-testid="button-link-confirm"
+              >
+                {linkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Link Bot
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!unlinkTarget} onOpenChange={(open) => { if (!open) setUnlinkTarget(null); }}>
         <DialogContent className="sm:max-w-md">
