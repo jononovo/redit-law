@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +86,9 @@ export default function StripeWalletPage() {
     require_approval_above: null as number | null,
   });
   const [savingGuardrails, setSavingGuardrails] = useState(false);
+
+  const [unlinkTarget, setUnlinkTarget] = useState<WalletInfo | null>(null);
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -226,6 +230,30 @@ export default function StripeWalletPage() {
       }
     } catch {
       toast({ title: "Error", variant: "destructive" });
+    }
+  }
+
+  async function handleUnlinkBot() {
+    if (!unlinkTarget) return;
+    setUnlinkLoading(true);
+    try {
+      const res = await authFetch("/api/v1/stripe-wallet/unlink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: unlinkTarget.id }),
+      });
+      if (res.ok) {
+        toast({ title: "Bot unlinked", description: `Bot has been unlinked from this wallet.` });
+        setUnlinkTarget(null);
+        fetchWallets();
+      } else {
+        const err = await res.json();
+        toast({ title: "Error", description: err.error || "Failed to unlink bot", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setUnlinkLoading(false);
     }
   }
 
@@ -455,13 +483,36 @@ export default function StripeWalletPage() {
                           </button>
                         </div>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
-                        wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
-                        "bg-white/10 text-white/70 border border-white/20"
-                      }`} data-testid={`badge-status-${wallet.id}`}>
-                        {wallet.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
+                          wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
+                          "bg-white/10 text-white/70 border border-white/20"
+                        }`} data-testid={`badge-status-${wallet.id}`}>
+                          {wallet.status}
+                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/15 transition-colors cursor-pointer"
+                              data-testid={`button-wallet-menu-${wallet.id}`}
+                            >
+                              <MoreVertical className="w-4 h-4 text-white/70" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {wallet.bot_id && (
+                              <DropdownMenuItem
+                                onClick={() => setUnlinkTarget(wallet)}
+                                data-testid={`menu-unlink-bot-${wallet.id}`}
+                              >
+                                <Unlink className="w-4 h-4 mr-2" />
+                                Unlink Bot
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
 
                     <div className="mb-5 relative z-10">
@@ -784,6 +835,32 @@ export default function StripeWalletPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!unlinkTarget} onOpenChange={(open) => { if (!open) setUnlinkTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="flex items-center gap-2">
+            <Unlink className="w-5 h-5 text-red-500" />
+            Unlink Bot
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Are you sure you want to unlink <span className="font-semibold text-neutral-900">"{unlinkTarget?.bot_name}"</span> from this wallet? The bot will no longer be able to use this wallet for transactions.
+          </DialogDescription>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setUnlinkTarget(null)} disabled={unlinkLoading} data-testid="button-unlink-cancel">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUnlinkBot}
+              disabled={unlinkLoading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-unlink-confirm"
+            >
+              {unlinkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              Unlink Bot
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
