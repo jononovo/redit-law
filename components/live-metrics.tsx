@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 
 function Counter({ end, duration = 2000, prefix = "", suffix = "" }: { end: number, duration?: number, prefix?: string, suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -104,48 +103,20 @@ export function LiveMetrics() {
           
           <div className="flex flex-wrap items-center gap-8 md:gap-12">
             <div className="flex items-center gap-2 group cursor-default">
-              <Image
-                src="/logos/visa.png"
-                alt="Visa"
-                width={48}
-                height={16}
-                className="h-4 w-auto object-contain"
-                unoptimized
-              />
+              <img src="/logos/visa.svg" alt="Visa" className="h-4 w-auto object-contain" />
             </div>
 
             <div className="flex items-center gap-3 group cursor-default">
-              <Image
-                src="/logos/mastercard.png"
-                alt="MasterCard"
-                width={48}
-                height={24}
-                className="h-6 w-auto object-contain"
-                unoptimized
-              />
+              <img src="/logos/mastercard.svg" alt="MasterCard" className="h-6 w-auto object-contain" />
             </div>
 
             <div className="flex items-center gap-3 group cursor-default">
-              <Image
-                src="/logos/stripe.png"
-                alt="Stripe"
-                width={48}
-                height={24}
-                className="h-6 w-auto object-contain"
-                unoptimized
-              />
+              <img src="/logos/stripe.svg" alt="Stripe" className="h-6 w-auto object-contain" />
               <span className="text-[10px] font-bold text-green-600">Powered by</span>
             </div>
 
             <div className="flex items-center gap-2 group cursor-default">
-              <Image
-                src="/logos/amex.png"
-                alt="American Express"
-                width={48}
-                height={24}
-                className="h-6 w-auto object-contain"
-                unoptimized
-              />
+              <img src="/logos/amex.svg" alt="American Express" className="h-6 w-auto object-contain" />
             </div>
           </div>
         </div>
