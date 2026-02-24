@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -85,6 +85,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [bots, setBots] = useState<BotOption[]>([]);
   const [selectedBotId, setSelectedBotId] = useState("");
   const [botsLoading, setBotsLoading] = useState(false);
+  const [botsFetched, setBotsFetched] = useState(false);
 
   const [directDeliverySucceeded, setDirectDeliverySucceeded] = useState(false);
   const [deliveryAttempted, setDeliveryAttempted] = useState(false);
@@ -115,6 +116,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setApprovalThreshold("25");
     setBots([]);
     setSelectedBotId("");
+    setBotsFetched(false);
     setDirectDeliverySucceeded(false);
     setDeliveryAttempted(false);
     setCopied(false);
@@ -300,13 +302,27 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       const res = await authFetch("/api/v1/bots/mine");
       if (res.ok) {
         const data = await res.json();
-        setBots(data.bots || []);
+        const loadedBots = data.bots || [];
+        setBots(loadedBots);
+        setBotsFetched(true);
+        if (loadedBots.length === 1 && !selectedBotId) {
+          setSelectedBotId(loadedBots[0].bot_id);
+        }
+      } else {
+        setBotsFetched(true);
       }
     } catch {
+      setBotsFetched(true);
     } finally {
       setBotsLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (step === 4 && !botsFetched && !botsLoading) {
+      fetchBots();
+    }
+  }, [step, botsFetched, botsLoading]);
 
   async function handleBotLink() {
     if (!selectedBotId) {
@@ -644,19 +660,23 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <p className="text-sm text-neutral-500 mt-1">Choose which bot can use this card for purchases.</p>
             </div>
 
-            {bots.length === 0 && !botsLoading && (
-              <Button variant="outline" onClick={fetchBots} className="w-full" data-testid="button-r5-load-bots">
-                Load My Bots
-              </Button>
-            )}
-
             {botsLoading && (
-              <div className="flex justify-center py-4">
+              <div className="flex flex-col items-center justify-center py-4 gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+                <p className="text-xs text-neutral-400">Loading your bots...</p>
               </div>
             )}
 
-            {bots.length > 0 && (
+            {!botsLoading && botsFetched && bots.length === 0 && (
+              <div className="text-center py-4 space-y-2">
+                <p className="text-sm text-neutral-500">No bots found. You can link one later from the card settings.</p>
+                <Button variant="ghost" size="sm" onClick={() => { setBotsFetched(false); }} data-testid="button-r5-retry-bots">
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {!botsLoading && bots.length > 0 && (
               <div className="space-y-2">
                 {bots.map((bot) => (
                   <button
@@ -670,28 +690,32 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                     data-testid={`button-r5-select-bot-${bot.bot_id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <Bot className="w-5 h-5 text-neutral-500" />
+                      <Bot className={`w-5 h-5 ${selectedBotId === bot.bot_id ? "text-primary" : "text-neutral-500"}`} />
                       <div>
                         <p className="font-medium text-neutral-900 text-sm">{bot.bot_name}</p>
                         <p className="text-xs text-neutral-400">{bot.bot_id}</p>
                       </div>
+                      {selectedBotId === bot.bot_id && (
+                        <CheckCircle2 className="w-5 h-5 text-primary ml-auto" />
+                      )}
                     </div>
                   </button>
                 ))}
               </div>
             )}
 
-            {bots.length === 0 && !botsLoading && (
-              <p className="text-xs text-neutral-400 text-center">No bots? You can link one later from the card settings.</p>
-            )}
-
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => { setSelectedBotId(""); setStep(5); }} className="flex-1" data-testid="button-r5-skip-bot">
                 Skip for Now
               </Button>
-              <Button onClick={handleBotLink} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-link-bot">
+              <Button
+                onClick={handleBotLink}
+                disabled={loading || botsLoading || (!selectedBotId && bots.length > 0)}
+                className="flex-1 gap-2"
+                data-testid="button-r5-link-bot"
+              >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                {selectedBotId ? "Link & Continue" : "Continue"}
+                {selectedBotId ? "Link & Continue" : bots.length === 0 ? "Continue" : "Select a Bot"}
               </Button>
             </div>
           </div>
