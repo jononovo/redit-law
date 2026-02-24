@@ -37,11 +37,11 @@ interface WebhookPayload {
   data: Record<string, unknown>;
 }
 
-function signPayload(payload: string, secret: string): string {
+export function signPayload(payload: string, secret: string): string {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
-async function attemptDelivery(
+export async function attemptDelivery(
   callbackUrl: string,
   payloadJson: string,
   signature: string,
