@@ -50,8 +50,8 @@ export function Footer() {
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center text-sm text-neutral-500 font-medium gap-4">
           <span>&copy; 2026 CreditClaw Inc. All rights reserved.</span>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors" data-testid="footer-link-privacy">Privacy Policy</a>
-            <a href="#" className="hover:text-white transition-colors" data-testid="footer-link-terms">Terms of Service</a>
+            <Link href="/privacy" className="hover:text-white transition-colors" data-testid="footer-link-privacy">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white transition-colors" data-testid="footer-link-terms">Terms of Service</Link>
           </div>
         </div>
       </div>
