@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,14 @@ export async function POST(request: NextRequest) {
 
     const newStatus = wallet.status === "active" ? "paused" : "active";
     const updated = await storage.crossmintUpdateWalletStatus(wallet.id, newStatus, user.uid);
+
+    if (updated?.botId) {
+      const bot = await storage.getBotByBotId(updated.botId);
+      if (bot) {
+        const action = newStatus === "paused" ? "wallet_frozen" as const : "wallet_unfrozen" as const;
+        fireRailsUpdated(bot, action, "rail2", { wallet_id: updated.id }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({
       wallet_id: updated?.id,

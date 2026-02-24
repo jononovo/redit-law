@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { fireWebhook } from "@/lib/webhooks";
+import { signPayload, attemptDelivery } from "@/lib/webhooks";
 import { z } from "zod";
 
 const deliverSchema = z.object({
@@ -64,14 +64,23 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const delivered = await fireWebhook(bot, "rail5.card.delivered", {
-      card_id,
-      card_name: card.cardName,
-      card_last4: card.cardLast4,
-      encrypted_file_content,
-    });
+    const payload = {
+      event: "rail5.card.delivered" as const,
+      timestamp: new Date().toISOString(),
+      bot_id: bot.botId,
+      data: {
+        card_id,
+        card_name: card.cardName,
+        card_last4: card.cardLast4,
+        encrypted_file_content,
+      },
+    };
 
-    if (delivered) {
+    const payloadJson = JSON.stringify(payload);
+    const signature = signPayload(payloadJson, bot.webhookSecret);
+    const result = await attemptDelivery(bot.callbackUrl, payloadJson, signature, "rail5.card.delivered");
+
+    if (result.success) {
       return NextResponse.json({
         delivered: true,
         bot_id,
