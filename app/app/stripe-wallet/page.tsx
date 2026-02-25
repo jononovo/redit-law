@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -620,6 +620,16 @@ export default function StripeWalletPage() {
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${syncingWalletId === wallet.id ? "animate-spin" : ""}`} />
                         </button>
+                        <a
+                          href={`https://basescan.org/address/${wallet.address}#tokentxns`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                          title="View on Basescan"
+                          data-testid={`link-basescan-${wallet.id}`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
                       </div>
                     </div>
 
