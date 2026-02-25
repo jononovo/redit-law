@@ -13,19 +13,21 @@ import {
   ShoppingCart,
   Sparkles,
   Send,
-  Lock
+  Lock,
+  Info
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta" },
-  { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon" },
-  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted", tag: "legacy" },
-  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards", tag: "beta" },
+  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet for any x402 purchases. Fund wallet with Stripe/Link." },
+  { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
+  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted", tag: "legacy", tooltip: "Security & controls for your agent who uses your real card. Techniques: Obfuscation & Split Knowledge." },
+  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Security & controls for your agent who uses your real card. Techniques: Agent holds encrypted card details file. Decryption key held by CreditClaw." },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
@@ -63,39 +65,59 @@ export function Sidebar() {
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href;
           const isInactive = "inactive" in item && item.inactive;
+          const hasTooltip = "tooltip" in item && item.tooltip;
           return (
-            <Link key={item.href} href={item.href}>
-              <div className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
-                isInactive
-                  ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
-                  : isActive 
-                    ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-              )}>
-                <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
-                <div className="flex flex-col">
-                  <span>{item.label}</span>
-                  {("tag" in item && item.tag) && (
-                    <span className={cn(
-                      "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
-                      isActive
-                        ? "text-white/60 bg-white/10 hover:bg-white/20"
-                        : item.tag === "beta"
-                          ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
-                          : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
-                    )}>
-                      {item.tag}
-                    </span>
-                  )}
-                  {isInactive && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
-                      Inactive
-                    </span>
-                  )}
+            <div key={item.href} className="flex items-center gap-1">
+              <Link href={item.href} className="flex-1 min-w-0">
+                <div className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                  isInactive
+                    ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
+                    : isActive 
+                      ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                      : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                )}>
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
+                  <div className="flex flex-col">
+                    <span>{item.label}</span>
+                    {("tag" in item && item.tag) && (
+                      <span className={cn(
+                        "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
+                        isActive
+                          ? "text-white/60 bg-white/10 hover:bg-white/20"
+                          : item.tag === "beta"
+                            ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
+                            : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
+                      )}>
+                        {item.tag}
+                      </span>
+                    )}
+                    {isInactive && (
+                      <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              {hasTooltip && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className={cn(
+                      "flex-shrink-0 p-1 rounded-md transition-colors cursor-pointer",
+                      isActive
+                        ? "text-white/40 hover:text-white/70"
+                        : "text-neutral-300 hover:text-neutral-500"
+                    )}>
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-[220px] text-xs leading-relaxed">
+                    {item.tooltip}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           );
         })}
 
