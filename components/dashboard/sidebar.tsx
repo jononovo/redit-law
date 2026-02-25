@@ -116,7 +116,7 @@ export function Sidebar() {
                 <TooltipTrigger asChild>
                   {navLink}
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed bg-white text-neutral-700 border border-neutral-200 shadow-md">
+                <TooltipContent side="bottom" className="max-w-[220px] text-xs leading-relaxed bg-white text-neutral-700 border border-neutral-200 shadow-md">
                   {item.tooltip}
                 </TooltipContent>
               </Tooltip>
