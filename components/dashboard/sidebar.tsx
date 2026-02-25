@@ -78,14 +78,18 @@ export function Sidebar() {
                   <span>{item.label}</span>
                   {("tag" in item && item.tag) && (
                     <span className={cn(
-                      "text-[10px] font-semibold uppercase tracking-wider leading-none mt-0.5",
-                      isActive ? "text-white/50" : "text-neutral-400"
+                      "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
+                      isActive
+                        ? "text-white/60 bg-white/10 hover:bg-white/20"
+                        : item.tag === "beta"
+                          ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
+                          : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
                     )}>
                       {item.tag}
                     </span>
                   )}
                   {isInactive && (
-                    <span className="text-[10px] font-semibold uppercase tracking-wider leading-none mt-0.5 text-neutral-400">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
                       Inactive
                     </span>
                   )}
