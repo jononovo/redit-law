@@ -135,8 +135,7 @@ export default function StripeWalletPage() {
   const syncWalletBalance = useCallback(async (walletId: number) => {
     const cooldownEnd = syncCooldowns[walletId];
     if (cooldownEnd && Date.now() < cooldownEnd) {
-      const minutesLeft = Math.ceil((cooldownEnd - Date.now()) / 60000);
-      toast({ title: `Please wait ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} before refreshing again` });
+      toast({ title: "Please wait 30 seconds between balance checks." });
       return;
     }
 
@@ -150,16 +149,15 @@ export default function StripeWalletPage() {
 
       if (res.status === 429) {
         const data = await res.json();
-        const retryAfter = data.retry_after || 300;
+        const retryAfter = data.retry_after || 30;
         setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + retryAfter * 1000 }));
-        const minutesLeft = Math.ceil(retryAfter / 60);
-        toast({ title: `Please wait ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} before refreshing again` });
+        toast({ title: "Please wait 30 seconds between balance checks." });
         return;
       }
 
       if (res.ok) {
         const data = await res.json();
-        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + 5 * 60 * 1000 }));
+        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + 30 * 1000 }));
         setWallets(prev => prev.map(w =>
           w.id === walletId ? { ...w, balance_usdc: data.balance_usdc, balance_display: data.balance_display } : w
         ));
@@ -172,10 +170,10 @@ export default function StripeWalletPage() {
           toast({ title: "Balance confirmed — up to date" });
         }
       } else {
-        toast({ title: "Could not check balance. Try again later.", variant: "destructive" });
+        toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
       }
     } catch {
-      toast({ title: "Could not check balance. Try again later.", variant: "destructive" });
+      toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
     } finally {
       setSyncingWalletId(null);
     }

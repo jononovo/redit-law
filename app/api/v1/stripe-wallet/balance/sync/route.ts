@@ -5,7 +5,7 @@ import { microUsdcToUsd } from "@/lib/stripe-wallet/x402";
 import { getOnChainUsdcBalance } from "@/lib/stripe-wallet/balance";
 import { isAddress } from "viem";
 
-const SYNC_COOLDOWN_MS = 5 * 60 * 1000;
+const SYNC_COOLDOWN_MS = 30 * 1000;
 
 export async function POST(request: NextRequest) {
   try {
