@@ -73,24 +73,23 @@ export function Sidebar() {
                     ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
                     : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
               )}>
-                <item.icon className={cn("w-5 h-5", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
-                {item.label}
-                {"tag" in item && item.tag && (
-                  <span className={cn(
-                    "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                    isActive ? "text-white/60 bg-white/10" : "text-neutral-400 bg-neutral-100"
-                  )}>
-                    {item.tag}
-                  </span>
-                )}
-                {isInactive && (
-                  <span className={cn(
-                    "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                    "text-neutral-400 bg-neutral-100"
-                  )}>
-                    Inactive
-                  </span>
-                )}
+                <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
+                <div className="flex flex-col">
+                  <span>{item.label}</span>
+                  {("tag" in item && item.tag) && (
+                    <span className={cn(
+                      "text-[9px] font-semibold uppercase tracking-wider leading-none -mt-0.5",
+                      isActive ? "text-white/40" : "text-neutral-300"
+                    )}>
+                      {item.tag}
+                    </span>
+                  )}
+                  {isInactive && (
+                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none -mt-0.5 text-neutral-300">
+                      Inactive
+                    </span>
+                  )}
+                </div>
               </div>
             </Link>
           );
