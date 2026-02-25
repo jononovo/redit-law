@@ -67,57 +67,58 @@ export function Sidebar() {
           const isInactive = "inactive" in item && item.inactive;
           const hasTooltip = "tooltip" in item && item.tooltip;
           return (
-            <div key={item.href} className="flex items-center gap-1">
-              <Link href={item.href} className="flex-1 min-w-0">
-                <div className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
-                  isInactive
-                    ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
-                    : isActive 
-                      ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
-                      : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-                )}>
-                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
-                  <div className="flex flex-col">
-                    <span>{item.label}</span>
-                    {("tag" in item && item.tag) && (
-                      <span className={cn(
-                        "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
-                        isActive
-                          ? "text-white/60 bg-white/10 hover:bg-white/20"
-                          : item.tag === "beta"
-                            ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
-                            : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
-                      )}>
-                        {item.tag}
-                      </span>
+            <Link key={item.href} href={item.href}>
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                isInactive
+                  ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
+                  : isActive 
+                    ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              )}>
+                <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
+                <div className="flex flex-col">
+                  <span className="flex items-center gap-1.5">
+                    {item.label}
+                    {hasTooltip && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className={cn(
+                              "inline-flex cursor-help transition-colors",
+                              isActive ? "text-white/40 hover:text-white/70" : "text-neutral-300 hover:text-neutral-500"
+                            )}
+                            onClick={(e) => e.preventDefault()}
+                          >
+                            <Info className="w-3 h-3" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed bg-neutral-700 text-white border-neutral-700">
+                          {item.tooltip}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
-                    {isInactive && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
-                        Inactive
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-              {hasTooltip && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className={cn(
-                      "flex-shrink-0 p-1 rounded-md transition-colors cursor-pointer",
+                  </span>
+                  {("tag" in item && item.tag) && (
+                    <span className={cn(
+                      "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
                       isActive
-                        ? "text-white/40 hover:text-white/70"
-                        : "text-neutral-300 hover:text-neutral-500"
+                        ? "text-white/60 bg-white/10 hover:bg-white/20"
+                        : item.tag === "beta"
+                          ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
+                          : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
                     )}>
-                      <Info className="w-3.5 h-3.5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-[220px] text-xs leading-relaxed">
-                    {item.tooltip}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+                      {item.tag}
+                    </span>
+                  )}
+                  {isInactive && (
+                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
           );
         })}
 
