@@ -162,6 +162,8 @@ export interface IStorage {
   privyUnlinkBot(id: number, ownerUid: string): Promise<PrivyWallet | null>;
   privyLinkBot(id: number, botId: string, ownerUid: string): Promise<PrivyWallet | null>;
 
+  privyUpdateWalletBalanceAndSync(id: number, balanceUsdc: number): Promise<PrivyWallet | null>;
+  privyUpdateWalletSyncedAt(id: number): Promise<void>;
   privyGetGuardrails(walletId: number): Promise<PrivyGuardrail | null>;
   privyUpsertGuardrails(walletId: number, data: Partial<InsertPrivyGuardrail>): Promise<PrivyGuardrail>;
 
@@ -1103,6 +1105,22 @@ export const storage: IStorage = {
       .where(and(eq(privyWallets.id, id), eq(privyWallets.ownerUid, ownerUid)))
       .returning();
     return updated || null;
+  },
+
+  async privyUpdateWalletBalanceAndSync(id: number, balanceUsdc: number): Promise<PrivyWallet | null> {
+    const [updated] = await db
+      .update(privyWallets)
+      .set({ balanceUsdc, lastSyncedAt: new Date(), updatedAt: new Date() })
+      .where(eq(privyWallets.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async privyUpdateWalletSyncedAt(id: number): Promise<void> {
+    await db
+      .update(privyWallets)
+      .set({ lastSyncedAt: new Date() })
+      .where(eq(privyWallets.id, id));
   },
 
   async privyGetGuardrails(walletId: number): Promise<PrivyGuardrail | null> {
