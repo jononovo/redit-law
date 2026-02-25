@@ -922,7 +922,7 @@ export default function StripeWalletPage() {
           overlayTitle={onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
           overlayDescription={"Transfer to your USDC wallet.\nUse a credit card or bank connection via Stripe."}
           overlayExtra={onrampWallet ? (
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 space-y-4 max-w-xs mx-auto">
               <div>
                 <p className="text-sm text-white/70 font-semibold mb-2">Wallet Address</p>
                 <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
