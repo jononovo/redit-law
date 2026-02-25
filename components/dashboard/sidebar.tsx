@@ -68,7 +68,7 @@ export function Sidebar() {
           const navLink = (
             <Link key={item.href} href={item.href}>
               <div className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isInactive
                   ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
                   : isActive 
@@ -90,10 +90,10 @@ export function Sidebar() {
                     <span className={cn(
                       "absolute -top-2.5 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
                       isActive
-                        ? "text-white/60 bg-white/10 hover:bg-white/20"
+                        ? "text-white/60 bg-white/10"
                         : item.tag === "beta"
-                          ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
-                          : "text-neutral-400 bg-neutral-100 hover:bg-neutral-200"
+                          ? "text-neutral-300 group-hover:text-blue-500 group-hover:bg-blue-50"
+                          : "text-neutral-300 group-hover:text-neutral-400 group-hover:bg-neutral-100"
                     )}>
                       {item.tag}
                     </span>
