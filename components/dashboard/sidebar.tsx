@@ -78,14 +78,14 @@ export function Sidebar() {
                   <span>{item.label}</span>
                   {("tag" in item && item.tag) && (
                     <span className={cn(
-                      "text-[9px] font-semibold uppercase tracking-wider leading-none -mt-0.5",
-                      isActive ? "text-white/40" : "text-neutral-300"
+                      "text-[10px] font-semibold uppercase tracking-wider leading-none mt-0.5",
+                      isActive ? "text-white/50" : "text-neutral-400"
                     )}>
                       {item.tag}
                     </span>
                   )}
                   {isInactive && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none -mt-0.5 text-neutral-300">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider leading-none mt-0.5 text-neutral-400">
                       Inactive
                     </span>
                   )}
