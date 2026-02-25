@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
@@ -78,6 +79,7 @@ export default function StripeWalletPage() {
   const [onrampDialogOpen, setOnrampDialogOpen] = useState(false);
   const [onrampWallet, setOnrampWallet] = useState<WalletInfo | null>(null);
   const [onrampLoading, setOnrampLoading] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const onrampMountRef = useRef<HTMLDivElement>(null);
   const onrampSessionRef = useRef<any>(null);
 
@@ -913,14 +915,49 @@ export default function StripeWalletPage() {
         </DialogContent>
       </Dialog>
 
-      <Sheet open={onrampDialogOpen} onOpenChange={(open) => { if (!open) handleCloseOnramp(); }}>
+      <Sheet open={onrampDialogOpen} onOpenChange={(open) => { if (!open) setShowCloseConfirm(true); }}>
         <SheetContent
           side="right"
           size="lg"
           overlayTitle={onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
           overlayDescription="Buy USDC with your credit card via Stripe. Funds will be delivered directly to your wallet on Base."
+          overlayExtra={onrampWallet ? (
+            <div className="mt-6 space-y-4">
+              <div>
+                <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Wallet Address</p>
+                <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
+                  <code className="text-sm text-white font-mono truncate flex-1" data-testid="text-onramp-wallet-address">
+                    {onrampWallet.address}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(onrampWallet.address);
+                      toast({ title: "Wallet address copied!" });
+                    }}
+                    className="text-white/60 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                    data-testid="button-copy-onramp-address"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-white/50 mt-2 leading-relaxed">
+                  You will need to paste your wallet address when funding for the first time. Copy it from here.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full border-white/20 text-white hover:bg-white/10 hover:text-white cursor-pointer"
+                onClick={() => setShowCloseConfirm(true)}
+                data-testid="button-close-stripe-funding"
+              >
+                Close Stripe Funding
+              </Button>
+            </div>
+          ) : undefined}
           className="overflow-y-auto p-0"
           data-testid="drawer-onramp"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <SheetTitle className="sr-only">
             {onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
@@ -938,6 +975,26 @@ export default function StripeWalletPage() {
             <p className="text-sm text-muted-foreground mt-1">
               Buy USDC via Stripe. Funds go directly to your wallet on Base.
             </p>
+            {onrampWallet && (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground mb-1">Wallet Address</p>
+                <div className="flex items-center gap-2 bg-neutral-100 rounded-lg px-3 py-2">
+                  <code className="text-xs font-mono truncate flex-1">{onrampWallet.address}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(onrampWallet.address);
+                      toast({ title: "Wallet address copied!" });
+                    }}
+                    className="text-neutral-400 hover:text-neutral-700 transition-colors flex-shrink-0 cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Paste this address when prompted during Stripe funding.
+                </p>
+              </div>
+            )}
           </div>
           <div className="flex-1 relative min-h-[500px]">
             {onrampLoading && (
@@ -950,8 +1007,45 @@ export default function StripeWalletPage() {
             )}
             <div ref={onrampMountRef} id="stripe-onramp-element" className="w-full min-h-[480px] p-4" data-testid="container-onramp-widget" />
           </div>
+          <div className="p-4 border-t border-border md:hidden">
+            <Button
+              variant="outline"
+              className="w-full cursor-pointer"
+              onClick={() => setShowCloseConfirm(true)}
+              data-testid="button-close-stripe-funding-mobile"
+            >
+              Close Stripe Funding
+            </Button>
+          </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Close Stripe Funding?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to close this Stripe Funding process? You will lose your progress.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-close-funding">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                setShowCloseConfirm(false);
+                handleCloseOnramp();
+              }}
+              data-testid="button-confirm-close-funding"
+            >
+              Yes, Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!linkTarget} onOpenChange={(open) => { if (!open) { setLinkTarget(null); setLinkBotId(""); } }}>
         <DialogContent className="sm:max-w-md">

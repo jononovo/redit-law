@@ -70,17 +70,19 @@ interface SheetContentProps
     VariantProps<typeof sheetVariants> {
   overlayTitle?: string;
   overlayDescription?: string;
+  overlayExtra?: React.ReactNode;
 }
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", size = "default", className, children, overlayTitle, overlayDescription, ...props }, ref) => (
+>(({ side = "right", size = "default", className, children, overlayTitle, overlayDescription, overlayExtra, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
-    {(overlayTitle || overlayDescription) && (
+    {(overlayTitle || overlayDescription || overlayExtra) && (
       <div className={cn(
-        "fixed top-0 bottom-0 left-0 right-[75%] z-50 pointer-events-none hidden md:flex items-center justify-center",
+        "fixed top-0 bottom-0 left-0 right-[75%] z-50 hidden md:flex items-center justify-center",
+        overlayExtra ? "pointer-events-auto" : "pointer-events-none",
         sizeToWidth[size || "default"] || sizeToWidth.default
       )}>
         <div className="text-center max-w-md px-8">
@@ -90,6 +92,7 @@ const SheetContent = React.forwardRef<
           {overlayDescription && (
             <p className="text-sm text-white/70 leading-relaxed">{overlayDescription}</p>
           )}
+          {overlayExtra}
         </div>
       </div>
     )}
