@@ -1,26 +1,65 @@
-# Rail 1: On-Chain Balance Sync — Technical Plan
+# Rail 1: On-Chain Balance Sync — Technical Plan v2
 
 **Date:** February 25, 2026
 
 ## Objective
 
-Add the ability to check the actual USDC balance of a Privy wallet directly from the Base blockchain. This provides a source-of-truth balance that catches funds received from any source — not just Stripe Onramp deposits.
+Add on-demand on-chain balance verification for Privy wallets. The user clicks a refresh icon on their wallet card, the backend reads the real USDC balance from Base, updates the local DB if it differs, records a transaction for any delta (increase or decrease), and returns the current balance.
 
-The user triggers this via a refresh icon on each wallet card in the dashboard.
+This ensures the local ledger stays accurate regardless of how funds arrive (Stripe onramp, direct transfer, exchange withdrawal, refund) or leave (on-chain spend we didn't track).
 
 ---
 
 ## Architecture
 
 ```
-User clicks refresh icon on wallet card
-  → Frontend: POST /api/v1/stripe-wallet/balance/sync { wallet_id }
-  → Backend: Call Base RPC balanceOf(walletAddress) on USDC contract
-  → Compare on-chain balance with stored balance_usdc
-  → If different: update privy_wallets.balance_usdc, log a reconciliation transaction
-  → Return updated balance to frontend
-  → UI updates the card with the new balance
+User clicks ↻ on wallet card
+        │
+        ▼
+POST /api/v1/stripe-wallet/balance/sync { wallet_id }
+        │
+        ├── Auth check (Firebase session, owns this wallet?)
+        │
+        ├── Cooldown check (last sync < 5 min ago? → 429 Too Many Requests)
+        │
+        ├── getOnChainUsdcBalance(wallet.address)
+        │         └── viem → Base RPC → USDC.balanceOf(address)
+        │
+        ├── Compare on-chain balance to DB balance_usdc
+        │
+        ├── [if different]
+        │     ├── UPDATE privy_wallets SET balance_usdc = onChainValue
+        │     │
+        │     ├── [if increased] INSERT privy_transactions
+        │     │     type: "deposit"
+        │     │     amount_usdc: delta
+        │     │     status: "confirmed"
+        │     │     metadata: { source: "on_chain_sync" }
+        │     │
+        │     └── [if decreased] INSERT privy_transactions
+        │           type: "x402_payment"
+        │           amount_usdc: |delta|
+        │           status: "confirmed"
+        │           metadata: { source: "on_chain_sync", note: "detected via balance sync" }
+        │
+        └── Return { balance_usdc, balance_display, previous_balance, changed }
+                │
+                ▼
+        UI updates card balance, shows toast
 ```
+
+---
+
+## Why Store Transactions Locally (Not Query Chain On-Demand)
+
+Industry standard for crypto wallet apps is to maintain a local transaction ledger:
+
+- **`balanceOf` only gives the current number**, not how you got there. Getting transfer history requires scanning USDC Transfer event logs across blocks — slow, rate-limited, expensive.
+- **Local records are richer than on-chain data.** The chain knows "address A sent X USDC to address B." Your DB knows "this was a Stripe onramp deposit" or "this was a bot payment for api.example.com."
+- **Fast dashboard rendering.** Transaction ledger loads instantly from DB, no external calls.
+- **At scale**, every user loading their wallet page would hammer the RPC if we queried on-demand.
+
+The on-chain balance acts as the source of truth for the *current* number. The local `privy_transactions` table is the source of truth for *what happened*.
 
 ---
 
@@ -28,19 +67,15 @@ User clicks refresh icon on wallet card
 
 ### 1. New lib file: `lib/stripe-wallet/balance.ts`
 
-Create a utility to query the USDC balance on Base using `viem`.
-
-- Use `viem` with the public Base RPC (`https://mainnet.base.org`)
-- Call `balanceOf(address)` on the USDC contract (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-- Return the balance as a number in micro-USDC (6 decimals), matching the `balance_usdc` column format
-- No API key required — Base has a free public RPC
+~15 lines. One function. Pure read, no side effects.
 
 ```typescript
 import { createPublicClient, http } from 'viem'
 import { base } from 'viem/chains'
 
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-const ERC20_ABI = [{
+const USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
+
+const USDC_ABI = [{
   name: 'balanceOf',
   type: 'function',
   stateMutability: 'view',
@@ -48,58 +83,92 @@ const ERC20_ABI = [{
   outputs: [{ name: '', type: 'uint256' }]
 }] as const
 
-export async function getOnChainUsdcBalance(walletAddress: string): Promise<number> {
-  const client = createPublicClient({ chain: base, transport: http() })
-  const balance = await client.readContract({
-    address: USDC_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: 'balanceOf',
-    args: [walletAddress as `0x${string}`]
+export async function getOnChainUsdcBalance(address: string): Promise<number> {
+  const client = createPublicClient({
+    chain: base,
+    transport: http(process.env.BASE_RPC_URL || 'https://mainnet.base.org'),
   })
-  return Number(balance)
+  const raw = await client.readContract({
+    address: USDC_CONTRACT,
+    abi: USDC_ABI,
+    functionName: 'balanceOf',
+    args: [address as `0x${string}`],
+  })
+  return Number(raw) // micro-USDC (6 decimals), matches balance_usdc column
 }
 ```
 
+**Notes:**
+- `BASE_RPC_URL` env var is optional. Public Base RPC works for low-volume on-demand calls. Add Alchemy/QuickNode for production reliability later.
+- `Number(bigint)` is safe — even $1M USDC is only 1,000,000,000,000 micro-USDC, well within `Number.MAX_SAFE_INTEGER`.
+
 ### 2. New API endpoint: `app/api/v1/stripe-wallet/balance/sync/route.ts`
 
-- Method: POST
-- Auth: Firebase session cookie (owner only)
-- Body: `{ wallet_id: number }`
-- Logic:
-  1. Authenticate owner, verify wallet ownership
-  2. Call `getOnChainUsdcBalance(wallet.address)`
-  3. If on-chain balance differs from stored `balance_usdc`:
-     - Update `privy_wallets.balance_usdc` to the on-chain value
-     - If balance increased, create a transaction of type `deposit` with status `confirmed` and metadata `{ source: "on_chain_sync" }`
-     - If balance decreased (e.g., an on-chain spend we missed), create a transaction of type `x402_payment` with metadata `{ source: "on_chain_sync" }`
-  4. Return the updated balance and whether it changed
+- **Method:** POST (has write side-effect)
+- **Auth:** Firebase session cookie (owner only)
+- **Body:** `{ wallet_id: number }`
+- **Cooldown:** 5-minute per-wallet cooldown using `privy_wallets.updated_at`
 
-### 3. Frontend: Add refresh icon to wallet card
+**Logic:**
 
-- File: `app/app/stripe-wallet/page.tsx`
-- Add a `RefreshCw` icon (from lucide-react) next to the balance display
-- On click: call `POST /api/v1/stripe-wallet/balance/sync` with the wallet ID
-- Show a spinning animation while the request is in flight
-- Update the wallet's `balance_display` in state when the response comes back
-- Show a brief toast indicating whether the balance changed or was already in sync
+1. Authenticate owner, verify wallet ownership
+2. Check cooldown: if `wallet.updated_at` is less than 5 minutes ago from a sync, return 429 with `retry_after` seconds
+3. Call `getOnChainUsdcBalance(wallet.address)`
+4. Compare on-chain balance to stored `balance_usdc`
+5. If different:
+   - Update `privy_wallets.balance_usdc` to the on-chain value (also updates `updated_at`)
+   - Calculate delta: `onChainBalance - storedBalance`
+   - If delta > 0 (funds came in): create `privy_transactions` record with `type: "deposit"`, `amount_usdc: delta`, `status: "confirmed"`, `metadata: { source: "on_chain_sync" }`
+   - If delta < 0 (funds left): create `privy_transactions` record with `type: "x402_payment"`, `amount_usdc: |delta|`, `status: "confirmed"`, `metadata: { source: "on_chain_sync", note: "detected via balance sync" }`
+6. If same: no DB writes, just confirm
+7. Return `{ balance_usdc, balance_display, previous_balance, changed }`
+
+### 3. Frontend: Refresh icon on wallet card
+
+**File:** `app/app/stripe-wallet/page.tsx`
+
+**UI placement:** Small `RefreshCw` icon next to the "USDC on Base" label, below the balance amount. Unobtrusive.
+
+**State per wallet:**
+- `syncingWalletId: number | null` — which wallet is currently syncing (drives spin animation)
+- `cooldowns: Record<number, number>` — timestamp of last sync per wallet ID (disables button for 5 min)
+
+**Behavior:**
+- Icon shows as clickable when cooldown has expired
+- On click: icon spins (`animate-spin`), button disabled
+- On success with change: toast "Balance updated to $X.XX"
+- On success without change: toast "Balance confirmed — up to date"
+- On 429 (cooldown): toast "Please wait X minutes before refreshing again"
+- On error: toast "Could not check balance. Try again later."
+- After any response: stop spinning, set cooldown timestamp
 
 ---
 
+## Files
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `lib/stripe-wallet/balance.ts` | Create | On-chain USDC balance query via viem |
+| `app/api/v1/stripe-wallet/balance/sync/route.ts` | Create | Sync endpoint: read chain, compare, update DB, record transactions |
+| `app/app/stripe-wallet/page.tsx` | Modify | Add refresh icon with spin, cooldown, toast feedback |
+
 ## Dependencies
 
-- `viem` — Ethereum client library for Base RPC calls (needs to be installed)
-- No API key needed — uses the free public Base RPC
+| Package | Purpose | Notes |
+|---------|---------|-------|
+| `viem` | Ethereum client for Base RPC calls | Check if already installed (may be present via x402 tooling) |
 
-## Files to Create/Modify
+## Env Vars
 
-| File | Action |
-|------|--------|
-| `lib/stripe-wallet/balance.ts` | Create — on-chain balance query |
-| `app/api/v1/stripe-wallet/balance/sync/route.ts` | Create — sync endpoint |
-| `app/app/stripe-wallet/page.tsx` | Modify — add refresh icon to wallet card |
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `BASE_RPC_URL` | No | Custom Base RPC URL. Falls back to `https://mainnet.base.org` |
+
+---
 
 ## Not in Scope (Future)
 
 - Periodic background sync / cron job
-- WebSocket or event-driven on-chain monitoring
+- WebSocket or event-driven on-chain monitoring (e.g., Alchemy webhooks for Transfer events)
 - Multi-token balance support (only USDC for now)
+- Full on-chain transaction history indexing (would require The Graph / Alchemy Token API)
