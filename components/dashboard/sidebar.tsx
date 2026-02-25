@@ -66,7 +66,7 @@ export function Sidebar() {
           const isActive = pathname === item.href;
           const isInactive = "inactive" in item && item.inactive;
           const hasTooltip = "tooltip" in item && item.tooltip;
-          return (
+          const navLink = (
             <Link key={item.href} href={item.href}>
               <div className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
@@ -81,22 +81,12 @@ export function Sidebar() {
                   <span className="flex items-center gap-1.5">
                     {item.label}
                     {hasTooltip && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className={cn(
-                              "inline-flex cursor-help transition-colors",
-                              isActive ? "text-white/40 hover:text-white/70" : "text-neutral-300 hover:text-neutral-500"
-                            )}
-                            onClick={(e) => e.preventDefault()}
-                          >
-                            <Info className="w-3 h-3" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed bg-neutral-700 text-white border-neutral-700">
-                          {item.tooltip}
-                        </TooltipContent>
-                      </Tooltip>
+                      <span className={cn(
+                        "inline-flex transition-colors",
+                        isActive ? "text-white/40" : "text-neutral-300"
+                      )}>
+                        <Info className="w-3 h-3" />
+                      </span>
                     )}
                   </span>
                   {("tag" in item && item.tag) && (
@@ -120,6 +110,19 @@ export function Sidebar() {
               </div>
             </Link>
           );
+          if (hasTooltip) {
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  {navLink}
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px] text-xs leading-relaxed bg-white text-neutral-700 border border-neutral-200 shadow-md">
+                  {item.tooltip}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+          return navLink;
         })}
 
         <div className="pt-4 pb-1 px-4">
