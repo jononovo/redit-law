@@ -40,7 +40,7 @@ export function Footer() {
           <div>
             <h4 className="font-bold text-sm uppercase tracking-wider text-neutral-300 mb-4">Connect</h4>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-twitter">Twitter</a></li>
+              <li><a href="https://x.com/creditclawapp" target="_blank" rel="noopener noreferrer" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-twitter">Twitter</a></li>
               <li><a href="#" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-instagram">Instagram</a></li>
               <li><a href="#" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-tiktok">TikTok</a></li>
             </ul>
