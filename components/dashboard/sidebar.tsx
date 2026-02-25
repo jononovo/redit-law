@@ -13,8 +13,7 @@ import {
   ShoppingCart,
   Sparkles,
   Send,
-  Lock,
-  Info
+  Lock
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -78,17 +77,7 @@ export function Sidebar() {
               )}>
                 <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
                 <div className="flex flex-col">
-                  <span className="flex items-center gap-1.5">
-                    {item.label}
-                    {hasTooltip && (
-                      <span className={cn(
-                        "inline-flex transition-colors",
-                        isActive ? "text-white/40" : "text-neutral-300"
-                      )}>
-                        <Info className="w-3 h-3" />
-                      </span>
-                    )}
-                  </span>
+                  <span>{item.label}</span>
                   {("tag" in item && item.tag) && (
                     <span className={cn(
                       "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
