@@ -920,7 +920,7 @@ export default function StripeWalletPage() {
           side="right"
           size="lg"
           overlayTitle={onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
-          overlayDescription="Transfer to your USDC wallet here on CreditClaw. Use a credit card or bank connection via Stripe."
+          overlayDescription={"Transfer to your USDC wallet.\nUse a credit card or bank connection via Stripe."}
           overlayExtra={onrampWallet ? (
             <div className="mt-6 space-y-4">
               <div>
@@ -963,7 +963,7 @@ export default function StripeWalletPage() {
             {onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            Transfer to your USDC wallet here on CreditClaw. Use a credit card or bank connection via Stripe.
+            Transfer to your USDC wallet. Use a credit card or bank connection via Stripe.
           </SheetDescription>
           <div className="p-6 md:hidden border-b border-border">
             <div className="flex items-center gap-2 pr-8">

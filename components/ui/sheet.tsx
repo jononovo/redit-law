@@ -90,7 +90,7 @@ const SheetContent = React.forwardRef<
             <h2 className="text-2xl font-bold text-white mb-2">{overlayTitle}</h2>
           )}
           {overlayDescription && (
-            <p className="text-sm text-white/70 leading-relaxed">{overlayDescription}</p>
+            <p className="text-sm text-white/70 leading-relaxed whitespace-pre-line">{overlayDescription}</p>
           )}
           {overlayExtra}
         </div>
