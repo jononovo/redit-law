@@ -133,6 +133,8 @@ export interface IStorage {
   crossmintGetWalletByBotId(botId: string): Promise<CrossmintWallet | null>;
   crossmintGetWalletsByOwnerUid(ownerUid: string): Promise<CrossmintWallet[]>;
   crossmintUpdateWalletBalance(id: number, balanceUsdc: number): Promise<CrossmintWallet | null>;
+  crossmintUpdateWalletBalanceAndSync(id: number, balanceUsdc: number): Promise<CrossmintWallet | null>;
+  crossmintUpdateWalletSyncedAt(id: number): Promise<void>;
   crossmintUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<CrossmintWallet | null>;
 
   crossmintGetGuardrails(walletId: number): Promise<CrossmintGuardrail | null>;
@@ -1269,6 +1271,22 @@ export const storage: IStorage = {
       .where(eq(crossmintWallets.id, id))
       .returning();
     return updated || null;
+  },
+
+  async crossmintUpdateWalletBalanceAndSync(id: number, balanceUsdc: number): Promise<CrossmintWallet | null> {
+    const [updated] = await db
+      .update(crossmintWallets)
+      .set({ balanceUsdc, lastSyncedAt: new Date(), updatedAt: new Date() })
+      .where(eq(crossmintWallets.id, id))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintUpdateWalletSyncedAt(id: number): Promise<void> {
+    await db
+      .update(crossmintWallets)
+      .set({ lastSyncedAt: new Date() })
+      .where(eq(crossmintWallets.id, id));
   },
 
   async crossmintUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<CrossmintWallet | null> {

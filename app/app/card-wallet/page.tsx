@@ -234,6 +234,8 @@ export default function CardWalletPage() {
     auto_pause_on_zero: true,
   });
   const [savingGuardrails, setSavingGuardrails] = useState(false);
+  const [syncingWalletId, setSyncingWalletId] = useState<number | null>(null);
+  const [syncCooldowns, setSyncCooldowns] = useState<Record<number, number>>({});
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -280,6 +282,53 @@ export default function CardWalletPage() {
       }
     } catch {}
   }, []);
+
+  const syncWalletBalance = useCallback(async (walletId: number) => {
+    const cooldownEnd = syncCooldowns[walletId];
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+      toast({ title: "Please wait 30 seconds between balance checks." });
+      return;
+    }
+
+    setSyncingWalletId(walletId);
+    try {
+      const res = await authFetch("/api/v1/card-wallet/balance/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: walletId }),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json();
+        const retryAfter = data.retry_after || 30;
+        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + retryAfter * 1000 }));
+        toast({ title: "Please wait 30 seconds between balance checks." });
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + 30 * 1000 }));
+        setWallets(prev => prev.map(w =>
+          w.id === walletId ? { ...w, balance_usdc: data.balance_usdc, balance_display: data.balance_display } : w
+        ));
+        if (data.changed) {
+          toast({ title: `Balance updated to ${data.balance_display}` });
+          if (selectedWallet?.id === walletId) {
+            fetchTransactions();
+          }
+        } else {
+          toast({ title: "Balance confirmed — up to date" });
+        }
+      } else {
+        toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
+    } finally {
+      setSyncingWalletId(null);
+    }
+  }, [syncCooldowns, toast, selectedWallet, fetchTransactions]);
 
   useEffect(() => {
     if (user) {
@@ -621,7 +670,18 @@ export default function CardWalletPage() {
 
                   <div className="grid grid-cols-4 gap-4">
                     <div className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs text-neutral-500">Balance</p>
+                      <p className="text-xs text-neutral-500 flex items-center gap-1">
+                        Balance
+                        <button
+                          onClick={() => syncWalletBalance(wallet.id)}
+                          disabled={syncingWalletId === wallet.id}
+                          className="text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          title="Sync balance from chain"
+                          data-testid={`button-sync-balance-${wallet.id}`}
+                        >
+                          <RefreshCw className={`w-3 h-3 ${syncingWalletId === wallet.id ? "animate-spin" : ""}`} />
+                        </button>
+                      </p>
                       <p className="text-lg font-bold text-neutral-900" data-testid={`text-balance-${wallet.id}`}>{wallet.balance_display}</p>
                     </div>
                     <div className="bg-neutral-50 rounded-lg p-3">

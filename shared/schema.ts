@@ -547,6 +547,7 @@ export const crossmintWallets = pgTable("crossmint_wallets", {
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lastSyncedAt: timestamp("last_synced_at"),
 }, (table) => [
   index("crossmint_wallets_bot_id_idx").on(table.botId),
   index("crossmint_wallets_owner_uid_idx").on(table.ownerUid),
