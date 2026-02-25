@@ -103,6 +103,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/confirm", async (request, { bo
     type: "purchase",
     amountCents: checkout.amountCents,
     description: `Rail 5: ${checkout.itemName} at ${checkout.merchantName}`,
+    balanceAfter: updated.balanceCents,
   });
 
   const newBalance = updated.balanceCents;

@@ -22,6 +22,8 @@ export async function GET() {
         type: tx.type,
         amount_cents: tx.amountCents,
         amount: `$${(tx.amountCents / 100).toFixed(2)}`,
+        balance_after: tx.balanceAfter,
+        balance_after_display: tx.balanceAfter != null ? `$${(tx.balanceAfter / 100).toFixed(2)}` : null,
         description: tx.description,
         created_at: tx.createdAt,
       })),

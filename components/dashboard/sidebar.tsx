@@ -7,39 +7,40 @@ import {
   LayoutDashboard, 
   CreditCard, 
   Activity, 
-  Settings, 
-  LogOut,
   Plus,
   Shield,
   Wallet,
   ShoppingCart,
   Sparkles,
   Send,
-  Lock
+  Lock,
+  Store,
+  ExternalLink
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/lib/auth/auth-context";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
-const navItems = [
+const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet" },
-  { icon: ShoppingCart, label: "Card Wallet", href: "/app/card-wallet" },
-  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
-  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards" },
+  { icon: Wallet, label: "Stripe Wallet", subtitle: "USDC for x402", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
+  { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
+  { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
+  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
-  { icon: Send, label: "Submit Skill", href: "/app/skills/submit" },
-  { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
-  { icon: Settings, label: "Settings", href: "/app/settings" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
+];
+
+const procurementNavItems = [
+  { icon: Send, label: "Submit Supplier", href: "/app/skills/submit" },
+  { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
+  { icon: Store, label: "Supplier Hub", href: "/skills", external: true },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
   const [newCardModalOpen, setNewCardModalOpen] = useState(false);
 
   return (
@@ -63,25 +64,89 @@ export function Sidebar() {
       <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
 
       <nav className="flex-1 px-4 space-y-1">
-        {navItems.map((item) => {
+        {mainNavItems.map((item) => {
           const isActive = pathname === item.href;
           const isInactive = "inactive" in item && item.inactive;
-          return (
+          const hasTooltip = "tooltip" in item && item.tooltip;
+          const navLink = (
             <Link key={item.href} href={item.href}>
               <div className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isInactive
                   ? "text-neutral-300 hover:bg-neutral-50 hover:text-neutral-400 opacity-60"
                   : isActive 
                     ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
                     : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
               )}>
-                <item.icon className={cn("w-5 h-5", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
+                <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
+                <div className="relative flex flex-col">
+                  <span>{item.label}</span>
+                  {"subtitle" in item && item.subtitle && (
+                    <span className={cn(
+                      "text-[10px] font-medium leading-none mt-0.5",
+                      isActive ? "text-white/50" : "text-neutral-400"
+                    )}>
+                      {item.subtitle}
+                    </span>
+                  )}
+                  {("tag" in item && item.tag) && (
+                    <span className={cn(
+                      "absolute -top-1 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
+                      isActive
+                        ? "text-white/60 bg-white/10"
+                        : item.tag === "beta"
+                          ? "text-neutral-300 group-hover:text-blue-500 group-hover:bg-blue-50"
+                          : "text-neutral-300 group-hover:text-neutral-400 group-hover:bg-neutral-100"
+                    )}>
+                      {item.tag}
+                    </span>
+                  )}
+                  {isInactive && (
+                    <span className="absolute -top-1 -right-12 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm z-10 text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Link>
+          );
+          if (hasTooltip) {
+            return (
+              <Tooltip key={item.href}>
+                <TooltipTrigger asChild>
+                  {navLink}
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[220px] text-xs leading-relaxed bg-white text-neutral-700 border border-neutral-200 shadow-md">
+                  {item.tooltip}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+          return navLink;
+        })}
+
+        <div className="pt-4 pb-1 px-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            Procurement
+          </p>
+        </div>
+
+        {procurementNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          const isExternal = "external" in item && item.external;
+          const linkProps = isExternal ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
+          return (
+            <Link key={item.href} href={item.href} {...linkProps}>
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                isActive 
+                  ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              )}>
+                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
                 {item.label}
-                {isInactive && (
-                  <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
-                    Inactive
-                  </span>
+                {isExternal && (
+                  <ExternalLink className="w-3 h-3 ml-auto text-neutral-300" />
                 )}
               </div>
             </Link>
@@ -89,34 +154,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-neutral-100">
-        {user && (
-          <div className="flex items-center gap-3 px-4 py-2 mb-2">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                {user.displayName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-neutral-900 truncate">{user.displayName || "User"}</p>
-              <p className="text-xs text-neutral-500 truncate">{user.email}</p>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={logout}
-          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-neutral-50 cursor-pointer transition-colors group w-full"
-          data-testid="button-logout"
-        >
-          <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 group-hover:bg-white group-hover:shadow-sm">
-            <LogOut className="w-4 h-4" />
-          </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-medium text-neutral-900 truncate">Log Out</p>
-          </div>
-        </button>
-      </div>
     </aside>
   );
 }

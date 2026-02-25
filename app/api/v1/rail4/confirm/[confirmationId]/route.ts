@@ -138,6 +138,7 @@ async function handleApproval(conf: any) {
     type: "purchase",
     amountCents: conf.amountCents,
     description: `${conf.merchantName}: ${conf.itemName} (approved)`,
+    balanceAfter: updated.balanceCents,
   });
 
   await storage.updateCheckoutConfirmationStatus(conf.confirmationId, "approved");

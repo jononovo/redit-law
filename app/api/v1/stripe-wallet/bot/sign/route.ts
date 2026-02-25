@@ -56,6 +56,7 @@ async function handler(request: NextRequest, botId: string) {
             recipientAddress: recipient_address,
             resourceUrl: resource_url,
             status: "requires_approval",
+            balanceAfter: wallet.balanceUsdc,
           });
 
           const approval = await storage.privyCreateApproval({
@@ -106,6 +107,7 @@ async function handler(request: NextRequest, botId: string) {
           recipientAddress: recipient_address,
           resourceUrl: resource_url,
           status: "requires_approval",
+          balanceAfter: wallet.balanceUsdc,
         });
 
         const approval = await storage.privyCreateApproval({
@@ -160,6 +162,7 @@ async function handler(request: NextRequest, botId: string) {
       recipientAddress: recipient_address,
       resourceUrl: resource_url,
       status: "pending",
+      balanceAfter: wallet.balanceUsdc,
     });
 
     return NextResponse.json({
