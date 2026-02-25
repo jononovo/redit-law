@@ -924,7 +924,7 @@ export default function StripeWalletPage() {
           overlayExtra={onrampWallet ? (
             <div className="mt-6 space-y-4">
               <div>
-                <p className="text-xs text-white/50 uppercase tracking-wider mb-2">Wallet Address</p>
+                <p className="text-sm text-white font-semibold uppercase tracking-wider mb-2">Wallet Address</p>
                 <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
                   <code className="text-sm text-white font-mono truncate flex-1" data-testid="text-onramp-wallet-address">
                     {onrampWallet.address}
@@ -934,13 +934,13 @@ export default function StripeWalletPage() {
                       navigator.clipboard.writeText(onrampWallet.address);
                       toast({ title: "Wallet address copied!" });
                     }}
-                    className="text-white/60 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
+                    className="text-white hover:text-white/80 transition-colors flex-shrink-0 cursor-pointer"
                     data-testid="button-copy-onramp-address"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-xs text-white/50 mt-2 leading-relaxed">
+                <p className="text-sm text-white/80 mt-2 leading-relaxed">
                   You will need to paste your wallet address when funding for the first time. Copy it from here.
                 </p>
               </div>
