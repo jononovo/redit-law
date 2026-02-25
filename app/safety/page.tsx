@@ -1,7 +1,7 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { AnnouncementBar } from "@/components/announcement-bar";
-import { Lock, ShieldCheck, SlidersHorizontal, Snowflake, FileText, Bell, CreditCard, Eye } from "lucide-react";
+import { Lock, ShieldCheck, SlidersHorizontal, Snowflake, FileText, Bell, CreditCard, Eye, Clock } from "lucide-react";
 import Image from "next/image";
 
 const safetyFeatures = [
@@ -44,10 +44,21 @@ const safetyFeatures = [
 ];
 
 const partners = [
-  { name: "Stripe", role: "Payment Processing", desc: "PCI-DSS Level 1, fraud detection, tokenized storage" },
-  { name: "Firebase", role: "Authentication", desc: "Google-grade auth, session management, OAuth providers" },
-  { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity" },
-  { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam" },
+  { name: "Stripe", role: "Payment Processing", desc: "PCI-DSS Level 1, fraud detection, tokenized storage", logo: "/logos/partners/stripe.svg" },
+  { name: "Google Cloud", role: "Partner Authentication", desc: "Google-grade auth, session management, OAuth providers", logo: "/logos/partners/googlecloud.svg" },
+  { name: "Privy", role: "Wallet Infrastructure", desc: "Server wallets, embedded auth, Base chain integration", logo: "/logos/partners/privy.png" },
+  { name: "Crossmint", role: "Smart Wallets", desc: "NFT commerce, smart contract wallets, Amazon integration", logo: "/logos/partners/crossmint.png" },
+  { name: "Bridge", role: "Crypto Transfers", desc: "Stablecoin payments, fiat-to-crypto rails, cross-border transfers", logo: "/logos/partners/bridge.png" },
+  { name: "Circle", role: "Stablecoin Infrastructure", desc: "USDC issuance, programmable wallets, compliance", logo: "/logos/partners/circle.svg" },
+  { name: "Stytch", role: "Authentication", desc: "Passwordless auth, session management, fraud prevention", logo: "/logos/partners/stytch.png" },
+  { name: "VGS", role: "Payment Security", desc: "Card vault, tokenization, PCI compliance", logo: "/logos/partners/vgs.png" },
+  { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity", logo: "/logos/partners/postgresql.svg" },
+  { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam", logo: "/logos/partners/sendgrid.png" },
+];
+
+const pendingIntegrations = [
+  { name: "Intuit / QuickBooks", role: "Invoice Reconciliation", desc: "Automated invoice matching, expense categorization, financial reporting", logo: "/logos/partners/quickbooks.svg" },
+  { name: "Plaid", role: "Payment Reconciliation", desc: "Bank account verification, transaction matching, balance checks", logo: "/logos/partners/plaid.png" },
 ];
 
 export default function SafetyPage() {
@@ -113,19 +124,65 @@ export default function SafetyPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-6xl mx-auto">
               {partners.map((partner, index) => (
                 <div
                   key={index}
                   className="p-6 rounded-3xl bg-neutral-50 border border-neutral-100 hover:shadow-xl hover:bg-white transition-all duration-300 animate-fade-in-up"
-                  style={{ animationDelay: `${0.2 + index * 0.08}s` }}
+                  style={{ animationDelay: `${0.2 + index * 0.06}s` }}
                   data-testid={`partner-${index}`}
                 >
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-neutral-100 flex items-center justify-center mb-4 p-2">
+                    <Image
+                      src={partner.logo}
+                      alt={`${partner.name} logo`}
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                      data-testid={`partner-logo-${index}`}
+                    />
+                  </div>
                   <h3 className="text-lg font-extrabold text-neutral-900 mb-1">{partner.name}</h3>
                   <p className="text-xs font-bold text-primary uppercase tracking-wider mb-3">{partner.role}</p>
                   <p className="text-sm text-neutral-500 font-medium leading-relaxed">{partner.desc}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="max-w-6xl mx-auto mt-16">
+              <div className="flex items-center gap-3 mb-8 justify-center animate-fade-in-up">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock size={16} className="text-amber-600" />
+                </div>
+                <h3 className="text-2xl font-extrabold text-neutral-900">Integrations Pending</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                {pendingIntegrations.map((integration, index) => (
+                  <div
+                    key={index}
+                    className="p-6 rounded-3xl bg-neutral-50/50 border-2 border-dashed border-neutral-200 transition-all duration-300 animate-fade-in-up"
+                    style={{ animationDelay: `${0.3 + index * 0.08}s` }}
+                    data-testid={`pending-integration-${index}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-white border border-neutral-100 flex items-center justify-center p-1.5 opacity-70">
+                        <Image
+                          src={integration.logo}
+                          alt={`${integration.name} logo`}
+                          width={32}
+                          height={32}
+                          className="object-contain grayscale"
+                          data-testid={`pending-logo-${index}`}
+                        />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold uppercase tracking-wider">Coming Soon</span>
+                    </div>
+                    <h3 className="text-lg font-extrabold text-neutral-700 mb-1">{integration.name}</h3>
+                    <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">{integration.role}</p>
+                    <p className="text-sm text-neutral-400 font-medium leading-relaxed">{integration.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
