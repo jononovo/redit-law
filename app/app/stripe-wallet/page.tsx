@@ -919,7 +919,7 @@ export default function StripeWalletPage() {
         <SheetContent
           side="right"
           size="lg"
-          overlayTitle={onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
+          overlayTitle={onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
           overlayDescription="Transfer to your USDC wallet here on CreditClaw. Use a credit card or bank connection via Stripe."
           overlayExtra={onrampWallet ? (
             <div className="mt-6 space-y-4">
@@ -960,7 +960,7 @@ export default function StripeWalletPage() {
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
           <SheetTitle className="sr-only">
-            {onrampWallet ? `Fund Wallet: "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
+            {onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
           </SheetTitle>
           <SheetDescription className="sr-only">
             Transfer to your USDC wallet here on CreditClaw. Use a credit card or bank connection via Stripe.
@@ -969,11 +969,11 @@ export default function StripeWalletPage() {
             <div className="flex items-center gap-2 pr-8">
               <DollarSign className="w-5 h-5 text-emerald-600 flex-shrink-0" />
               <h2 className="text-lg font-semibold text-foreground">
-                {onrampWallet ? `Fund: "${onrampWallet.bot_name}"` : "Fund Wallet"}
+                {onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund "${onrampWallet.bot_name}"` : "Fund Wallet"}
               </h2>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Buy USDC via Stripe. Funds go directly to your wallet on Base.
+              Transfer to your USDC wallet here on CreditClaw.
             </p>
             {onrampWallet && (
               <div className="mt-3">
