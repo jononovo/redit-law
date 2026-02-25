@@ -88,7 +88,7 @@ export function Sidebar() {
                   )}
                   {("tag" in item && item.tag) && (
                     <span className={cn(
-                      "absolute -top-2.5 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
+                      "absolute -top-1 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
                       isActive
                         ? "text-white/60 bg-white/10"
                         : item.tag === "beta"
@@ -99,7 +99,7 @@ export function Sidebar() {
                     </span>
                   )}
                   {isInactive && (
-                    <span className="absolute -top-2.5 -right-12 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm z-10 text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
+                    <span className="absolute -top-1 -right-12 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm z-10 text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
                       Inactive
                     </span>
                   )}
