@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     console.log("[Onramp Webhook] Event verified:", event.type);
 
-    if ((event.type as string) === "crypto.onramp_session_updated") {
+    if ((event.type as string) === "crypto.onramp_session.updated") {
       const session = event.data.object as any;
       console.log("[Onramp Webhook] Session status:", session.status);
       console.log("[Onramp Webhook] Session ID:", session.id);
