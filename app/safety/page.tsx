@@ -46,14 +46,14 @@ const safetyFeatures = [
 const partners = [
   { name: "Stripe", role: "Payment Processing", desc: "PCI-DSS Level 1, fraud detection, tokenized storage", logo: "/logos/partners/stripe.svg" },
   { name: "Google Cloud", role: "Partner Authentication", desc: "Google-grade auth, session management, OAuth providers", logo: "/logos/partners/googlecloud.svg" },
-  { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity", logo: "/logos/partners/postgresql.svg" },
-  { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam", logo: "/logos/partners/sendgrid.png" },
   { name: "Privy", role: "Wallet Infrastructure", desc: "Server wallets, embedded auth, Base chain integration", logo: "/logos/partners/privy.png" },
   { name: "Crossmint", role: "Smart Wallets", desc: "NFT commerce, smart contract wallets, Amazon integration", logo: "/logos/partners/crossmint.png" },
   { name: "Bridge", role: "Crypto Transfers", desc: "Stablecoin payments, fiat-to-crypto rails, cross-border transfers", logo: "/logos/partners/bridge.png" },
   { name: "Circle", role: "Stablecoin Infrastructure", desc: "USDC issuance, programmable wallets, compliance", logo: "/logos/partners/circle.svg" },
   { name: "Stytch", role: "Authentication", desc: "Passwordless auth, session management, fraud prevention", logo: "/logos/partners/stytch.png" },
   { name: "VGS", role: "Payment Security", desc: "Card vault, tokenization, PCI compliance", logo: "/logos/partners/vgs.png" },
+  { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity", logo: "/logos/partners/postgresql.svg" },
+  { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam", logo: "/logos/partners/sendgrid.png" },
 ];
 
 const pendingIntegrations = [
