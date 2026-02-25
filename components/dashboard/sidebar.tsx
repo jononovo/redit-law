@@ -20,16 +20,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
 
-const navItems = [
+const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet" },
   { icon: ShoppingCart, label: "Card Wallet", href: "/app/card-wallet" },
   { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
   { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
-  { icon: Send, label: "Submit Skill", href: "/app/skills/submit" },
-  { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
+];
+
+const procurementNavItems = [
+  { icon: Send, label: "Submit Supplier", href: "/app/skills/submit" },
+  { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
 ];
 
 export function Sidebar() {
@@ -57,7 +60,7 @@ export function Sidebar() {
       <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
 
       <nav className="flex-1 px-4 space-y-1">
-        {navItems.map((item) => {
+        {mainNavItems.map((item) => {
           const isActive = pathname === item.href;
           const isInactive = "inactive" in item && item.inactive;
           return (
@@ -77,6 +80,29 @@ export function Sidebar() {
                     Inactive
                   </span>
                 )}
+              </div>
+            </Link>
+          );
+        })}
+
+        <div className="pt-4 pb-1 px-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            Procurement
+          </p>
+        </div>
+
+        {procurementNavItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}>
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                isActive 
+                  ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              )}>
+                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
+                {item.label}
               </div>
             </Link>
           );
