@@ -924,9 +924,9 @@ export default function StripeWalletPage() {
           overlayExtra={onrampWallet ? (
             <div className="mt-6 space-y-4">
               <div>
-                <p className="text-sm text-white font-semibold uppercase tracking-wider mb-2">Wallet Address</p>
+                <p className="text-sm text-white/70 font-semibold mb-2">Wallet Address</p>
                 <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-                  <code className="text-sm text-white font-mono truncate flex-1" data-testid="text-onramp-wallet-address">
+                  <code className="text-sm text-white/70 font-mono truncate flex-1" data-testid="text-onramp-wallet-address">
                     {onrampWallet.address}
                   </code>
                   <button
@@ -934,19 +934,19 @@ export default function StripeWalletPage() {
                       navigator.clipboard.writeText(onrampWallet.address);
                       toast({ title: "Wallet address copied!" });
                     }}
-                    className="text-white hover:text-white/80 transition-colors flex-shrink-0 cursor-pointer"
+                    className="text-white/70 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
                     data-testid="button-copy-onramp-address"
                   >
                     <Copy className="w-5 h-5" />
                   </button>
                 </div>
-                <p className="text-sm text-white/80 mt-2 leading-relaxed">
+                <p className="text-sm text-white/70 mt-2 leading-relaxed">
                   You will need to paste your wallet address when funding for the first time. Copy it from here.
                 </p>
               </div>
               <Button
                 variant="outline"
-                className="w-full border-white/20 text-white hover:bg-white/10 hover:text-white cursor-pointer"
+                className="w-full border-white/30 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
                 onClick={() => setShowCloseConfirm(true)}
                 data-testid="button-close-stripe-funding"
               >
