@@ -45,7 +45,7 @@ const safetyFeatures = [
 
 const partners = [
   { name: "Stripe", role: "Payment Processing", desc: "PCI-DSS Level 1, fraud detection, tokenized storage", logo: "/logos/partners/stripe.svg" },
-  { name: "Firebase", role: "Authentication", desc: "Google-grade auth, session management, OAuth providers", logo: "/logos/partners/firebase.svg" },
+  { name: "Google Cloud", role: "Partner Authentication", desc: "Google-grade auth, session management, OAuth providers", logo: "/logos/partners/googlecloud.svg" },
   { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity", logo: "/logos/partners/postgresql.svg" },
   { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam", logo: "/logos/partners/sendgrid.png" },
   { name: "Privy", role: "Wallet Infrastructure", desc: "Server wallets, embedded auth, Base chain integration", logo: "/logos/partners/privy.png" },
