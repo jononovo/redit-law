@@ -76,11 +76,11 @@ export function Sidebar() {
                     : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
               )}>
                 <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
-                <div className="flex flex-col">
+                <div className="relative">
                   <span>{item.label}</span>
                   {("tag" in item && item.tag) && (
                     <span className={cn(
-                      "text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit transition-colors",
+                      "absolute -top-2.5 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
                       isActive
                         ? "text-white/60 bg-white/10 hover:bg-white/20"
                         : item.tag === "beta"
@@ -91,7 +91,7 @@ export function Sidebar() {
                     </span>
                   )}
                   {isInactive && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider leading-none mt-1 px-1.5 py-0.5 rounded-sm w-fit text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
+                    <span className="absolute -top-2.5 -right-12 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm z-10 text-neutral-400 bg-neutral-100 hover:bg-neutral-200 transition-colors">
                       Inactive
                     </span>
                   )}
