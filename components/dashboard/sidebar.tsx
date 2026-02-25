@@ -13,7 +13,9 @@ import {
   ShoppingCart,
   Sparkles,
   Send,
-  Lock
+  Lock,
+  Store,
+  ExternalLink
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,7 @@ const mainNavItems = [
 const procurementNavItems = [
   { icon: Send, label: "Submit Supplier", href: "/app/skills/submit" },
   { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
+  { icon: Store, label: "Supplier Hub", href: "/skills", external: true },
 ];
 
 export function Sidebar() {
@@ -130,8 +133,10 @@ export function Sidebar() {
 
         {procurementNavItems.map((item) => {
           const isActive = pathname === item.href;
+          const isExternal = "external" in item && item.external;
+          const linkProps = isExternal ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} {...linkProps}>
               <div className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isActive 
@@ -140,6 +145,9 @@ export function Sidebar() {
               )}>
                 <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
                 {item.label}
+                {isExternal && (
+                  <ExternalLink className="w-3 h-3 ml-auto text-neutral-300" />
+                )}
               </div>
             </Link>
           );
