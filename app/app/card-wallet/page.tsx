@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, ShoppingCart, Plus, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, Ban, CreditCard, RefreshCw, MapPin, Eye } from "lucide-react";
+import { Loader2, ShoppingCart, Plus, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, Ban, CreditCard, RefreshCw, MapPin, Eye, Send, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,15 @@ interface TransactionInfo {
   crossmint_order_id: string | null;
   shipping_address: Record<string, string> | null;
   tracking_info: Record<string, string> | null;
+  metadata?: {
+    direction?: "inbound" | "outbound";
+    counterparty_address?: string;
+    counterparty_wallet_id?: number;
+    counterparty_rail?: string;
+    tx_hash?: string;
+    transfer_tier?: string;
+    [key: string]: any;
+  } | null;
   created_at: string;
 }
 
@@ -236,6 +245,15 @@ export default function CardWalletPage() {
   const [savingGuardrails, setSavingGuardrails] = useState(false);
   const [syncingWalletId, setSyncingWalletId] = useState<number | null>(null);
   const [syncCooldowns, setSyncCooldowns] = useState<Record<number, number>>({});
+
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferSourceWallet, setTransferSourceWallet] = useState<WalletInfo | null>(null);
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDestType, setTransferDestType] = useState<"own" | "external">("own");
+  const [transferDestWalletKey, setTransferDestWalletKey] = useState("");
+  const [transferDestAddress, setTransferDestAddress] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
+  const [allDestWallets, setAllDestWallets] = useState<Array<{ id: number; rail: "privy" | "crossmint"; label: string; address: string }>>([]);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -435,6 +453,94 @@ export default function CardWalletPage() {
       }
     } catch {
       toast({ title: "Failed to process decision", variant: "destructive" });
+    }
+  };
+
+  const handleOpenTransfer = async (wallet: WalletInfo) => {
+    setTransferSourceWallet(wallet);
+    setTransferAmount("");
+    setTransferDestType("own");
+    setTransferDestWalletKey("");
+    setTransferDestAddress("");
+    setTransferDialogOpen(true);
+
+    try {
+      const [cardRes, stripeRes] = await Promise.all([
+        authFetch("/api/v1/card-wallet/list"),
+        authFetch("/api/v1/stripe-wallet/list"),
+      ]);
+      const destinations: Array<{ id: number; rail: "privy" | "crossmint"; label: string; address: string }> = [];
+      if (cardRes.ok) {
+        const cardData = await cardRes.json();
+        (cardData.wallets || []).forEach((w: any) => {
+          if (!(w.id === wallet.id && "crossmint" === "crossmint")) {
+            destinations.push({ id: w.id, rail: "crossmint", label: `${w.bot_name} (Card Wallet)`, address: w.address });
+          }
+        });
+      }
+      if (stripeRes.ok) {
+        const stripeData = await stripeRes.json();
+        (stripeData.wallets || []).forEach((w: any) => {
+          destinations.push({ id: w.id, rail: "privy", label: `${w.bot_name || w.label || "Stripe Wallet"} (Stripe Wallet)`, address: w.address });
+        });
+      }
+      setAllDestWallets(destinations);
+    } catch {
+      setAllDestWallets([]);
+    }
+  };
+
+  const handleSubmitTransfer = async () => {
+    if (!transferSourceWallet || !transferAmount) return;
+    const amountUsdc = Math.round(parseFloat(transferAmount) * 1_000_000);
+    if (isNaN(amountUsdc) || amountUsdc <= 0) {
+      toast({ title: "Invalid amount", variant: "destructive" });
+      return;
+    }
+
+    let destination: { wallet_id?: number; rail?: "privy" | "crossmint"; address?: string };
+    if (transferDestType === "own") {
+      if (!transferDestWalletKey) {
+        toast({ title: "Select a destination wallet", variant: "destructive" });
+        return;
+      }
+      const [rail, idStr] = transferDestWalletKey.split(":");
+      destination = { wallet_id: Number(idStr), rail: rail as "privy" | "crossmint" };
+    } else {
+      if (!transferDestAddress || !transferDestAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        toast({ title: "Enter a valid 0x address", variant: "destructive" });
+        return;
+      }
+      destination = { address: transferDestAddress };
+    }
+
+    setTransferLoading(true);
+    try {
+      const res = await authFetch("/api/v1/wallet/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_wallet_id: transferSourceWallet.id,
+          source_rail: "crossmint",
+          amount_usdc: amountUsdc,
+          destination,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast({ title: "Transfer complete" });
+        setTransferDialogOpen(false);
+        fetchWallets();
+        fetchTransactions();
+      } else if (data.error === "guardrail_violation" || data.error === "approval_required") {
+        toast({ title: data.error === "guardrail_violation" ? "Guardrail Violation" : "Approval Required", description: data.reason, variant: "destructive" });
+      } else {
+        toast({ title: "Transfer failed", description: data.error || "Unknown error", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Transfer failed", variant: "destructive" });
+    } finally {
+      setTransferLoading(false);
     }
   };
 
@@ -648,6 +754,17 @@ export default function CardWalletPage() {
                       >
                         <CreditCard className="w-4 h-4" /> Fund
                       </Button>
+                      {wallet.status === "active" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenTransfer(wallet)}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-1"
+                          data-testid={`button-transfer-${wallet.id}`}
+                        >
+                          <Send className="w-4 h-4" /> Transfer
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -751,12 +868,32 @@ export default function CardWalletPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tx.type === "purchase" ? "bg-violet-50" : "bg-emerald-50"}`}>
-                        {tx.type === "purchase" ? <ShoppingCart className="w-4 h-4 text-violet-600" /> : <DollarSign className="w-4 h-4 text-emerald-600" />}
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        tx.type === "transfer"
+                          ? (tx.metadata?.direction === "inbound" ? "bg-emerald-50" : "bg-red-50")
+                          : tx.type === "purchase" ? "bg-violet-50" : "bg-emerald-50"
+                      }`}>
+                        {tx.type === "transfer"
+                          ? (tx.metadata?.direction === "inbound"
+                            ? <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
+                            : <ArrowUpRight className="w-4 h-4 text-red-600" />)
+                          : tx.type === "purchase" ? <ShoppingCart className="w-4 h-4 text-violet-600" /> : <DollarSign className="w-4 h-4 text-emerald-600" />}
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{tx.product_name || tx.type}</p>
-                        <p className="text-xs text-neutral-400">{new Date(tx.created_at).toLocaleString()}</p>
+                        <p className="font-medium text-sm">
+                          {tx.type === "transfer"
+                            ? (tx.metadata?.direction === "inbound" ? "Transfer in" : "Transfer out")
+                            : (tx.product_name || tx.type)}
+                        </p>
+                        <p className="text-xs text-neutral-400">
+                          {new Date(tx.created_at).toLocaleString()}
+                          {tx.type === "transfer" && tx.metadata?.counterparty_address && (
+                            <span className="ml-1 font-mono">
+                              {tx.metadata.direction === "inbound" ? "from " : "to "}
+                              {tx.metadata.counterparty_address.slice(0, 6)}...{tx.metadata.counterparty_address.slice(-4)}
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -765,7 +902,9 @@ export default function CardWalletPage() {
                         <StatusBadge status={tx.order_status} />
                       )}
                       <div className="text-right">
-                        <span className="font-semibold text-sm" data-testid={`text-amount-${tx.id}`}>{tx.amount_display}</span>
+                        <span className={`font-semibold text-sm ${tx.type === "transfer" ? (tx.metadata?.direction === "inbound" ? "text-emerald-600" : "text-red-600") : ""}`} data-testid={`text-amount-${tx.id}`}>
+                          {tx.type === "transfer" ? (tx.metadata?.direction === "inbound" ? "+" : "-") : ""}{tx.amount_display}
+                        </span>
                         {tx.balance_after_display && (
                           <p className="text-xs text-neutral-400" data-testid={`text-balance-after-${tx.id}`}>bal: {tx.balance_after_display}</p>
                         )}
@@ -1098,6 +1237,93 @@ export default function CardWalletPage() {
                   </Button>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
+        <DialogContent className="sm:max-w-lg" data-testid="dialog-transfer">
+          <DialogTitle>Transfer USDC</DialogTitle>
+          <DialogDescription>
+            Send USDC from {transferSourceWallet?.bot_name} to another wallet.
+          </DialogDescription>
+          {transferSourceWallet && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-neutral-50 rounded-lg p-3">
+                <p className="text-xs text-neutral-500">Source Wallet</p>
+                <p className="text-sm font-semibold text-neutral-900">{transferSourceWallet.bot_name}</p>
+                <code className="text-xs text-neutral-400 font-mono">{transferSourceWallet.address.slice(0, 10)}...{transferSourceWallet.address.slice(-6)}</code>
+                <p className="text-sm font-bold text-neutral-800 mt-1">Balance: {transferSourceWallet.balance_display}</p>
+              </div>
+
+              <div>
+                <Label className="text-sm">Amount (USD)</Label>
+                <Input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  placeholder="10.00"
+                  data-testid="input-transfer-amount"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm">Destination Type</Label>
+                <select
+                  value={transferDestType}
+                  onChange={(e) => setTransferDestType(e.target.value as "own" | "external")}
+                  className="w-full border rounded-lg px-3 py-2 mt-1 text-sm"
+                  data-testid="select-destination-type"
+                >
+                  <option value="own">Own Wallet</option>
+                  <option value="external">External Address</option>
+                </select>
+              </div>
+
+              {transferDestType === "own" ? (
+                <div>
+                  <Label className="text-sm">Destination Wallet</Label>
+                  <select
+                    value={transferDestWalletKey}
+                    onChange={(e) => setTransferDestWalletKey(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 mt-1 text-sm"
+                    data-testid="select-destination-wallet"
+                  >
+                    <option value="">Choose a wallet...</option>
+                    {allDestWallets.map((w) => (
+                      <option key={`${w.rail}:${w.id}`} value={`${w.rail}:${w.id}`}>
+                        {w.label} — {w.address.slice(0, 6)}...{w.address.slice(-4)}
+                      </option>
+                    ))}
+                  </select>
+                  {allDestWallets.length === 0 && (
+                    <p className="text-xs text-neutral-400 mt-1">Loading wallets...</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Label className="text-sm">Destination Address</Label>
+                  <Input
+                    value={transferDestAddress}
+                    onChange={(e) => setTransferDestAddress(e.target.value)}
+                    placeholder="0x..."
+                    data-testid="input-destination-address"
+                  />
+                </div>
+              )}
+
+              <Button
+                onClick={handleSubmitTransfer}
+                disabled={transferLoading || !transferAmount || parseFloat(transferAmount) <= 0}
+                className="w-full bg-blue-600 hover:bg-blue-700 gap-2"
+                data-testid="button-submit-transfer"
+              >
+                {transferLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Send Transfer
+              </Button>
             </div>
           )}
         </DialogContent>

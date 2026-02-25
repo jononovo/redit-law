@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -43,6 +43,12 @@ interface TransactionInfo {
   tx_hash: string | null;
   status: string;
   created_at: string;
+  metadata?: {
+    direction?: "inbound" | "outbound";
+    counterparty_address?: string;
+    transfer_tier?: string;
+    [key: string]: any;
+  };
 }
 
 interface ApprovalInfo {
@@ -100,6 +106,15 @@ export default function StripeWalletPage() {
 
   const [syncingWalletId, setSyncingWalletId] = useState<number | null>(null);
   const [syncCooldowns, setSyncCooldowns] = useState<Record<number, number>>({});
+
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [transferSourceWallet, setTransferSourceWallet] = useState<WalletInfo | null>(null);
+  const [transferAmount, setTransferAmount] = useState("");
+  const [transferDestType, setTransferDestType] = useState<"own" | "external">("own");
+  const [transferDestWalletKey, setTransferDestWalletKey] = useState("");
+  const [transferDestAddress, setTransferDestAddress] = useState("");
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const [allWalletsForTransfer, setAllWalletsForTransfer] = useState<Array<{ id: number; rail: "privy" | "crossmint"; address: string; label: string }>>([]);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -337,6 +352,121 @@ export default function StripeWalletPage() {
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
     } finally {
       setLinkLoading(false);
+    }
+  }
+
+  async function openTransferDialog(wallet: WalletInfo) {
+    setTransferSourceWallet(wallet);
+    setTransferAmount("");
+    setTransferDestType("own");
+    setTransferDestWalletKey("");
+    setTransferDestAddress("");
+    setTransferDialogOpen(true);
+
+    try {
+      const [stripeRes, cardRes] = await Promise.all([
+        authFetch("/api/v1/stripe-wallet/list"),
+        authFetch("/api/v1/card-wallet/list"),
+      ]);
+
+      const combined: Array<{ id: number; rail: "privy" | "crossmint"; address: string; label: string }> = [];
+
+      if (stripeRes.ok) {
+        const data = await stripeRes.json();
+        (data.wallets || []).forEach((w: any) => {
+          if (!(w.id === wallet.id && "privy" === "privy")) {
+            combined.push({
+              id: w.id,
+              rail: "privy" as const,
+              address: w.address,
+              label: `${w.bot_name || "Stripe Wallet"} (${w.address.slice(0, 6)}...${w.address.slice(-4)}) — Stripe/Privy`,
+            });
+          }
+        });
+      }
+
+      if (cardRes.ok) {
+        const data = await cardRes.json();
+        (data.wallets || []).forEach((w: any) => {
+          combined.push({
+            id: w.id,
+            rail: "crossmint" as const,
+            address: w.address,
+            label: `${w.bot_name || "Card Wallet"} (${w.address.slice(0, 6)}...${w.address.slice(-4)}) — Card/Crossmint`,
+          });
+        });
+      }
+
+      const filtered = combined.filter(
+        (w) => !(w.id === wallet.id && w.rail === "privy")
+      );
+      setAllWalletsForTransfer(filtered);
+    } catch {
+      setAllWalletsForTransfer([]);
+    }
+  }
+
+  async function handleTransfer() {
+    if (!transferSourceWallet) return;
+
+    const amountFloat = parseFloat(transferAmount);
+    if (isNaN(amountFloat) || amountFloat <= 0) {
+      toast({ title: "Invalid amount", variant: "destructive" });
+      return;
+    }
+
+    const amountMicroUsdc = Math.round(amountFloat * 1_000_000);
+
+    let destination: { wallet_id?: number; rail?: "privy" | "crossmint"; address?: string } = {};
+
+    if (transferDestType === "own") {
+      if (!transferDestWalletKey) {
+        toast({ title: "Select a destination wallet", variant: "destructive" });
+        return;
+      }
+      const [rail, idStr] = transferDestWalletKey.split(":");
+      destination = { wallet_id: Number(idStr), rail: rail as "privy" | "crossmint" };
+    } else {
+      if (!transferDestAddress || !/^0x[a-fA-F0-9]{40}$/.test(transferDestAddress)) {
+        toast({ title: "Enter a valid 0x address", variant: "destructive" });
+        return;
+      }
+      destination = { address: transferDestAddress };
+    }
+
+    setTransferSubmitting(true);
+    try {
+      const res = await authFetch("/api/v1/wallet/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source_wallet_id: transferSourceWallet.id,
+          source_rail: "privy",
+          amount_usdc: amountMicroUsdc,
+          destination,
+        }),
+      });
+
+      if (res.ok) {
+        toast({ title: "Transfer complete" });
+        setTransferDialogOpen(false);
+        setTransferSourceWallet(null);
+        fetchWallets();
+        if (selectedWallet) {
+          fetchTransactions(selectedWallet.id);
+        }
+      } else {
+        const err = await res.json();
+        if (err.error === "guardrail_violation" || err.error === "approval_required") {
+          toast({ title: err.error === "guardrail_violation" ? "Guardrail Violation" : "Approval Required", description: err.reason, variant: "destructive" });
+        } else {
+          toast({ title: "Transfer failed", description: err.error || "Unknown error", variant: "destructive" });
+        }
+      }
+    } catch {
+      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
+    } finally {
+      setTransferSubmitting(false);
     }
   }
 
@@ -634,6 +764,16 @@ export default function StripeWalletPage() {
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
+                        {wallet.status === "active" && (
+                          <button
+                            onClick={() => openTransferDialog(wallet)}
+                            className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                            title="Transfer USDC"
+                            data-testid={`button-transfer-${wallet.id}`}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -742,18 +882,34 @@ export default function StripeWalletPage() {
                   {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-neutral-50/50" data-testid={`row-tx-${tx.id}`}>
                       <td className="px-6 py-4 flex items-center gap-2">
-                        {tx.type === "deposit" ? (
+                        {tx.type === "transfer" ? (
+                          tx.metadata?.direction === "inbound" ? (
+                            <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <ArrowUpRight className="w-4 h-4 text-red-500" />
+                          )
+                        ) : tx.type === "deposit" ? (
                           <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
                         ) : tx.type === "reconciliation" ? (
                           <ArrowLeftRight className="w-4 h-4 text-amber-500" />
                         ) : (
                           <ArrowUpRight className="w-4 h-4 text-blue-500" />
                         )}
-                        <span className="font-medium capitalize">{tx.type.replace("_", " ")}</span>
+                        <span className="font-medium capitalize">
+                          {tx.type === "transfer"
+                            ? tx.metadata?.direction === "inbound" ? "Transfer in" : "Transfer out"
+                            : tx.type.replace("_", " ")}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 font-semibold">{tx.amount_display}</td>
+                      <td className={`px-6 py-4 font-semibold ${tx.type === "transfer" ? (tx.metadata?.direction === "inbound" ? "text-emerald-600" : "text-red-600") : ""}`}>
+                        {tx.type === "transfer" ? (tx.metadata?.direction === "inbound" ? "+" : "−") : ""}{tx.amount_display}
+                      </td>
                       <td className="px-6 py-4 text-neutral-500" data-testid={`text-balance-after-${tx.id}`}>{tx.balance_after_display || "—"}</td>
-                      <td className="px-6 py-4 text-neutral-500 truncate max-w-[200px]">{tx.resource_url || "—"}</td>
+                      <td className="px-6 py-4 text-neutral-500 truncate max-w-[200px]">
+                        {tx.type === "transfer" && tx.metadata?.counterparty_address
+                          ? `${tx.metadata.counterparty_address.slice(0, 6)}...${tx.metadata.counterparty_address.slice(-4)}`
+                          : tx.resource_url || "—"}
+                      </td>
                       <td className="px-6 py-4 flex items-center gap-1.5">
                         {statusIcon(tx.status)}
                         <span className="capitalize">{tx.status}</span>
@@ -1086,6 +1242,100 @@ export default function StripeWalletPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={transferDialogOpen} onOpenChange={(open) => { if (!open) { setTransferDialogOpen(false); setTransferSourceWallet(null); } }}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-transfer">
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="w-5 h-5 text-blue-500" />
+            Transfer USDC
+          </DialogTitle>
+          <DialogDescription className="text-neutral-600">
+            Send USDC from this wallet to another wallet or external address.
+          </DialogDescription>
+          {transferSourceWallet && (
+            <div className="space-y-4 mt-4">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-4">
+                <p className="text-xs text-neutral-500 font-medium mb-1">Source Wallet</p>
+                <p className="text-sm font-mono text-neutral-700">{transferSourceWallet.address.slice(0, 10)}...{transferSourceWallet.address.slice(-6)}</p>
+                <p className="text-lg font-bold text-neutral-900 mt-1">{transferSourceWallet.balance_display}</p>
+              </div>
+
+              <div>
+                <Label>Amount (USD)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="0.00"
+                  value={transferAmount}
+                  onChange={(e) => setTransferAmount(e.target.value)}
+                  data-testid="input-transfer-amount"
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label>Destination</Label>
+                <select
+                  className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
+                  value={transferDestType}
+                  onChange={(e) => setTransferDestType(e.target.value as "own" | "external")}
+                  data-testid="select-destination-type"
+                >
+                  <option value="own">Own Wallet</option>
+                  <option value="external">External Address</option>
+                </select>
+              </div>
+
+              {transferDestType === "own" ? (
+                <div>
+                  <Label>Destination Wallet</Label>
+                  <select
+                    className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
+                    value={transferDestWalletKey}
+                    onChange={(e) => setTransferDestWalletKey(e.target.value)}
+                    data-testid="select-destination-wallet"
+                  >
+                    <option value="">Choose a wallet...</option>
+                    {allWalletsForTransfer.map((w) => (
+                      <option key={`${w.rail}:${w.id}`} value={`${w.rail}:${w.id}`}>
+                        {w.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <Label>Destination Address</Label>
+                  <Input
+                    type="text"
+                    placeholder="0x..."
+                    value={transferDestAddress}
+                    onChange={(e) => setTransferDestAddress(e.target.value)}
+                    data-testid="input-destination-address"
+                    className="mt-1.5 font-mono"
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => { setTransferDialogOpen(false); setTransferSourceWallet(null); }}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleTransfer}
+                  disabled={transferSubmitting}
+                  className="bg-primary hover:bg-primary/90"
+                  data-testid="button-submit-transfer"
+                >
+                  {transferSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                  Send Transfer
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
