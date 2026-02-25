@@ -22,10 +22,10 @@ import { NewCardModal } from "@/components/dashboard/new-card-modal";
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet" },
-  { icon: ShoppingCart, label: "Card Wallet", href: "/app/card-wallet" },
-  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted" },
-  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards" },
+  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta" },
+  { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon" },
+  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted", tag: "legacy" },
+  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards", tag: "beta" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
@@ -75,8 +75,19 @@ export function Sidebar() {
               )}>
                 <item.icon className={cn("w-5 h-5", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
                 {item.label}
+                {"tag" in item && item.tag && (
+                  <span className={cn(
+                    "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                    isActive ? "text-white/60 bg-white/10" : "text-neutral-400 bg-neutral-100"
+                  )}>
+                    {item.tag}
+                  </span>
+                )}
                 {isInactive && (
-                  <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded">
+                  <span className={cn(
+                    "ml-auto text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
+                    "text-neutral-400 bg-neutral-100"
+                  )}>
                     Inactive
                   </span>
                 )}
