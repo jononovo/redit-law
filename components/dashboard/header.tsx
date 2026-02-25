@@ -1,13 +1,22 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, Settings, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { NotificationPopover } from "./notification-popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Header({ title }: { title: string }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   return (
     <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-8 flex items-center justify-between">
@@ -27,18 +36,41 @@ export function Header({ title }: { title: string }) {
 
         <div className="h-8 w-px bg-neutral-200 mx-1" />
 
-        <div className="flex items-center gap-3 pl-1">
-            <div className="text-right hidden sm:block">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-3 pl-1 cursor-pointer outline-none" data-testid="button-user-menu">
+              <div className="text-right hidden sm:block">
                 <p className="text-sm font-medium text-neutral-900">{user?.displayName || "User"}</p>
                 <p className="text-xs text-neutral-500">{user?.email || "Pro Plan"}</p>
-            </div>
-            <Avatar className="h-9 w-9 border-2 border-white shadow-sm cursor-pointer">
+              </div>
+              <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
                 <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || "User"} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold">
                   {user?.displayName?.[0] || user?.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
-            </Avatar>
-        </div>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem
+              onClick={() => router.push("/app/settings")}
+              className="cursor-pointer"
+              data-testid="menu-item-settings"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={logout}
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              data-testid="menu-item-logout"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Log Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
