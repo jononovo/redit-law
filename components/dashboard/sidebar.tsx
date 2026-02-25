@@ -24,10 +24,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 
 const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet for any x402 purchases. Fund wallet with Stripe/Link." },
+  { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
   { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
-  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted", tag: "legacy", tooltip: "Security & controls for your agent who uses your real card. Techniques: Obfuscation & Split Knowledge." },
-  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Security & controls for your agent who uses your real card. Techniques: Agent holds encrypted card details file. Decryption key held by CreditClaw." },
+  { icon: Shield, label: "Self-Hosted", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
+  { icon: Lock, label: "Sub-Agent Cards", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
