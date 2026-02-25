@@ -25,8 +25,8 @@ const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
   { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
-  { icon: Lock, label: "My Card | Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
-  { icon: Shield, label: "My Card | Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
+  { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
+  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
@@ -76,8 +76,16 @@ export function Sidebar() {
                     : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
               )}>
                 <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
-                <div className="relative">
+                <div className="relative flex flex-col">
                   <span>{item.label}</span>
+                  {"subtitle" in item && item.subtitle && (
+                    <span className={cn(
+                      "text-[10px] font-medium leading-none mt-0.5",
+                      isActive ? "text-white/50" : "text-neutral-400"
+                    )}>
+                      {item.subtitle}
+                    </span>
+                  )}
                   {("tag" in item && item.tag) && (
                     <span className={cn(
                       "absolute -top-2.5 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
