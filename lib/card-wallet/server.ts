@@ -1,14 +1,14 @@
 const CROSSMINT_API_BASE = process.env.CROSSMINT_ENV === "staging"
-  ? "https://staging.crossmint.com/api/2022-06-09"
-  : "https://www.crossmint.com/api/2022-06-09";
+  ? "https://staging.crossmint.com/api/2025-06-09"
+  : "https://www.crossmint.com/api/2025-06-09";
 
-function getServerApiKey(): string {
+export function getServerApiKey(): string {
   const key = process.env.CROSSMINT_SERVER_API_KEY;
   if (!key) throw new Error("CROSSMINT_SERVER_API_KEY is required for Rail 2");
   return key;
 }
 
-async function crossmintFetch(path: string, options: RequestInit = {}): Promise<Response> {
+export async function crossmintFetch(path: string, options: RequestInit = {}): Promise<Response> {
   const url = `${CROSSMINT_API_BASE}${path}`;
   const response = await fetch(url, {
     ...options,
@@ -29,11 +29,12 @@ export async function createSmartWallet(ownerUid: string): Promise<{
   const response = await crossmintFetch("/wallets", {
     method: "POST",
     body: JSON.stringify({
-      type: "evm-smart-wallet",
+      chainType: "evm",
+      type: "smart",
       config: {
         adminSigner: { type: "evm-fireblocks-custodial" },
       },
-      linkedUser: `userId:${ownerUid}`,
+      owner: `userId:${ownerUid}`,
     }),
   });
 
@@ -44,10 +45,10 @@ export async function createSmartWallet(ownerUid: string): Promise<{
     throw new Error(data.message || data.error || "Failed to create CrossMint wallet");
   }
 
-  console.log("[CrossMint] Wallet created:", { type: data.type, address: data.address });
+  console.log("[CrossMint] Wallet created:", { type: data.type, address: data.address, chainType: data.chainType });
 
   return {
-    walletId: data.locator || data.id || data.address,
+    walletId: data.config?.adminSigner?.locator || data.locator || data.id || data.address,
     address: data.address,
     type: data.type,
   };
@@ -66,11 +67,23 @@ export async function getWalletBalance(walletAddress: string): Promise<number> {
     throw new Error(data.message || "Failed to query wallet balance");
   }
 
-  const usdcBalance = data?.balances?.find(
-    (b: { token: string; chain: string }) => b.token === "usdc" && b.chain === "base"
+  const balances = Array.isArray(data) ? data : data?.balances || [];
+
+  const usdcEntry = balances.find(
+    (b: { symbol?: string; token?: string }) =>
+      (b.symbol && b.symbol.toUpperCase() === "USDC") ||
+      (b.token && b.token === "usdc")
   );
 
-  return usdcBalance ? Math.round(parseFloat(usdcBalance.balance) * 1_000_000) : 0;
+  if (!usdcEntry) return 0;
+
+  const baseChain = usdcEntry.chains?.base;
+  if (baseChain?.rawAmount) {
+    return Number(baseChain.rawAmount);
+  }
+
+  const amount = baseChain?.amount || usdcEntry.amount || usdcEntry.balance;
+  return amount ? Math.round(parseFloat(String(amount)) * 1_000_000) : 0;
 }
 
 export function formatUsdc(microUsdc: number): string {
