@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -94,6 +94,9 @@ export default function StripeWalletPage() {
   const [linkBotId, setLinkBotId] = useState("");
   const [linkLoading, setLinkLoading] = useState(false);
 
+  const [syncingWalletId, setSyncingWalletId] = useState<number | null>(null);
+  const [syncCooldowns, setSyncCooldowns] = useState<Record<number, number>>({});
+
   const fetchWallets = useCallback(async () => {
     try {
       const res = await authFetch("/api/v1/stripe-wallet/list");
@@ -128,6 +131,55 @@ export default function StripeWalletPage() {
       }
     } catch {}
   }, []);
+
+  const syncWalletBalance = useCallback(async (walletId: number) => {
+    const cooldownEnd = syncCooldowns[walletId];
+    if (cooldownEnd && Date.now() < cooldownEnd) {
+      const minutesLeft = Math.ceil((cooldownEnd - Date.now()) / 60000);
+      toast({ title: `Please wait ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} before refreshing again` });
+      return;
+    }
+
+    setSyncingWalletId(walletId);
+    try {
+      const res = await authFetch("/api/v1/stripe-wallet/balance/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: walletId }),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json();
+        const retryAfter = data.retry_after || 300;
+        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + retryAfter * 1000 }));
+        const minutesLeft = Math.ceil(retryAfter / 60);
+        toast({ title: `Please wait ${minutesLeft} minute${minutesLeft > 1 ? "s" : ""} before refreshing again` });
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + 5 * 60 * 1000 }));
+        setWallets(prev => prev.map(w =>
+          w.id === walletId ? { ...w, balance_usdc: data.balance_usdc, balance_display: data.balance_display } : w
+        ));
+        if (data.changed) {
+          toast({ title: `Balance updated to ${data.balance_display}` });
+          if (selectedWallet?.id === walletId) {
+            fetchTransactions(walletId);
+          }
+        } else {
+          toast({ title: "Balance confirmed — up to date" });
+        }
+      } else {
+        toast({ title: "Could not check balance. Try again later.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not check balance. Try again later.", variant: "destructive" });
+    } finally {
+      setSyncingWalletId(null);
+    }
+  }, [syncCooldowns, toast, selectedWallet, fetchTransactions]);
 
   const fetchApprovals = useCallback(async () => {
     try {
@@ -559,7 +611,18 @@ export default function StripeWalletPage() {
                       <p className="text-4xl font-bold text-white tracking-tight" data-testid={`text-balance-${wallet.id}`}>
                         {wallet.balance_display}
                       </p>
-                      <p className="text-xs text-white/50 mt-1 font-medium tracking-wide uppercase">USDC on Base</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-white/50 font-medium tracking-wide uppercase">USDC on Base</p>
+                        <button
+                          onClick={() => syncWalletBalance(wallet.id)}
+                          disabled={syncingWalletId === wallet.id}
+                          className="text-white/40 hover:text-white/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                          title="Sync balance from chain"
+                          data-testid={`button-sync-balance-${wallet.id}`}
+                        >
+                          <RefreshCw className={`w-3.5 h-3.5 ${syncingWalletId === wallet.id ? "animate-spin" : ""}`} />
+                        </button>
+                      </div>
                     </div>
 
                     {wallet.guardrails && (
@@ -668,6 +731,8 @@ export default function StripeWalletPage() {
                       <td className="px-6 py-4 flex items-center gap-2">
                         {tx.type === "deposit" ? (
                           <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
+                        ) : tx.type === "reconciliation" ? (
+                          <ArrowLeftRight className="w-4 h-4 text-amber-500" />
                         ) : (
                           <ArrowUpRight className="w-4 h-4 text-blue-500" />
                         )}

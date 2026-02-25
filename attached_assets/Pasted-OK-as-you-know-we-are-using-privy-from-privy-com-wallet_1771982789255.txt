@@ -1,0 +1,69 @@
+OK, as you know, we are using privy ( from privy.com ) wallets for our "Stripe" wallets. Stripe just provides the onramp.
+
+once we get the webhook working...
+
+And so, after the transaction, I suppose stripe can provide a direct update of the successful transaction, but what if the "wallet" receives funds from another source?
+
+We probably need to either connect with the Privy wallet for balance update, or directly to the "base" USDC wallet directly.
+
+Example: https://basescan.org/tx/0x03eb4bd9451a5b0dd3b1752bc9616bf1a6a596159d9947890364b227ea0c6151
+
+what do you think?
+
+Show more
+6:06 PM
+Great question, and you're thinking about this exactly right. Let me break it down:
+
+Current State (Stripe webhook only)
+Your balance is only updated when Stripe fires crypto.onramp_session_updated. This means you're blind to:
+
+Direct USDC transfers from another wallet
+Transfers from Coinbase, another exchange, or another person
+x402 payment refunds settled on-chain
+Any other on-chain credit to the wallet address
+Your Two Options
+Option A — Poll Privy for balance Privy server wallets can return the on-chain balance directly. Since you already have the privy_wallet_id stored, you could call Privy's API to get the real USDC balance on Base and sync it to your DB.
+
+The upside is you already have the Privy client initialized in lib/stripe-wallet/server.ts. The downside is Privy's balance endpoint may have latency and you'd be polling, not event-driven.
+
+Option B — Poll Base RPC directly (what your spec already flagged as "not yet implemented") Query the USDC contract on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) for the wallet's balance using a standard balanceOf(address) call. This is the most accurate and authoritative source — it's exactly what Basescan shows.
+
+You'd use a provider like Alchemy, QuickNode, or the public Base RPC (https://mainnet.base.org) with ethers.js or viem.
+
+My Recommendation
+Do both, in layers:
+
+Keep the Stripe webhook for instant balance credit on onramp completions — it's fast and reliable for that specific flow
+Add a Base RPC balance sync as a background job that runs every ~60 seconds (or on-demand when the user loads the dashboard) — this catches everything else and keeps your ledger accurate regardless of the funding source
+Don't rely on Privy for balance — they're a signing service, not a balance oracle. Going to Base directly is cleaner and doesn't add a dependency on Privy's balance accuracy
+The Base RPC approach is also what makes your wallet truly source-agnostic, which matters if you ever want users to fund from Coinbase, another wallet, or even receive x402 refunds.
+
+What the Implementation Would Look Like
+typescript
+// lib/stripe-wallet/balance.ts
+import { createPublicClient, http, formatUnits } from 'viem'
+import { base } from 'viem/chains'
+
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+const ERC20_ABI = [{ 
+  name: 'balanceOf', 
+  type: 'function', 
+  inputs: [{ name: 'account', type: 'address' }],
+  outputs: [{ name: '', type: 'uint256' }]
+}]
+
+export async function getOnChainUsdcBalance(walletAddress: string): Promise<number> {
+  const client = createPublicClient({ chain: base, transport: http() })
+  const balance = await client.readContract({
+    address: USDC_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [walletAddress]
+  })
+  // Returns micro-USDC (6 decimals) as bigint — matches your balance_usdc column
+  return Number(balance)
+}
+Then you'd call this from your /balance endpoint and optionally from a cron job to keep balance_usdc in sync.
+
+Want me to build this out properly and wire it into the existing balance endpoint and dashboard?
+

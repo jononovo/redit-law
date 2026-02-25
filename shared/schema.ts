@@ -430,6 +430,7 @@ export const privyWallets = pgTable("privy_wallets", {
   address: text("address").notNull(),
   balanceUsdc: bigint("balance_usdc", { mode: "number" }).notNull().default(0),
   status: text("status").notNull().default("active"),
+  lastSyncedAt: timestamp("last_synced_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
