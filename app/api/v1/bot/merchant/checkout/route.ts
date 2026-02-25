@@ -290,17 +290,20 @@ async function handleRealCheckout(
     });
 
     if (bot.ownerUid) {
-      const { sendCheckoutApprovalEmail } = await import("@/lib/email");
-      sendCheckoutApprovalEmail({
+      const { createApproval } = await import("@/lib/approvals/service");
+      createApproval({
+        rail: "rail4",
+        ownerUid: bot.ownerUid,
         ownerEmail: bot.ownerEmail,
         botName: bot.botName,
+        amountDisplay: `$${(data.amount_cents / 100).toFixed(2)}`,
+        amountRaw: data.amount_cents,
         merchantName: data.merchant_name,
         itemName: data.item_name,
-        amountUsd: data.amount_cents / 100,
-        confirmationId,
-        hmacToken,
+        railRef: confirmationId,
+        metadata: { cardId: card.cardId, profileIndex: data.profile_index, merchantUrl: data.merchant_url, category: data.category },
       }).catch((err: any) => {
-        console.error("Failed to send approval email:", err);
+        console.error("[Rail4] Unified approval email failed:", err);
       });
 
       const { notifyOwner } = await import("@/lib/notifications");

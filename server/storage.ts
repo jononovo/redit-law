@@ -7,6 +7,8 @@ import {
   crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
   owners, masterGuardrails, skillDrafts, skillEvidence, skillSubmitterProfiles,
   skillVersions, skillExports,
+  unifiedApprovals,
+  type UnifiedApproval, type InsertUnifiedApproval,
   type Owner, type InsertOwner,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
@@ -258,6 +260,11 @@ export interface IStorage {
   getRail5CheckoutById(checkoutId: string): Promise<Rail5Checkout | null>;
   updateRail5Checkout(checkoutId: string, data: Partial<InsertRail5Checkout>): Promise<Rail5Checkout | null>;
   getRail5CheckoutsByCardId(cardId: string, limit?: number): Promise<Rail5Checkout[]>;
+
+  createUnifiedApproval(data: InsertUnifiedApproval): Promise<UnifiedApproval>;
+  getUnifiedApprovalById(approvalId: string): Promise<UnifiedApproval | null>;
+  decideUnifiedApproval(approvalId: string, decision: string): Promise<UnifiedApproval | null>;
+  getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]>;
 }
 
 export const storage: IStorage = {
@@ -1734,5 +1741,39 @@ export const storage: IStorage = {
       .where(eq(rail5Checkouts.cardId, cardId))
       .orderBy(desc(rail5Checkouts.createdAt))
       .limit(limit);
+  },
+
+  async createUnifiedApproval(data: InsertUnifiedApproval): Promise<UnifiedApproval> {
+    const [approval] = await db.insert(unifiedApprovals).values(data).returning();
+    return approval;
+  },
+
+  async getUnifiedApprovalById(approvalId: string): Promise<UnifiedApproval | null> {
+    const [approval] = await db
+      .select()
+      .from(unifiedApprovals)
+      .where(eq(unifiedApprovals.approvalId, approvalId))
+      .limit(1);
+    return approval || null;
+  },
+
+  async decideUnifiedApproval(approvalId: string, decision: string): Promise<UnifiedApproval | null> {
+    const [updated] = await db
+      .update(unifiedApprovals)
+      .set({ status: decision, decidedAt: new Date() })
+      .where(eq(unifiedApprovals.approvalId, approvalId))
+      .returning();
+    return updated || null;
+  },
+
+  async getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]> {
+    const conditions = [eq(unifiedApprovals.ownerUid, ownerUid)];
+    if (status) conditions.push(eq(unifiedApprovals.status, status));
+    return db
+      .select()
+      .from(unifiedApprovals)
+      .where(and(...conditions))
+      .orderBy(desc(unifiedApprovals.createdAt))
+      .limit(50);
   },
 };

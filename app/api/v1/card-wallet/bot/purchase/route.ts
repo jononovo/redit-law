@@ -6,6 +6,7 @@ import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { usdToMicroUsdc } from "@/lib/card-wallet/server";
+import { createApproval } from "@/lib/approvals/service";
 
 async function handler(request: NextRequest, botId: string) {
   try {
@@ -85,6 +86,24 @@ async function handler(request: NextRequest, botId: string) {
       shippingAddress: shipping_address,
       expiresAt: getApprovalExpiresAt(RAIL2_APPROVAL_TTL_MINUTES),
     });
+
+    const bot = await storage.getBotByBotId(botId);
+    const owner = await storage.getOwnerByUid(wallet.ownerUid);
+    if (owner && bot) {
+      const totalUsd = estimated_price_usd ? estimated_price_usd * (quantity || 1) : 0;
+      createApproval({
+        rail: "rail2",
+        ownerUid: wallet.ownerUid,
+        ownerEmail: owner.email,
+        botName: bot.botName,
+        amountDisplay: totalUsd > 0 ? `$${totalUsd.toFixed(2)}` : "Price TBD",
+        amountRaw: estimatedAmountUsdc,
+        merchantName: merchant,
+        itemName: product_name || productLocator,
+        railRef: String(approval.id),
+        metadata: { productLocator, quantity: quantity || 1, shipping_address },
+      }).catch((err) => console.error("[Rail2] Unified approval email failed:", err));
+    }
 
     return NextResponse.json({
       status: "awaiting_approval",
