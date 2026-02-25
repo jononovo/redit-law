@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
         type: tx.type,
         amount_usdc: tx.amountUsdc,
         amount_display: `$${microUsdcToUsd(tx.amountUsdc).toFixed(2)}`,
+        balance_after: tx.balanceAfter,
+        balance_after_display: tx.balanceAfter != null ? `$${microUsdcToUsd(tx.balanceAfter).toFixed(2)}` : null,
         recipient_address: tx.recipientAddress,
         resource_url: tx.resourceUrl,
         tx_hash: tx.txHash,

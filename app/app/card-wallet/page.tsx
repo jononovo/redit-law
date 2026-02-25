@@ -40,6 +40,8 @@ interface TransactionInfo {
   type: string;
   amount_usdc: number;
   amount_display: string;
+  balance_after: number | null;
+  balance_after_display: string | null;
   product_locator: string | null;
   product_name: string | null;
   quantity: number;
@@ -702,7 +704,12 @@ export default function CardWalletPage() {
                       {tx.order_status && tx.order_status !== "pending" && (
                         <StatusBadge status={tx.order_status} />
                       )}
-                      <span className="font-semibold text-sm" data-testid={`text-amount-${tx.id}`}>{tx.amount_display}</span>
+                      <div className="text-right">
+                        <span className="font-semibold text-sm" data-testid={`text-amount-${tx.id}`}>{tx.amount_display}</span>
+                        {tx.balance_after_display && (
+                          <p className="text-xs text-neutral-400" data-testid={`text-balance-after-${tx.id}`}>bal: {tx.balance_after_display}</p>
+                        )}
+                      </div>
                       <Eye className="w-4 h-4 text-neutral-400" />
                     </div>
                   </div>

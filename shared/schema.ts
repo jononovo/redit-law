@@ -37,6 +37,7 @@ export const transactions = pgTable("transactions", {
   amountCents: integer("amount_cents").notNull(),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   description: text("description"),
+  balanceAfter: integer("balance_after"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -466,6 +467,7 @@ export const privyTransactions = pgTable("privy_transactions", {
   status: text("status").notNull().default("pending"),
   stripeSessionId: text("stripe_session_id"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  balanceAfter: bigint("balance_after", { mode: "number" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   confirmedAt: timestamp("confirmed_at"),
 }, (table) => [
@@ -594,6 +596,7 @@ export const crossmintTransactions = pgTable("crossmint_transactions", {
   }>(),
   status: text("status").notNull().default("pending"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+  balanceAfter: bigint("balance_after", { mode: "number" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
@@ -865,6 +868,7 @@ export const rail5Checkouts = pgTable("rail5_checkouts", {
   category: text("category"),
   status: text("status").notNull().default("approved"),
   keyDelivered: boolean("key_delivered").notNull().default(false),
+  balanceAfter: integer("balance_after"),
   confirmedAt: timestamp("confirmed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

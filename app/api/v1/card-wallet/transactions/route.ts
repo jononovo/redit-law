@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
         type: t.type,
         amount_usdc: t.amountUsdc,
         amount_display: formatUsdc(t.amountUsdc),
+        balance_after: t.balanceAfter,
+        balance_after_display: t.balanceAfter != null ? formatUsdc(t.balanceAfter) : null,
         product_locator: t.productLocator,
         product_name: t.productName,
         quantity: t.quantity,

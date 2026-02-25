@@ -73,6 +73,7 @@ async function handler(request: NextRequest, botId: string) {
       shippingAddress: shipping_address,
       status: "requires_approval",
       orderStatus: "pending",
+      balanceAfter: wallet.balanceUsdc,
     });
 
     const approval = await storage.crossmintCreateApproval({

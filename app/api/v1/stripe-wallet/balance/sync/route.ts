@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
         type: "reconciliation",
         amountUsdc: Math.abs(delta),
         status: "confirmed",
+        balanceAfter: onChainBalance,
         metadata: {
           source: "on_chain_sync",
           direction: delta > 0 ? "increase" : "decrease",

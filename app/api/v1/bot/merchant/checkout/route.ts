@@ -340,6 +340,7 @@ async function handleRealCheckout(
     type: "purchase",
     amountCents: data.amount_cents,
     description: `${data.merchant_name}: ${data.item_name}`,
+    balanceAfter: updated.balanceCents,
   });
 
   const confirmationId = "chk_" + tx.id;

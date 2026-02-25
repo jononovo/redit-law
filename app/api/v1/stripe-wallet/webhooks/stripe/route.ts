@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
               amountUsdc: amountUsdc,
               status: "confirmed",
               stripeSessionId: session.id,
+              balanceAfter: targetWallet.balanceUsdc + amountUsdc,
               metadata: {
                 source_currency: session.transaction_details?.source_currency,
                 source_amount: session.transaction_details?.source_amount,

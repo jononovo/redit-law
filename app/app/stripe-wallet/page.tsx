@@ -35,6 +35,8 @@ interface TransactionInfo {
   type: string;
   amount_usdc: number;
   amount_display: string;
+  balance_after: number | null;
+  balance_after_display: string | null;
   recipient_address: string | null;
   resource_url: string | null;
   tx_hash: string | null;
@@ -728,6 +730,7 @@ export default function StripeWalletPage() {
                   <tr>
                     <th className="text-left px-6 py-3">Type</th>
                     <th className="text-left px-6 py-3">Amount</th>
+                    <th className="text-left px-6 py-3">Balance</th>
                     <th className="text-left px-6 py-3">Resource</th>
                     <th className="text-left px-6 py-3">Status</th>
                     <th className="text-left px-6 py-3">Date</th>
@@ -747,6 +750,7 @@ export default function StripeWalletPage() {
                         <span className="font-medium capitalize">{tx.type.replace("_", " ")}</span>
                       </td>
                       <td className="px-6 py-4 font-semibold">{tx.amount_display}</td>
+                      <td className="px-6 py-4 text-neutral-500" data-testid={`text-balance-after-${tx.id}`}>{tx.balance_after_display || "—"}</td>
                       <td className="px-6 py-4 text-neutral-500 truncate max-w-[200px]">{tx.resource_url || "—"}</td>
                       <td className="px-6 py-4 flex items-center gap-1.5">
                         {statusIcon(tx.status)}

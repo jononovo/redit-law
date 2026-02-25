@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
       amountCents: amount_cents,
       stripePaymentIntentId: paymentIntent.id,
       description: `Manual top-up: $${amountDollars}`,
+      balanceAfter: updatedWallet.balanceCents,
     });
 
     const bot = await storage.getBotByBotId(wallet.botId);

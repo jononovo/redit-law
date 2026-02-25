@@ -74,6 +74,7 @@ async function handlePaymentLinkCompleted(session: Stripe.Checkout.Session) {
     amountCents: paymentLink.amountCents,
     description: paymentLink.description,
     stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
+    balanceAfter: updatedWallet.balanceCents,
   });
 
   await fireWebhook(bot, "wallet.payment.received", {

@@ -8,6 +8,8 @@ interface TransactionData {
   type: string;
   amount_cents: number;
   amount: string;
+  balance_after: number | null;
+  balance_after_display: string | null;
   description: string | null;
   created_at: string;
 }
@@ -59,6 +61,7 @@ export default function TransactionsPage() {
                 <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Type</th>
                 <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Description</th>
                 <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Amount</th>
+                <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Balance</th>
                 <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Date</th>
               </tr>
             </thead>
@@ -88,6 +91,9 @@ export default function TransactionsPage() {
                     }`}>
                       {tx.type === "topup" || tx.type === "refund" ? "+" : "-"}{tx.amount}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm text-neutral-500">{tx.balance_after_display || "—"}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-sm text-neutral-400">
