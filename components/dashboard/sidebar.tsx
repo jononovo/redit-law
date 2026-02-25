@@ -25,8 +25,8 @@ const mainNavItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: Wallet, label: "Stripe Wallet", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
   { icon: ShoppingCart, label: "Shopping Wallet", href: "/app/card-wallet", tag: "soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
-  { icon: Lock, label: "My Cards | Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
-  { icon: Shield, label: "My Cards | Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
+  { icon: Lock, label: "My Card | Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
+  { icon: Shield, label: "My Card | Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
