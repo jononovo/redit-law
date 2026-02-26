@@ -61,7 +61,7 @@ All four rails route approval emails through a single system under `lib/approval
 - **Service** (`lib/approvals/service.ts`): `createApproval()` generates HMAC-signed approval links, stores in `unified_approvals` table, sends branded email. `resolveApproval()` verifies HMAC, checks expiry, updates status, dispatches rail-specific callbacks.
 - **Email** (`lib/approvals/email.ts`): Single `sendApprovalEmail()` with CreditClaw-branded HTML template, rail badge, and magic-link button.
 - **Callbacks** (`lib/approvals/callbacks.ts`): Rail-specific side effects registered via `registerRailCallbacks()`. Rail 1: updates privy_approvals. Rail 2: updates crossmint_approvals. Rail 4: debits wallet, fires webhook with card digits. Rail 5: updates checkout status, fires webhook.
-- **Lifecycle** (`lib/approvals/lifecycle.ts`): TTL constants per rail (Rail 1: 5min, Rails 2/4/5: 15min).
+- **Lifecycle** (`lib/approvals/lifecycle.ts`): TTL constants per rail (Rail 1 polling: 5min, Rail 1 email: 10min, Rails 2/4/5: 15min).
 - **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`.
 - **DB Table**: `unified_approvals` with columns: id, approvalId, rail, ownerUid, ownerEmail, botName, amountDisplay, amountRaw, merchantName, itemName, hmacToken, status, expiresAt, decidedAt, railRef, metadata, createdAt.
 - **Env Vars**: `UNIFIED_APPROVAL_HMAC_SECRET` (falls back to `HMAC_SECRET` or default).

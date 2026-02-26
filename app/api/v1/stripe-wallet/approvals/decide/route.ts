@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
       await storage.privyUpdateTransactionStatus(approval.transactionId, "failed");
     }
 
+    storage.closeUnifiedApprovalByRailRef("rail1", String(approval_id), status === "rejected" ? "denied" : status).catch(() => {});
+
     return NextResponse.json({
       approval: {
         id: updated.id,
