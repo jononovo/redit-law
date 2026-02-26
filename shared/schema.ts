@@ -928,3 +928,31 @@ export const updateSkillDraftSchema = z.object({
   vendorData: z.record(z.any()).optional(),
   status: z.enum(["pending", "reviewed", "published", "rejected"]).optional(),
 });
+
+export const unifiedApprovals = pgTable("unified_approvals", {
+  id: serial("id").primaryKey(),
+  approvalId: text("approval_id").notNull().unique(),
+  rail: text("rail").notNull(),
+  ownerUid: text("owner_uid").notNull(),
+  ownerEmail: text("owner_email").notNull(),
+  botName: text("bot_name").notNull(),
+  amountDisplay: text("amount_display").notNull(),
+  amountRaw: integer("amount_raw").notNull(),
+  merchantName: text("merchant_name").notNull(),
+  itemName: text("item_name"),
+  hmacToken: text("hmac_token").notNull(),
+  status: text("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  decidedAt: timestamp("decided_at"),
+  railRef: text("rail_ref").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("unified_approvals_approval_id_idx").on(table.approvalId),
+  index("unified_approvals_owner_uid_idx").on(table.ownerUid),
+  index("unified_approvals_status_idx").on(table.status),
+  index("unified_approvals_rail_idx").on(table.rail),
+]);
+
+export type UnifiedApproval = typeof unifiedApprovals.$inferSelect;
+export type InsertUnifiedApproval = typeof unifiedApprovals.$inferInsert;

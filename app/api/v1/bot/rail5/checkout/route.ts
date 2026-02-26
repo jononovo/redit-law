@@ -111,22 +111,21 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
         botId: bot.botId,
       }).catch(() => {});
 
-      try {
-        const { generateRail5ApprovalToken } = await import("@/app/api/v1/rail5/approve/[checkoutId]/route");
-        const hmacToken = generateRail5ApprovalToken(checkoutId);
-        const { sendRail5ApprovalEmail } = await import("@/lib/email");
-        await sendRail5ApprovalEmail({
-          ownerEmail: owner.email,
-          botName: bot.botName,
-          merchantName: merchant_name,
-          itemName: item_name,
-          amountUsd: amount_cents / 100,
-          checkoutId,
-          hmacToken,
-        });
-      } catch (e) {
-        console.error("Failed to send Rail 5 approval email:", e);
-      }
+      const { createApproval } = await import("@/lib/approvals/service");
+      createApproval({
+        rail: "rail5",
+        ownerUid: card.ownerUid,
+        ownerEmail: owner.email,
+        botName: bot.botName,
+        amountDisplay: `$${(amount_cents / 100).toFixed(2)}`,
+        amountRaw: amount_cents,
+        merchantName: merchant_name,
+        itemName: item_name,
+        railRef: checkoutId,
+        metadata: { cardId: card.cardId, merchantUrl: merchant_url, category },
+      }).catch((err) => {
+        console.error("[Rail5] Unified approval email failed:", err);
+      });
     }
 
     return NextResponse.json({
