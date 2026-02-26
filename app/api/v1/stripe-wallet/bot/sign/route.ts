@@ -5,6 +5,7 @@ import { signTypedData } from "@/lib/rail1/wallet/sign";
 import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc, microUsdcToUsd } from "@/lib/rail1/x402";
 import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { createApproval } from "@/lib/approvals/service";
@@ -33,10 +34,10 @@ async function handler(request: NextRequest, botId: string) {
       return NextResponse.json({ error: masterDecision.reason }, { status: 403 });
     }
 
-    const permissions = await storage.getSpendingPermissions(botId);
+    const guardrailsForApproval = await storage.privyGetGuardrails(wallet.id);
 
-    if (permissions) {
-      const approvalMode = permissions.approvalMode ?? "ask_for_everything";
+    if (guardrailsForApproval) {
+      const approvalMode = guardrailsForApproval.approvalMode ?? "ask_for_everything";
 
       if (approvalMode === "ask_for_everything") {
         return NextResponse.json({
@@ -47,8 +48,8 @@ async function handler(request: NextRequest, botId: string) {
       }
 
       if (approvalMode === "auto_approve_under_threshold") {
-        const thresholdCents = permissions.askApprovalAboveCents ?? 1000;
-        const thresholdMicro = usdToMicroUsdc(thresholdCents / 100);
+        const thresholdUsdc = guardrailsForApproval.requireApprovalAbove ?? 5;
+        const thresholdMicro = usdToMicroUsdc(thresholdUsdc);
         if (amount_usdc > thresholdMicro) {
           const tx = await storage.privyCreateTransaction({
             walletId: wallet.id,
@@ -92,11 +93,29 @@ async function handler(request: NextRequest, botId: string) {
       }
     }
 
-    const guardrails = await storage.privyGetGuardrails(wallet.id);
+    const guardrails = guardrailsForApproval ?? await storage.privyGetGuardrails(wallet.id);
 
     if (guardrails) {
       const dailySpend = await storage.privyGetDailySpend(wallet.id);
       const monthlySpend = await storage.privyGetMonthlySpend(wallet.id);
+
+      const procurementRules = await storage.getProcurementControlsByScope(wallet.ownerUid, "rail1", null);
+      if (procurementRules) {
+        const procDecision = evaluateProcurementControls(
+          {
+            allowlistedDomains: (procurementRules.allowlistedDomains as string[]) || [],
+            blocklistedDomains: (procurementRules.blocklistedDomains as string[]) || [],
+            allowlistedMerchants: (procurementRules.allowlistedMerchants as string[]) || [],
+            blocklistedMerchants: (procurementRules.blocklistedMerchants as string[]) || [],
+            allowlistedCategories: (procurementRules.allowlistedCategories as string[]) || [],
+            blocklistedCategories: (procurementRules.blocklistedCategories as string[]) || [],
+          },
+          { domain: resource_url }
+        );
+        if (procDecision.action === "block") {
+          return NextResponse.json({ error: procDecision.reason }, { status: 403 });
+        }
+      }
 
       const decision = evaluateGuardrails(
         {
@@ -104,11 +123,9 @@ async function handler(request: NextRequest, botId: string) {
           dailyBudgetUsdc: guardrails.dailyBudgetUsdc,
           monthlyBudgetUsdc: guardrails.monthlyBudgetUsdc,
           requireApprovalAbove: guardrails.requireApprovalAbove,
-          allowlistedDomains: guardrails.allowlistedDomains as string[] | undefined,
-          blocklistedDomains: guardrails.blocklistedDomains as string[] | undefined,
           autoPauseOnZero: guardrails.autoPauseOnZero,
         },
-        { amountUsdc: amount_usdc, resourceUrl: resource_url },
+        { amountUsdc: amount_usdc },
         { dailyUsdc: dailySpend, monthlyUsdc: monthlySpend }
       );
 

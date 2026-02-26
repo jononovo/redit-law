@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -19,19 +20,22 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  const result = cards.map((c) => ({
-    card_id: c.cardId,
-    card_name: c.cardName,
-    card_brand: c.cardBrand,
-    card_last4: c.cardLast4,
-    status: c.status,
-    bot_id: c.botId || null,
-    bot_name: c.botId ? (botLookup[c.botId] || null) : null,
-    spending_limit_cents: c.spendingLimitCents,
-    daily_limit_cents: c.dailyLimitCents,
-    monthly_limit_cents: c.monthlyLimitCents,
-    human_approval_above_cents: c.humanApprovalAboveCents,
-    created_at: c.createdAt.toISOString(),
+  const result = await Promise.all(cards.map(async (c) => {
+    const guard = await storage.getRail5Guardrails(c.cardId);
+    return {
+      card_id: c.cardId,
+      card_name: c.cardName,
+      card_brand: c.cardBrand,
+      card_last4: c.cardLast4,
+      status: c.status,
+      bot_id: c.botId || null,
+      bot_name: c.botId ? (botLookup[c.botId] || null) : null,
+      spending_limit_cents: guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents,
+      daily_limit_cents: guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
+      monthly_limit_cents: guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
+      human_approval_above_cents: guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
+      created_at: c.createdAt.toISOString(),
+    };
   }));
 
   return NextResponse.json({ cards: result });

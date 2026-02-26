@@ -54,10 +54,11 @@ export async function PATCH(
 
   if (data.card_name !== undefined) updates.cardName = data.card_name;
   if (data.bot_id !== undefined) updates.botId = data.bot_id;
-  if (data.spending_limit_cents !== undefined) updates.spendingLimitCents = data.spending_limit_cents;
-  if (data.daily_limit_cents !== undefined) updates.dailyLimitCents = data.daily_limit_cents;
-  if (data.monthly_limit_cents !== undefined) updates.monthlyLimitCents = data.monthly_limit_cents;
-  if (data.human_approval_above_cents !== undefined) updates.humanApprovalAboveCents = data.human_approval_above_cents;
+  const guardrailUpdates: Record<string, unknown> = {};
+  if (data.spending_limit_cents !== undefined) guardrailUpdates.maxPerTxCents = data.spending_limit_cents;
+  if (data.daily_limit_cents !== undefined) guardrailUpdates.dailyBudgetCents = data.daily_limit_cents;
+  if (data.monthly_limit_cents !== undefined) guardrailUpdates.monthlyBudgetCents = data.monthly_limit_cents;
+  if (data.human_approval_above_cents !== undefined) guardrailUpdates.requireApprovalAbove = data.human_approval_above_cents;
 
   if (data.status !== undefined) {
     if (card.status === "pending_setup") {
@@ -66,11 +67,17 @@ export async function PATCH(
     updates.status = data.status;
   }
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(updates).length === 0 && Object.keys(guardrailUpdates).length === 0) {
     return NextResponse.json({ error: "no_updates", message: "No valid fields to update." }, { status: 400 });
   }
 
-  const updated = await storage.updateRail5Card(cardId, updates);
+  const updated = Object.keys(updates).length > 0
+    ? await storage.updateRail5Card(cardId, updates)
+    : card;
+
+  if (Object.keys(guardrailUpdates).length > 0) {
+    await storage.upsertRail5Guardrails(cardId, guardrailUpdates);
+  }
 
   if (data.bot_id !== undefined) {
     const targetBotId = data.bot_id || card.botId;
@@ -94,6 +101,9 @@ export async function PATCH(
     }
   }
 
+  const guard = await storage.getRail5Guardrails(cardId);
+  const { GUARDRAIL_DEFAULTS } = await import("@/lib/guardrails/defaults");
+
   return NextResponse.json({
     card_id: updated!.cardId,
     card_name: updated!.cardName,
@@ -101,10 +111,10 @@ export async function PATCH(
     card_last4: updated!.cardLast4,
     status: updated!.status,
     bot_id: updated!.botId || null,
-    spending_limit_cents: updated!.spendingLimitCents,
-    daily_limit_cents: updated!.dailyLimitCents,
-    monthly_limit_cents: updated!.monthlyLimitCents,
-    human_approval_above_cents: updated!.humanApprovalAboveCents,
+    spending_limit_cents: guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents,
+    daily_limit_cents: guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
+    monthly_limit_cents: guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
+    human_approval_above_cents: guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
     created_at: updated!.createdAt.toISOString(),
   });
 }
@@ -131,6 +141,9 @@ export async function GET(
 
   const checkouts = await storage.getRail5CheckoutsByCardId(card.cardId, 50);
 
+  const guard = await storage.getRail5Guardrails(card.cardId);
+  const { GUARDRAIL_DEFAULTS } = await import("@/lib/guardrails/defaults");
+
   return NextResponse.json({
     card_id: card.cardId,
     card_name: card.cardName,
@@ -138,10 +151,10 @@ export async function GET(
     card_last4: card.cardLast4,
     status: card.status,
     bot_id: card.botId || null,
-    spending_limit_cents: card.spendingLimitCents,
-    daily_limit_cents: card.dailyLimitCents,
-    monthly_limit_cents: card.monthlyLimitCents,
-    human_approval_above_cents: card.humanApprovalAboveCents,
+    spending_limit_cents: guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents,
+    daily_limit_cents: guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
+    monthly_limit_cents: guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
+    human_approval_above_cents: guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
     created_at: card.createdAt.toISOString(),
     checkouts: checkouts.map((c) => ({
       checkout_id: c.checkoutId,

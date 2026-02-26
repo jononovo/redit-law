@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { updateSpendingPermissionsSchema } from "@/shared/schema";
+import { GUARDRAIL_DEFAULTS, PROCUREMENT_DEFAULTS } from "@/lib/guardrails/defaults";
+import { upsertRail4GuardrailsSchema } from "@/shared/schema";
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,36 +22,42 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Bot not found" }, { status: 404 });
     }
 
-    const permissions = await storage.getSpendingPermissions(botId);
+    const rail4Cards = await storage.getRail4CardsByBotId(botId);
+    const activeCard = rail4Cards.find(c => c.status === "active");
 
-    if (!permissions) {
-      return NextResponse.json({
-        bot_id: botId,
-        approval_mode: "ask_for_everything",
-        per_transaction_usd: 25.0,
-        daily_usd: 50.0,
-        monthly_usd: 500.0,
-        ask_approval_above_usd: 10.0,
-        approved_categories: [],
-        blocked_categories: ["gambling", "adult_content", "cryptocurrency", "cash_advances"],
-        recurring_allowed: false,
+    let guardrailData;
+    if (activeCard) {
+      const guard = await storage.getRail4Guardrails(activeCard.cardId);
+      guardrailData = {
+        card_id: activeCard.cardId,
+        approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode,
+        per_transaction_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail4.maxPerTxCents) / 100,
+        daily_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents) / 100,
+        monthly_usd: (guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents) / 100,
+        ask_approval_above_usd: ((guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove) ?? 500) / 100,
+        recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail4.recurringAllowed,
+        notes: guard?.notes ?? null,
+      };
+    } else {
+      guardrailData = {
+        card_id: null,
+        approval_mode: GUARDRAIL_DEFAULTS.rail4.approvalMode,
+        per_transaction_usd: GUARDRAIL_DEFAULTS.rail4.maxPerTxCents / 100,
+        daily_usd: GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents / 100,
+        monthly_usd: GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents / 100,
+        ask_approval_above_usd: (GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove ?? 500) / 100,
+        recurring_allowed: GUARDRAIL_DEFAULTS.rail4.recurringAllowed,
         notes: null,
-      });
+      };
     }
+
+    const procRules = await storage.getProcurementControlsByScope(session.uid, "rail4", null);
 
     return NextResponse.json({
       bot_id: botId,
-      approval_mode: permissions.approvalMode,
-      per_transaction_usd: permissions.perTransactionCents / 100,
-      daily_usd: permissions.dailyCents / 100,
-      monthly_usd: permissions.monthlyCents / 100,
-      ask_approval_above_usd: permissions.askApprovalAboveCents / 100,
-      approved_categories: permissions.approvedCategories,
-      blocked_categories: permissions.blockedCategories.length > 0
-        ? permissions.blockedCategories
-        : ["gambling", "adult_content", "cryptocurrency", "cash_advances"],
-      recurring_allowed: permissions.recurringAllowed,
-      notes: permissions.notes,
+      ...guardrailData,
+      approved_categories: (procRules?.allowlistedCategories as string[]) || [],
+      blocked_categories: (procRules?.blocklistedCategories as string[]) || PROCUREMENT_DEFAULTS.blockedCategories,
     });
   } catch (error: any) {
     console.error("Get spending permissions failed:", error?.message || error);
@@ -82,38 +89,42 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Bot not found" }, { status: 404 });
     }
 
-    const parsed = updateSpendingPermissionsSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "validation_error", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    const rail4Cards = await storage.getRail4CardsByBotId(botId);
+    const activeCard = rail4Cards.find(c => c.status === "active");
+    if (!activeCard) {
+      return NextResponse.json({ error: "No active Rail 4 card for this bot" }, { status: 404 });
     }
 
-    const data = parsed.data;
-    const updateData: Record<string, any> = {};
+    const guardData: Record<string, any> = {};
+    if (body.approval_mode !== undefined) guardData.approvalMode = body.approval_mode;
+    if (body.per_transaction_usd !== undefined) guardData.maxPerTxCents = Math.round(body.per_transaction_usd * 100);
+    if (body.daily_usd !== undefined) guardData.dailyBudgetCents = Math.round(body.daily_usd * 100);
+    if (body.monthly_usd !== undefined) guardData.monthlyBudgetCents = Math.round(body.monthly_usd * 100);
+    if (body.ask_approval_above_usd !== undefined) guardData.requireApprovalAbove = Math.round(body.ask_approval_above_usd * 100);
+    if (body.recurring_allowed !== undefined) guardData.recurringAllowed = body.recurring_allowed;
+    if (body.notes !== undefined) guardData.notes = body.notes;
 
-    if (data.approval_mode !== undefined) updateData.approvalMode = data.approval_mode;
-    if (data.per_transaction_usd !== undefined) updateData.perTransactionCents = Math.round(data.per_transaction_usd * 100);
-    if (data.daily_usd !== undefined) updateData.dailyCents = Math.round(data.daily_usd * 100);
-    if (data.monthly_usd !== undefined) updateData.monthlyCents = Math.round(data.monthly_usd * 100);
-    if (data.ask_approval_above_usd !== undefined) updateData.askApprovalAboveCents = Math.round(data.ask_approval_above_usd * 100);
-    if (data.approved_categories !== undefined) updateData.approvedCategories = data.approved_categories;
-    if (data.blocked_categories !== undefined) updateData.blockedCategories = data.blocked_categories;
-    if (data.recurring_allowed !== undefined) updateData.recurringAllowed = data.recurring_allowed;
-    if (data.notes !== undefined) updateData.notes = data.notes;
+    const updated = await storage.upsertRail4Guardrails(activeCard.cardId, guardData);
 
-    const updated = await storage.upsertSpendingPermissions(botId, updateData);
+    if (body.approved_categories !== undefined || body.blocked_categories !== undefined) {
+      const procData: Record<string, any> = {};
+      if (body.approved_categories !== undefined) procData.allowlistedCategories = body.approved_categories;
+      if (body.blocked_categories !== undefined) procData.blocklistedCategories = body.blocked_categories;
+      await storage.upsertProcurementControls(session.uid, "rail4", null, procData);
+    }
+
+    const procRules = await storage.getProcurementControlsByScope(session.uid, "rail4", null);
 
     return NextResponse.json({
       bot_id: botId,
+      card_id: activeCard.cardId,
       approval_mode: updated.approvalMode,
-      per_transaction_usd: updated.perTransactionCents / 100,
-      daily_usd: updated.dailyCents / 100,
-      monthly_usd: updated.monthlyCents / 100,
-      ask_approval_above_usd: updated.askApprovalAboveCents / 100,
-      approved_categories: updated.approvedCategories,
-      blocked_categories: updated.blockedCategories,
+      per_transaction_usd: updated.maxPerTxCents / 100,
+      daily_usd: updated.dailyBudgetCents / 100,
+      monthly_usd: updated.monthlyBudgetCents / 100,
+      ask_approval_above_usd: (updated.requireApprovalAbove ?? 500) / 100,
+      approved_categories: (procRules?.allowlistedCategories as string[]) || [],
+      blocked_categories: (procRules?.blocklistedCategories as string[]) || PROCUREMENT_DEFAULTS.blockedCategories,
       recurring_allowed: updated.recurringAllowed,
       notes: updated.notes,
     });

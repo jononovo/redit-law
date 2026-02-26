@@ -4,7 +4,6 @@ import {
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
   type PaymentMethod, type InsertPaymentMethod,
-  type SpendingPermission, type InsertSpendingPermission,
   type TopupRequest, type InsertTopupRequest,
   type ApiAccessLog, type InsertApiAccessLog,
   type WebhookDelivery, type InsertWebhookDelivery,
@@ -28,6 +27,9 @@ import {
   type CrossmintTransaction, type InsertCrossmintTransaction,
   type CrossmintApproval, type InsertCrossmintApproval,
   type MasterGuardrail, type InsertMasterGuardrail,
+  type Rail4Guardrail, type InsertRail4Guardrail,
+  type Rail5Guardrail, type InsertRail5Guardrail,
+  type ProcurementControl, type InsertProcurementControl,
   type SkillDraft, type InsertSkillDraft,
   type SkillEvidence, type InsertSkillEvidence,
   type SkillSubmitterProfile, type InsertSkillSubmitterProfile,
@@ -71,8 +73,6 @@ export interface IStorage {
   getDailySpend(walletId: number): Promise<number>;
   getMonthlySpend(walletId: number): Promise<number>;
 
-  getSpendingPermissions(botId: string): Promise<SpendingPermission | null>;
-  upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission>;
 
   createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest>;
 
@@ -206,6 +206,20 @@ export interface IStorage {
   upsertMasterGuardrails(ownerUid: string, data: Partial<InsertMasterGuardrail>): Promise<MasterGuardrail>;
   getMasterDailySpend(ownerUid: string): Promise<{ rail1: number; rail2: number; rail4: number; total: number }>;
   getMasterMonthlySpend(ownerUid: string): Promise<{ rail1: number; rail2: number; rail4: number; total: number }>;
+
+  getRail4Guardrails(cardId: string): Promise<Rail4Guardrail | null>;
+  upsertRail4Guardrails(cardId: string, data: Partial<InsertRail4Guardrail>): Promise<Rail4Guardrail>;
+  getRail4DailySpendCents(cardId: string): Promise<number>;
+  getRail4MonthlySpendCents(cardId: string): Promise<number>;
+
+  getRail5Guardrails(cardId: string): Promise<Rail5Guardrail | null>;
+  upsertRail5Guardrails(cardId: string, data: Partial<InsertRail5Guardrail>): Promise<Rail5Guardrail>;
+  getRail5DailySpendCents(cardId: string): Promise<number>;
+  getRail5MonthlySpendCents(cardId: string): Promise<number>;
+
+  getProcurementControls(ownerUid: string): Promise<ProcurementControl[]>;
+  getProcurementControlsByScope(ownerUid: string, scope: string, scopeRefId?: string | null): Promise<ProcurementControl | null>;
+  upsertProcurementControls(ownerUid: string, scope: string, scopeRefId: string | null, data: Partial<InsertProcurementControl>): Promise<ProcurementControl>;
 
   createSkillDraft(data: InsertSkillDraft): Promise<SkillDraft>;
   createSkillDraftWithEvidence(draftData: InsertSkillDraft, evidenceData: InsertSkillEvidence[]): Promise<SkillDraft>;

@@ -11,6 +11,7 @@ export const GUARDRAIL_DEFAULTS = {
     dailyBudgetUsdc: 10,
     monthlyBudgetUsdc: 50,
     requireApprovalAbove: null as number | null,
+    approvalMode: "ask_for_everything",
     autoPauseOnZero: true,
   },
 
@@ -23,11 +24,24 @@ export const GUARDRAIL_DEFAULTS = {
   },
 
   rail4: {
+    maxPerTxCents: 500,
+    dailyBudgetCents: 1000,
+    monthlyBudgetCents: 5000,
+    requireApprovalAbove: 500 as number | null,
     approvalMode: "ask_for_everything",
-    perTransactionCents: 500,
-    dailyCents: 1000,
-    monthlyCents: 5000,
-    askApprovalAboveCents: 500,
     recurringAllowed: false,
+    autoPauseOnZero: false,
   },
+
+  rail5: {
+    maxPerTxCents: 5000,
+    dailyBudgetCents: 10000,
+    monthlyBudgetCents: 50000,
+    requireApprovalAbove: 2500 as number | null,
+    autoPauseOnZero: false,
+  },
+} as const;
+
+export const PROCUREMENT_DEFAULTS = {
+  blockedCategories: ["gambling", "adult_content", "cryptocurrency", "cash_advances"] as string[],
 } as const;

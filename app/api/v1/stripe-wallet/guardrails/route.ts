@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     if (guardrailData.daily_budget_usdc !== undefined) updateData.dailyBudgetUsdc = guardrailData.daily_budget_usdc;
     if (guardrailData.monthly_budget_usdc !== undefined) updateData.monthlyBudgetUsdc = guardrailData.monthly_budget_usdc;
     if (guardrailData.require_approval_above !== undefined) updateData.requireApprovalAbove = guardrailData.require_approval_above;
+    if (guardrailData.approval_mode !== undefined) updateData.approvalMode = guardrailData.approval_mode;
     if (guardrailData.allowlisted_domains !== undefined) updateData.allowlistedDomains = guardrailData.allowlisted_domains;
     if (guardrailData.blocklisted_domains !== undefined) updateData.blocklistedDomains = guardrailData.blocklisted_domains;
     if (guardrailData.auto_pause_on_zero !== undefined) updateData.autoPauseOnZero = guardrailData.auto_pause_on_zero;

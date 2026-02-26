@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
-
-const DEFAULT_BLOCKED = ["gambling", "adult_content", "cryptocurrency", "cash_advances"];
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
+import { PROCUREMENT_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const GET = withBotApi("/api/v1/bot/wallet/spending", async (_request, { bot }) => {
   if (bot.walletStatus === "pending") {
@@ -12,37 +12,55 @@ export const GET = withBotApi("/api/v1/bot/wallet/spending", async (_request, { 
     );
   }
 
-  const permissions = await storage.getSpendingPermissions(bot.botId);
+  const rail4Cards = await storage.getRail4CardsByBotId(bot.botId);
+  const activeCard = rail4Cards.find(c => c.status === "active");
 
-  if (!permissions) {
-    return NextResponse.json({
-      approval_mode: "ask_for_everything",
+  let guardrailData;
+  if (activeCard) {
+    const guard = await storage.getRail4Guardrails(activeCard.cardId);
+    guardrailData = {
+      approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode,
       limits: {
-        per_transaction_usd: 25.0,
-        daily_usd: 50.0,
-        monthly_usd: 500.0,
-        ask_approval_above_usd: 10.0,
+        per_transaction_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail4.maxPerTxCents) / 100,
+        daily_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents) / 100,
+        monthly_usd: (guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents) / 100,
+        ask_approval_above_usd: (guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove ?? 500) / 100,
       },
-      approved_categories: [],
-      blocked_categories: DEFAULT_BLOCKED,
-      recurring_allowed: false,
+      recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail4.recurringAllowed,
+      notes: guard?.notes ?? null,
+      updated_at: guard?.updatedAt?.toISOString() ?? new Date().toISOString(),
+    };
+  } else {
+    guardrailData = {
+      approval_mode: GUARDRAIL_DEFAULTS.rail4.approvalMode,
+      limits: {
+        per_transaction_usd: GUARDRAIL_DEFAULTS.rail4.maxPerTxCents / 100,
+        daily_usd: GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents / 100,
+        monthly_usd: GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents / 100,
+        ask_approval_above_usd: (GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove ?? 500) / 100,
+      },
+      recurring_allowed: GUARDRAIL_DEFAULTS.rail4.recurringAllowed,
       notes: null,
       updated_at: new Date().toISOString(),
-    });
+    };
+  }
+
+  let procurement;
+  if (bot.ownerUid) {
+    const procRules = await storage.getProcurementControlsByScope(bot.ownerUid, "rail4", null);
+    procurement = {
+      approved_categories: (procRules?.allowlistedCategories as string[]) || [],
+      blocked_categories: (procRules?.blocklistedCategories as string[]) || PROCUREMENT_DEFAULTS.blockedCategories,
+    };
+  } else {
+    procurement = {
+      approved_categories: [],
+      blocked_categories: PROCUREMENT_DEFAULTS.blockedCategories,
+    };
   }
 
   return NextResponse.json({
-    approval_mode: permissions.approvalMode,
-    limits: {
-      per_transaction_usd: permissions.perTransactionCents / 100,
-      daily_usd: permissions.dailyCents / 100,
-      monthly_usd: permissions.monthlyCents / 100,
-      ask_approval_above_usd: permissions.askApprovalAboveCents / 100,
-    },
-    approved_categories: permissions.approvedCategories,
-    blocked_categories: permissions.blockedCategories.length > 0 ? permissions.blockedCategories : DEFAULT_BLOCKED,
-    recurring_allowed: permissions.recurringAllowed,
-    notes: permissions.notes,
-    updated_at: permissions.updatedAt.toISOString(),
+    ...guardrailData,
+    ...procurement,
   });
 });

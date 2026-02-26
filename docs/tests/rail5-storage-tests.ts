@@ -104,10 +104,6 @@ async function runRail5Tests() {
       cardName: "Test Visa",
       cardBrand: "visa",
       cardLast4: "4242",
-      spendingLimitCents: 50000,
-      dailyLimitCents: 100000,
-      monthlyLimitCents: 500000,
-      humanApprovalAboveCents: 25000,
       status: "pending_setup",
     });
     log("createRail5Card", !!card && card.cardId === cardId && card.ownerUid === TEST_OWNER_UID);

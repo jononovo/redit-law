@@ -1,12 +1,11 @@
 import { db } from "@/server/db";
 import {
-  bots, wallets, transactions, paymentMethods, spendingPermissions, topupRequests, apiAccessLogs,
+  bots, wallets, transactions, paymentMethods, topupRequests, apiAccessLogs,
   reconciliationLogs,
   type InsertBot, type Bot,
   type Wallet, type InsertWallet,
   type Transaction, type InsertTransaction,
   type PaymentMethod, type InsertPaymentMethod,
-  type SpendingPermission, type InsertSpendingPermission,
   type TopupRequest, type InsertTopupRequest,
   type ApiAccessLog, type InsertApiAccessLog,
   type ReconciliationLog, type InsertReconciliationLog,
@@ -22,7 +21,6 @@ type CoreMethods = Pick<IStorage,
   | "getPaymentMethod" | "getPaymentMethods" | "getPaymentMethodById"
   | "addPaymentMethod" | "deletePaymentMethodById" | "setDefaultPaymentMethod"
   | "getBotsByApiKeyPrefix" | "debitWallet" | "getDailySpend" | "getMonthlySpend"
-  | "getSpendingPermissions" | "upsertSpendingPermissions"
   | "createTopupRequest" | "createAccessLog" | "getAccessLogsByBotIds"
   | "getWalletsByOwnerUid" | "getTransactionSumByWalletId" | "createReconciliationLog"
   | "freezeWallet" | "unfreezeWallet" | "getWalletsWithBotsByOwnerUid"
@@ -240,27 +238,6 @@ export const coreMethods: CoreMethods = {
     return Number(result[0]?.total || 0);
   },
 
-  async getSpendingPermissions(botId: string): Promise<SpendingPermission | null> {
-    const [perm] = await db.select().from(spendingPermissions).where(eq(spendingPermissions.botId, botId)).limit(1);
-    return perm || null;
-  },
-
-  async upsertSpendingPermissions(botId: string, data: Partial<InsertSpendingPermission>): Promise<SpendingPermission> {
-    const existing = await this.getSpendingPermissions(botId);
-    if (existing) {
-      const [updated] = await db
-        .update(spendingPermissions)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(spendingPermissions.botId, botId))
-        .returning();
-      return updated;
-    }
-    const [created] = await db
-      .insert(spendingPermissions)
-      .values({ botId, ...data })
-      .returning();
-    return created;
-  },
 
   async createTopupRequest(data: InsertTopupRequest): Promise<TopupRequest> {
     const [req] = await db.insert(topupRequests).values(data).returning();

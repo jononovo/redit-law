@@ -10,6 +10,8 @@ import { getWindowStart } from "@/lib/rail4/allowance";
 import type { FakeProfile } from "@/lib/rail4/obfuscation";
 import { randomBytes } from "crypto";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
+import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -68,6 +70,32 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
       { error: "card_not_active", message: "Self-hosted card is not active for this bot." },
       { status: 403 }
     );
+  }
+
+  const rail4Guard = await storage.getRail4Guardrails(card.cardId);
+  const cardRules = {
+    maxPerTxCents: rail4Guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail4.maxPerTxCents,
+    dailyBudgetCents: rail4Guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents,
+    monthlyBudgetCents: rail4Guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents,
+    requireApprovalAbove: rail4Guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove,
+    autoPauseOnZero: rail4Guard?.autoPauseOnZero ?? GUARDRAIL_DEFAULTS.rail4.autoPauseOnZero,
+  };
+
+  const dailySpendCents = await storage.getRail4DailySpendCents(card.cardId);
+  const monthlySpendCents = await storage.getRail4MonthlySpendCents(card.cardId);
+
+  const cardDecision = evaluateCardGuardrails(
+    cardRules,
+    { amountCents: amount_cents },
+    { dailyCents: dailySpendCents, monthlyCents: monthlySpendCents }
+  );
+
+  if (cardDecision.action === "block") {
+    return NextResponse.json({
+      approved: false,
+      error: "card_guardrail_violation",
+      message: cardDecision.reason,
+    }, { status: 403 });
   }
 
   const permissions: ProfilePermission[] = card.profilePermissions

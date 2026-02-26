@@ -3,6 +3,7 @@ import { storage } from "@/server/storage";
 import { crossmintBotPurchaseSchema } from "@/shared/schema";
 import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { usdToMicroUsdc } from "@/lib/rail2/client";
@@ -46,17 +47,33 @@ async function handler(request: NextRequest, botId: string) {
     const dailySpend = await storage.crossmintGetDailySpend(wallet.id);
     const monthlySpend = await storage.crossmintGetMonthlySpend(wallet.id);
 
+    const procurementRules = await storage.getProcurementControlsByScope(wallet.ownerUid, "rail2", null);
+    if (procurementRules) {
+      const procDecision = evaluateProcurementControls(
+        {
+          allowlistedDomains: (procurementRules.allowlistedDomains as string[]) || [],
+          blocklistedDomains: (procurementRules.blocklistedDomains as string[]) || [],
+          allowlistedMerchants: (procurementRules.allowlistedMerchants as string[]) || [],
+          blocklistedMerchants: (procurementRules.blocklistedMerchants as string[]) || [],
+          allowlistedCategories: (procurementRules.allowlistedCategories as string[]) || [],
+          blocklistedCategories: (procurementRules.blocklistedCategories as string[]) || [],
+        },
+        { merchant }
+      );
+      if (procDecision.action === "block") {
+        return NextResponse.json({ error: "guardrail_violation", reason: procDecision.reason }, { status: 403 });
+      }
+    }
+
     const decision = evaluateGuardrails(
       {
         maxPerTxUsdc: guardrails.maxPerTxUsdc,
         dailyBudgetUsdc: guardrails.dailyBudgetUsdc,
         monthlyBudgetUsdc: guardrails.monthlyBudgetUsdc,
         requireApprovalAbove: guardrails.requireApprovalAbove,
-        allowlistedMerchants: guardrails.allowlistedMerchants as string[] | undefined,
-        blocklistedMerchants: guardrails.blocklistedMerchants as string[] | undefined,
         autoPauseOnZero: guardrails.autoPauseOnZero,
       },
-      { amountUsdc: estimatedAmountUsdc, merchant },
+      { amountUsdc: estimatedAmountUsdc },
       { dailyUsdc: dailySpend, monthlyUsdc: monthlySpend }
     );
 

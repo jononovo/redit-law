@@ -28,15 +28,24 @@ New features should follow a feature-first folder structure. Each rail lives und
 - If a cross-cutting module starts accumulating rail-specific code (like `callbacks.ts` did), extract that logic into the rail's own folder and leave a thin import in the cross-cutting module.
 
 **Guardrails** (`lib/guardrails/`):
-- `defaults.ts` — single source of truth for all guardrail default values (master + all rails). The schema reads from this file, so changing a value here changes the default for new records.
-- `types.ts` — `GuardrailRules`, `TransactionRequest`, `CumulativeSpend`, `GuardrailDecision` interfaces.
-- `evaluate.ts` — pure evaluation function (spending limits, approval thresholds). Domain/merchant lists are currently evaluated here too but will be extracted to `lib/merchant-controls/` in the future.
+- `defaults.ts` — single source of truth for all guardrail default values (master + all rails). The schema reads from this file, so changing a value here changes the default for new records. Also exports `PROCUREMENT_DEFAULTS` for procurement controls.
+- `types.ts` — `GuardrailRules` (USDC-based for Rails 1/2), `CardGuardrailRules` (cents-based for Rails 4/5), `TransactionRequest`, `CardTransactionRequest`, `CumulativeSpend`, `CardCumulativeSpend`, `GuardrailDecision` interfaces.
+- `evaluate.ts` — two pure evaluation functions: `evaluateGuardrails()` for USDC rails (1 & 2) and `evaluateCardGuardrails()` for card rails (4 & 5). Only enforces spending limits and approval thresholds — domain/merchant/category enforcement is handled by procurement controls.
 - `master.ts` — master-level guardrail evaluation (fetches config, aggregates cross-rail spend, calls `evaluateGuardrails`).
+
+**Procurement Controls** (`lib/procurement-controls/`):
+- `types.ts` — `ProcurementRules`, `ProcurementRequest`, `ProcurementDecision` interfaces.
+- `defaults.ts` — `DEFAULT_PROCUREMENT_RULES` with default blocked categories.
+- `evaluate.ts` — `evaluateProcurementControls()` checks domain, merchant, and category rules. `mergeProcurementRules()` combines master + rail-level rules (blocklists are unioned, allowlists are intersected).
+- DB table: `procurement_controls` with `scope` (master/rail1/rail2/rail4/rail5) and `scope_ref_id` for per-rail granularity. Owner-facing API: `GET/POST /api/v1/procurement-controls` and `GET /api/v1/procurement-controls/[scope]`.
 
 **Storage is modularized** under `server/storage/` with domain-grouped files:
 - `types.ts` — the `IStorage` interface (single source of truth for all method signatures)
 - `index.ts` — composes all domain fragments into the `storage` object and re-exports `IStorage`
-- `core.ts` — bots, wallets, transactions, payment methods, spending permissions, topups, access logs, reconciliation, freeze/unfreeze
+- `core.ts` — bots, wallets, transactions, payment methods, topups, access logs, reconciliation, freeze/unfreeze
+  - `rail4-guardrails.ts` — CRUD for `rail4_guardrails` table
+  - `rail5-guardrails.ts` — CRUD for `rail5_guardrails` table
+  - `procurement-controls.ts` — CRUD for `procurement_controls` table
 - `webhooks.ts` — webhook deliveries, retries, failed count
 - `notifications.ts` — notification preferences + messages
 - `payment-links.ts` — payment links, pairing codes, waitlist

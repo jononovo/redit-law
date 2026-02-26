@@ -7,6 +7,9 @@ import { rail1Methods } from "./rail1";
 import { rail2Methods } from "./rail2";
 import { ownerMethods } from "./owners";
 import { masterGuardrailMethods } from "./master-guardrails";
+import { rail4GuardrailMethods } from "./rail4-guardrails";
+import { rail5GuardrailMethods } from "./rail5-guardrails";
+import { procurementControlMethods } from "./procurement-controls";
 import { skillMethods } from "./skills";
 import { rail5Methods } from "./rail5";
 import { approvalMethods } from "./approvals";
@@ -24,6 +27,9 @@ export const storage: IStorage = {
   ...rail2Methods,
   ...ownerMethods,
   ...masterGuardrailMethods,
+  ...rail4GuardrailMethods,
+  ...rail5GuardrailMethods,
+  ...procurementControlMethods,
   ...skillMethods,
   ...rail5Methods,
   ...approvalMethods,
