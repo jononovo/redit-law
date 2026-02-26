@@ -265,6 +265,7 @@ export interface IStorage {
 
   createUnifiedApproval(data: InsertUnifiedApproval): Promise<UnifiedApproval>;
   getUnifiedApprovalById(approvalId: string): Promise<UnifiedApproval | null>;
+  getUnifiedApprovalByRailRef(rail: string, railRef: string): Promise<UnifiedApproval | null>;
   decideUnifiedApproval(approvalId: string, decision: string): Promise<UnifiedApproval | null>;
   closeUnifiedApprovalByRailRef(rail: string, railRef: string, decision: string): Promise<void>;
   getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]>;
@@ -1772,6 +1773,19 @@ export const storage: IStorage = {
       .select()
       .from(unifiedApprovals)
       .where(eq(unifiedApprovals.approvalId, approvalId))
+      .limit(1);
+    return approval || null;
+  },
+
+  async getUnifiedApprovalByRailRef(rail: string, railRef: string): Promise<UnifiedApproval | null> {
+    const [approval] = await db
+      .select()
+      .from(unifiedApprovals)
+      .where(and(
+        eq(unifiedApprovals.rail, rail),
+        eq(unifiedApprovals.railRef, railRef),
+      ))
+      .orderBy(desc(unifiedApprovals.createdAt))
       .limit(1);
     return approval || null;
   },

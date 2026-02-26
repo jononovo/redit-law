@@ -1,0 +1,14 @@
+Here's the exact plan — all items, no deferral:
+1. Remove Rail 5 old approve page
+Delete app/api/v1/rail5/approve/[checkoutId]/route.ts entirely.
+2. Remove dead helpers from lib/rail5.ts
+Remove these four functions/constants: generateRail5ApprovalToken, verifyRail5ApprovalToken, isRail5ApprovalExpired, RAIL5_APPROVAL_TTL_MS.
+3. Remove Rail 4 old confirm page and rewire the dashboard
+The dashboard's "Review" button in rail4-card-manager.tsx currently builds a URL using the rail-specific confirmationId. To point it at the unified page, add a storage method getUnifiedApprovalByRailRef(rail, railRef) that does a simple query: SELECT * FROM unified_approvals WHERE rail = $1 AND rail_ref = $2 AND status = 'pending' LIMIT 1. Then update the Rail 4 confirmations API endpoint (/api/v1/rail4/confirmations) to include the unifiedApprovalId and hmacToken in its response for each pending confirmation. The frontend component switches from building /api/v1/rail4/confirm/${confirmationId}?token=... to /api/v1/approvals/confirm/${unifiedApprovalId}?token=.... Then delete app/api/v1/rail4/confirm/[confirmationId]/route.ts.
+4. Refactor Rail 1 and Rail 2 dashboard decide endpoints
+Both stripe-wallet/approvals/decide and card-wallet/approvals/decide currently do their own approval logic. Replace the core of each handler with: look up the unified approval via getUnifiedApprovalByRailRef(rail, railRef), then call resolveApproval(unifiedApprovalId, action, hmacToken). The resolveApproval function already handles status checks, expiry, and dispatches the rail-specific callback that updates the rail-specific table. If no unified approval exists (edge case for approvals created before this system), fall through to the existing logic so nothing breaks for in-flight approvals.
+5. Update test scripts
+Replace all references to the old Rail 5 approve endpoint and old Rail 4 confirm endpoint with the unified /api/v1/approvals/confirm/[approvalId] endpoint. Update assertions to match the unified response format.
+6. Fix the atomic race condition while you're in there
+In storage.ts, change decideUnifiedApproval to add eq(unifiedApprovals.status, "pending") to the WHERE clause. In resolveApproval, if decideUnifiedApproval returns null after passing the status check, return { success: false, error: "already_decided" } instead of "update_failed". This is one line in storage, one line in the service.
+That's the full scope. The new storage method getUnifiedApprovalByRailRef is the only addition — everything else is deletion, rewiring, or a one-line fix.

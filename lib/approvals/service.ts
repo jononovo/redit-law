@@ -143,6 +143,7 @@ export async function resolveApproval(
   }
 
   const callbacks = railCallbackRegistry.get(updated.rail);
+  let callbackError: string | undefined;
   if (callbacks) {
     try {
       if (action === "approve") {
@@ -150,7 +151,8 @@ export async function resolveApproval(
       } else {
         await callbacks.onDeny(updated);
       }
-    } catch (err) {
+    } catch (err: any) {
+      callbackError = err?.message || "callback_failed";
       console.error(`[Approvals] ${updated.rail} ${action} callback failed for ${approvalId}:`, err);
     }
   } else {
@@ -159,5 +161,5 @@ export async function resolveApproval(
 
   console.log(`[Approvals] Resolved ${updated.rail} approval ${approvalId} → ${decision}`);
 
-  return { success: true, approval: updated };
+  return { success: true, approval: updated, callbackError };
 }

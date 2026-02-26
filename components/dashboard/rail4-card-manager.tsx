@@ -56,6 +56,8 @@ interface Confirmation {
   amount: number;
   item: string;
   hmac_token?: string;
+  unified_approval_id?: string;
+  unified_hmac_token?: string;
 }
 
 interface Permissions {
@@ -540,9 +542,9 @@ export function Rail4CardManager({ cardId }: Rail4CardManagerProps) {
                     <p className="text-sm font-medium text-neutral-800">{c.merchant}</p>
                     <p className="text-xs text-neutral-500">{c.item} — ${c.amount.toFixed(2)}</p>
                   </div>
-                  {c.hmac_token && (
+                  {c.unified_approval_id && c.unified_hmac_token ? (
                     <a
-                      href={`/api/v1/rail4/confirm/${c.id}?token=${c.hmac_token}`}
+                      href={`/api/v1/approvals/confirm/${c.unified_approval_id}?token=${c.unified_hmac_token}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-primary hover:underline font-medium"
@@ -550,7 +552,11 @@ export function Rail4CardManager({ cardId }: Rail4CardManagerProps) {
                     >
                       Review
                     </a>
-                  )}
+                  ) : c.hmac_token ? (
+                    <span className="text-xs text-neutral-400" data-testid={`link-approve-${c.id}`}>
+                      Pending
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

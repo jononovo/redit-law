@@ -1,4 +1,4 @@
-import { randomBytes, createHmac } from "crypto";
+import { randomBytes } from "crypto";
 import { storage } from "@/server/storage";
 
 export function generateRail5CardId(): string {
@@ -39,29 +39,6 @@ export async function getMonthlySpendCents(cardId: string): Promise<number> {
   return checkouts
     .filter(c => c.status === "completed" && c.createdAt >= monthStart)
     .reduce((sum, c) => sum + c.amountCents, 0);
-}
-
-const CONFIRMATION_SECRET = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
-
-export const RAIL5_APPROVAL_TTL_MS = 15 * 60 * 1000;
-
-export function generateRail5ApprovalToken(checkoutId: string): string {
-  if (!CONFIRMATION_SECRET) throw new Error("CONFIRMATION_HMAC_SECRET not configured");
-  return createHmac("sha256", CONFIRMATION_SECRET)
-    .update(`rail5:${checkoutId}`)
-    .digest("hex");
-}
-
-export function verifyRail5ApprovalToken(checkoutId: string, token: string): boolean {
-  if (!CONFIRMATION_SECRET) return false;
-  const expected = createHmac("sha256", CONFIRMATION_SECRET)
-    .update(`rail5:${checkoutId}`)
-    .digest("hex");
-  return token === expected;
-}
-
-export function isRail5ApprovalExpired(createdAt: Date): boolean {
-  return Date.now() - createdAt.getTime() > RAIL5_APPROVAL_TTL_MS;
 }
 
 export function buildSpawnPayload(params: {
