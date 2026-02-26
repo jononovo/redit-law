@@ -27,7 +27,23 @@ New features should follow a feature-first folder structure. Each rail lives und
 - These stay in their own `lib/{feature}/` folders and should not contain rail-specific business logic.
 - If a cross-cutting module starts accumulating rail-specific code (like `callbacks.ts` did), extract that logic into the rail's own folder and leave a thin import in the cross-cutting module.
 
-**Storage stays centralized** in `server/storage.ts` to avoid circular dependencies — don't split storage by rail.
+**Storage is modularized** under `server/storage/` with domain-grouped files:
+- `types.ts` — the `IStorage` interface (single source of truth for all method signatures)
+- `index.ts` — composes all domain fragments into the `storage` object and re-exports `IStorage`
+- `core.ts` — bots, wallets, transactions, payment methods, spending permissions, topups, access logs, reconciliation, freeze/unfreeze
+- `webhooks.ts` — webhook deliveries, retries, failed count
+- `notifications.ts` — notification preferences + messages
+- `payment-links.ts` — payment links, pairing codes, waitlist
+- `rail1.ts` — all privy/x402 wallet, guardrail, transaction, and approval methods
+- `rail2.ts` — all crossmint wallet, guardrail, transaction, and approval methods
+- `rail4.ts` — rail4 cards, obfuscation events/state, profile allowance, checkout confirmations
+- `rail5.ts` — rail5 cards + checkouts
+- `owners.ts` — owner profiles (get/upsert)
+- `master-guardrails.ts` — master guardrails + cross-rail daily/monthly spend aggregation
+- `skills.ts` — skill drafts, evidence, submitter profiles, versioning, exports
+- `approvals.ts` — unified approvals
+- All consumers import from `@/server/storage` unchanged (the directory's `index.ts` is transparent).
+- Methods that use `this.` resolve correctly because all fragments are spread into one object.
 
 **API route paths never change** during modularization — only internal `lib/` imports get rewired. This avoids breaking any external consumers.
 
