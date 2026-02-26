@@ -1,7 +1,8 @@
+import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
 import type { UnifiedApproval } from "@/shared/schema";
 
-export async function fulfillRail1Approval(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail1Approval(approval: UnifiedApproval): Promise<void> {
   const approvalId = Number(approval.railRef);
   if (!isNaN(approvalId)) {
     await storage.privyDecideApproval(approvalId, "approved", approval.ownerUid);
@@ -9,7 +10,7 @@ export async function fulfillRail1Approval(approval: UnifiedApproval): Promise<v
   console.log(`[Approvals] Rail 1 approved: privy_approval ${approval.railRef}`);
 }
 
-export async function fulfillRail1Denial(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail1Denial(approval: UnifiedApproval): Promise<void> {
   const approvalId = Number(approval.railRef);
   if (!isNaN(approvalId)) {
     const privyApproval = await storage.privyGetApproval(approvalId);
@@ -20,3 +21,8 @@ export async function fulfillRail1Denial(approval: UnifiedApproval): Promise<voi
   }
   console.log(`[Approvals] Rail 1 denied: privy_approval ${approval.railRef}`);
 }
+
+registerRailCallbacks("rail1", {
+  onApprove: fulfillRail1Approval,
+  onDeny: fulfillRail1Denial,
+});

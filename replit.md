@@ -73,8 +73,6 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/balance.ts` — `getOnChainUsdcBalance()` via viem + Base RPC.
   - `onramp.ts` — `createOnrampSession()` via Stripe Crypto Onramp API.
   - `x402.ts` — x402 typed data builders (`buildTransferWithAuthorizationTypedData`, `buildXPaymentHeader`, `generateNonce`) and USDC format helpers (`formatUsdc`, `usdToMicroUsdc`, `microUsdcToUsd`).
-  - `fulfillment.ts` — approval fulfillment (`fulfillRail1Approval`, `fulfillRail1Denial`).
-  - `approval-callback.ts` — thin registration glue connecting approval system to Rail 1 fulfillment.
   - Webhook: `STRIPE_WEBHOOK_SECRET_ONRAMP` env var, event type `crypto.onramp_session.updated`. Balance sync endpoint: `POST /api/v1/stripe-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `privy_wallets`.
 - **Rail 2 (Card Wallet):** Uses CrossMint smart wallets on Base chain, USDC funding via fiat onramp, and Amazon/commerce purchases via Orders API. Employs merchant allow/blocklists. **Modularized under `lib/rail2/`:**
   - `client.ts` — shared CrossMint API client (`crossmintFetch`, `getServerApiKey`, format helpers). Handles both API versions: Wallets API (`2025-06-09`) and Orders API (`2022-06-09`).
@@ -83,19 +81,13 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/transfer.ts` — `sendUsdcTransfer()` for on-chain USDC transfers.
   - `orders/purchase.ts` — `createPurchaseOrder()`, `getOrderStatus()`, `ShippingAddress` interface.
   - `orders/onramp.ts` — `createOnrampOrder()` for fiat-to-USDC via checkoutcom-flow.
-  - `fulfillment.ts` — approval fulfillment business logic (`fulfillRail2Approval`, `fulfillRail2Denial`). Handles purchase order creation, transaction updates, and webhook firing when an approval is decided.
-  - `approval-callback.ts` — thin registration glue that connects the approval system to Rail 2 fulfillment.
   - On-chain balance sync via reused `getOnChainUsdcBalance` from `lib/rail1/wallet/balance.ts`. Balance sync endpoint: `POST /api/v1/card-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `crossmint_wallets`. Frontend ↻ button on Card Wallet dashboard mirrors Rail 1 pattern.
 - **Master Guardrails:** Owner-level, cross-rail spending limits stored in a `master_guardrails` table. These guardrails are checked before per-rail guardrails and aggregate spend across all active rails.
 - **Rail 4 (Self-Hosted Cards):** Implements the Split-Knowledge card model with obfuscation. **Modularized under `lib/rail4/`:**
   - `obfuscation.ts` — decoy data, fake profile generation, `generateRail4Setup()`, `buildDecoyFileContent()`, types (`FakeProfile`, `Rail4Setup`).
   - `allowance.ts` — spending window helpers: `getWindowStart()`, `getNextWindowStart()` for day/week/month allowance periods.
-  - `fulfillment.ts` — approval fulfillment business logic (`fulfillRail4Approval`, `fulfillRail4Denial`). Handles wallet debit, transaction creation, allowance tracking, webhook firing, and obfuscation event recording.
-  - `approval-callback.ts` — thin registration glue connecting the approval system to Rail 4 fulfillment.
 - **Rail 5 (Sub-Agent Cards):** Encrypted card files + ephemeral sub-agents. Owner encrypts card client-side (AES-256-GCM), CreditClaw stores only the decryption key. At checkout, a disposable sub-agent gets the key, decrypts, pays, and is deleted. **Modularized under `lib/rail5/`:**
   - `index.ts` — core helpers (`generateRail5CardId`, `generateRail5CheckoutId`, `validateKeyMaterial`, `getDailySpendCents`, `getMonthlySpendCents`, `buildSpawnPayload`).
-  - `fulfillment.ts` — approval fulfillment (`fulfillRail5Approval`, `fulfillRail5Denial`) with checkout status updates and webhook firing.
-  - `approval-callback.ts` — thin registration glue connecting approval system to Rail 5 fulfillment.
   - DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards,deliver-to-bot}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm}`. Dashboard: `/app/sub-agent-cards`. Setup wizard: 7-step (Name→HowItWorks→CardDetails→Limits→LinkBot→Encrypt→Success) with Web Crypto encryption. Direct delivery: if an OpenClaw bot is linked before encryption, the encrypted file is relayed directly to the bot via webhook (`rail5.card.delivered`); backup download always happens. Unified `rails.updated` webhook fires across ALL rails on bot link/unlink/freeze/unfreeze/wallet create with `action`, `rail`, `card_id`/`wallet_id`, `bot_id` in payload. Wired up in: Rail 1 (create, freeze), Rail 2 (create, freeze), Rail 4 (link-bot, freeze), Rail 5 (PATCH cards). Success screen shows adaptive copy message with `card_id` and API instructions; includes note that `GET /bot/status` always has latest.
 
 ### Inter-Wallet Transfers
@@ -133,7 +125,11 @@ Registered users can submit vendor websites for analysis, contributing to the pr
 All four rails route approval emails through a single system under `lib/approvals/`:
 - **Service** (`lib/approvals/service.ts`): `createApproval()` generates HMAC-signed approval links, stores in `unified_approvals` table, sends branded email. `resolveApproval()` verifies HMAC, checks expiry, updates status, dispatches rail-specific callbacks.
 - **Email** (`lib/approvals/email.ts`): Single `sendApprovalEmail()` with CreditClaw-branded HTML template, rail badge, and magic-link button.
-- **Callbacks** (`lib/approvals/callbacks.ts`): Thin import file that loads all four rail-specific approval callbacks. Each rail registers via `registerRailCallbacks()`: Rail 1 → `lib/rail1/approval-callback.ts` → `lib/rail1/fulfillment.ts`. Rail 2 → `lib/rail2/approval-callback.ts` → `lib/rail2/fulfillment.ts`. Rail 4 → `lib/rail4/approval-callback.ts` → `lib/rail4/fulfillment.ts`. Rail 5 → `lib/rail5/approval-callback.ts` → `lib/rail5/fulfillment.ts`.
+- **Callbacks** (`lib/approvals/callbacks.ts`): Thin loader that imports the four rail-specific fulfillment modules below.
+- **Rail 1 Fulfillment** (`lib/approvals/rail1-fulfillment.ts`): Approval/denial handlers for Privy approvals + self-registers via `registerRailCallbacks("rail1", ...)`.
+- **Rail 2 Fulfillment** (`lib/approvals/rail2-fulfillment.ts`): Approval/denial handlers for CrossMint purchases (creates purchase orders, fires webhooks) + self-registers.
+- **Rail 4 Fulfillment** (`lib/approvals/rail4-fulfillment.ts`): Approval/denial handlers for self-hosted card checkouts (wallet debit, allowance tracking, obfuscation events) + self-registers.
+- **Rail 5 Fulfillment** (`lib/approvals/rail5-fulfillment.ts`): Approval/denial handlers for sub-agent checkouts (status updates, webhook firing) + self-registers.
 - **Lifecycle** (`lib/approvals/lifecycle.ts`): TTL constants per rail (Rail 1 polling: 5min, Rail 1 email: 10min, Rails 2/4/5: 15min).
 - **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`. This is the single entry point for email-based approvals across all rails.
 - **Dashboard Integration**: Dashboard decide endpoints (`stripe-wallet/approvals/decide`, `card-wallet/approvals/decide`) delegate to `resolveApproval()` when a unified approval exists, with fallback to direct logic for pre-unified approvals. Rail 4 dashboard "Review" button links to unified page via `getUnifiedApprovalByRailRef()` lookup.

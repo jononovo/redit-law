@@ -1,8 +1,9 @@
+import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
 import { getWindowStart } from "@/lib/rail4/allowance";
 import type { UnifiedApproval } from "@/shared/schema";
 
-export async function fulfillRail4Approval(approval: UnifiedApproval) {
+async function fulfillRail4Approval(approval: UnifiedApproval) {
   const confirmationId = approval.railRef;
   const conf = await storage.getCheckoutConfirmation(confirmationId);
   if (!conf) {
@@ -63,7 +64,7 @@ export async function fulfillRail4Approval(approval: UnifiedApproval) {
   console.log(`[Approvals] Rail 4 approved: confirmation ${confirmationId}`);
 }
 
-export async function fulfillRail4Denial(approval: UnifiedApproval) {
+async function fulfillRail4Denial(approval: UnifiedApproval) {
   const confirmationId = approval.railRef;
   await storage.updateCheckoutConfirmationStatus(confirmationId, "denied");
 
@@ -83,3 +84,8 @@ export async function fulfillRail4Denial(approval: UnifiedApproval) {
 
   console.log(`[Approvals] Rail 4 denied: confirmation ${confirmationId}`);
 }
+
+registerRailCallbacks("rail4", {
+  onApprove: fulfillRail4Approval,
+  onDeny: fulfillRail4Denial,
+});

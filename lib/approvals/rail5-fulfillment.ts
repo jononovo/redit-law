@@ -1,7 +1,8 @@
+import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
 import type { UnifiedApproval } from "@/shared/schema";
 
-export async function fulfillRail5Approval(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail5Approval(approval: UnifiedApproval): Promise<void> {
   const checkoutId = approval.railRef;
   await storage.updateRail5Checkout(checkoutId, { status: "approved", confirmedAt: new Date() });
 
@@ -24,7 +25,7 @@ export async function fulfillRail5Approval(approval: UnifiedApproval): Promise<v
   console.log(`[Approvals] Rail 5 approved: checkout ${checkoutId}`);
 }
 
-export async function fulfillRail5Denial(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail5Denial(approval: UnifiedApproval): Promise<void> {
   const checkoutId = approval.railRef;
   await storage.updateRail5Checkout(checkoutId, { status: "denied", confirmedAt: new Date() });
 
@@ -46,3 +47,8 @@ export async function fulfillRail5Denial(approval: UnifiedApproval): Promise<voi
 
   console.log(`[Approvals] Rail 5 denied: checkout ${checkoutId}`);
 }
+
+registerRailCallbacks("rail5", {
+  onApprove: fulfillRail5Approval,
+  onDeny: fulfillRail5Denial,
+});

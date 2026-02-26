@@ -1,4 +1,4 @@
-import "@/lib/rail1/approval-callback";
-import "@/lib/rail2/approval-callback";
-import "@/lib/rail4/approval-callback";
-import "@/lib/rail5/approval-callback";
+import "./rail1-fulfillment";
+import "./rail2-fulfillment";
+import "./rail4-fulfillment";
+import "./rail5-fulfillment";

@@ -1,9 +1,10 @@
+import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
 import { createPurchaseOrder } from "@/lib/rail2/orders/purchase";
 import { fireWebhook } from "@/lib/webhooks";
 import type { UnifiedApproval } from "@/shared/schema";
 
-export async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
   const approvalId = Number(approval.railRef);
   if (isNaN(approvalId)) return;
 
@@ -75,7 +76,7 @@ export async function fulfillRail2Approval(approval: UnifiedApproval): Promise<v
   console.log(`[Rail2] Approved: crossmint_approval ${approval.railRef}`);
 }
 
-export async function fulfillRail2Denial(approval: UnifiedApproval): Promise<void> {
+async function fulfillRail2Denial(approval: UnifiedApproval): Promise<void> {
   const approvalId = Number(approval.railRef);
   if (isNaN(approvalId)) return;
 
@@ -102,3 +103,8 @@ export async function fulfillRail2Denial(approval: UnifiedApproval): Promise<voi
 
   console.log(`[Rail2] Denied: crossmint_approval ${approval.railRef}`);
 }
+
+registerRailCallbacks("rail2", {
+  onApprove: fulfillRail2Approval,
+  onDeny: fulfillRail2Denial,
+});
