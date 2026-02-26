@@ -3,8 +3,8 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { crossmintApprovalDecideSchema } from "@/shared/schema";
 import { isApprovalExpired } from "@/lib/approvals/lifecycle";
-import { createPurchaseOrder } from "@/lib/card-wallet/purchase";
-import { fireWebhook } from "@/lib/webhooks";
+import { resolveApproval } from "@/lib/approvals/service";
+import "@/lib/approvals/callbacks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,13 +31,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
+    const unifiedApproval = await storage.getUnifiedApprovalByRailRef("rail2", String(approval_id));
+
+    if (unifiedApproval) {
+      const action = decision === "approve" ? "approve" : "deny";
+      const result = await resolveApproval(unifiedApproval.approvalId, action, unifiedApproval.hmacToken);
+
+      if (!result.success && result.error === "expired") {
+        return NextResponse.json({ error: "Approval has expired" }, { status: 410 });
+      }
+
+      if (!result.success && result.error?.startsWith("already_")) {
+        return NextResponse.json({ error: result.error }, { status: 409 });
+      }
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error || "Failed to update approval" }, { status: 500 });
+      }
+
+      if (result.callbackError) {
+        return NextResponse.json({ error: "Approval recorded but fulfillment failed", details: result.callbackError }, { status: 502 });
+      }
+
+      const updatedCm = await storage.crossmintGetApproval(approval_id);
+      const transaction = await storage.crossmintGetTransactionById(approval.transactionId);
+
+      return NextResponse.json({
+        approval: {
+          id: updatedCm?.id ?? approval_id,
+          status: updatedCm?.status ?? (decision === "approve" ? "approved" : "rejected"),
+          decided_at: updatedCm?.decidedAt,
+        },
+        ...(decision === "approve" && transaction?.crossmintOrderId ? { order_id: transaction.crossmintOrderId } : {}),
+      });
+    }
+
     const bot = await storage.getBotByBotId(wallet.botId);
 
     if (isApprovalExpired(approval)) {
       await storage.crossmintDecideApproval(approval_id, "expired", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
-      storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "expired").catch(() => {});
       if (bot) {
+        const { fireWebhook } = await import("@/lib/webhooks");
         fireWebhook(bot, "purchase.expired", {
           approval_id,
           product_name: approval.productName,
@@ -50,8 +85,8 @@ export async function POST(request: NextRequest) {
     if (decision === "reject") {
       const updated = await storage.crossmintDecideApproval(approval_id, "rejected", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
-      storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "denied").catch(() => {});
       if (bot) {
+        const { fireWebhook } = await import("@/lib/webhooks");
         fireWebhook(bot, "purchase.rejected", {
           approval_id,
           product_name: approval.productName,
@@ -64,7 +99,6 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedApproval = await storage.crossmintDecideApproval(approval_id, "approved", user.uid);
-    storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "approved").catch(() => {});
 
     const transaction = await storage.crossmintGetTransactionById(approval.transactionId);
     if (!transaction) {
@@ -80,6 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      const { createPurchaseOrder } = await import("@/lib/card-wallet/purchase");
       const ownerEmail = user.email || bot?.ownerEmail || "";
 
       const result = await createPurchaseOrder({
@@ -98,6 +133,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (bot) {
+        const { fireWebhook } = await import("@/lib/webhooks");
         fireWebhook(bot, "purchase.approved", {
           approval_id,
           transaction_id: transaction.id,

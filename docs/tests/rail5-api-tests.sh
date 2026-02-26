@@ -123,27 +123,6 @@ else
 fi
 
 echo ""
-echo "--- Approval Endpoint ---"
-
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/rail5/approve/nonexistent")
-check_status "GET /rail5/approve/:id without token returns 403" "403" "$RESPONSE"
-
-RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/api/v1/rail5/approve/nonexistent?token=badtoken")
-check_status "GET /rail5/approve/:id with bad token returns 403" "403" "$RESPONSE"
-
-BODY=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{"action":"approve","token":"badtoken"}' "$BASE_URL/api/v1/rail5/approve/nonexistent")
-STATUS=$(echo "$BODY" | tail -1)
-check_status "POST /rail5/approve/:id with bad token returns 403" "403" "$STATUS"
-
-BODY=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d '{}' "$BASE_URL/api/v1/rail5/approve/nonexistent")
-STATUS=$(echo "$BODY" | tail -1)
-check_status "POST /rail5/approve/:id with missing token returns 403" "403" "$STATUS"
-
-BODY=$(curl -s -w "\n%{http_code}" -X POST -H "Content-Type: application/json" -d 'invalid json' "$BASE_URL/api/v1/rail5/approve/nonexistent")
-STATUS=$(echo "$BODY" | tail -1)
-check_status "POST /rail5/approve/:id with invalid JSON returns 400" "400" "$STATUS"
-
-echo ""
 echo "--- Page Rendering ---"
 
 RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$BASE_URL/app/sub-agent-cards")

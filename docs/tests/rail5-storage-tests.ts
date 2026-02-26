@@ -3,8 +3,6 @@ import {
   generateRail5CardId, generateRail5CheckoutId,
   validateKeyMaterial, buildSpawnPayload,
   getDailySpendCents, getMonthlySpendCents,
-  generateRail5ApprovalToken, verifyRail5ApprovalToken,
-  isRail5ApprovalExpired, RAIL5_APPROVAL_TTL_MS,
 } from "@/lib/rail5";
 
 async function runRail5Tests() {
@@ -92,56 +90,6 @@ async function runRail5Tests() {
     log("buildSpawnPayload sets cleanup to delete", payload.cleanup === "delete");
     log("buildSpawnPayload sets timeout to 300s", payload.runTimeoutSeconds === 300);
     log("buildSpawnPayload generates label from merchant", payload.label.startsWith("checkout-amazon"));
-  }
-
-  // ─── HMAC Token Generation / Verification ─────────────────────
-  console.log("\n--- HMAC Token Security ---");
-
-  {
-    const secret = process.env.CONFIRMATION_HMAC_SECRET || process.env.CRON_SECRET;
-    if (secret) {
-      const token = generateRail5ApprovalToken("test_checkout_123");
-      log("generateRail5ApprovalToken produces hex string", /^[0-9a-f]{64}$/.test(token));
-
-      log("verifyRail5ApprovalToken accepts valid token", verifyRail5ApprovalToken("test_checkout_123", token));
-      log("verifyRail5ApprovalToken rejects wrong token", !verifyRail5ApprovalToken("test_checkout_123", "badtoken"));
-      log("verifyRail5ApprovalToken rejects wrong checkout_id", !verifyRail5ApprovalToken("wrong_id", token));
-
-      const token2 = generateRail5ApprovalToken("test_checkout_456");
-      log("Different checkoutIds produce different tokens", token !== token2);
-
-      const sameToken = generateRail5ApprovalToken("test_checkout_123");
-      log("Same checkoutId produces same token (deterministic)", token === sameToken);
-    } else {
-      log("HMAC tests skipped (no CONFIRMATION_HMAC_SECRET or CRON_SECRET)", true);
-    }
-  }
-
-  // ─── Approval TTL / Expiration ────────────────────────────────
-  console.log("\n--- Approval TTL / Expiration ---");
-
-  {
-    log("RAIL5_APPROVAL_TTL_MS is 15 minutes", RAIL5_APPROVAL_TTL_MS === 15 * 60 * 1000);
-  }
-
-  {
-    const recent = new Date(Date.now() - 5 * 60 * 1000);
-    log("isRail5ApprovalExpired returns false for 5-minute-old checkout", !isRail5ApprovalExpired(recent));
-  }
-
-  {
-    const old = new Date(Date.now() - 20 * 60 * 1000);
-    log("isRail5ApprovalExpired returns true for 20-minute-old checkout", isRail5ApprovalExpired(old));
-  }
-
-  {
-    const justNow = new Date();
-    log("isRail5ApprovalExpired returns false for just-created checkout", !isRail5ApprovalExpired(justNow));
-  }
-
-  {
-    const exactlyExpired = new Date(Date.now() - RAIL5_APPROVAL_TTL_MS - 1);
-    log("isRail5ApprovalExpired returns true at TTL+1ms", isRail5ApprovalExpired(exactlyExpired));
   }
 
   // ─── Card CRUD ────────────────────────────────────────────────

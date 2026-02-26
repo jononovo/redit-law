@@ -60,12 +60,15 @@ Registered users can submit vendor websites for analysis, contributing to the pr
 All four rails route approval emails through a single system under `lib/approvals/`:
 - **Service** (`lib/approvals/service.ts`): `createApproval()` generates HMAC-signed approval links, stores in `unified_approvals` table, sends branded email. `resolveApproval()` verifies HMAC, checks expiry, updates status, dispatches rail-specific callbacks.
 - **Email** (`lib/approvals/email.ts`): Single `sendApprovalEmail()` with CreditClaw-branded HTML template, rail badge, and magic-link button.
-- **Callbacks** (`lib/approvals/callbacks.ts`): Rail-specific side effects registered via `registerRailCallbacks()`. Rail 1: updates privy_approvals. Rail 2: updates crossmint_approvals. Rail 4: debits wallet, fires webhook with card digits. Rail 5: updates checkout status, fires webhook.
+- **Callbacks** (`lib/approvals/callbacks.ts`): Rail-specific side effects registered via `registerRailCallbacks()`. Rail 1: updates privy_approvals, marks transaction failed on deny. Rail 2: updates crossmint_approvals, creates CrossMint purchase order on approve, updates transaction status, fires purchase webhooks. Rail 4: debits wallet, records transaction, tracks allowance, fires webhook with card digits. Rail 5: updates checkout status, fires webhook.
 - **Lifecycle** (`lib/approvals/lifecycle.ts`): TTL constants per rail (Rail 1 polling: 5min, Rail 1 email: 10min, Rails 2/4/5: 15min).
-- **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`.
+- **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`. This is the single entry point for email-based approvals across all rails.
+- **Dashboard Integration**: Dashboard decide endpoints (`stripe-wallet/approvals/decide`, `card-wallet/approvals/decide`) delegate to `resolveApproval()` when a unified approval exists, with fallback to direct logic for pre-unified approvals. Rail 4 dashboard "Review" button links to unified page via `getUnifiedApprovalByRailRef()` lookup.
+- **Storage**: `getUnifiedApprovalByRailRef(rail, railRef)` looks up pending unified approval by rail-specific ID. `closeUnifiedApprovalByRailRef()` for bidirectional sync. `decideUnifiedApproval()` with atomic `WHERE status = 'pending'` guard.
 - **DB Table**: `unified_approvals` with columns: id, approvalId, rail, ownerUid, ownerEmail, botName, amountDisplay, amountRaw, merchantName, itemName, hmacToken, status, expiresAt, decidedAt, railRef, metadata, createdAt.
 - **Env Vars**: `UNIFIED_APPROVAL_HMAC_SECRET` (falls back to `HMAC_SECRET` or default).
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
+- **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
 
 ### Key Routes
 - `/`: Consumer landing page
