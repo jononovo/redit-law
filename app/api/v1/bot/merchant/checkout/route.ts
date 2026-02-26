@@ -6,8 +6,8 @@ import { fireWebhook } from "@/lib/webhooks";
 import { notifyPurchase, notifyBalanceLow, notifySuspicious } from "@/lib/notifications";
 import { recordOrganicEvent, incrementObfuscationCount } from "@/lib/obfuscation-engine/state-machine";
 import { completeObfuscationEvent } from "@/lib/obfuscation-engine/events";
-import { getWindowStart } from "@/lib/rail4";
-import type { FakeProfile } from "@/lib/rail4";
+import { getWindowStart } from "@/lib/rail4/allowance";
+import type { FakeProfile } from "@/lib/rail4/obfuscation";
 import { randomBytes } from "crypto";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
 
