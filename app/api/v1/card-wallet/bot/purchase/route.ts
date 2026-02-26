@@ -5,7 +5,7 @@ import { authenticateBot } from "@/lib/bot-auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
-import { usdToMicroUsdc } from "@/lib/card-wallet/server";
+import { usdToMicroUsdc } from "@/lib/rail2/client";
 import { createApproval } from "@/lib/approvals/service";
 
 async function handler(request: NextRequest, botId: string) {

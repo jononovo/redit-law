@@ -1,14 +1,4 @@
-const CROSSMINT_API_BASE = process.env.CROSSMINT_ENV === "staging"
-  ? "https://staging.crossmint.com/api/2022-06-09"
-  : "https://www.crossmint.com/api/2022-06-09";
-
-const USDC_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-function getServerApiKey(): string {
-  const key = process.env.CROSSMINT_SERVER_API_KEY;
-  if (!key) throw new Error("CROSSMINT_SERVER_API_KEY is required");
-  return key;
-}
+import { crossmintFetch, USDC_CONTRACT_ADDRESS } from "@/lib/rail2/client";
 
 export async function createOnrampOrder(params: {
   walletAddress: string;
@@ -44,14 +34,10 @@ export async function createOnrampOrder(params: {
     amountUsd: params.amountUsd,
   });
 
-  const response = await fetch(`${CROSSMINT_API_BASE}/orders`, {
+  const response = await crossmintFetch("/orders", {
     method: "POST",
-    headers: {
-      "X-API-KEY": getServerApiKey(),
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(body),
-  });
+  }, "orders");
 
   const data = await response.json();
 

@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const { createPurchaseOrder } = await import("@/lib/card-wallet/purchase");
+      const { createPurchaseOrder } = await import("@/lib/rail2/orders/purchase");
       const ownerEmail = user.email || bot?.ownerEmail || "";
 
       const result = await createPurchaseOrder({

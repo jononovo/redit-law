@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { db } from "@/server/db";
 import { sendUsdcTransfer as privySendUsdc } from "@/lib/stripe-wallet/server";
-import { sendUsdcTransfer as crossmintSendUsdc } from "@/lib/card-wallet/server";
+import { sendUsdcTransfer as crossmintSendUsdc } from "@/lib/rail2/wallet/transfer";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { isAddress } from "viem";
 import {
