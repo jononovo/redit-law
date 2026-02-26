@@ -27,6 +27,12 @@ New features should follow a feature-first folder structure. Each rail lives und
 - These stay in their own `lib/{feature}/` folders and should not contain rail-specific business logic.
 - If a cross-cutting module starts accumulating rail-specific code (like `callbacks.ts` did), extract that logic into the rail's own folder and leave a thin import in the cross-cutting module.
 
+**Guardrails** (`lib/guardrails/`):
+- `defaults.ts` — single source of truth for all guardrail default values (master + all rails). The schema reads from this file, so changing a value here changes the default for new records.
+- `types.ts` — `GuardrailRules`, `TransactionRequest`, `CumulativeSpend`, `GuardrailDecision` interfaces.
+- `evaluate.ts` — pure evaluation function (spending limits, approval thresholds). Domain/merchant lists are currently evaluated here too but will be extracted to `lib/merchant-controls/` in the future.
+- `master.ts` — master-level guardrail evaluation (fetches config, aggregates cross-rail spend, calls `evaluateGuardrails`).
+
 **Storage is modularized** under `server/storage/` with domain-grouped files:
 - `types.ts` — the `IStorage` interface (single source of truth for all method signatures)
 - `index.ts` — composes all domain fragments into the `storage` object and re-exports `IStorage`

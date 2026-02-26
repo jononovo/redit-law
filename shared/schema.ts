@@ -1,5 +1,6 @@
 import { pgTable, serial, text, timestamp, integer, boolean, index, bigint, jsonb } from "drizzle-orm/pg-core";
 import { z } from "zod";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const bots = pgTable("bots", {
   id: serial("id").primaryKey(),
@@ -56,14 +57,14 @@ export const paymentMethods = pgTable("payment_methods", {
 export const spendingPermissions = pgTable("spending_permissions", {
   id: serial("id").primaryKey(),
   botId: text("bot_id").notNull().unique(),
-  approvalMode: text("approval_mode").notNull().default("ask_for_everything"),
-  perTransactionCents: integer("per_transaction_cents").notNull().default(2500),
-  dailyCents: integer("daily_cents").notNull().default(5000),
-  monthlyCents: integer("monthly_cents").notNull().default(50000),
-  askApprovalAboveCents: integer("ask_approval_above_cents").notNull().default(1000),
+  approvalMode: text("approval_mode").notNull().default(GUARDRAIL_DEFAULTS.rail4.approvalMode),
+  perTransactionCents: integer("per_transaction_cents").notNull().default(GUARDRAIL_DEFAULTS.rail4.perTransactionCents),
+  dailyCents: integer("daily_cents").notNull().default(GUARDRAIL_DEFAULTS.rail4.dailyCents),
+  monthlyCents: integer("monthly_cents").notNull().default(GUARDRAIL_DEFAULTS.rail4.monthlyCents),
+  askApprovalAboveCents: integer("ask_approval_above_cents").notNull().default(GUARDRAIL_DEFAULTS.rail4.askApprovalAboveCents),
   approvedCategories: text("approved_categories").array().notNull().default([]),
   blockedCategories: text("blocked_categories").array().notNull().default([]),
-  recurringAllowed: boolean("recurring_allowed").notNull().default(false),
+  recurringAllowed: boolean("recurring_allowed").notNull().default(GUARDRAIL_DEFAULTS.rail4.recurringAllowed),
   notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -443,13 +444,13 @@ export const privyWallets = pgTable("privy_wallets", {
 export const privyGuardrails = pgTable("privy_guardrails", {
   id: serial("id").primaryKey(),
   walletId: integer("wallet_id").notNull(),
-  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(100),
-  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(1000),
-  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(10000),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail1.maxPerTxUsdc),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail1.dailyBudgetUsdc),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail1.monthlyBudgetUsdc),
   requireApprovalAbove: integer("require_approval_above"),
   allowlistedDomains: jsonb("allowlisted_domains").$type<string[]>().default([]),
   blocklistedDomains: jsonb("blocklisted_domains").$type<string[]>().default([]),
-  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(true),
+  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(GUARDRAIL_DEFAULTS.rail1.autoPauseOnZero),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -557,13 +558,13 @@ export const crossmintWallets = pgTable("crossmint_wallets", {
 export const crossmintGuardrails = pgTable("crossmint_guardrails", {
   id: serial("id").primaryKey(),
   walletId: integer("wallet_id").notNull(),
-  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(100),
-  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(500),
-  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(2000),
-  requireApprovalAbove: integer("require_approval_above").notNull().default(0),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail2.maxPerTxUsdc),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail2.dailyBudgetUsdc),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail2.monthlyBudgetUsdc),
+  requireApprovalAbove: integer("require_approval_above").notNull().default(GUARDRAIL_DEFAULTS.rail2.requireApprovalAbove),
   allowlistedMerchants: jsonb("allowlisted_merchants").$type<string[]>().default([]),
   blocklistedMerchants: jsonb("blocklisted_merchants").$type<string[]>().default([]),
-  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(true),
+  autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(GUARDRAIL_DEFAULTS.rail2.autoPauseOnZero),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -707,10 +708,10 @@ export type InsertOwner = typeof owners.$inferInsert;
 export const masterGuardrails = pgTable("master_guardrails", {
   id: serial("id").primaryKey(),
   ownerUid: text("owner_uid").notNull().unique(),
-  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(500),
-  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(2000),
-  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(10000),
-  enabled: boolean("enabled").notNull().default(true),
+  maxPerTxUsdc: integer("max_per_tx_usdc").notNull().default(GUARDRAIL_DEFAULTS.master.maxPerTxUsdc),
+  dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.master.dailyBudgetUsdc),
+  monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.master.monthlyBudgetUsdc),
+  enabled: boolean("enabled").notNull().default(GUARDRAIL_DEFAULTS.master.enabled),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [
