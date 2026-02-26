@@ -48,6 +48,7 @@ export async function GET(
 
   if (conf.expiresAt && new Date() > conf.expiresAt) {
     await storage.updateCheckoutConfirmationStatus(confirmationId, "expired");
+    storage.closeUnifiedApprovalByRailRef("rail4", conf.confirmationId, "expired").catch(() => {});
     return new NextResponse(renderPage("Expired", "This approval request has expired. The purchase was not completed.", null, null), {
       status: 200,
       headers: { "Content-Type": "text/html" },
@@ -96,6 +97,7 @@ export async function POST(
 
   if (conf.expiresAt && new Date() > conf.expiresAt) {
     await storage.updateCheckoutConfirmationStatus(confirmationId, "expired");
+    storage.closeUnifiedApprovalByRailRef("rail4", conf.confirmationId, "expired").catch(() => {});
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
 
@@ -178,6 +180,8 @@ async function handleApproval(conf: any) {
     recordOrganicEvent(card.cardId).catch(() => {});
   }
 
+  storage.closeUnifiedApprovalByRailRef("rail4", conf.confirmationId, "approved").catch(() => {});
+
   return NextResponse.json({
     status: "approved",
     message: "Purchase approved. The bot has been notified with the card details.",
@@ -186,6 +190,8 @@ async function handleApproval(conf: any) {
 
 async function handleDenial(conf: any) {
   await storage.updateCheckoutConfirmationStatus(conf.confirmationId, "denied");
+
+  storage.closeUnifiedApprovalByRailRef("rail4", conf.confirmationId, "denied").catch(() => {});
 
   const bot = await storage.getBotByBotId(conf.botId);
   if (bot) {

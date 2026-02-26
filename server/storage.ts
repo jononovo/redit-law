@@ -266,6 +266,7 @@ export interface IStorage {
   createUnifiedApproval(data: InsertUnifiedApproval): Promise<UnifiedApproval>;
   getUnifiedApprovalById(approvalId: string): Promise<UnifiedApproval | null>;
   decideUnifiedApproval(approvalId: string, decision: string): Promise<UnifiedApproval | null>;
+  closeUnifiedApprovalByRailRef(rail: string, railRef: string, decision: string): Promise<void>;
   getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]>;
 }
 
@@ -1779,9 +1780,20 @@ export const storage: IStorage = {
     const [updated] = await db
       .update(unifiedApprovals)
       .set({ status: decision, decidedAt: new Date() })
-      .where(eq(unifiedApprovals.approvalId, approvalId))
+      .where(and(eq(unifiedApprovals.approvalId, approvalId), eq(unifiedApprovals.status, "pending")))
       .returning();
     return updated || null;
+  },
+
+  async closeUnifiedApprovalByRailRef(rail: string, railRef: string, decision: string): Promise<void> {
+    await db
+      .update(unifiedApprovals)
+      .set({ status: decision, decidedAt: new Date() })
+      .where(and(
+        eq(unifiedApprovals.rail, rail),
+        eq(unifiedApprovals.railRef, railRef),
+        eq(unifiedApprovals.status, "pending"),
+      ));
   },
 
   async getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]> {

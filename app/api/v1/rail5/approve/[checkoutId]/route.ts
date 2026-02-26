@@ -86,11 +86,13 @@ export async function POST(
 
   if (isRail5ApprovalExpired(new Date(checkout.createdAt))) {
     await storage.updateRail5Checkout(checkoutId, { status: "expired" });
+    storage.closeUnifiedApprovalByRailRef("rail5", checkoutId, "expired").catch(() => {});
     return NextResponse.json({ error: "expired" }, { status: 410 });
   }
 
   if (action === "approve") {
     await storage.updateRail5Checkout(checkoutId, { status: "approved", confirmedAt: new Date() });
+    storage.closeUnifiedApprovalByRailRef("rail5", checkoutId, "approved").catch(() => {});
 
     const bot = await storage.getBotByBotId(checkout.botId);
     if (bot) {
@@ -111,6 +113,7 @@ export async function POST(
     });
   } else {
     await storage.updateRail5Checkout(checkoutId, { status: "denied", confirmedAt: new Date() });
+    storage.closeUnifiedApprovalByRailRef("rail5", checkoutId, "denied").catch(() => {});
 
     const bot = await storage.getBotByBotId(checkout.botId);
     if (bot) {

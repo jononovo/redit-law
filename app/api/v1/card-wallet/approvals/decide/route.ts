@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     if (isApprovalExpired(approval)) {
       await storage.crossmintDecideApproval(approval_id, "expired", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
+      storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "expired").catch(() => {});
       if (bot) {
         fireWebhook(bot, "purchase.expired", {
           approval_id,
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
     if (decision === "reject") {
       const updated = await storage.crossmintDecideApproval(approval_id, "rejected", user.uid);
       await storage.crossmintUpdateTransaction(approval.transactionId, { status: "failed" });
+      storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "denied").catch(() => {});
       if (bot) {
         fireWebhook(bot, "purchase.rejected", {
           approval_id,
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     const updatedApproval = await storage.crossmintDecideApproval(approval_id, "approved", user.uid);
+    storage.closeUnifiedApprovalByRailRef("rail2", String(approval_id), "approved").catch(() => {});
 
     const transaction = await storage.crossmintGetTransactionById(approval.transactionId);
     if (!transaction) {

@@ -1,0 +1,23 @@
+This is a solid plan. Here are my thoughts:
+
+What's strong:
+
+The unified approach is the right call. Having one approval flow instead of duplicating email templates and landing pages per rail eliminates a real maintenance headache.
+The callback registry pattern (rail → onApprove/onDeny) is clean. Each rail registers its own side effects, and the core system doesn't need to know the details. That's good separation of concerns.
+Using HMAC-signed URLs for the email links is the right security model for this kind of "click to approve" flow.
+Keeping the existing dashboard approval endpoints untouched is smart — you're layering on the email/landing page capability without breaking what already works.
+A few things worth thinking about:
+
+Race condition between dashboard and email approval. If both the dashboard and the email link can resolve the same approval, you'll want to make sure only one wins. The unified resolveApproval should check status atomically (e.g., a conditional UPDATE where status = 'pending') so two simultaneous approvals don't both fire the callback.
+
+The railRef linking. The plan has the unified approval pointing back to the rail-specific record via railRef. That's fine, but you'll also want the rail-specific record to point back to the unified approval (or at least be queryable by it), so the dashboard approval path can also update the unified record's status. Otherwise they'll drift out of sync.
+
+TTL for Rail 1 at 5 minutes is tight. Email delivery can sometimes take a minute or two. If the owner opens the email 3 minutes in, they have very little time to review and decide. You might want to consider whether 5 minutes is realistic for an email-based flow, or if Rail 1 should get a longer TTL when email approval is involved (vs. dashboard-only).
+
+T003 is doing a lot. The service, the callback registry, and the callback implementations for all four rails are bundled into one task. That's a big surface area. Might be cleaner to split the callback implementations (T003b) from the core service (T003a), especially since each rail's callback touches different parts of the codebase.
+
+Cleanup of old code. The plan mentions replacing sendCheckoutApprovalEmail and sendRail5ApprovalEmail, but doesn't explicitly call out removing the old Rail 4/5 confirmation pages. You'll want a cleanup task to remove the duplicated code once the unified system is verified working.
+
+Overall the architecture is sound. The modular callback pattern will make it easy to add new rails in the future too. Want me to refine anything in the plan before we start building?
+
+

@@ -138,7 +138,8 @@ export async function resolveApproval(
   const updated = await storage.decideUnifiedApproval(approvalId, decision);
 
   if (!updated) {
-    return { success: false, error: "update_failed" };
+    const current = await storage.getUnifiedApprovalById(approvalId);
+    return { success: false, error: current ? `already_${current.status}` : "update_failed" };
   }
 
   const callbacks = railCallbackRegistry.get(updated.rail);
