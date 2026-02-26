@@ -198,7 +198,7 @@ async function runStorageTests() {
   }
 
   // ─── Master Guardrails Storage Tests ─────────────────────────────
-  const MASTER_TEST_OWNER = "test_master_guardrails_owner";
+  const MASTER_TEST_OWNER = `test_master_guardrails_${Date.now()}`;
 
   try {
     const config = await storage.getMasterGuardrails(MASTER_TEST_OWNER);
