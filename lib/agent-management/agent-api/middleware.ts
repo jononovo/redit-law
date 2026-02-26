@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateBot } from "@/lib/bot-auth";
-import { checkBotRateLimit } from "@/lib/rate-limit";
+import { authenticateBot } from "@/lib/agent-management/auth";
+import { checkBotRateLimit } from "@/lib/agent-management/rate-limit";
 import { storage } from "@/server/storage";
 import { retryPendingWebhooksForBot } from "@/lib/webhooks";
 import type { Bot } from "@/shared/schema";

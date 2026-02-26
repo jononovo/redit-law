@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { generateRail4Setup } from "@/lib/rail4/obfuscation";
-import { generateCardId } from "@/lib/crypto";
+import { generateCardId } from "@/lib/agent-management/crypto";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);

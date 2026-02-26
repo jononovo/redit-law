@@ -3,7 +3,7 @@ import { registerBotRequestSchema, bots, wallets, pairingCodes } from "@/shared/
 import { storage } from "@/server/storage";
 import { db } from "@/server/db";
 import { eq, and } from "drizzle-orm";
-import { generateBotId, generateApiKey, generateClaimToken, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/crypto";
+import { generateBotId, generateApiKey, generateClaimToken, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/agent-management/crypto";
 import { sendOwnerRegistrationEmail } from "@/lib/email";
 import { fireWebhook } from "@/lib/webhooks";
 import { notifyWalletActivated } from "@/lib/notifications";

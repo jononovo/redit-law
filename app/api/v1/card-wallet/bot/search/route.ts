@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authenticateBot } from "@/lib/bot-auth";
+import { authenticateBot } from "@/lib/agent-management/auth";
 import { crossmintProductSearchSchema } from "@/shared/schema";
 
 const CROSSMINT_API_BASE = "https://www.crossmint.com/api/unstable/ws/search";

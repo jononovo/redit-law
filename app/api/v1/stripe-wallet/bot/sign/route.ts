@@ -3,7 +3,7 @@ import { storage } from "@/server/storage";
 import { privyBotSignSchema } from "@/shared/schema";
 import { signTypedData } from "@/lib/rail1/wallet/sign";
 import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc, microUsdcToUsd } from "@/lib/rail1/x402";
-import { authenticateBot } from "@/lib/bot-auth";
+import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";

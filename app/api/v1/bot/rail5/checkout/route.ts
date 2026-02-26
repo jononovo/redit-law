@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { rail5CheckoutRequestSchema } from "@/shared/schema";
 import { generateRail5CheckoutId, buildSpawnPayload, getDailySpendCents, getMonthlySpendCents } from "@/lib/rail5";

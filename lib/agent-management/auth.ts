@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { storage } from "@/server/storage";
-import { verifyApiKey } from "@/lib/crypto";
+import { verifyApiKey } from "@/lib/agent-management/crypto";
 import type { Bot } from "@/shared/schema";
 
 export async function authenticateBot(request: NextRequest): Promise<Bot | null> {
