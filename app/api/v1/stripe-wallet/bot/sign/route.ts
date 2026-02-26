@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
 import { privyBotSignSchema } from "@/shared/schema";
-import { signTypedData } from "@/lib/stripe-wallet/server";
-import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc } from "@/lib/stripe-wallet/x402";
+import { signTypedData } from "@/lib/rail1/wallet/sign";
+import { buildTransferWithAuthorizationTypedData, generateNonce, buildXPaymentHeader, usdToMicroUsdc, microUsdcToUsd } from "@/lib/rail1/x402";
 import { authenticateBot } from "@/lib/bot-auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { createApproval } from "@/lib/approvals/service";
-import { microUsdcToUsd } from "@/lib/stripe-wallet/x402";
 
 async function handler(request: NextRequest, botId: string) {
   try {
