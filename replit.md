@@ -12,6 +12,25 @@ CreditClaw is a prepaid spending controls platform designed for AI agents within
 - **No Vite, no standalone React** — everything runs through Next.js
 - All interactive components marked with `"use client"` directive
 
+## Modularization Guidelines
+
+New features should follow a feature-first folder structure. Each rail lives under `lib/rail{N}/` with files grouped by responsibility, not by layer.
+
+**Within a rail**, split code by what it does:
+- `client.ts` — shared API client, auth, fetch wrapper, format helpers (if the rail talks to an external API)
+- `wallet/` or `orders/` — domain operations grouped into subfolders when there are multiple related functions
+- `fulfillment.ts` — business logic that runs when an approval is decided (wallet debits, order creation, webhooks)
+- `approval-callback.ts` — thin glue (~5-10 lines) that registers the rail's fulfillment functions with the unified approval system
+- Keep each file focused on one concern. If a file is doing two unrelated things, split it.
+
+**Outside of rails** (cross-cutting features like guardrails, approvals, webhooks, notifications):
+- These stay in their own `lib/{feature}/` folders and should not contain rail-specific business logic.
+- If a cross-cutting module starts accumulating rail-specific code (like `callbacks.ts` did), extract that logic into the rail's own folder and leave a thin import in the cross-cutting module.
+
+**Storage stays centralized** in `server/storage.ts` to avoid circular dependencies — don't split storage by rail.
+
+**API route paths never change** during modularization — only internal `lib/` imports get rewired. This avoids breaking any external consumers.
+
 ## System Architecture
 
 ### Stack
