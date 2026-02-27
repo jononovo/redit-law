@@ -1,16 +1,17 @@
 "use client";
 
-import { CardVisual } from "@/components/dashboard/card-visual";
-import { Button } from "@/components/ui/button";
-import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2, ArrowRight, Wallet } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Plus, Wallet, ArrowRight, Shield, Eye, Copy, Snowflake, Play } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useCallback } from "react";
+import { CardVisual } from "@/components/wallet/card-visual";
+import { WalletActionBar } from "@/components/wallet/wallet-action-bar";
+import { CARD_COLORS, formatCentsToUsd } from "@/components/wallet/types";
 
 interface CardData {
   id: number;
@@ -30,8 +31,6 @@ interface SpendingLimits {
   monthly_usd: number;
   blocked_categories: string[];
 }
-
-const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["primary", "blue", "purple", "dark"];
 
 function LimitsPopover({ botId, cardId }: { botId: string; cardId: number }) {
   const [limits, setLimits] = useState<SpendingLimits | null>(null);
@@ -120,7 +119,6 @@ export default function CardsPage() {
   const { toast } = useToast();
   const [cards, setCards] = useState<CardData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [freezingIds, setFreezingIds] = useState<Set<number>>(new Set());
 
   const fetchCards = useCallback(async () => {
     try {
@@ -141,7 +139,6 @@ export default function CardsPage() {
 
   async function handleFreeze(card: CardData) {
     const newFrozen = !card.isFrozen;
-    setFreezingIds((s) => new Set(s).add(card.id));
     setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, isFrozen: newFrozen } : c)));
 
     try {
@@ -163,12 +160,6 @@ export default function CardsPage() {
     } catch {
       setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, isFrozen: !newFrozen } : c)));
       toast({ title: "Network error", description: "Please try again.", variant: "destructive" });
-    } finally {
-      setFreezingIds((s) => {
-        const next = new Set(s);
-        next.delete(card.id);
-        return next;
-      });
     }
   }
 
@@ -177,13 +168,8 @@ export default function CardsPage() {
     toast({ title: "Copied", description: "Bot ID copied to clipboard." });
   }
 
-  function formatUsd(cents: number) {
-    return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
-
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
-
       <div className="rounded-2xl bg-blue-50 border border-blue-100 p-5 flex items-center gap-4" data-testid="banner-wallets-redirect">
         <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
           <Wallet className="w-6 h-6 text-blue-600" />
@@ -199,42 +185,38 @@ export default function CardsPage() {
           </Button>
         </Link>
       </div>
-      
+
       <div className="flex justify-between items-center">
-          <p className="text-neutral-500">Manage your virtual and physical cards.</p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="rounded-full bg-primary hover:bg-primary/90 gap-2" data-testid="button-create-card">
-                  <Plus className="w-4 h-4" />
-                  Create New Card
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Issue New Card</DialogTitle>
-                <DialogDescription>
-                  Create a new virtual card for an agent or specific purpose.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Card Name
-                  </Label>
-                  <Input id="name" placeholder="e.g. AWS Billing" className="col-span-3" data-testid="input-card-name" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="limit" className="text-right">
-                    Limit ($)
-                  </Label>
-                  <Input id="limit" placeholder="1000" className="col-span-3" data-testid="input-card-limit" />
-                </div>
+        <p className="text-neutral-500">Manage your virtual and physical cards.</p>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button className="rounded-full bg-primary hover:bg-primary/90 gap-2" data-testid="button-create-card">
+              <Plus className="w-4 h-4" />
+              Create New Card
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Issue New Card</DialogTitle>
+              <DialogDescription>
+                Create a new virtual card for an agent or specific purpose.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">Card Name</Label>
+                <Input id="name" placeholder="e.g. AWS Billing" className="col-span-3" data-testid="input-card-name" />
               </div>
-              <div className="flex justify-end">
-                <Button type="submit" data-testid="button-submit-card">Create Card</Button>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="limit" className="text-right">Limit ($)</Label>
+                <Input id="limit" placeholder="1000" className="col-span-3" data-testid="input-card-limit" />
               </div>
-            </DialogContent>
-          </Dialog>
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" data-testid="button-submit-card">Create Card</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (
@@ -252,49 +234,48 @@ export default function CardsPage() {
             <div className="flex flex-col gap-4" key={card.id} data-testid={`card-wallet-${card.id}`}>
               <CardVisual
                 color={CARD_COLORS[index % CARD_COLORS.length]}
-                balance={formatUsd(card.balanceCents)}
+                balance={formatCentsToUsd(card.balanceCents)}
+                balanceLabel="Current Balance"
                 last4={card.botId.slice(-4)}
                 holder={card.botName.toUpperCase()}
                 frozen={card.isFrozen}
               />
-              <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
-                <LimitsPopover botId={card.botId} cardId={card.id} />
-                <div className="w-px bg-neutral-100 my-1" />
-                <Button
-                  variant="ghost"
-                  className={`flex-1 text-xs gap-2 ${card.isFrozen ? "text-blue-600" : "text-neutral-600"}`}
-                  onClick={() => handleFreeze(card)}
-                  disabled={freezingIds.has(card.id)}
-                  data-testid={`button-freeze-${card.id}`}
-                >
-                  {card.isFrozen ? (
-                    <><Play className="w-4 h-4" /> Unfreeze</>
-                  ) : (
-                    <><Snowflake className="w-4 h-4" /> Freeze</>
-                  )}
-                </Button>
-                <div className="w-px bg-neutral-100 my-1" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600" data-testid={`button-more-${card.id}`}>
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => window.location.href = "/app/transactions"} data-testid={`menu-transactions-${card.id}`}>
-                      <Eye className="w-4 h-4 mr-2" /> View Transactions
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleCopyBotId(card.botId)} data-testid={`menu-copy-botid-${card.id}`}>
-                      <Copy className="w-4 h-4 mr-2" /> Copy Bot ID
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <WalletActionBar
+                actions={[
+                  {
+                    icon: Shield,
+                    label: "Limits",
+                    onClick: () => {},
+                    "data-testid": `button-limits-${card.id}`,
+                  },
+                  {
+                    icon: card.isFrozen ? Play : Snowflake,
+                    label: card.isFrozen ? "Unfreeze" : "Freeze",
+                    onClick: () => handleFreeze(card),
+                    className: `flex-1 text-xs gap-2 ${card.isFrozen ? "text-blue-600" : "text-neutral-600"} cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors`,
+                    "data-testid": `button-freeze-${card.id}`,
+                  },
+                ]}
+                menuItems={[
+                  {
+                    icon: Eye,
+                    label: "View Transactions",
+                    onClick: () => window.location.href = "/app/transactions",
+                    "data-testid": `menu-transactions-${card.id}`,
+                  },
+                  {
+                    icon: Copy,
+                    label: "Copy Bot ID",
+                    onClick: () => handleCopyBotId(card.botId),
+                    "data-testid": `menu-copy-botid-${card.id}`,
+                  },
+                ]}
+                menuTestId={`button-more-${card.id}`}
+              />
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 }

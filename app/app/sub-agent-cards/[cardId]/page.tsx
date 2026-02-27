@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, CreditCard, Shield, Bot, Snowflake, Play, Clock, CheckCircle2, XCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CardVisual } from "@/components/dashboard/card-visual";
+import { CardVisual } from "@/components/wallet/card-visual";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
@@ -148,13 +148,15 @@ export default function Rail5CardDetailPage() {
       <CardVisual
         color="purple"
         balance={formatLimit(card.spending_limit_cents)}
+        balanceLabel="Spending Limit"
         last4={card.card_last4}
         holder={card.card_name.toUpperCase()}
         frozen={card.status === "frozen"}
         expiry="••/••"
-        allowanceLabel={`${BRAND_LABELS[card.card_brand] || card.card_brand} | Daily: ${formatLimit(card.daily_limit_cents)}`}
-        resetsLabel={`Monthly: ${formatLimit(card.monthly_limit_cents)}`}
+        line1={`Daily: ${formatLimit(card.daily_limit_cents)}`}
+        line2={`Monthly: ${formatLimit(card.monthly_limit_cents)}`}
         status={card.status}
+        brand={card.card_brand}
       />
 
       <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-4">
