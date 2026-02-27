@@ -5,6 +5,7 @@ export { WalletActionBar } from "./wallet-action-bar";
 export type { ActionItem, BadgeItem, MenuItem } from "./wallet-action-bar";
 export { CryptoActionBar } from "./crypto-action-bar";
 export type { CryptoActionBarProps } from "./crypto-action-bar";
+export { CryptoWalletItem } from "./crypto-wallet-item";
 export { CreditCardItem } from "./credit-card-item";
 export { CreditCardListPage } from "./credit-card-list-page";
 export type { CreditCardListPageConfig } from "./credit-card-list-page";

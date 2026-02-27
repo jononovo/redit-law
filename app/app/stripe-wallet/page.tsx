@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle, Send } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Copy, CheckCircle2, Clock, XCircle, DollarSign, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +16,11 @@ import type { Rail1WalletInfo, Rail1ApprovalInfo, Rail1TransactionInfo } from "@
 import { useWalletActions } from "@/components/wallet/hooks/use-wallet-actions";
 import { useBotLinking } from "@/components/wallet/hooks/use-bot-linking";
 import { useTransfer } from "@/components/wallet/hooks/use-transfer";
+import { CryptoWalletItem } from "@/components/wallet/crypto-wallet-item";
 import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
 import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
 import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
-import { CryptoActionBar } from "@/components/wallet/crypto-action-bar";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
 
 export default function StripeWalletPage() {
@@ -405,137 +404,24 @@ export default function StripeWalletPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {wallets.map((wallet) => (
-                <div className="flex flex-col gap-4 min-w-[320px]" key={wallet.id} data-testid={`card-stripe-wallet-${wallet.id}`}>
-                  <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-6 -translate-x-6" />
-
-                    <div className="flex items-center justify-between mb-5 relative z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
-                          <Wallet className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          {wallet.bot_id ? (
-                            <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
-                          ) : (
-                            <button
-                              onClick={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
-                              className="font-semibold text-emerald-300 hover:text-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors"
-                              data-testid={`button-add-agent-${wallet.id}`}
-                            >
-                              <Plus className="w-4 h-4" />
-                              Add Agent
-                            </button>
-                          )}
-                          <button
-                            onClick={() => walletActions.copyAddress(wallet.address)}
-                            className="text-xs text-white/60 hover:text-white/90 flex items-center gap-1 cursor-pointer transition-colors"
-                            data-testid={`button-copy-address-${wallet.id}`}
-                          >
-                            {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          wallet.status === "active" ? "bg-emerald-400/20 text-emerald-200 border border-emerald-400/30" :
-                          wallet.status === "paused" ? "bg-blue-400/20 text-blue-200 border border-blue-400/30" :
-                          "bg-white/10 text-white/70 border border-white/20"
-                        }`} data-testid={`badge-status-${wallet.id}`}>
-                          {wallet.status}
-                        </span>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/15 transition-colors cursor-pointer"
-                              data-testid={`button-wallet-menu-${wallet.id}`}
-                            >
-                              <MoreVertical className="w-4 h-4 text-white/70" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {wallet.bot_id && (
-                              <DropdownMenuItem
-                                onClick={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
-                                data-testid={`menu-unlink-bot-${wallet.id}`}
-                              >
-                                <Unlink className="w-4 h-4 mr-2" />
-                                Unlink Bot
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-
-                    <div className="mb-5 relative z-10">
-                      <p className="text-4xl font-bold text-white tracking-tight" data-testid={`text-balance-${wallet.id}`}>
-                        {wallet.balance_display}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-white/50 font-medium tracking-wide uppercase">USDC on Base</p>
-                        <button
-                          onClick={() => handleSyncBalance(wallet.id)}
-                          disabled={walletActions.syncingId === wallet.id}
-                          className="text-white/40 hover:text-white/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                          title="Sync balance from chain"
-                          data-testid={`button-sync-balance-${wallet.id}`}
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${walletActions.syncingId === wallet.id ? "animate-spin" : ""}`} />
-                        </button>
-                        <a
-                          href={`https://basescan.org/address/${wallet.address}#tokentxns`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
-                          title="View on Basescan"
-                          data-testid={`link-basescan-${wallet.id}`}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                        {wallet.status === "active" && (
-                          <button
-                            onClick={() => transfer.openTransferDialog(wallet)}
-                            className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
-                            title="Transfer USDC"
-                            data-testid={`button-transfer-${wallet.id}`}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {wallet.guardrails && (
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-xs text-white/70 space-y-1.5 relative z-10 border border-white/10">
-                        <div className="flex justify-between">
-                          <span>Per-tx limit</span>
-                          <span className="font-medium text-white/90">${wallet.guardrails.max_per_tx_usdc}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Daily budget</span>
-                          <span className="font-medium text-white/90">${wallet.guardrails.daily_budget_usdc}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Monthly budget</span>
-                          <span className="font-medium text-white/90">${wallet.guardrails.monthly_budget_usdc}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <CryptoActionBar
-                    walletId={wallet.id}
-                    status={wallet.status}
-                    onFund={() => handleOpenOnramp(wallet)}
-                    onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
-                    onGuardrails={() => openGuardrailsDialog(wallet)}
-                    onActivity={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
-                    testIdPrefix="stripe"
-                  />
-                </div>
+                <CryptoWalletItem
+                  key={wallet.id}
+                  wallet={wallet}
+                  color="blue"
+                  onFund={() => handleOpenOnramp(wallet)}
+                  onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
+                  onGuardrails={() => openGuardrailsDialog(wallet)}
+                  onActivity={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
+                  onAddAgent={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
+                  onUnlinkBot={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
+                  onCopyAddress={() => walletActions.copyAddress(wallet.address)}
+                  onSyncBalance={() => handleSyncBalance(wallet.id)}
+                  onTransfer={() => transfer.openTransferDialog(wallet)}
+                  syncingBalance={walletActions.syncingId === wallet.id}
+                  fundLabel="Fund with Stripe"
+                  testIdPrefix="stripe"
+                  basescanUrl={`https://basescan.org/address/${wallet.address}#tokentxns`}
+                />
               ))}
             </div>
           )}

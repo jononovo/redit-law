@@ -6,6 +6,7 @@ interface CardVisualProps {
   last4?: string;
   expiry?: string;
   holder?: string;
+  holderLabel?: string;
   balance?: string;
   balanceLabel?: string;
   frozen?: boolean;
@@ -14,6 +15,8 @@ interface CardVisualProps {
   line2?: string;
   status?: string;
   brand?: string;
+  bottomRightLabel?: string;
+  bottomRightValue?: string;
 }
 
 const BRAND_DISPLAY: Record<string, string> = {
@@ -28,6 +31,7 @@ export function CardVisual({
   last4 = "••••",
   expiry = "••/••",
   holder = "OPENCLAW AGENT 01",
+  holderLabel = "Card Name",
   balance = "$0.00",
   balanceLabel = "Current Balance",
   frozen = false,
@@ -36,6 +40,8 @@ export function CardVisual({
   line2,
   status,
   brand,
+  bottomRightLabel,
+  bottomRightValue,
 }: CardVisualProps) {
 
   const gradients = {
@@ -50,6 +56,7 @@ export function CardVisual({
     pending_setup: "bg-amber-500/20 text-amber-100 border-amber-300/30",
     awaiting_bot: "bg-violet-500/20 text-violet-100 border-violet-300/30",
     frozen: "bg-blue-500/20 text-blue-100 border-blue-300/30",
+    paused: "bg-blue-500/20 text-blue-100 border-blue-300/30",
   };
 
   const statusLabels: Record<string, string> = {
@@ -57,12 +64,15 @@ export function CardVisual({
     pending_setup: "Pending Setup",
     awaiting_bot: "Awaiting Bot",
     frozen: "Frozen",
+    paused: "Paused",
   };
 
   const displayStatus = frozen ? "frozen" : status;
   const statusStyle = displayStatus ? statusColors[displayStatus] || "bg-white/20 text-white/90 border-white/30" : null;
   const statusLabel = displayStatus ? (statusLabels[displayStatus] || displayStatus) : null;
   const brandDisplay = brand ? (BRAND_DISPLAY[brand.toLowerCase()] || brand.toUpperCase()) : null;
+
+  const hasBottomRight = expiry || brandDisplay || bottomRightLabel;
 
   return (
     <div className={cn(
@@ -125,18 +135,29 @@ export function CardVisual({
               <span>{last4}</span>
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Name</span>
+              <span className="text-[10px] uppercase opacity-70 tracking-wider">{holderLabel}</span>
               <span className="text-sm font-medium uppercase tracking-wide">{holder}</span>
             </div>
           </div>
 
-          <div className="flex flex-col items-end">
-            <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
-            <span className="text-sm font-mono">{expiry}</span>
-            {brandDisplay && (
-              <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">{brandDisplay}</div>
-            )}
-          </div>
+          {hasBottomRight && (
+            <div className="flex flex-col items-end">
+              {bottomRightLabel ? (
+                <>
+                  <span className="text-[10px] uppercase opacity-70 tracking-wider">{bottomRightLabel}</span>
+                  <span className="text-sm font-mono">{bottomRightValue}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
+                  <span className="text-sm font-mono">{expiry}</span>
+                </>
+              )}
+              {brandDisplay && (
+                <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">{brandDisplay}</div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -166,12 +166,13 @@ All four rails route approval emails through a single system under `lib/approval
 ### Shared Wallet/Card UI (`components/wallet/`)
 All wallet and card page UI is consolidated into `components/wallet/` to eliminate duplication across Rails 1, 2, 4, and 5. Setup wizards are NOT in this folder — they remain in their original locations.
 - **`types.ts`** — Unified types including `NormalizedCard` (common shape both rails map into), plus `normalizeRail4Card()` and `normalizeRail5Card()` converters.
-- **`card-visual.tsx`** — Unified card rendering component. Same layout for all rails: card number (masked `····` if unknown), expiry, optional brand display. Accepts `line1`/`line2` for contextual info (allowance window for Rail 4, daily/monthly limits for Rail 5).
+- **`card-visual.tsx`** — Unified card rendering component for ALL rails (credit cards + crypto wallets). Same layout: card number (masked `····` if unknown), balance, status badge, optional brand. Accepts `holderLabel` (default "Card Name", "Bot" for crypto), `bottomRightLabel`/`bottomRightValue` (for chain info), `line1`/`line2` for contextual info.
 - **`credit-card-item.tsx`** — **Unified card+action bar component** for all credit card rails. Renders `CardVisual` + identical action bar (Manage, Freeze, Add Agent/Bot badge, More menu) from a `NormalizedCard`.
 - **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object.
 - **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).
 - **`wallet-action-bar.tsx`** — Base action bar (accepts action items array, badge, menu); used by crypto pages and `CreditCardItem`.
-- **`crypto-action-bar.tsx`** — Crypto wallet variant (Fund, Freeze, Guardrails, Activity) for Rails 1 & 2.
+- **`crypto-wallet-item.tsx`** — **Unified wallet+action bar component** for crypto rails. Wraps `CardVisual` + `CryptoActionBar` into one unit (same pattern as `CreditCardItem` for credit cards).
+- **`crypto-action-bar.tsx`** — Crypto wallet action bar (Fund, Pause/Activate, Guardrails, Activity, Add Agent/Bot badge, More menu with Copy Address, Sync Balance, Basescan, Transfer, Unlink).
 - **`hooks/use-wallet-actions.ts`** — Shared freeze, sync balance, copy address handlers (accepts rail-specific config).
 - **`hooks/use-bot-linking.ts`** — Shared link/unlink bot state and handlers.
 - **`hooks/use-transfer.ts`** — Shared transfer dialog state and handler (Rails 1 & 2).
