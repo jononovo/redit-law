@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, CreditCard, Shield, Bot, Snowflake, Play, Clock, CheckCircle2, XCircle, AlertTriangle, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CardVisual } from "@/components/dashboard/card-visual";
+import { CardVisual } from "@/components/wallet/card-visual";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";

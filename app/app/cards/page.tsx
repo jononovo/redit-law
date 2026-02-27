@@ -1,11 +1,12 @@
 "use client";
 
-import { CardVisual } from "@/components/dashboard/card-visual";
+import { CardVisual } from "@/components/wallet/card-visual";
+import { WalletActionBar } from "@/components/wallet/wallet-action-bar";
+import { CARD_COLORS, formatCentsToUsd } from "@/components/wallet/types";
 import { Button } from "@/components/ui/button";
-import { Plus, Shield, MoreHorizontal, Snowflake, Play, Eye, Copy, Loader2, ArrowRight, Wallet } from "lucide-react";
+import { Plus, Shield, Snowflake, Play, Eye, Copy, Loader2, ArrowRight, Wallet } from "lucide-react";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,8 +31,6 @@ interface SpendingLimits {
   monthly_usd: number;
   blocked_categories: string[];
 }
-
-const CARD_COLORS: ("primary" | "blue" | "purple" | "dark")[] = ["primary", "blue", "purple", "dark"];
 
 function LimitsPopover({ botId, cardId }: { botId: string; cardId: number }) {
   const [limits, setLimits] = useState<SpendingLimits | null>(null);
@@ -177,9 +176,7 @@ export default function CardsPage() {
     toast({ title: "Copied", description: "Bot ID copied to clipboard." });
   }
 
-  function formatUsd(cents: number) {
-    return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }
+  const formatUsd = formatCentsToUsd;
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -257,39 +254,38 @@ export default function CardsPage() {
                 holder={card.botName.toUpperCase()}
                 frozen={card.isFrozen}
               />
-              <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
-                <LimitsPopover botId={card.botId} cardId={card.id} />
-                <div className="w-px bg-neutral-100 my-1" />
-                <Button
-                  variant="ghost"
-                  className={`flex-1 text-xs gap-2 ${card.isFrozen ? "text-blue-600" : "text-neutral-600"}`}
-                  onClick={() => handleFreeze(card)}
-                  disabled={freezingIds.has(card.id)}
-                  data-testid={`button-freeze-${card.id}`}
-                >
-                  {card.isFrozen ? (
-                    <><Play className="w-4 h-4" /> Unfreeze</>
-                  ) : (
-                    <><Snowflake className="w-4 h-4" /> Freeze</>
-                  )}
-                </Button>
-                <div className="w-px bg-neutral-100 my-1" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex-1 text-xs gap-2 text-neutral-600" data-testid={`button-more-${card.id}`}>
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => window.location.href = "/app/transactions"} data-testid={`menu-transactions-${card.id}`}>
-                      <Eye className="w-4 h-4 mr-2" /> View Transactions
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleCopyBotId(card.botId)} data-testid={`menu-copy-botid-${card.id}`}>
-                      <Copy className="w-4 h-4 mr-2" /> Copy Bot ID
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <WalletActionBar
+                actions={[
+                  {
+                    icon: Shield,
+                    label: "Limits",
+                    onClick: () => {},
+                    "data-testid": `button-limits-${card.id}`,
+                  },
+                  {
+                    icon: card.isFrozen ? Play : Snowflake,
+                    label: card.isFrozen ? "Unfreeze" : "Freeze",
+                    onClick: () => handleFreeze(card),
+                    className: `flex-1 text-xs gap-2 ${card.isFrozen ? "text-blue-600" : "text-neutral-600"} cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors`,
+                    "data-testid": `button-freeze-${card.id}`,
+                  },
+                ]}
+                menuItems={[
+                  {
+                    icon: Eye,
+                    label: "View Transactions",
+                    onClick: () => window.location.href = "/app/transactions",
+                    "data-testid": `menu-transactions-${card.id}`,
+                  },
+                  {
+                    icon: Copy,
+                    label: "Copy Bot ID",
+                    onClick: () => handleCopyBotId(card.botId),
+                    "data-testid": `menu-copy-botid-${card.id}`,
+                  },
+                ]}
+                menuTestId={`button-more-${card.id}`}
+              />
             </div>
           ))}
         </div>

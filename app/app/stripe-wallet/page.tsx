@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, Settings2, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle, Send } from "lucide-react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, MoreVertical, Unlink, Bot, RefreshCw, ArrowLeftRight, ExternalLink, AlertTriangle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -13,69 +13,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
-
-interface WalletInfo {
-  id: number;
-  bot_id: string;
-  bot_name: string;
-  address: string;
-  balance_usdc: number;
-  balance_display: string;
-  status: string;
-  guardrails: {
-    max_per_tx_usdc: number;
-    daily_budget_usdc: number;
-    monthly_budget_usdc: number;
-    require_approval_above: number | null;
-  } | null;
-  created_at: string;
-}
-
-interface TransactionInfo {
-  id: number;
-  type: string;
-  amount_usdc: number;
-  amount_display: string;
-  balance_after: number | null;
-  balance_after_display: string | null;
-  recipient_address: string | null;
-  resource_url: string | null;
-  tx_hash: string | null;
-  status: string;
-  created_at: string;
-  metadata?: {
-    direction?: "inbound" | "outbound";
-    counterparty_address?: string;
-    transfer_tier?: string;
-    [key: string]: any;
-  };
-}
-
-interface ApprovalInfo {
-  id: number;
-  wallet_id: number;
-  amount_usdc: number;
-  amount_display: string;
-  resource_url: string;
-  status: string;
-  expires_at: string;
-  created_at: string;
-}
-
-interface BotInfo {
-  bot_id: string;
-  bot_name: string;
-}
+import type { Rail1WalletInfo, Rail1ApprovalInfo, Rail1TransactionInfo } from "@/components/wallet/types";
+import { useWalletActions } from "@/components/wallet/hooks/use-wallet-actions";
+import { useBotLinking } from "@/components/wallet/hooks/use-bot-linking";
+import { useTransfer } from "@/components/wallet/hooks/use-transfer";
+import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
+import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
+import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
+import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
+import { CryptoActionBar } from "@/components/wallet/crypto-action-bar";
+import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
 
 export default function StripeWalletPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [wallets, setWallets] = useState<WalletInfo[]>([]);
-  const [transactions, setTransactions] = useState<TransactionInfo[]>([]);
-  const [approvals, setApprovals] = useState<ApprovalInfo[]>([]);
-  const [bots, setBots] = useState<BotInfo[]>([]);
+  const [wallets, setWallets] = useState<Rail1WalletInfo[]>([]);
+  const [transactions, setTransactions] = useState<Rail1TransactionInfo[]>([]);
+  const [approvals, setApprovals] = useState<Rail1ApprovalInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedWallet, setSelectedWallet] = useState<WalletInfo | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<Rail1WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [guardrailsDialogOpen, setGuardrailsDialogOpen] = useState(false);
   const [selectedBotId, setSelectedBotId] = useState("");
@@ -83,38 +39,19 @@ export default function StripeWalletPage() {
   const [activeTab, setActiveTab] = useState("wallets");
 
   const [onrampDialogOpen, setOnrampDialogOpen] = useState(false);
-  const [onrampWallet, setOnrampWallet] = useState<WalletInfo | null>(null);
+  const [onrampWallet, setOnrampWallet] = useState<Rail1WalletInfo | null>(null);
   const [onrampLoading, setOnrampLoading] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const onrampMountRef = useRef<HTMLDivElement>(null);
   const onrampSessionRef = useRef<any>(null);
 
-  const [guardrailForm, setGuardrailForm] = useState({
+  const [guardrailForm, setGuardrailForm] = useState<CryptoGuardrailForm>({
     max_per_tx_usdc: 100,
     daily_budget_usdc: 1000,
     monthly_budget_usdc: 10000,
-    require_approval_above: null as number | null,
+    require_approval_above: null,
   });
   const [savingGuardrails, setSavingGuardrails] = useState(false);
-
-  const [unlinkTarget, setUnlinkTarget] = useState<WalletInfo | null>(null);
-  const [unlinkLoading, setUnlinkLoading] = useState(false);
-
-  const [linkTarget, setLinkTarget] = useState<WalletInfo | null>(null);
-  const [linkBotId, setLinkBotId] = useState("");
-  const [linkLoading, setLinkLoading] = useState(false);
-
-  const [syncingWalletId, setSyncingWalletId] = useState<number | null>(null);
-  const [syncCooldowns, setSyncCooldowns] = useState<Record<number, number>>({});
-
-  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-  const [transferSourceWallet, setTransferSourceWallet] = useState<WalletInfo | null>(null);
-  const [transferAmount, setTransferAmount] = useState("");
-  const [transferDestType, setTransferDestType] = useState<"own" | "external">("own");
-  const [transferDestWalletKey, setTransferDestWalletKey] = useState("");
-  const [transferDestAddress, setTransferDestAddress] = useState("");
-  const [transferSubmitting, setTransferSubmitting] = useState(false);
-  const [allWalletsForTransfer, setAllWalletsForTransfer] = useState<Array<{ id: number; rail: "privy" | "crossmint"; address: string; label: string }>>([]);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -131,16 +68,6 @@ export default function StripeWalletPage() {
     }
   }, [selectedWallet]);
 
-  const fetchBots = useCallback(async () => {
-    try {
-      const res = await authFetch("/api/v1/bots/mine");
-      if (res.ok) {
-        const data = await res.json();
-        setBots(data.bots || []);
-      }
-    } catch {}
-  }, []);
-
   const fetchTransactions = useCallback(async (walletId: number) => {
     try {
       const res = await authFetch(`/api/v1/stripe-wallet/transactions?wallet_id=${walletId}`);
@@ -150,53 +77,6 @@ export default function StripeWalletPage() {
       }
     } catch {}
   }, []);
-
-  const syncWalletBalance = useCallback(async (walletId: number) => {
-    const cooldownEnd = syncCooldowns[walletId];
-    if (cooldownEnd && Date.now() < cooldownEnd) {
-      toast({ title: "Please wait 30 seconds between balance checks." });
-      return;
-    }
-
-    setSyncingWalletId(walletId);
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/balance/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: walletId }),
-      });
-
-      if (res.status === 429) {
-        const data = await res.json();
-        const retryAfter = data.retry_after || 30;
-        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + retryAfter * 1000 }));
-        toast({ title: "Please wait 30 seconds between balance checks." });
-        return;
-      }
-
-      if (res.ok) {
-        const data = await res.json();
-        setSyncCooldowns(prev => ({ ...prev, [walletId]: Date.now() + 30 * 1000 }));
-        setWallets(prev => prev.map(w =>
-          w.id === walletId ? { ...w, balance_usdc: data.balance_usdc, balance_display: data.balance_display } : w
-        ));
-        if (data.changed) {
-          toast({ title: `Balance updated to ${data.balance_display}` });
-          if (selectedWallet?.id === walletId) {
-            fetchTransactions(walletId);
-          }
-        } else {
-          toast({ title: "Balance confirmed — up to date" });
-        }
-      } else {
-        toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Could not reach the blockchain. You can try again in 30 seconds.", variant: "destructive" });
-    } finally {
-      setSyncingWalletId(null);
-    }
-  }, [syncCooldowns, toast, selectedWallet, fetchTransactions]);
 
   const fetchApprovals = useCallback(async () => {
     try {
@@ -208,15 +88,43 @@ export default function StripeWalletPage() {
     } catch {}
   }, []);
 
+  const walletActions = useWalletActions({
+    railPrefix: "stripe-wallet",
+    entityType: "wallet",
+    entityIdField: "wallet_id",
+    onUpdate: fetchWallets,
+    onTransactionsRefresh: (entityId) => {
+      if (selectedWallet?.id === entityId) {
+        fetchTransactions(entityId as number);
+      }
+    },
+  });
+
+  const botLinking = useBotLinking({
+    railPrefix: "stripe-wallet",
+    entityType: "wallet",
+    onUpdate: fetchWallets,
+  });
+
+  const transfer = useTransfer({
+    sourceRail: "privy",
+    onUpdate: fetchWallets,
+    onTransactionsRefresh: () => {
+      if (selectedWallet) {
+        fetchTransactions(selectedWallet.id);
+      }
+    },
+  });
+
   useEffect(() => {
     if (user) {
       fetchWallets();
-      fetchBots();
+      botLinking.fetchBots();
       fetchApprovals();
     } else {
       setLoading(false);
     }
-  }, [user, fetchWallets, fetchBots, fetchApprovals]);
+  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals]);
 
   useEffect(() => {
     if (selectedWallet) {
@@ -246,23 +154,6 @@ export default function StripeWalletPage() {
       toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
     } finally {
       setCreating(false);
-    }
-  }
-
-  async function handleFreeze(wallet: WalletInfo) {
-    const freeze = wallet.status === "active";
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/freeze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: wallet.id, frozen: freeze }),
-      });
-      if (res.ok) {
-        toast({ title: freeze ? "Wallet paused" : "Wallet activated" });
-        fetchWallets();
-      }
-    } catch {
-      toast({ title: "Error", variant: "destructive" });
     }
   }
 
@@ -306,174 +197,36 @@ export default function StripeWalletPage() {
     }
   }
 
-  async function handleUnlinkBot() {
-    if (!unlinkTarget) return;
-    setUnlinkLoading(true);
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/unlink", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: unlinkTarget.id }),
+  function openGuardrailsDialog(wallet: Rail1WalletInfo) {
+    setSelectedWallet(wallet);
+    if (wallet.guardrails) {
+      setGuardrailForm({
+        max_per_tx_usdc: wallet.guardrails.max_per_tx_usdc,
+        daily_budget_usdc: wallet.guardrails.daily_budget_usdc,
+        monthly_budget_usdc: wallet.guardrails.monthly_budget_usdc,
+        require_approval_above: wallet.guardrails.require_approval_above,
       });
-      if (res.ok) {
-        toast({ title: "Bot unlinked", description: `Bot has been unlinked from this wallet.` });
-        setUnlinkTarget(null);
-        fetchWallets();
-      } else {
-        const err = await res.json();
-        toast({ title: "Error", description: err.error || "Failed to unlink bot", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-    } finally {
-      setUnlinkLoading(false);
+    }
+    setGuardrailsDialogOpen(true);
+  }
+
+  async function handleSyncBalance(walletId: number) {
+    const result = await walletActions.syncBalance(walletId);
+    if (result) {
+      setWallets(prev => prev.map(w =>
+        w.id === walletId ? { ...w, balance_usdc: result.balance_usdc, balance_display: result.balance_display } : w
+      ));
     }
   }
 
-  async function handleLinkBot() {
-    if (!linkTarget || !linkBotId) return;
-    setLinkLoading(true);
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: linkTarget.id, bot_id: linkBotId }),
-      });
-      if (res.ok) {
-        toast({ title: "Bot linked", description: "Bot has been linked to this wallet." });
-        setLinkTarget(null);
-        setLinkBotId("");
-        fetchWallets();
-      } else {
-        const err = await res.json();
-        toast({ title: "Error", description: err.error || "Failed to link bot", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-    } finally {
-      setLinkLoading(false);
+  const statusIcon = (status: string) => {
+    switch (status) {
+      case "confirmed": return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
+      case "pending": return <Clock className="w-4 h-4 text-amber-500" />;
+      case "failed": return <XCircle className="w-4 h-4 text-red-500" />;
+      default: return <Clock className="w-4 h-4 text-neutral-400" />;
     }
-  }
-
-  async function openTransferDialog(wallet: WalletInfo) {
-    setTransferSourceWallet(wallet);
-    setTransferAmount("");
-    setTransferDestType("own");
-    setTransferDestWalletKey("");
-    setTransferDestAddress("");
-    setTransferDialogOpen(true);
-
-    try {
-      const [stripeRes, cardRes] = await Promise.all([
-        authFetch("/api/v1/stripe-wallet/list"),
-        authFetch("/api/v1/card-wallet/list"),
-      ]);
-
-      const combined: Array<{ id: number; rail: "privy" | "crossmint"; address: string; label: string }> = [];
-
-      if (stripeRes.ok) {
-        const data = await stripeRes.json();
-        (data.wallets || []).forEach((w: any) => {
-          if (!(w.id === wallet.id && "privy" === "privy")) {
-            combined.push({
-              id: w.id,
-              rail: "privy" as const,
-              address: w.address,
-              label: `${w.bot_name || "Stripe Wallet"} (${w.address.slice(0, 6)}...${w.address.slice(-4)}) — Stripe/Privy`,
-            });
-          }
-        });
-      }
-
-      if (cardRes.ok) {
-        const data = await cardRes.json();
-        (data.wallets || []).forEach((w: any) => {
-          combined.push({
-            id: w.id,
-            rail: "crossmint" as const,
-            address: w.address,
-            label: `${w.bot_name || "Card Wallet"} (${w.address.slice(0, 6)}...${w.address.slice(-4)}) — Card/Crossmint`,
-          });
-        });
-      }
-
-      const filtered = combined.filter(
-        (w) => !(w.id === wallet.id && w.rail === "privy")
-      );
-      setAllWalletsForTransfer(filtered);
-    } catch {
-      setAllWalletsForTransfer([]);
-    }
-  }
-
-  async function handleTransfer() {
-    if (!transferSourceWallet) return;
-
-    const amountFloat = parseFloat(transferAmount);
-    if (isNaN(amountFloat) || amountFloat <= 0) {
-      toast({ title: "Invalid amount", variant: "destructive" });
-      return;
-    }
-
-    const amountMicroUsdc = Math.round(amountFloat * 1_000_000);
-
-    let destination: { wallet_id?: number; rail?: "privy" | "crossmint"; address?: string } = {};
-
-    if (transferDestType === "own") {
-      if (!transferDestWalletKey) {
-        toast({ title: "Select a destination wallet", variant: "destructive" });
-        return;
-      }
-      const [rail, idStr] = transferDestWalletKey.split(":");
-      destination = { wallet_id: Number(idStr), rail: rail as "privy" | "crossmint" };
-    } else {
-      if (!transferDestAddress || !/^0x[a-fA-F0-9]{40}$/.test(transferDestAddress)) {
-        toast({ title: "Enter a valid 0x address", variant: "destructive" });
-        return;
-      }
-      destination = { address: transferDestAddress };
-    }
-
-    setTransferSubmitting(true);
-    try {
-      const res = await authFetch("/api/v1/wallet/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source_wallet_id: transferSourceWallet.id,
-          source_rail: "privy",
-          amount_usdc: amountMicroUsdc,
-          destination,
-        }),
-      });
-
-      if (res.ok) {
-        toast({ title: "Transfer complete" });
-        setTransferDialogOpen(false);
-        setTransferSourceWallet(null);
-        fetchWallets();
-        if (selectedWallet) {
-          fetchTransactions(selectedWallet.id);
-        }
-      } else {
-        const err = await res.json();
-        if (err.error === "guardrail_violation" || err.error === "approval_required") {
-          toast({ title: err.error === "guardrail_violation" ? "Guardrail Violation" : "Approval Required", description: err.reason, variant: "destructive" });
-        } else {
-          toast({ title: "Transfer failed", description: err.error || "Unknown error", variant: "destructive" });
-        }
-      }
-    } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-    } finally {
-      setTransferSubmitting(false);
-    }
-  }
-
-  function copyAddress(address: string) {
-    navigator.clipboard.writeText(address);
-    toast({ title: "Copied", description: "Wallet address copied." });
-  }
+  };
 
   function loadScript(src: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -489,7 +242,7 @@ export default function StripeWalletPage() {
     });
   }
 
-  async function handleOpenOnramp(wallet: WalletInfo) {
+  async function handleOpenOnramp(wallet: Rail1WalletInfo) {
     setOnrampWallet(wallet);
     setOnrampLoading(true);
 
@@ -589,28 +342,6 @@ export default function StripeWalletPage() {
     setOnrampLoading(false);
   }
 
-  function openGuardrailsDialog(wallet: WalletInfo) {
-    setSelectedWallet(wallet);
-    if (wallet.guardrails) {
-      setGuardrailForm({
-        max_per_tx_usdc: wallet.guardrails.max_per_tx_usdc,
-        daily_budget_usdc: wallet.guardrails.daily_budget_usdc,
-        monthly_budget_usdc: wallet.guardrails.monthly_budget_usdc,
-        require_approval_above: wallet.guardrails.require_approval_above,
-      });
-    }
-    setGuardrailsDialogOpen(true);
-  }
-
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "confirmed": return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
-      case "pending": return <Clock className="w-4 h-4 text-amber-500" />;
-      case "failed": return <XCircle className="w-4 h-4 text-red-500" />;
-      default: return <Clock className="w-4 h-4 text-neutral-400" />;
-    }
-  };
-
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
       <div className="flex justify-between items-center">
@@ -689,7 +420,7 @@ export default function StripeWalletPage() {
                             <p className="font-semibold text-white" data-testid={`text-bot-name-${wallet.id}`}>{wallet.bot_name}</p>
                           ) : (
                             <button
-                              onClick={() => { setLinkTarget(wallet); setLinkBotId(""); }}
+                              onClick={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
                               className="font-semibold text-emerald-300 hover:text-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors"
                               data-testid={`button-add-agent-${wallet.id}`}
                             >
@@ -698,7 +429,7 @@ export default function StripeWalletPage() {
                             </button>
                           )}
                           <button
-                            onClick={() => copyAddress(wallet.address)}
+                            onClick={() => walletActions.copyAddress(wallet.address)}
                             className="text-xs text-white/60 hover:text-white/90 flex items-center gap-1 cursor-pointer transition-colors"
                             data-testid={`button-copy-address-${wallet.id}`}
                           >
@@ -727,7 +458,7 @@ export default function StripeWalletPage() {
                           <DropdownMenuContent align="end">
                             {wallet.bot_id && (
                               <DropdownMenuItem
-                                onClick={() => setUnlinkTarget(wallet)}
+                                onClick={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
                                 data-testid={`menu-unlink-bot-${wallet.id}`}
                               >
                                 <Unlink className="w-4 h-4 mr-2" />
@@ -746,13 +477,13 @@ export default function StripeWalletPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs text-white/50 font-medium tracking-wide uppercase">USDC on Base</p>
                         <button
-                          onClick={() => syncWalletBalance(wallet.id)}
-                          disabled={syncingWalletId === wallet.id}
+                          onClick={() => handleSyncBalance(wallet.id)}
+                          disabled={walletActions.syncingId === wallet.id}
                           className="text-white/40 hover:text-white/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                           title="Sync balance from chain"
                           data-testid={`button-sync-balance-${wallet.id}`}
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 ${syncingWalletId === wallet.id ? "animate-spin" : ""}`} />
+                          <RefreshCw className={`w-3.5 h-3.5 ${walletActions.syncingId === wallet.id ? "animate-spin" : ""}`} />
                         </button>
                         <a
                           href={`https://basescan.org/address/${wallet.address}#tokentxns`}
@@ -766,7 +497,7 @@ export default function StripeWalletPage() {
                         </a>
                         {wallet.status === "active" && (
                           <button
-                            onClick={() => openTransferDialog(wallet)}
+                            onClick={() => transfer.openTransferDialog(wallet)}
                             className="text-white/40 hover:text-white/80 transition-colors cursor-pointer"
                             title="Transfer USDC"
                             data-testid={`button-transfer-${wallet.id}`}
@@ -795,47 +526,15 @@ export default function StripeWalletPage() {
                     )}
                   </div>
 
-                  <div className="bg-white rounded-xl border border-neutral-100 p-2 flex justify-between">
-                    <Button
-                      variant="ghost"
-                      className="flex-1 text-xs gap-2 text-emerald-600 font-semibold cursor-pointer hover:bg-emerald-50 rounded-lg transition-colors"
-                      onClick={() => handleOpenOnramp(wallet)}
-                      data-testid={`button-fund-${wallet.id}`}
-                    >
-                      <DollarSign className="w-4 h-4" /> Fund with Stripe
-                    </Button>
-                    <div className="w-px bg-neutral-100 my-1" />
-                    <Button
-                      variant="ghost"
-                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
-                      onClick={() => handleFreeze(wallet)}
-                      data-testid={`button-freeze-${wallet.id}`}
-                    >
-                      {wallet.status === "active" ? (
-                        <><Snowflake className="w-4 h-4" /> Pause</>
-                      ) : (
-                        <><Play className="w-4 h-4" /> Activate</>
-                      )}
-                    </Button>
-                    <div className="w-px bg-neutral-100 my-1" />
-                    <Button
-                      variant="ghost"
-                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
-                      onClick={() => openGuardrailsDialog(wallet)}
-                      data-testid={`button-guardrails-${wallet.id}`}
-                    >
-                      <Settings2 className="w-4 h-4" /> Guardrails
-                    </Button>
-                    <div className="w-px bg-neutral-100 my-1" />
-                    <Button
-                      variant="ghost"
-                      className="flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors"
-                      onClick={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
-                      data-testid={`button-activity-${wallet.id}`}
-                    >
-                      <ArrowUpRight className="w-4 h-4" /> Activity
-                    </Button>
-                  </div>
+                  <CryptoActionBar
+                    walletId={wallet.id}
+                    status={wallet.status}
+                    onFund={() => handleOpenOnramp(wallet)}
+                    onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
+                    onGuardrails={() => openGuardrailsDialog(wallet)}
+                    onActivity={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
+                    testIdPrefix="stripe"
+                  />
                 </div>
               ))}
             </div>
@@ -986,7 +685,7 @@ export default function StripeWalletPage() {
                 data-testid="select-bot-create"
               >
                 <option value="">Choose a bot...</option>
-                {bots.map((bot) => (
+                {botLinking.bots.map((bot) => (
                   <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
                 ))}
               </select>
@@ -1009,67 +708,15 @@ export default function StripeWalletPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={guardrailsDialogOpen} onOpenChange={setGuardrailsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>Spending Guardrails</DialogTitle>
-          <DialogDescription>
-            Set limits to control how your bot spends USDC via x402.
-          </DialogDescription>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>Max per transaction (USD)</Label>
-              <Input
-                type="number"
-                value={guardrailForm.max_per_tx_usdc}
-                onChange={(e) => setGuardrailForm(prev => ({ ...prev, max_per_tx_usdc: Number(e.target.value) }))}
-                data-testid="input-max-per-tx"
-              />
-            </div>
-            <div>
-              <Label>Daily budget (USD)</Label>
-              <Input
-                type="number"
-                value={guardrailForm.daily_budget_usdc}
-                onChange={(e) => setGuardrailForm(prev => ({ ...prev, daily_budget_usdc: Number(e.target.value) }))}
-                data-testid="input-daily-budget"
-              />
-            </div>
-            <div>
-              <Label>Monthly budget (USD)</Label>
-              <Input
-                type="number"
-                value={guardrailForm.monthly_budget_usdc}
-                onChange={(e) => setGuardrailForm(prev => ({ ...prev, monthly_budget_usdc: Number(e.target.value) }))}
-                data-testid="input-monthly-budget"
-              />
-            </div>
-            <div>
-              <Label>Require approval above (USD, optional)</Label>
-              <Input
-                type="number"
-                value={guardrailForm.require_approval_above ?? ""}
-                onChange={(e) => setGuardrailForm(prev => ({ ...prev, require_approval_above: e.target.value ? Number(e.target.value) : null }))}
-                placeholder="No threshold"
-                data-testid="input-approval-threshold"
-              />
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setGuardrailsDialogOpen(false)} data-testid="button-cancel-guardrails">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveGuardrails}
-                disabled={savingGuardrails}
-                className="bg-primary hover:bg-primary/90"
-                data-testid="button-save-guardrails"
-              >
-                {savingGuardrails && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Save
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <GuardrailDialog
+        open={guardrailsDialogOpen}
+        onOpenChange={setGuardrailsDialogOpen}
+        form={guardrailForm}
+        onFormChange={(f) => setGuardrailForm(f as CryptoGuardrailForm)}
+        saving={savingGuardrails}
+        onSave={handleSaveGuardrails}
+        variant="crypto"
+      />
 
       <Sheet open={onrampDialogOpen} onOpenChange={(open) => { if (!open) setShowCloseConfirm(true); }}>
         <SheetContent
@@ -1203,167 +850,46 @@ export default function StripeWalletPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={!!linkTarget} onOpenChange={(open) => { if (!open) { setLinkTarget(null); setLinkBotId(""); } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-blue-500" />
-            Link Agent to Wallet
-          </DialogTitle>
-          <DialogDescription className="text-neutral-600">
-            Select a bot to link to this wallet. The bot will be able to use this wallet for transactions.
-          </DialogDescription>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>Select Bot</Label>
-              <select
-                className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
-                value={linkBotId}
-                onChange={(e) => setLinkBotId(e.target.value)}
-                data-testid="select-bot-link"
-              >
-                <option value="">Choose a bot...</option>
-                {bots.map((bot) => (
-                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => { setLinkTarget(null); setLinkBotId(""); }} disabled={linkLoading} data-testid="button-link-cancel">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleLinkBot}
-                disabled={!linkBotId || linkLoading}
-                className="bg-primary hover:bg-primary/90"
-                data-testid="button-link-confirm"
-              >
-                {linkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Link Bot
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <LinkBotDialog
+        open={!!botLinking.linkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeLinkDialog(); }}
+        itemName={botLinking.linkTarget?.name || ""}
+        bots={botLinking.bots}
+        selectedBotId={botLinking.linkBotId}
+        onBotIdChange={botLinking.setLinkBotId}
+        loading={botLinking.linkLoading}
+        onConfirm={botLinking.handleLinkBot}
+        onCancel={botLinking.closeLinkDialog}
+        itemType="wallet"
+      />
 
-      <Dialog open={transferDialogOpen} onOpenChange={(open) => { if (!open) { setTransferDialogOpen(false); setTransferSourceWallet(null); } }}>
-        <DialogContent className="sm:max-w-md" data-testid="dialog-transfer">
-          <DialogTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5 text-blue-500" />
-            Transfer USDC
-          </DialogTitle>
-          <DialogDescription className="text-neutral-600">
-            Send USDC from this wallet to another wallet or external address.
-          </DialogDescription>
-          {transferSourceWallet && (
-            <div className="space-y-4 mt-4">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-4">
-                <p className="text-xs text-neutral-500 font-medium mb-1">Source Wallet</p>
-                <p className="text-sm font-mono text-neutral-700">{transferSourceWallet.address.slice(0, 10)}...{transferSourceWallet.address.slice(-6)}</p>
-                <p className="text-lg font-bold text-neutral-900 mt-1">{transferSourceWallet.balance_display}</p>
-              </div>
+      <TransferDialog
+        open={transfer.transferDialogOpen}
+        onOpenChange={(o) => { if (!o) transfer.closeTransferDialog(); }}
+        sourceWallet={transfer.transferSourceWallet}
+        amount={transfer.transferAmount}
+        onAmountChange={transfer.setTransferAmount}
+        destType={transfer.transferDestType}
+        onDestTypeChange={transfer.setTransferDestType}
+        destWalletKey={transfer.transferDestWalletKey}
+        onDestWalletKeyChange={transfer.setTransferDestWalletKey}
+        destAddress={transfer.transferDestAddress}
+        onDestAddressChange={transfer.setTransferDestAddress}
+        availableWallets={transfer.allWalletsForTransfer}
+        submitting={transfer.transferSubmitting}
+        onSubmit={transfer.handleTransfer}
+        onClose={transfer.closeTransferDialog}
+      />
 
-              <div>
-                <Label>Amount (USD)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  data-testid="input-transfer-amount"
-                  className="mt-1.5"
-                />
-              </div>
-
-              <div>
-                <Label>Destination</Label>
-                <select
-                  className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
-                  value={transferDestType}
-                  onChange={(e) => setTransferDestType(e.target.value as "own" | "external")}
-                  data-testid="select-destination-type"
-                >
-                  <option value="own">Own Wallet</option>
-                  <option value="external">External Address</option>
-                </select>
-              </div>
-
-              {transferDestType === "own" ? (
-                <div>
-                  <Label>Destination Wallet</Label>
-                  <select
-                    className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
-                    value={transferDestWalletKey}
-                    onChange={(e) => setTransferDestWalletKey(e.target.value)}
-                    data-testid="select-destination-wallet"
-                  >
-                    <option value="">Choose a wallet...</option>
-                    {allWalletsForTransfer.map((w) => (
-                      <option key={`${w.rail}:${w.id}`} value={`${w.rail}:${w.id}`}>
-                        {w.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <Label>Destination Address</Label>
-                  <Input
-                    type="text"
-                    placeholder="0x..."
-                    value={transferDestAddress}
-                    onChange={(e) => setTransferDestAddress(e.target.value)}
-                    data-testid="input-destination-address"
-                    className="mt-1.5 font-mono"
-                  />
-                </div>
-              )}
-
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => { setTransferDialogOpen(false); setTransferSourceWallet(null); }}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleTransfer}
-                  disabled={transferSubmitting}
-                  className="bg-primary hover:bg-primary/90"
-                  data-testid="button-submit-transfer"
-                >
-                  {transferSubmitting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                  Send Transfer
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!unlinkTarget} onOpenChange={(open) => { if (!open) setUnlinkTarget(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle className="flex items-center gap-2">
-            <Unlink className="w-5 h-5 text-red-500" />
-            Unlink Bot
-          </DialogTitle>
-          <DialogDescription className="text-neutral-600">
-            Are you sure you want to unlink <span className="font-semibold text-neutral-900">"{unlinkTarget?.bot_name}"</span> from this wallet? The bot will no longer be able to use this wallet for transactions.
-          </DialogDescription>
-          <div className="flex justify-end gap-3 mt-4">
-            <Button variant="outline" onClick={() => setUnlinkTarget(null)} disabled={unlinkLoading} data-testid="button-unlink-cancel">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUnlinkBot}
-              disabled={unlinkLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
-              data-testid="button-unlink-confirm"
-            >
-              {unlinkLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Unlink Bot
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <UnlinkBotDialog
+        open={!!botLinking.unlinkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeUnlinkDialog(); }}
+        botName={botLinking.unlinkTarget?.bot_name || ""}
+        loading={botLinking.unlinkLoading}
+        onConfirm={botLinking.handleUnlinkBot}
+        onCancel={botLinking.closeUnlinkDialog}
+        itemType="wallet"
+      />
     </div>
   );
 }

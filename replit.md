@@ -163,6 +163,26 @@ All four rails route approval emails through a single system under `lib/approval
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
 - **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
 
+### Shared Wallet/Card UI (`components/wallet/`)
+All wallet and card page UI is consolidated into `components/wallet/` to eliminate duplication across Rails 1, 2, 4, and 5. Setup wizards are NOT in this folder — they remain in their original locations.
+- **`types.ts`** — Unified types: `WalletInfo`, `BotInfo`, `TransactionInfo`, `ApprovalInfo` with discriminated unions for rail-specific fields (`RailType`, `WalletStatus`).
+- **`card-visual.tsx`** — Card rendering component (moved from `components/dashboard/`).
+- **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).
+- **`wallet-action-bar.tsx`** — Base action bar component (accepts action items array, badge, menu); used by variants below.
+- **`credit-card-action-bar.tsx`** — Credit card variant (Manage, Freeze, Add Agent, More menu) for Rails 4 & 5.
+- **`crypto-action-bar.tsx`** — Crypto wallet variant (Fund, Freeze, Guardrails, Activity) for Rails 1 & 2.
+- **`hooks/use-wallet-actions.ts`** — Shared freeze, sync balance, copy address handlers (accepts rail-specific config).
+- **`hooks/use-bot-linking.ts`** — Shared link/unlink bot state and handlers.
+- **`hooks/use-transfer.ts`** — Shared transfer dialog state and handler (Rails 1 & 2).
+- **`dialogs/freeze-dialog.tsx`** — Freeze/unfreeze confirmation dialog.
+- **`dialogs/link-bot-dialog.tsx`** — Link bot to wallet/card dialog.
+- **`dialogs/unlink-bot-dialog.tsx`** — Unlink bot confirmation dialog.
+- **`dialogs/transfer-dialog.tsx`** — USDC transfer dialog (Rails 1 & 2).
+- **`dialogs/guardrail-dialog.tsx`** — Guardrail editor with crypto/card variants.
+- **`index.ts`** — Barrel export for all components, hooks, types, and dialogs.
+
+Page files (`stripe-wallet`, `card-wallet`, `sub-agent-cards`, `self-hosted`) are now thin composers of these shared components, passing rail-specific config. The `cards/page.tsx` legacy page also uses shared components.
+
 ### Key Routes
 - `/`: Consumer landing page
 - `/claim`: Bot claim page
