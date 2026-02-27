@@ -83,6 +83,58 @@ export interface Rail5CardInfo {
 
 export type CreditCardInfo = Rail4CardInfo | Rail5CardInfo;
 
+export interface NormalizedCard {
+  card_id: string;
+  card_name: string;
+  status: string;
+  bot_id: string | null;
+  bot_name: string | null;
+  balance: string;
+  balanceLabel: string;
+  last4: string;
+  brand: string | null;
+  line1: string | null;
+  line2: string | null;
+  detailPath: string;
+}
+
+export function normalizeRail4Card(card: Rail4CardInfo, basePath: string): NormalizedCard {
+  const remaining = card.allowance ? card.allowance.remaining_cents / 100 : 0;
+  const sign = remaining < 0 ? "-" : "";
+  const balance = `${sign}$${Math.abs(remaining).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return {
+    card_id: card.card_id,
+    card_name: card.card_name,
+    status: card.status,
+    bot_id: card.bot_id,
+    bot_name: null,
+    balance,
+    balanceLabel: "Remaining Allowance",
+    last4: card.card_id.slice(-4),
+    brand: null,
+    line1: card.allowance ? formatAllowanceLabel(card.allowance) : null,
+    line2: card.allowance ? formatResetsLabel(card.allowance) : null,
+    detailPath: `${basePath}/${card.card_id}`,
+  };
+}
+
+export function normalizeRail5Card(card: Rail5CardInfo, basePath: string): NormalizedCard {
+  return {
+    card_id: card.card_id,
+    card_name: card.card_name,
+    status: card.status,
+    bot_id: card.bot_id,
+    bot_name: card.bot_name,
+    balance: formatCentsToUsd(card.spending_limit_cents),
+    balanceLabel: "Spending Limit",
+    last4: card.card_last4,
+    brand: card.card_brand,
+    line1: `Daily: ${formatCentsToUsd(card.daily_limit_cents)}`,
+    line2: `Monthly: ${formatCentsToUsd(card.monthly_limit_cents)}`,
+    detailPath: `${basePath}/${card.card_id}`,
+  };
+}
+
 export interface Rail1TransactionInfo {
   id: number;
   type: string;

@@ -3,10 +3,11 @@ export { StatusBadge } from "./status-badge";
 
 export { WalletActionBar } from "./wallet-action-bar";
 export type { ActionItem, BadgeItem, MenuItem } from "./wallet-action-bar";
-export { CreditCardActionBar } from "./credit-card-action-bar";
-export type { CreditCardActionBarProps } from "./credit-card-action-bar";
 export { CryptoActionBar } from "./crypto-action-bar";
 export type { CryptoActionBarProps } from "./crypto-action-bar";
+export { CreditCardItem } from "./credit-card-item";
+export { CreditCardListPage } from "./credit-card-list-page";
+export type { CreditCardListPageConfig } from "./credit-card-list-page";
 
 export { useWalletActions } from "./hooks/use-wallet-actions";
 export type { UseWalletActionsConfig, FreezeTarget } from "./hooks/use-wallet-actions";

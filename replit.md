@@ -165,23 +165,20 @@ All four rails route approval emails through a single system under `lib/approval
 
 ### Shared Wallet/Card UI (`components/wallet/`)
 All wallet and card page UI is consolidated into `components/wallet/` to eliminate duplication across Rails 1, 2, 4, and 5. Setup wizards are NOT in this folder — they remain in their original locations.
-- **`types.ts`** — Unified types: `WalletInfo`, `BotInfo`, `TransactionInfo`, `ApprovalInfo` with discriminated unions for rail-specific fields (`RailType`, `WalletStatus`).
-- **`card-visual.tsx`** — Card rendering component (moved from `components/dashboard/`).
+- **`types.ts`** — Unified types including `NormalizedCard` (common shape both rails map into), plus `normalizeRail4Card()` and `normalizeRail5Card()` converters.
+- **`card-visual.tsx`** — Card rendering component with `variant` prop (`credit-card` shows card number/brand/expiry, `id-card` shows card ID/shield for Rail 4). Supports `balanceLabel`, `brand` props.
+- **`credit-card-item.tsx`** — **Unified card+action bar component** for all credit card rails. Renders `CardVisual` + identical action bar (Manage, Freeze, Add Agent/Bot badge, More menu) from a `NormalizedCard`.
+- **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object.
 - **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).
-- **`wallet-action-bar.tsx`** — Base action bar component (accepts action items array, badge, menu); used by variants below.
-- **`credit-card-action-bar.tsx`** — Credit card variant (Manage, Freeze, Add Agent, More menu) for Rails 4 & 5.
+- **`wallet-action-bar.tsx`** — Base action bar (accepts action items array, badge, menu); used by crypto pages and `CreditCardItem`.
 - **`crypto-action-bar.tsx`** — Crypto wallet variant (Fund, Freeze, Guardrails, Activity) for Rails 1 & 2.
 - **`hooks/use-wallet-actions.ts`** — Shared freeze, sync balance, copy address handlers (accepts rail-specific config).
 - **`hooks/use-bot-linking.ts`** — Shared link/unlink bot state and handlers.
 - **`hooks/use-transfer.ts`** — Shared transfer dialog state and handler (Rails 1 & 2).
-- **`dialogs/freeze-dialog.tsx`** — Freeze/unfreeze confirmation dialog.
-- **`dialogs/link-bot-dialog.tsx`** — Link bot to wallet/card dialog.
-- **`dialogs/unlink-bot-dialog.tsx`** — Unlink bot confirmation dialog.
-- **`dialogs/transfer-dialog.tsx`** — USDC transfer dialog (Rails 1 & 2).
-- **`dialogs/guardrail-dialog.tsx`** — Guardrail editor with crypto/card variants.
+- **`dialogs/`** — Freeze, link-bot, unlink-bot, transfer, guardrail dialogs.
 - **`index.ts`** — Barrel export for all components, hooks, types, and dialogs.
 
-Page files (`stripe-wallet`, `card-wallet`, `sub-agent-cards`, `self-hosted`) are now thin composers of these shared components, passing rail-specific config. The `cards/page.tsx` legacy page also uses shared components.
+Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component.
 
 ### Key Routes
 - `/`: Consumer landing page
