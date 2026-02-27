@@ -148,13 +148,16 @@ export default function Rail5CardDetailPage() {
       <CardVisual
         color="purple"
         balance={formatLimit(card.spending_limit_cents)}
+        balanceLabel="Spending Limit"
         last4={card.card_last4}
         holder={card.card_name.toUpperCase()}
         frozen={card.status === "frozen"}
         expiry="••/••"
-        allowanceLabel={`${BRAND_LABELS[card.card_brand] || card.card_brand} | Daily: ${formatLimit(card.daily_limit_cents)}`}
+        allowanceLabel={`Daily: ${formatLimit(card.daily_limit_cents)}`}
         resetsLabel={`Monthly: ${formatLimit(card.monthly_limit_cents)}`}
         status={card.status}
+        brand={card.card_brand}
+        variant="credit-card"
       />
 
       <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-4">

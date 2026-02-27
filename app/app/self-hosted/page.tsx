@@ -144,13 +144,14 @@ export default function SelfHostedPage() {
               <CardVisual
                 color={CARD_COLORS[index % CARD_COLORS.length]}
                 balance={formatBalance(card)}
+                balanceLabel="Remaining Allowance"
                 last4={card.card_id.slice(-4)}
                 holder={card.card_name.toUpperCase()}
                 frozen={card.status === "frozen"}
-                expiry="••/••"
                 allowanceLabel={card.allowance ? formatAllowanceLabel(card.allowance) : undefined}
                 resetsLabel={card.allowance ? formatResetsLabel(card.allowance) : undefined}
                 status={card.status}
+                variant="id-card"
               />
               <CreditCardActionBar
                 cardId={card.card_id}

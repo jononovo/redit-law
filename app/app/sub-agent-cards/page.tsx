@@ -171,13 +171,16 @@ export default function SubAgentCardsPage() {
               <CardVisual
                 color={CARD_COLORS[index % CARD_COLORS.length]}
                 balance={formatCentsToUsd(card.spending_limit_cents)}
+                balanceLabel="Spending Limit"
                 last4={card.card_last4}
                 holder={card.card_name.toUpperCase()}
                 frozen={card.status === "frozen"}
                 expiry="••/••"
-                allowanceLabel={`${BRAND_LABELS[card.card_brand] || card.card_brand} | Daily: ${formatCentsToUsd(card.daily_limit_cents)}`}
+                allowanceLabel={`Daily: ${formatCentsToUsd(card.daily_limit_cents)}`}
                 resetsLabel={`Monthly: ${formatCentsToUsd(card.monthly_limit_cents)}`}
                 status={card.status}
+                brand={card.card_brand}
+                variant="credit-card"
               />
               <CreditCardActionBar
                 cardId={card.card_id}

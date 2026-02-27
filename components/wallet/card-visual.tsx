@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Snowflake } from "lucide-react";
+import { Snowflake, Shield } from "lucide-react";
 
 interface CardVisualProps {
   color?: "primary" | "dark" | "blue" | "purple";
@@ -7,12 +7,22 @@ interface CardVisualProps {
   expiry?: string;
   holder?: string;
   balance?: string;
+  balanceLabel?: string;
   frozen?: boolean;
   className?: string;
   allowanceLabel?: string;
   resetsLabel?: string;
   status?: string;
+  brand?: string;
+  variant?: "credit-card" | "id-card";
 }
+
+const BRAND_DISPLAY: Record<string, string> = {
+  visa: "VISA",
+  mastercard: "MC",
+  amex: "AMEX",
+  discover: "DISC",
+};
 
 export function CardVisual({ 
   color = "primary", 
@@ -20,11 +30,14 @@ export function CardVisual({
   expiry = "12/28", 
   holder = "OPENCLAW AGENT 01",
   balance = "$5,000.00",
+  balanceLabel = "Current Balance",
   frozen = false,
   className,
   allowanceLabel,
   resetsLabel,
   status,
+  brand,
+  variant = "credit-card",
 }: CardVisualProps) {
   
   const gradients = {
@@ -51,6 +64,7 @@ export function CardVisual({
   const displayStatus = frozen ? "frozen" : status;
   const statusStyle = displayStatus ? statusColors[displayStatus] || "bg-white/20 text-white/90 border-white/30" : null;
   const statusLabel = displayStatus ? (statusLabels[displayStatus] || displayStatus) : null;
+  const brandDisplay = brand ? (BRAND_DISPLAY[brand.toLowerCase()] || brand.toUpperCase()) : "VISA";
 
   return (
     <div className={cn(
@@ -80,15 +94,21 @@ export function CardVisual({
             {resetsLabel && (
               <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-1" data-testid="text-resets-label">{resetsLabel}</span>
             )}
-            <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1">Current Balance</span>
-            <span className="text-2xl font-bold font-mono tracking-tight">{balance}</span>
-            <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+            <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1" data-testid="text-balance-label">{balanceLabel}</span>
+            <span className="text-2xl font-bold font-mono tracking-tight" data-testid="text-balance-value">{balance}</span>
+            {variant === "credit-card" ? (
+              <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
                 <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
-                    <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
-                    <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
-                    <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
+                  <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
+                  <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
+                  <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
                 </div>
-            </div>
+              </div>
+            ) : (
+              <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+                <Shield className="w-4 h-4 opacity-60" />
+              </div>
+            )}
         </div>
         {statusLabel && (
           <span
@@ -106,12 +126,19 @@ export function CardVisual({
       <div className="relative z-10">
         <div className="flex items-end justify-between">
             <div className="flex flex-col gap-4">
-                <div className="flex gap-3 text-lg font-mono tracking-widest opacity-90">
+                {variant === "credit-card" ? (
+                  <div className="flex gap-3 text-lg font-mono tracking-widest opacity-90" data-testid="text-card-number">
                     <span>····</span>
                     <span>····</span>
                     <span>····</span>
                     <span>{last4}</span>
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col" data-testid="text-card-id-display">
+                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Card ID</span>
+                    <span className="text-sm font-mono tracking-wide opacity-90">···{last4}</span>
+                  </div>
+                )}
                 <div className="flex flex-col">
                     <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Name</span>
                     <span className="text-sm font-medium uppercase tracking-wide">{holder}</span>
@@ -119,9 +146,21 @@ export function CardVisual({
             </div>
             
             <div className="flex flex-col items-end">
-                <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
-                <span className="text-sm font-mono">{expiry}</span>
-                <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">VISA</div>
+                {variant === "credit-card" ? (
+                  <>
+                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
+                    <span className="text-sm font-mono">{expiry}</span>
+                    <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">{brandDisplay}</div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Type</span>
+                    <span className="text-sm font-mono">Split-Key</span>
+                    <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">
+                      <Shield className="w-5 h-5 inline opacity-70" /> R4
+                    </div>
+                  </>
+                )}
             </div>
         </div>
       </div>
