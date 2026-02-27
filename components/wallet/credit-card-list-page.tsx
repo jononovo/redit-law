@@ -11,6 +11,9 @@ import { FreezeDialog } from "./dialogs/freeze-dialog";
 import { LinkBotDialog } from "./dialogs/link-bot-dialog";
 import { UnlinkBotDialog } from "./dialogs/unlink-bot-dialog";
 import { CreditCardItem } from "./credit-card-item";
+import { RailPageTabs, type RailTab } from "./rail-page-tabs";
+import { TransactionList, type TransactionRow } from "./transaction-list";
+import { ApprovalList, type ApprovalRow } from "./approval-list";
 import type { NormalizedCard } from "./types";
 
 export interface CreditCardListPageConfig {
@@ -26,6 +29,8 @@ export interface CreditCardListPageConfig {
   explainer: ReactNode;
   setupWizard: (props: { open: boolean; onOpenChange: (v: boolean) => void; onComplete: () => void }) => ReactNode;
   supportsBotLinking?: boolean;
+  transactionsEndpoint?: string;
+  approvalsEndpoint?: string;
 }
 
 export function CreditCardListPage({ config }: { config: CreditCardListPageConfig }) {
@@ -35,6 +40,10 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
   const [wizardOpen, setWizardOpen] = useState(false);
   const [freezeTarget, setFreezeTarget] = useState<NormalizedCard | null>(null);
   const [freezeLoading, setFreezeLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("cards");
+
+  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
 
   const fetchCards = useCallback(async () => {
     try {
@@ -48,6 +57,28 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
       setLoading(false);
     }
   }, [config]);
+
+  const fetchTransactions = useCallback(async () => {
+    if (!config.transactionsEndpoint) return;
+    try {
+      const res = await authFetch(config.transactionsEndpoint);
+      if (res.ok) {
+        const data = await res.json();
+        setTransactions(data.transactions || []);
+      }
+    } catch {}
+  }, [config.transactionsEndpoint]);
+
+  const fetchApprovals = useCallback(async () => {
+    if (!config.approvalsEndpoint) return;
+    try {
+      const res = await authFetch(config.approvalsEndpoint);
+      if (res.ok) {
+        const data = await res.json();
+        setApprovals(data.approvals || []);
+      }
+    } catch {}
+  }, [config.approvalsEndpoint]);
 
   const walletActions = useWalletActions({
     railPrefix: config.railPrefix,
@@ -68,10 +99,12 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
       if (config.supportsBotLinking !== false) {
         botLinking.fetchBots();
       }
+      fetchTransactions();
+      fetchApprovals();
     } else {
       setLoading(false);
     }
-  }, [user, fetchCards, botLinking.fetchBots, config.supportsBotLinking]);
+  }, [user, fetchCards, botLinking.fetchBots, config.supportsBotLinking, fetchTransactions, fetchApprovals]);
 
   async function handleFreezeConfirm() {
     if (!freezeTarget) return;
@@ -107,6 +140,72 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
   }
 
   const supportsBotLinking = config.supportsBotLinking !== false;
+  const hasTransactions = !!config.transactionsEndpoint;
+  const hasApprovals = !!config.approvalsEndpoint;
+  const hasTabs = hasTransactions || hasApprovals;
+
+  const cardListContent = loading ? (
+    <div className="flex items-center justify-center py-24" data-testid="loading-cards">
+      <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+    </div>
+  ) : cards.length === 0 ? (
+    <div className="text-center py-24" data-testid="text-no-cards">
+      <CreditCard className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+      <p className="text-lg text-neutral-400 font-medium">{config.emptyTitle}</p>
+      <p className="text-sm text-neutral-400 mt-2">{config.emptySubtitle}</p>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {cards.map((card, index) => (
+        <CreditCardItem
+          key={card.card_id}
+          card={card}
+          index={index}
+          onFreeze={() => setFreezeTarget(card)}
+          onAddAgent={supportsBotLinking ? () => botLinking.openLinkDialog({
+            id: card.card_id,
+            name: card.card_name,
+            bot_id: card.bot_id,
+            bot_name: card.bot_name,
+          }) : undefined}
+          onUnlinkBot={supportsBotLinking ? () => botLinking.openUnlinkDialog({
+            id: card.card_id,
+            name: card.card_name,
+            bot_id: card.bot_id,
+            bot_name: card.bot_name,
+          }) : undefined}
+          onCopyCardId={() => walletActions.copyCardId(card.card_id)}
+        />
+      ))}
+    </div>
+  );
+
+  const tabs: RailTab[] = [
+    { id: "cards", label: "Cards", content: cardListContent },
+  ];
+
+  if (hasTransactions) {
+    tabs.push({
+      id: "transactions",
+      label: "Transactions",
+      content: <TransactionList transactions={transactions} testIdPrefix="tx" />,
+    });
+  }
+
+  if (hasApprovals) {
+    tabs.push({
+      id: "approvals",
+      label: "Approvals",
+      badge: approvals.length,
+      content: (
+        <ApprovalList
+          approvals={approvals}
+          variant="crypto"
+          onDecide={(id, decision) => walletActions.handleApprovalDecision(id, decision, { onSuccess: fetchApprovals })}
+        />
+      ),
+    });
+  }
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -165,40 +264,15 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
 
       {config.explainer}
 
-      {loading ? (
-        <div className="flex items-center justify-center py-24" data-testid="loading-cards">
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
-        </div>
-      ) : cards.length === 0 ? (
-        <div className="text-center py-24" data-testid="text-no-cards">
-          <CreditCard className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
-          <p className="text-lg text-neutral-400 font-medium">{config.emptyTitle}</p>
-          <p className="text-sm text-neutral-400 mt-2">{config.emptySubtitle}</p>
-        </div>
+      {hasTabs ? (
+        <RailPageTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          testIdPrefix={config.railPrefix}
+          tabs={tabs}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {cards.map((card, index) => (
-            <CreditCardItem
-              key={card.card_id}
-              card={card}
-              index={index}
-              onFreeze={() => setFreezeTarget(card)}
-              onAddAgent={supportsBotLinking ? () => botLinking.openLinkDialog({
-                id: card.card_id,
-                name: card.card_name,
-                bot_id: card.bot_id,
-                bot_name: card.bot_name,
-              }) : undefined}
-              onUnlinkBot={supportsBotLinking ? () => botLinking.openUnlinkDialog({
-                id: card.card_id,
-                name: card.card_name,
-                bot_id: card.bot_id,
-                bot_name: card.bot_name,
-              }) : undefined}
-              onCopyCardId={() => walletActions.copyCardId(card.card_id)}
-            />
-          ))}
-        </div>
+        cardListContent
       )}
     </div>
   );

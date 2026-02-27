@@ -200,7 +200,12 @@ All wallet and card page UI is consolidated into `components/wallet/` to elimina
 - **`card-visual.tsx`** — Credit card visual (chip, masked card number, expiry, brand). Used by Rails 4 & 5.
 - **`crypto-card-visual.tsx`** — Crypto wallet visual (wallet icon + bot name + address with copy, balance + "USDC on Base" with inline sync/basescan/transfer icons, guardrails panel, status badge + three-dot menu). No chip, no card number. Used by Rails 1 & 2.
 - **`credit-card-item.tsx`** — **Unified card+action bar component** for all credit card rails. Renders `CardVisual` + identical action bar (Manage, Freeze, Add Agent/Bot badge, More menu) from a `NormalizedCard`.
-- **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object.
+- **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object. Supports optional `transactionsEndpoint`/`approvalsEndpoint` to enable Transactions/Approvals tabs.
+- **`rail-page-tabs.tsx`** — **Shared tab shell** used by all rail pages. Accepts `RailTab[]` config with `id`, `label`, `content`, optional `hidden` and `badge` count. Renders shadcn Tabs with dynamic grid columns.
+- **`transaction-list.tsx`** — **Shared transaction table** (financial ledger). Displays type, amount, balance after, details, status, date. Used by Rails 1 and 2.
+- **`order-list.tsx`** — **Shared order list + detail dialog**. Card-style list with OrderTimeline, tracking info, shipping address, and refresh-status button. Used by Rail 2.
+- **`approval-list.tsx`** — **Shared approval queue**. Supports `crypto` variant (amount + resource URL) and `commerce` variant (product name + shipping). Used by Rails 1 and 2.
+- **`wallet-selector.tsx`** — **Shared wallet dropdown** for filtering transactions/orders by wallet.
 - **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).
 - **`wallet-action-bar.tsx`** — Base action bar (accepts action items array, badge, menu); used by crypto pages and `CreditCardItem`.
 - **`crypto-wallet-item.tsx`** — **Unified wallet+action bar component** for crypto rails. Wraps `CryptoCardVisual` + `CryptoActionBar`. Card handles inline actions (copy, sync, basescan, transfer) and three-dot menu (add agent, unlink bot). Action bar handles Fund/Pause/Guardrails/Activity.
@@ -212,9 +217,19 @@ All wallet and card page UI is consolidated into `components/wallet/` to elimina
 - **`dialogs/`** — Freeze, link-bot, unlink-bot, transfer, guardrail, create-crypto-wallet dialogs.
 - **`index.ts`** — Barrel export for all components, hooks, types, and dialogs.
 
-Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component.
+Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component. Adding transaction/approval tabs to these rails = add endpoint URLs to the config object.
 
-Rail 1 (`stripe-wallet/page.tsx`, ~664 lines) and Rail 2 (`card-wallet/page.tsx`, ~742 lines) use shared hooks (`useWalletActions`, `useBotLinking`, `useTransfer`, `useGuardrails`) and shared dialogs (`GuardrailDialog`, `CreateCryptoWalletDialog`, `TransferDialog`, `LinkBotDialog`, `UnlinkBotDialog`). Remaining page-specific code is genuinely rail-specific: Stripe Onramp Sheet (Rail 1), CrossMint checkout + fund dialog (Rail 2), OrderTimeline + order detail dialog (Rail 2), and different tab content layouts.
+### Unified Tab Structure
+All rail pages use a consistent tab structure via `RailPageTabs`:
+
+| Tab | Shows | Rail 1 | Rail 2 | Rail 4/5 |
+|---|---|---|---|---|
+| Wallets/Cards | Entity list with action bars | Yes | Yes | Yes |
+| Transactions | Financial ledger (deposits, debits, transfers) | Yes | Yes | When endpoint added |
+| Orders | Procurement records (vendor, product, shipping) | No | Yes | When endpoint added |
+| Approvals | Pending approval queue with approve/reject | Yes | Yes | When endpoint added |
+
+Rail 1 (`stripe-wallet/page.tsx`, ~313 lines) and Rail 2 (`card-wallet/page.tsx`, ~515 lines) use shared hooks and all shared tab content components. Rail 2 separates purchases into Orders tab and transfers/deposits into Transactions tab. Remaining page-specific code is genuinely rail-specific: Stripe Onramp Sheet (Rail 1), CrossMint checkout + fund dialog (Rail 2).
 
 ### Key Routes
 - `/`: Consumer landing page
