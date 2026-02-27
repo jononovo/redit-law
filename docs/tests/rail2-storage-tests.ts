@@ -73,8 +73,6 @@ async function runStorageTests() {
       dailyBudgetUsdc: 50000000,
       monthlyBudgetUsdc: 200000000,
       requireApprovalAbove: 0,
-      allowlistedMerchants: ["amazon"],
-      blocklistedMerchants: ["ebay"],
       autoPauseOnZero: true,
     });
     log("crossmintUpsertGuardrails (create)", !!guardrails && guardrails.maxPerTxUsdc === 10000000);

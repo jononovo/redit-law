@@ -11,6 +11,9 @@ const patchSchema = z.object({
   daily_limit_cents: z.number().int().min(100).max(10000000).optional(),
   monthly_limit_cents: z.number().int().min(100).max(100000000).optional(),
   human_approval_above_cents: z.number().int().min(0).max(10000000).optional(),
+  approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).optional(),
+  recurring_allowed: z.boolean().optional(),
+  notes: z.string().max(2000).nullable().optional(),
   status: z.enum(["active", "frozen"]).optional(),
 });
 
@@ -59,6 +62,9 @@ export async function PATCH(
   if (data.daily_limit_cents !== undefined) guardrailUpdates.dailyBudgetCents = data.daily_limit_cents;
   if (data.monthly_limit_cents !== undefined) guardrailUpdates.monthlyBudgetCents = data.monthly_limit_cents;
   if (data.human_approval_above_cents !== undefined) guardrailUpdates.requireApprovalAbove = data.human_approval_above_cents;
+  if (data.approval_mode !== undefined) guardrailUpdates.approvalMode = data.approval_mode;
+  if (data.recurring_allowed !== undefined) guardrailUpdates.recurringAllowed = data.recurring_allowed;
+  if (data.notes !== undefined) guardrailUpdates.notes = data.notes;
 
   if (data.status !== undefined) {
     if (card.status === "pending_setup") {
@@ -115,6 +121,9 @@ export async function PATCH(
     daily_limit_cents: guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
     monthly_limit_cents: guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
     human_approval_above_cents: guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
+    approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail5.approvalMode,
+    recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail5.recurringAllowed,
+    notes: guard?.notes ?? null,
     created_at: updated!.createdAt.toISOString(),
   });
 }
@@ -155,6 +164,9 @@ export async function GET(
     daily_limit_cents: guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
     monthly_limit_cents: guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
     human_approval_above_cents: guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
+    approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail5.approvalMode,
+    recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail5.recurringAllowed,
+    notes: guard?.notes ?? null,
     created_at: card.createdAt.toISOString(),
     checkouts: checkouts.map((c) => ({
       checkout_id: c.checkoutId,

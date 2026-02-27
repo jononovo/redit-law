@@ -81,21 +81,33 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
     autoPauseOnZero: rail4Guard?.autoPauseOnZero ?? GUARDRAIL_DEFAULTS.rail4.autoPauseOnZero,
   };
 
-  const dailySpendCents = await storage.getRail4DailySpendCents(card.cardId);
-  const monthlySpendCents = await storage.getRail4MonthlySpendCents(card.cardId);
+  const approvalMode = rail4Guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode;
 
-  const cardDecision = evaluateCardGuardrails(
-    cardRules,
-    { amountCents: amount_cents },
-    { dailyCents: dailySpendCents, monthlyCents: monthlySpendCents }
-  );
+  let cardRequiresApproval = false;
 
-  if (cardDecision.action === "block") {
-    return NextResponse.json({
-      approved: false,
-      error: "card_guardrail_violation",
-      message: cardDecision.reason,
-    }, { status: 403 });
+  if (approvalMode === "ask_for_everything") {
+    cardRequiresApproval = true;
+  } else {
+    const dailySpendCents = await storage.getRail4DailySpendCents(card.cardId);
+    const monthlySpendCents = await storage.getRail4MonthlySpendCents(card.cardId);
+
+    const cardDecision = evaluateCardGuardrails(
+      cardRules,
+      { amountCents: amount_cents },
+      { dailyCents: dailySpendCents, monthlyCents: monthlySpendCents }
+    );
+
+    if (cardDecision.action === "block") {
+      return NextResponse.json({
+        approved: false,
+        error: "card_guardrail_violation",
+        message: cardDecision.reason,
+      }, { status: 403 });
+    }
+
+    if (cardDecision.action === "require_approval") {
+      cardRequiresApproval = true;
+    }
   }
 
   const permissions: ProfilePermission[] = card.profilePermissions
@@ -145,7 +157,7 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
   }
 
   if (isRealProfile) {
-    return handleRealCheckout(bot, card, profilePerm, parsed.data, windowStart, usage);
+    return handleRealCheckout(bot, card, profilePerm, parsed.data, windowStart, usage, cardRequiresApproval);
   } else {
     return handleFakeCheckout(bot, card, profilePerm, parsed.data, windowStart, usage);
   }
@@ -231,6 +243,7 @@ async function handleRealCheckout(
   data: { profile_index: number; merchant_name: string; merchant_url: string; item_name: string; amount_cents: number; category?: string },
   windowStart: Date,
   usage: any,
+  cardRequiresApproval: boolean,
 ) {
   const wallet = await storage.getWalletByBotId(bot.botId);
   if (!wallet) {
@@ -281,7 +294,9 @@ async function handleRealCheckout(
   const exemptUsed = usage?.exemptUsed || false;
   let needsHumanConfirmation = false;
 
-  if (perm.human_permission_required === "all") {
+  if (cardRequiresApproval) {
+    needsHumanConfirmation = true;
+  } else if (perm.human_permission_required === "all") {
     needsHumanConfirmation = true;
   } else if (perm.human_permission_required === "above_exempt") {
     if (data.amount_cents <= exemptLimitCents && !exemptUsed) {

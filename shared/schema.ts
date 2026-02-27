@@ -423,9 +423,9 @@ export const privyGuardrails = pgTable("privy_guardrails", {
   monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail1.monthlyBudgetUsdc),
   requireApprovalAbove: integer("require_approval_above"),
   approvalMode: text("approval_mode").notNull().default(GUARDRAIL_DEFAULTS.rail1.approvalMode),
-  allowlistedDomains: jsonb("allowlisted_domains").$type<string[]>().default([]),
-  blocklistedDomains: jsonb("blocklisted_domains").$type<string[]>().default([]),
+  recurringAllowed: boolean("recurring_allowed").notNull().default(GUARDRAIL_DEFAULTS.rail1.recurringAllowed),
   autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(GUARDRAIL_DEFAULTS.rail1.autoPauseOnZero),
+  notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -488,9 +488,9 @@ export const setPrivyGuardrailsSchema = z.object({
   monthly_budget_usdc: z.number().int().min(0).optional(),
   require_approval_above: z.number().int().min(0).nullable().optional(),
   approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).optional(),
-  allowlisted_domains: z.array(z.string()).optional(),
-  blocklisted_domains: z.array(z.string()).optional(),
+  recurring_allowed: z.boolean().optional(),
   auto_pause_on_zero: z.boolean().optional(),
+  notes: z.string().max(2000).nullable().optional(),
 });
 
 export const privyOnrampSessionSchema = z.object({
@@ -538,9 +538,10 @@ export const crossmintGuardrails = pgTable("crossmint_guardrails", {
   dailyBudgetUsdc: integer("daily_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail2.dailyBudgetUsdc),
   monthlyBudgetUsdc: integer("monthly_budget_usdc").notNull().default(GUARDRAIL_DEFAULTS.rail2.monthlyBudgetUsdc),
   requireApprovalAbove: integer("require_approval_above").notNull().default(GUARDRAIL_DEFAULTS.rail2.requireApprovalAbove),
-  allowlistedMerchants: jsonb("allowlisted_merchants").$type<string[]>().default([]),
-  blocklistedMerchants: jsonb("blocklisted_merchants").$type<string[]>().default([]),
+  approvalMode: text("approval_mode").notNull().default(GUARDRAIL_DEFAULTS.rail2.approvalMode),
+  recurringAllowed: boolean("recurring_allowed").notNull().default(GUARDRAIL_DEFAULTS.rail2.recurringAllowed),
   autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(GUARDRAIL_DEFAULTS.rail2.autoPauseOnZero),
+  notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -629,9 +630,10 @@ export const setCrossmintGuardrailsSchema = z.object({
   daily_budget_usdc: z.number().int().min(0).optional(),
   monthly_budget_usdc: z.number().int().min(0).optional(),
   require_approval_above: z.number().int().min(0).optional(),
-  allowlisted_merchants: z.array(z.string()).optional(),
-  blocklisted_merchants: z.array(z.string()).optional(),
+  approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).optional(),
+  recurring_allowed: z.boolean().optional(),
   auto_pause_on_zero: z.boolean().optional(),
+  notes: z.string().max(2000).nullable().optional(),
 });
 
 export const crossmintOnrampSessionSchema = z.object({
@@ -747,7 +749,10 @@ export const rail5Guardrails = pgTable("rail5_guardrails", {
   dailyBudgetCents: integer("daily_budget_cents").notNull().default(GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents),
   monthlyBudgetCents: integer("monthly_budget_cents").notNull().default(GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents),
   requireApprovalAbove: integer("require_approval_above"),
+  approvalMode: text("approval_mode").notNull().default(GUARDRAIL_DEFAULTS.rail5.approvalMode),
+  recurringAllowed: boolean("recurring_allowed").notNull().default(GUARDRAIL_DEFAULTS.rail5.recurringAllowed),
   autoPauseOnZero: boolean("auto_pause_on_zero").notNull().default(GUARDRAIL_DEFAULTS.rail5.autoPauseOnZero),
+  notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -763,7 +768,10 @@ export const upsertRail5GuardrailsSchema = z.object({
   daily_budget_cents: z.number().int().min(0).max(10000000).optional(),
   monthly_budget_cents: z.number().int().min(0).max(100000000).optional(),
   require_approval_above: z.number().int().min(0).nullable().optional(),
+  approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).optional(),
+  recurring_allowed: z.boolean().optional(),
   auto_pause_on_zero: z.boolean().optional(),
+  notes: z.string().max(2000).nullable().optional(),
 });
 
 // ─── Procurement Controls ─────────────────────────────────────────────────────

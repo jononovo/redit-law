@@ -12,6 +12,7 @@ export const GUARDRAIL_DEFAULTS = {
     monthlyBudgetUsdc: 50,
     requireApprovalAbove: null as number | null,
     approvalMode: "ask_for_everything",
+    recurringAllowed: false,
     autoPauseOnZero: true,
   },
 
@@ -20,6 +21,8 @@ export const GUARDRAIL_DEFAULTS = {
     dailyBudgetUsdc: 10,
     monthlyBudgetUsdc: 50,
     requireApprovalAbove: 0,
+    approvalMode: "ask_for_everything",
+    recurringAllowed: false,
     autoPauseOnZero: true,
   },
 
@@ -38,6 +41,8 @@ export const GUARDRAIL_DEFAULTS = {
     dailyBudgetCents: 10000,
     monthlyBudgetCents: 50000,
     requireApprovalAbove: 2500 as number | null,
+    approvalMode: "auto_approve_under_threshold",
+    recurringAllowed: false,
     autoPauseOnZero: false,
   },
 } as const;

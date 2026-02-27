@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
     }
 
-    const guardrails = await storage.crossmintGetGuardrails(wallet.id);
-    return NextResponse.json({ guardrails });
+    const [guardrails, procControls] = await Promise.all([
+      storage.crossmintGetGuardrails(wallet.id),
+      storage.getProcurementControlsByScope(user.uid, "rail2"),
+    ]);
+
+    return NextResponse.json({
+      guardrails: guardrails ? {
+        ...guardrails,
+        allowlistedMerchants: procControls?.allowlistedMerchants ?? [],
+        blocklistedMerchants: procControls?.blocklistedMerchants ?? [],
+      } : null,
+    });
   } catch (error) {
     console.error("GET /api/v1/card-wallet/guardrails error:", error);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
@@ -53,9 +63,10 @@ export async function POST(request: NextRequest) {
     if (guardrailData.daily_budget_usdc !== undefined) updateData.dailyBudgetUsdc = guardrailData.daily_budget_usdc;
     if (guardrailData.monthly_budget_usdc !== undefined) updateData.monthlyBudgetUsdc = guardrailData.monthly_budget_usdc;
     if (guardrailData.require_approval_above !== undefined) updateData.requireApprovalAbove = guardrailData.require_approval_above;
-    if (guardrailData.allowlisted_merchants !== undefined) updateData.allowlistedMerchants = guardrailData.allowlisted_merchants;
-    if (guardrailData.blocklisted_merchants !== undefined) updateData.blocklistedMerchants = guardrailData.blocklisted_merchants;
+    if (guardrailData.approval_mode !== undefined) updateData.approvalMode = guardrailData.approval_mode;
+    if (guardrailData.recurring_allowed !== undefined) updateData.recurringAllowed = guardrailData.recurring_allowed;
     if (guardrailData.auto_pause_on_zero !== undefined) updateData.autoPauseOnZero = guardrailData.auto_pause_on_zero;
+    if (guardrailData.notes !== undefined) updateData.notes = guardrailData.notes;
 
     const guardrails = await storage.crossmintUpsertGuardrails(wallet_id, updateData);
     return NextResponse.json({ guardrails });

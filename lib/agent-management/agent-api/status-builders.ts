@@ -33,6 +33,9 @@ export async function buildRail1Detail(botId: string) {
       monthly_spent_usd: monthlySpendUsd,
       monthly_remaining_usd: Math.max(0, monthlyBudget - monthlySpendUsd),
       require_approval_above_usd: guardrails?.requireApprovalAbove ?? null,
+      approval_mode: guardrails?.approvalMode ?? GUARDRAIL_DEFAULTS.rail1.approvalMode,
+      recurring_allowed: guardrails?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail1.recurringAllowed,
+      notes: guardrails?.notes ?? null,
     },
     domain_rules: {
       allowlisted: (procRules?.allowlistedDomains as string[]) ?? [],
@@ -73,6 +76,9 @@ export async function buildRail2Detail(botId: string) {
       monthly_spent_usd: monthlySpendUsd,
       monthly_remaining_usd: Math.max(0, monthlyBudget - monthlySpendUsd),
       require_approval_above_usd: guardrails?.requireApprovalAbove ?? 0,
+      approval_mode: guardrails?.approvalMode ?? GUARDRAIL_DEFAULTS.rail2.approvalMode,
+      recurring_allowed: guardrails?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail2.recurringAllowed,
+      notes: guardrails?.notes ?? null,
     },
     merchant_rules: {
       allowlisted: (procRules?.allowlistedMerchants as string[]) ?? [],
@@ -172,7 +178,10 @@ export async function buildRail4Detail(botId: string) {
           max_per_tx_usd: guard.maxPerTxCents / 100,
           daily_budget_usd: guard.dailyBudgetCents / 100,
           monthly_budget_usd: guard.monthlyBudgetCents / 100,
+          require_approval_above_usd: guard.requireApprovalAbove != null ? guard.requireApprovalAbove / 100 : null,
+          approval_mode: guard.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode,
           recurring_allowed: guard.recurringAllowed,
+          notes: guard.notes ?? null,
         } : null,
       };
     }),
@@ -197,6 +206,15 @@ export async function buildRail5Detail(botId: string) {
     card_name: card.cardName,
     card_brand: card.cardBrand,
     last4: card.cardLast4,
+    guardrails: {
+      max_per_tx_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents) / 100,
+      daily_budget_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents) / 100,
+      monthly_budget_usd: (guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents) / 100,
+      require_approval_above_usd: (guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove ?? 2500) / 100,
+      approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail5.approvalMode,
+      recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail5.recurringAllowed,
+      notes: guard?.notes ?? null,
+    },
     limits: {
       per_transaction_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents) / 100,
       daily_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents) / 100,

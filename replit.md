@@ -32,12 +32,21 @@ New features should follow a feature-first folder structure. Each rail lives und
 - `types.ts` — `GuardrailRules` (USDC-based for Rails 1/2), `CardGuardrailRules` (cents-based for Rails 4/5), `TransactionRequest`, `CardTransactionRequest`, `CumulativeSpend`, `CardCumulativeSpend`, `GuardrailDecision` interfaces.
 - `evaluate.ts` — two pure evaluation functions: `evaluateGuardrails()` for USDC rails (1 & 2) and `evaluateCardGuardrails()` for card rails (4 & 5). Only enforces spending limits and approval thresholds — domain/merchant/category enforcement is handled by procurement controls.
 - `master.ts` — master-level guardrail evaluation (fetches config, aggregates cross-rail spend, calls `evaluateGuardrails`).
+- **Standardized Structure**: All four rail guardrail tables have identical columns (differing only in `_usdc` vs `_cents` suffix and FK type): `maxPerTx`, `dailyBudget`, `monthlyBudget`, `requireApprovalAbove`, `approvalMode`, `recurringAllowed`, `autoPauseOnZero`, `notes`, `updatedAt`, `updatedBy`. Domain/merchant/category lists are NOT guardrails — they live exclusively in `procurement_controls`.
+- **approvalMode Enforcement**: All four checkout routes check `approvalMode` before running the evaluator:
+  - `ask_for_everything` → immediately require owner approval (skip evaluator)
+  - `auto_approve_under_threshold` → run evaluator; only require approval if amount exceeds `requireApprovalAbove`
+  - `auto_approve_by_category` → treated same as `auto_approve_under_threshold` (future feature)
+  - Defaults: Rail 1/2/4 default to `ask_for_everything`, Rail 5 defaults to `auto_approve_under_threshold`
+- **recurringAllowed**: Column exists on all rails for structural consistency but is not yet enforced in checkout routes (pending recurring detection logic).
+- **notes**: Informational field on all rails, returned in API responses but not used in enforcement.
 
 **Procurement Controls** (`lib/procurement-controls/`):
 - `types.ts` — `ProcurementRules`, `ProcurementRequest`, `ProcurementDecision` interfaces.
 - `defaults.ts` — `DEFAULT_PROCUREMENT_RULES` with default blocked categories.
 - `evaluate.ts` — `evaluateProcurementControls()` checks domain, merchant, and category rules. `mergeProcurementRules()` combines master + rail-level rules (blocklists are unioned, allowlists are intersected).
 - DB table: `procurement_controls` with `scope` (master/rail1/rail2/rail4/rail5) and `scope_ref_id` for per-rail granularity. Owner-facing API: `GET/POST /api/v1/procurement-controls` and `GET /api/v1/procurement-controls/[scope]`.
+- **Fully separated from guardrails**: Domain/merchant/category lists are exclusively managed by `procurement_controls`. The guardrails tables (`privy_guardrails`, `crossmint_guardrails`, `rail4_guardrails`, `rail5_guardrails`) no longer have `allowlisted_domains`, `blocklisted_domains`, `allowlisted_merchants`, or `blocklisted_merchants` columns. The guardrails GET APIs still return these fields in the response by reading from `procurement_controls`, maintaining backward compatibility. The card-wallet frontend saves merchant lists to `POST /api/v1/procurement-controls` separately from guardrail limit saves.
 
 **Storage is modularized** under `server/storage/` with domain-grouped files:
 - `types.ts` — the `IStorage` interface (single source of truth for all method signatures)
