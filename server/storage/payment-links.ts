@@ -54,9 +54,9 @@ export const paymentLinkMethods: PaymentLinkMethods = {
   },
 
   async getPaymentLinksByOwnerUid(ownerUid: string, limit = 50): Promise<PaymentLink[]> {
-    const ownerBots = await this.getBotsByOwnerUid(ownerUid);
+    const ownerBots = await (this as unknown as IStorage).getBotsByOwnerUid(ownerUid);
     if (ownerBots.length === 0) return [];
-    const botIds = ownerBots.map(b => b.botId);
+    const botIds = ownerBots.map((b: { botId: string }) => b.botId);
     return db
       .select()
       .from(paymentLinks)

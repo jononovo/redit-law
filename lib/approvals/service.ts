@@ -115,7 +115,7 @@ export async function resolveApproval(
   approvalId: string,
   action: "approve" | "deny",
   hmacToken: string
-): Promise<{ success: boolean; approval?: UnifiedApproval; error?: string }> {
+): Promise<{ success: boolean; approval?: UnifiedApproval; error?: string; callbackError?: string }> {
   if (!verifyHmac(approvalId, hmacToken)) {
     return { success: false, error: "invalid_token" };
   }
