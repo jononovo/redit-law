@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Copy, CheckCircle2, Clock, XCircle, DollarSign, ArrowLeftRight, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, CheckCircle2, Clock, XCircle, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
@@ -20,6 +18,8 @@ import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
 import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import { CreateCryptoWalletDialog } from "@/components/wallet/dialogs/create-crypto-wallet-dialog";
+import { useStripeOnramp } from "@/lib/crypto-onramp/components/use-stripe-onramp";
+import { StripeOnrampSheet } from "@/lib/crypto-onramp/components/stripe-onramp-sheet";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
 
 export default function StripeWalletPage() {
@@ -32,13 +32,6 @@ export default function StripeWalletPage() {
   const [selectedWallet, setSelectedWallet] = useState<Rail1WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
-
-  const [onrampDialogOpen, setOnrampDialogOpen] = useState(false);
-  const [onrampWallet, setOnrampWallet] = useState<Rail1WalletInfo | null>(null);
-  const [onrampLoading, setOnrampLoading] = useState(false);
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const onrampMountRef = useRef<HTMLDivElement>(null);
-  const onrampSessionRef = useRef<any>(null);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -109,6 +102,11 @@ export default function StripeWalletPage() {
     onUpdate: fetchWallets,
   });
 
+  const onramp = useStripeOnramp({
+    apiEndpoint: "/api/v1/stripe-wallet/onramp/session",
+    onFundingComplete: fetchWallets,
+  });
+
   useEffect(() => {
     if (user) {
       fetchWallets();
@@ -133,120 +131,6 @@ export default function StripeWalletPage() {
       default: return <Clock className="w-4 h-4 text-neutral-400" />;
     }
   };
-
-  function loadScript(src: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = src;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load ${src}`));
-      document.head.appendChild(script);
-    });
-  }
-
-  async function handleOpenOnramp(wallet: Rail1WalletInfo) {
-    setOnrampWallet(wallet);
-    setOnrampLoading(true);
-
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/onramp/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: wallet.id }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        toast({ title: "Error", description: err.error || "Failed to create onramp session", variant: "destructive" });
-        setOnrampLoading(false);
-        return;
-      }
-
-      const data = await res.json();
-      const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-      const isInIframe = window.self !== window.top;
-      console.log("[Onramp] Session ready:", { sessionId: data.session_id, hasClientSecret: !!data.client_secret, hasRedirectUrl: !!data.redirect_url, isInIframe });
-
-      if (publishableKey && !isInIframe) {
-        setOnrampDialogOpen(true);
-
-        try {
-          await loadScript("https://js.stripe.com/clover/stripe.js");
-          await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
-
-          const StripeOnramp = (window as any).StripeOnramp;
-          if (!StripeOnramp) throw new Error("SDK not loaded");
-
-          const stripeOnramp = StripeOnramp(publishableKey);
-          const session = stripeOnramp.createSession({
-            clientSecret: data.client_secret,
-          });
-
-          onrampSessionRef.current = session;
-
-          session.addEventListener("onramp_ui_loaded", () => {
-            console.log("[Onramp] Widget UI loaded successfully");
-          });
-
-          session.addEventListener("onramp_session_updated", (e: any) => {
-            const status = e?.payload?.session?.status;
-            console.log("[Onramp] Session status:", status);
-            if (status === "fulfillment_complete") {
-              toast({ title: "Funding complete!", description: "USDC has been delivered to your wallet." });
-              fetchWallets();
-            }
-          });
-
-          setTimeout(() => {
-            if (onrampMountRef.current) {
-              session.mount(onrampMountRef.current);
-            } else {
-              console.error("[Onramp] Mount ref is null");
-            }
-            setOnrampLoading(false);
-          }, 100);
-        } catch (embeddedErr) {
-          console.error("[Onramp] Embedded widget failed:", embeddedErr);
-          setOnrampDialogOpen(false);
-          if (data.redirect_url) {
-            window.open(data.redirect_url, "_blank");
-            toast({ title: "Opening Stripe", description: "Stripe onramp opened in a new tab." });
-          } else {
-            toast({ title: "Error", description: "Failed to load onramp widget", variant: "destructive" });
-          }
-          setOnrampLoading(false);
-        }
-      } else if (data.redirect_url) {
-        window.open(data.redirect_url, "_blank");
-        toast({ title: "Opening Stripe", description: "Stripe onramp opened in a new tab." });
-        setOnrampLoading(false);
-      } else {
-        toast({ title: "Configuration needed", description: "Stripe publishable key is required for embedded onramp, and no hosted redirect is available.", variant: "destructive" });
-        setOnrampLoading(false);
-      }
-    } catch (err) {
-      console.error("Onramp error:", err);
-      toast({ title: "Error", description: "Failed to initialize onramp", variant: "destructive" });
-      setOnrampLoading(false);
-    }
-  }
-
-  function handleCloseOnramp() {
-    if (onrampSessionRef.current) {
-      try {
-        onrampSessionRef.current.destroy?.();
-      } catch {}
-      onrampSessionRef.current = null;
-    }
-    setOnrampDialogOpen(false);
-    setOnrampWallet(null);
-    setOnrampLoading(false);
-  }
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -315,7 +199,7 @@ export default function StripeWalletPage() {
                   key={wallet.id}
                   wallet={wallet}
                   color="blue"
-                  onFund={() => handleOpenOnramp(wallet)}
+                  onFund={() => onramp.open({ id: wallet.id, address: wallet.address, bot_name: wallet.bot_name })}
                   onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
                   onGuardrails={() => guardrails.openDialog(wallet)}
                   onActivity={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
@@ -487,137 +371,7 @@ export default function StripeWalletPage() {
         variant="crypto"
       />
 
-      <Sheet open={onrampDialogOpen} onOpenChange={(open) => { if (!open) setShowCloseConfirm(true); }}>
-        <SheetContent
-          side="right"
-          size="lg"
-          overlayTitle={onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
-          overlayDescription={"Transfer to your USDC wallet.\nUse a credit card or bank connection via Stripe."}
-          overlayExtra={onrampWallet ? (
-            <div className="mt-6 space-y-4 max-w-xs mx-auto">
-              <div>
-                <p className="text-sm text-white/70 font-semibold mb-2">Wallet Address</p>
-                <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
-                  <code className="text-sm text-white/70 font-mono truncate flex-1" data-testid="text-onramp-wallet-address">
-                    {onrampWallet.address}
-                  </code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(onrampWallet.address);
-                      toast({ title: "Wallet address copied!" });
-                    }}
-                    className="text-white/70 hover:text-white transition-colors flex-shrink-0 cursor-pointer"
-                    data-testid="button-copy-onramp-address"
-                  >
-                    <Copy className="w-5 h-5" />
-                  </button>
-                </div>
-                <p className="text-sm text-white/70 mt-2 leading-relaxed">
-                  You will need to paste your wallet address when funding for the first time. Copy it from here.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full border-white/30 text-white/70 hover:bg-white/10 hover:text-white cursor-pointer"
-                onClick={() => setShowCloseConfirm(true)}
-                data-testid="button-close-stripe-funding"
-              >
-                Close Stripe Funding
-              </Button>
-            </div>
-          ) : undefined}
-          className="overflow-y-auto p-0"
-          data-testid="drawer-onramp"
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
-          <SheetTitle className="sr-only">
-            {onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund Wallet "${onrampWallet.bot_name}" via Stripe/Link` : "Fund Wallet via Stripe/Link"}
-          </SheetTitle>
-          <SheetDescription className="sr-only">
-            Transfer to your USDC wallet. Use a credit card or bank connection via Stripe.
-          </SheetDescription>
-          <div className="p-6 md:hidden border-b border-border">
-            <div className="flex items-center gap-2 pr-8">
-              <DollarSign className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-              <h2 className="text-lg font-semibold text-foreground">
-                {onrampWallet && onrampWallet.bot_name && onrampWallet.bot_name !== "Unknown Bot" ? `Fund "${onrampWallet.bot_name}"` : "Fund Wallet"}
-              </h2>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              Transfer to your USDC wallet here on CreditClaw.
-            </p>
-            {onrampWallet && (
-              <div className="mt-3">
-                <p className="text-xs text-muted-foreground mb-1">Wallet Address</p>
-                <div className="flex items-center gap-2 bg-neutral-100 rounded-lg px-3 py-2">
-                  <code className="text-xs font-mono truncate flex-1">{onrampWallet.address}</code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(onrampWallet.address);
-                      toast({ title: "Wallet address copied!" });
-                    }}
-                    className="text-neutral-400 hover:text-neutral-700 transition-colors flex-shrink-0 cursor-pointer"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Paste this address when prompted during Stripe funding.
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="flex-1 relative min-h-[500px]">
-            {onrampLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-10">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                  <p className="text-sm text-muted-foreground">Loading Stripe onramp...</p>
-                </div>
-              </div>
-            )}
-            <div ref={onrampMountRef} id="stripe-onramp-element" className="w-full min-h-[480px] p-4" data-testid="container-onramp-widget" />
-          </div>
-          <div className="p-4 border-t border-border md:hidden">
-            <Button
-              variant="outline"
-              className="w-full cursor-pointer"
-              onClick={() => setShowCloseConfirm(true)}
-              data-testid="button-close-stripe-funding-mobile"
-            >
-              Close Stripe Funding
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Close Stripe Funding?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to close this Stripe Funding process? You will lose your progress.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-close-funding">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                setShowCloseConfirm(false);
-                handleCloseOnramp();
-              }}
-              data-testid="button-confirm-close-funding"
-            >
-              Yes, Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StripeOnrampSheet onramp={onramp} />
 
       <LinkBotDialog
         open={!!botLinking.linkTarget}

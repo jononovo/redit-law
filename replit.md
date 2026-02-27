@@ -95,7 +95,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/sign.ts` — `signTypedData()` for x402 EIP-712 signing.
   - `wallet/transfer.ts` — `sendUsdcTransfer()` via Privy RPC with ERC-20 calldata.
   - `wallet/balance.ts` — `getOnChainUsdcBalance()` via viem + Base RPC.
-  - `onramp.ts` — `createOnrampSession()` via Stripe Crypto Onramp API.
+  - `onramp.ts` — re-export shim for `createStripeOnrampSession` from `lib/crypto-onramp/stripe-onramp/session.ts`.
   - `x402.ts` — x402 typed data builders (`buildTransferWithAuthorizationTypedData`, `buildXPaymentHeader`, `generateNonce`) and USDC format helpers (`formatUsdc`, `usdToMicroUsdc`, `microUsdcToUsd`).
   - Webhook: `STRIPE_WEBHOOK_SECRET_ONRAMP` env var, event type `crypto.onramp_session.updated`. Balance sync endpoint: `POST /api/v1/stripe-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `privy_wallets`.
 - **Rail 2 (Card Wallet):** Uses CrossMint smart wallets on Base chain, USDC funding via fiat onramp, and Amazon/commerce purchases via Orders API. Employs merchant allow/blocklists. **Modularized under `lib/rail2/`:**
@@ -103,7 +103,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/create.ts` — `createSmartWallet()` using `evm-fireblocks-custodial` signer.
   - `wallet/balance.ts` — `getWalletBalance()` with balance parsing for old/new response formats.
   - `wallet/transfer.ts` — `sendUsdcTransfer()` for on-chain USDC transfers.
-  - `orders/purchase.ts` — `createPurchaseOrder()`, `getOrderStatus()`, `ShippingAddress` interface.
+  - `orders/purchase.ts` — re-export shim for `createPurchaseOrder()`, `getOrderStatus()` from `lib/procurement/crossmint-worldstore/purchase.ts`.
   - `orders/onramp.ts` — `createOnrampOrder()` for fiat-to-USDC via checkoutcom-flow.
   - On-chain balance sync via reused `getOnChainUsdcBalance` from `lib/rail1/wallet/balance.ts`. Balance sync endpoint: `POST /api/v1/card-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `crossmint_wallets`. Frontend ↻ button on Card Wallet dashboard mirrors Rail 1 pattern.
 - **Master Guardrails:** Owner-level, cross-rail spending limits stored in a `master_guardrails` table. These guardrails are checked before per-rail guardrails and aggregate spend across all active rails.
@@ -162,6 +162,22 @@ All four rails route approval emails through a single system under `lib/approval
 - **Env Vars**: `UNIFIED_APPROVAL_HMAC_SECRET` (falls back to `HMAC_SECRET` or default).
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
 - **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
+
+### Crypto Onramp (`lib/crypto-onramp/`)
+Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.
+- **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
+- **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address
+- **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — extracted from webhook route
+- **`stripe-onramp/types.ts`** — Stripe-specific payload types
+- **`components/use-stripe-onramp.ts`** — React hook encapsulating session creation, Stripe SDK script loading, widget mounting, close-confirm flow
+- **`components/stripe-onramp-sheet.tsx`** — `StripeOnrampSheet` — full Sheet + embedded Stripe widget + mobile header + close-confirm dialog
+- Currently hardcoded to Rail 1 only. Adding another rail = new API route + button, zero changes to the module itself.
+
+### Procurement (`lib/procurement/`)
+Standalone module for spending USDC on products/services. Provider-agnostic structure — CrossMint WorldStore is the first provider.
+- **`types.ts`** — `PurchaseRequest`, `PurchaseResult`, `ShippingAddress`, `ProcurementProvider`
+- **`crossmint-worldstore/purchase.ts`** — `createPurchaseOrder()`, `getOrderStatus()` — moved from `lib/rail2/orders/purchase.ts`
+- Future providers (direct merchant APIs, browser checkout agents) slot in as siblings under `lib/procurement/`.
 
 ### Agent Management (`lib/agent-management/`)
 Bot linking/unlinking is centralized in `lib/agent-management/bot-linking.ts`. A single `linkBotToEntity(rail, entityId, botId, ownerUid)` / `unlinkBotFromEntity(rail, entityId, ownerUid)` function handles all four rails with uniform rules:
