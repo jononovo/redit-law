@@ -21,6 +21,7 @@ import { useStripeOnramp } from "@/lib/crypto-onramp/components/use-stripe-onram
 import { StripeOnrampSheet } from "@/lib/crypto-onramp/components/stripe-onramp-sheet";
 import { RailPageTabs } from "@/components/wallet/rail-page-tabs";
 import { TransactionList } from "@/components/wallet/transaction-list";
+import { OrderList } from "@/components/wallet/order-list";
 import { ApprovalList } from "@/components/wallet/approval-list";
 import { WalletSelector } from "@/components/wallet/wallet-selector";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
@@ -225,6 +226,11 @@ export default function StripeWalletPage() {
                 <TransactionList transactions={transactions} testIdPrefix="tx" />
               </>
             ),
+          },
+          {
+            id: "orders",
+            label: "Orders",
+            content: <OrderList orders={[]} testIdPrefix="order" />,
           },
           {
             id: "approvals",

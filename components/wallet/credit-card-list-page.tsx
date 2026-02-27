@@ -13,6 +13,7 @@ import { UnlinkBotDialog } from "./dialogs/unlink-bot-dialog";
 import { CreditCardItem } from "./credit-card-item";
 import { RailPageTabs, type RailTab } from "./rail-page-tabs";
 import { TransactionList, type TransactionRow } from "./transaction-list";
+import { OrderList } from "./order-list";
 import { ApprovalList, type ApprovalRow } from "./approval-list";
 import type { NormalizedCard } from "./types";
 
@@ -140,9 +141,6 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
   }
 
   const supportsBotLinking = config.supportsBotLinking !== false;
-  const hasTransactions = !!config.transactionsEndpoint;
-  const hasApprovals = !!config.approvalsEndpoint;
-  const hasTabs = hasTransactions || hasApprovals;
 
   const cardListContent = loading ? (
     <div className="flex items-center justify-center py-24" data-testid="loading-cards">
@@ -182,18 +180,17 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
 
   const tabs: RailTab[] = [
     { id: "cards", label: "Cards", content: cardListContent },
-  ];
-
-  if (hasTransactions) {
-    tabs.push({
+    {
       id: "transactions",
       label: "Transactions",
       content: <TransactionList transactions={transactions} testIdPrefix="tx" />,
-    });
-  }
-
-  if (hasApprovals) {
-    tabs.push({
+    },
+    {
+      id: "orders",
+      label: "Orders",
+      content: <OrderList orders={[]} testIdPrefix="order" />,
+    },
+    {
       id: "approvals",
       label: "Approvals",
       badge: approvals.length,
@@ -204,8 +201,8 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
           onDecide={(id, decision) => walletActions.handleApprovalDecision(id, decision, { onSuccess: fetchApprovals })}
         />
       ),
-    });
-  }
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -264,16 +261,12 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
 
       {config.explainer}
 
-      {hasTabs ? (
-        <RailPageTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          testIdPrefix={config.railPrefix}
-          tabs={tabs}
-        />
-      ) : (
-        cardListContent
-      )}
+      <RailPageTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        testIdPrefix={config.railPrefix}
+        tabs={tabs}
+      />
     </div>
   );
 }
