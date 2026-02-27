@@ -153,11 +153,10 @@ export default function Rail5CardDetailPage() {
         holder={card.card_name.toUpperCase()}
         frozen={card.status === "frozen"}
         expiry="••/••"
-        allowanceLabel={`Daily: ${formatLimit(card.daily_limit_cents)}`}
-        resetsLabel={`Monthly: ${formatLimit(card.monthly_limit_cents)}`}
+        line1={`Daily: ${formatLimit(card.daily_limit_cents)}`}
+        line2={`Monthly: ${formatLimit(card.monthly_limit_cents)}`}
         status={card.status}
         brand={card.card_brand}
-        variant="credit-card"
       />
 
       <div className="bg-white rounded-2xl border border-neutral-100 p-6 space-y-4">

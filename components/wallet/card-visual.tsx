@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Snowflake, Shield } from "lucide-react";
+import { Snowflake } from "lucide-react";
 
 interface CardVisualProps {
   color?: "primary" | "dark" | "blue" | "purple";
@@ -10,11 +10,10 @@ interface CardVisualProps {
   balanceLabel?: string;
   frozen?: boolean;
   className?: string;
-  allowanceLabel?: string;
-  resetsLabel?: string;
+  line1?: string;
+  line2?: string;
   status?: string;
   brand?: string;
-  variant?: "credit-card" | "id-card";
 }
 
 const BRAND_DISPLAY: Record<string, string> = {
@@ -24,22 +23,21 @@ const BRAND_DISPLAY: Record<string, string> = {
   discover: "DISC",
 };
 
-export function CardVisual({ 
-  color = "primary", 
-  last4 = "4242", 
-  expiry = "12/28", 
+export function CardVisual({
+  color = "primary",
+  last4 = "••••",
+  expiry = "••/••",
   holder = "OPENCLAW AGENT 01",
-  balance = "$5,000.00",
+  balance = "$0.00",
   balanceLabel = "Current Balance",
   frozen = false,
   className,
-  allowanceLabel,
-  resetsLabel,
+  line1,
+  line2,
   status,
   brand,
-  variant = "credit-card",
 }: CardVisualProps) {
-  
+
   const gradients = {
     primary: "bg-gradient-to-br from-primary to-orange-600",
     dark: "bg-gradient-to-br from-neutral-900 to-neutral-800",
@@ -64,7 +62,7 @@ export function CardVisual({
   const displayStatus = frozen ? "frozen" : status;
   const statusStyle = displayStatus ? statusColors[displayStatus] || "bg-white/20 text-white/90 border-white/30" : null;
   const statusLabel = displayStatus ? (statusLabels[displayStatus] || displayStatus) : null;
-  const brandDisplay = brand ? (BRAND_DISPLAY[brand.toLowerCase()] || brand.toUpperCase()) : "VISA";
+  const brandDisplay = brand ? (BRAND_DISPLAY[brand.toLowerCase()] || brand.toUpperCase()) : null;
 
   return (
     <div className={cn(
@@ -88,27 +86,21 @@ export function CardVisual({
 
       <div className="relative z-10 flex justify-between items-start">
         <div className="flex flex-col">
-            {allowanceLabel && (
-              <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-0.5" data-testid="text-allowance-label">{allowanceLabel}</span>
-            )}
-            {resetsLabel && (
-              <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-1" data-testid="text-resets-label">{resetsLabel}</span>
-            )}
-            <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1" data-testid="text-balance-label">{balanceLabel}</span>
-            <span className="text-2xl font-bold font-mono tracking-tight" data-testid="text-balance-value">{balance}</span>
-            {variant === "credit-card" ? (
-              <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
-                  <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
-                  <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
-                  <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
-                </div>
-              </div>
-            ) : (
-              <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
-                <Shield className="w-4 h-4 opacity-60" />
-              </div>
-            )}
+          {line1 && (
+            <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-0.5" data-testid="text-card-line1">{line1}</span>
+          )}
+          {line2 && (
+            <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-1" data-testid="text-card-line2">{line2}</span>
+          )}
+          <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1" data-testid="text-balance-label">{balanceLabel}</span>
+          <span className="text-2xl font-bold font-mono tracking-tight" data-testid="text-balance-value">{balance}</span>
+          <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
+            <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
+              <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />
+              <div className="absolute bottom-1 left-0 w-full h-[1px] bg-white/40" />
+              <div className="absolute left-2 top-0 h-full w-[1px] bg-white/40" />
+            </div>
+          </div>
         </div>
         {statusLabel && (
           <span
@@ -125,43 +117,26 @@ export function CardVisual({
 
       <div className="relative z-10">
         <div className="flex items-end justify-between">
-            <div className="flex flex-col gap-4">
-                {variant === "credit-card" ? (
-                  <div className="flex gap-3 text-lg font-mono tracking-widest opacity-90" data-testid="text-card-number">
-                    <span>····</span>
-                    <span>····</span>
-                    <span>····</span>
-                    <span>{last4}</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col" data-testid="text-card-id-display">
-                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Card ID</span>
-                    <span className="text-sm font-mono tracking-wide opacity-90">···{last4}</span>
-                  </div>
-                )}
-                <div className="flex flex-col">
-                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Name</span>
-                    <span className="text-sm font-medium uppercase tracking-wide">{holder}</span>
-                </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-3 text-lg font-mono tracking-widest opacity-90" data-testid="text-card-number">
+              <span>····</span>
+              <span>····</span>
+              <span>····</span>
+              <span>{last4}</span>
             </div>
-            
-            <div className="flex flex-col items-end">
-                {variant === "credit-card" ? (
-                  <>
-                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
-                    <span className="text-sm font-mono">{expiry}</span>
-                    <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">{brandDisplay}</div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[10px] uppercase opacity-70 tracking-wider">Type</span>
-                    <span className="text-sm font-mono">Split-Key</span>
-                    <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">
-                      <Shield className="w-5 h-5 inline opacity-70" /> R4
-                    </div>
-                  </>
-                )}
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase opacity-70 tracking-wider">Card Name</span>
+              <span className="text-sm font-medium uppercase tracking-wide">{holder}</span>
             </div>
+          </div>
+
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] uppercase opacity-70 tracking-wider">Expires</span>
+            <span className="text-sm font-mono">{expiry}</span>
+            {brandDisplay && (
+              <div className="mt-2 text-xl font-bold italic tracking-tighter opacity-90">{brandDisplay}</div>
+            )}
+          </div>
         </div>
       </div>
     </div>

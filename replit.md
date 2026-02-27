@@ -166,7 +166,7 @@ All four rails route approval emails through a single system under `lib/approval
 ### Shared Wallet/Card UI (`components/wallet/`)
 All wallet and card page UI is consolidated into `components/wallet/` to eliminate duplication across Rails 1, 2, 4, and 5. Setup wizards are NOT in this folder — they remain in their original locations.
 - **`types.ts`** — Unified types including `NormalizedCard` (common shape both rails map into), plus `normalizeRail4Card()` and `normalizeRail5Card()` converters.
-- **`card-visual.tsx`** — Card rendering component with `variant` prop (`credit-card` shows card number/brand/expiry, `id-card` shows card ID/shield for Rail 4). Supports `balanceLabel`, `brand` props.
+- **`card-visual.tsx`** — Unified card rendering component. Same layout for all rails: card number (masked `····` if unknown), expiry, optional brand display. Accepts `line1`/`line2` for contextual info (allowance window for Rail 4, daily/monthly limits for Rail 5).
 - **`credit-card-item.tsx`** — **Unified card+action bar component** for all credit card rails. Renders `CardVisual` + identical action bar (Manage, Freeze, Add Agent/Bot badge, More menu) from a `NormalizedCard`.
 - **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object.
 - **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).

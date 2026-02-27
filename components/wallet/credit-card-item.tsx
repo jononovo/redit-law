@@ -39,11 +39,10 @@ export function CreditCardItem({
         holder={card.card_name.toUpperCase()}
         frozen={isFrozen}
         expiry="••/••"
-        allowanceLabel={card.line1 || undefined}
-        resetsLabel={card.line2 || undefined}
+        line1={card.line1 || undefined}
+        line2={card.line2 || undefined}
         status={card.status}
         brand={card.brand || undefined}
-        variant={card.brand ? "credit-card" : "id-card"}
       />
 
       <div className="bg-white rounded-xl border border-neutral-100 p-2 flex items-center" data-testid={`action-bar-${card.card_id}`}>
