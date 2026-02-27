@@ -163,6 +163,15 @@ All four rails route approval emails through a single system under `lib/approval
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
 - **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
 
+### Agent Management (`lib/agent-management/`)
+Bot linking/unlinking is centralized in `lib/agent-management/bot-linking.ts`. A single `linkBotToEntity(rail, entityId, botId, ownerUid)` / `unlinkBotFromEntity(rail, entityId, ownerUid)` function handles all four rails with uniform rules:
+- **Max 3 entities per bot** enforced across all rails (was previously only Rail 4)
+- **Ownership validation** — entity and bot must both belong to the authenticated user
+- **Bot existence check** — bot must exist before linking
+- **Webhook firing** — `rails.updated` with `wallet_linked`/`wallet_unlinked` (Rails 1/2) or `card_linked`/`card_removed` (Rails 4/5) on every link/unlink (was previously inconsistent)
+- Rail configs are declarative objects specifying storage methods, entity types, webhook actions, and count queries
+- Route files are thin wrappers: auth + call shared function + return result
+
 ### Shared Wallet/Card UI (`components/wallet/`)
 All wallet and card page UI is consolidated into `components/wallet/` to eliminate duplication across Rails 1, 2, 4, and 5. Setup wizards are NOT in this folder — they remain in their original locations.
 - **`types.ts`** — Unified types including `NormalizedCard` (common shape both rails map into), plus `normalizeRail4Card()` and `normalizeRail5Card()` converters.

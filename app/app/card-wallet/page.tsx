@@ -22,6 +22,8 @@ import { CryptoWalletItem } from "@/components/wallet/crypto-wallet-item";
 import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import { CreateCryptoWalletDialog } from "@/components/wallet/dialogs/create-crypto-wallet-dialog";
+import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
+import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import type { CardGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
 
 const ORDER_TIMELINE_STEPS = [
@@ -388,6 +390,8 @@ export default function CardWalletPage() {
                   onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
                   onGuardrails={() => guardrails.openDialog(wallet)}
                   onActivity={() => { setSelectedWallet(wallet); setActiveTab("orders"); }}
+                  onAddAgent={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
+                  onUnlinkBot={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
                   onCopyAddress={() => walletActions.copyAddress(wallet.address)}
                   onSyncBalance={() => walletActions.handleSyncAndPatch(wallet.id, setWallets)}
                   onTransfer={() => transfer.openTransferDialog(wallet)}
@@ -736,6 +740,29 @@ export default function CardWalletPage() {
         submitting={transfer.transferSubmitting}
         onSubmit={transfer.handleTransfer}
         onClose={transfer.closeTransferDialog}
+      />
+
+      <LinkBotDialog
+        open={!!botLinking.linkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeLinkDialog(); }}
+        itemName={botLinking.linkTarget?.name || ""}
+        bots={botLinking.bots}
+        selectedBotId={botLinking.linkBotId}
+        onBotIdChange={botLinking.setLinkBotId}
+        loading={botLinking.linkLoading}
+        onConfirm={botLinking.handleLinkBot}
+        onCancel={botLinking.closeLinkDialog}
+        itemType="wallet"
+      />
+
+      <UnlinkBotDialog
+        open={!!botLinking.unlinkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeUnlinkDialog(); }}
+        botName={botLinking.unlinkTarget?.bot_name || ""}
+        loading={botLinking.unlinkLoading}
+        onConfirm={botLinking.handleUnlinkBot}
+        onCancel={botLinking.closeUnlinkDialog}
+        itemType="wallet"
       />
     </div>
   );

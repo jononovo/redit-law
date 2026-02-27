@@ -126,6 +126,8 @@ export interface IStorage {
   crossmintUpdateWalletBalanceAndSync(id: number, balanceUsdc: number): Promise<CrossmintWallet | null>;
   crossmintUpdateWalletSyncedAt(id: number): Promise<void>;
   crossmintUpdateWalletStatus(id: number, status: string, ownerUid: string): Promise<CrossmintWallet | null>;
+  crossmintLinkBot(id: number, botId: string, ownerUid: string): Promise<CrossmintWallet | null>;
+  crossmintUnlinkBot(id: number, ownerUid: string): Promise<CrossmintWallet | null>;
 
   crossmintGetGuardrails(walletId: number): Promise<CrossmintGuardrail | null>;
   crossmintUpsertGuardrails(walletId: number, data: Partial<InsertCrossmintGuardrail>): Promise<CrossmintGuardrail>;
@@ -250,6 +252,7 @@ export interface IStorage {
   getRail5CardByCardId(cardId: string): Promise<Rail5Card | null>;
   getRail5CardsByOwnerUid(ownerUid: string): Promise<Rail5Card[]>;
   getRail5CardByBotId(botId: string): Promise<Rail5Card | null>;
+  countRail5CardsByBotId(botId: string): Promise<number>;
   updateRail5Card(cardId: string, data: Partial<InsertRail5Card>): Promise<Rail5Card | null>;
   deleteRail5Card(cardId: string): Promise<void>;
 
