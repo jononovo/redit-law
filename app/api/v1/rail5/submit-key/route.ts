@@ -52,12 +52,17 @@ export async function POST(request: NextRequest) {
     status: "active",
   };
 
-  if (spending_limit_cents !== undefined) updates.spendingLimitCents = spending_limit_cents;
-  if (daily_limit_cents !== undefined) updates.dailyLimitCents = daily_limit_cents;
-  if (monthly_limit_cents !== undefined) updates.monthlyLimitCents = monthly_limit_cents;
-  if (human_approval_above_cents !== undefined) updates.humanApprovalAboveCents = human_approval_above_cents;
-
   await storage.updateRail5Card(card_id, updates);
+
+  const guardrailUpdates: Record<string, unknown> = {};
+  if (spending_limit_cents !== undefined) guardrailUpdates.maxPerTxCents = spending_limit_cents;
+  if (daily_limit_cents !== undefined) guardrailUpdates.dailyBudgetCents = daily_limit_cents;
+  if (monthly_limit_cents !== undefined) guardrailUpdates.monthlyBudgetCents = monthly_limit_cents;
+  if (human_approval_above_cents !== undefined) guardrailUpdates.requireApprovalAbove = human_approval_above_cents;
+
+  if (Object.keys(guardrailUpdates).length > 0) {
+    await storage.upsertRail5Guardrails(card_id, guardrailUpdates);
+  }
 
   return NextResponse.json({ card_id, status: "active" });
 }

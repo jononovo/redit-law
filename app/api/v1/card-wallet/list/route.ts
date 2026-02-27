@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { formatUsdc } from "@/lib/card-wallet/server";
+import { formatUsdc } from "@/lib/rail2/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,8 +14,11 @@ export async function GET(request: NextRequest) {
 
     const walletsWithDetails = await Promise.all(
       wallets.map(async (w) => {
-        const bot = await storage.getBotByBotId(w.botId);
-        const guardrails = await storage.crossmintGetGuardrails(w.id);
+        const [bot, guardrails, procControls] = await Promise.all([
+          storage.getBotByBotId(w.botId),
+          storage.crossmintGetGuardrails(w.id),
+          storage.getProcurementControlsByScope(user.uid, "rail2"),
+        ]);
         return {
           id: w.id,
           bot_id: w.botId,
@@ -30,8 +33,8 @@ export async function GET(request: NextRequest) {
             daily_budget_usdc: guardrails.dailyBudgetUsdc,
             monthly_budget_usdc: guardrails.monthlyBudgetUsdc,
             require_approval_above: guardrails.requireApprovalAbove,
-            allowlisted_merchants: guardrails.allowlistedMerchants,
-            blocklisted_merchants: guardrails.blocklistedMerchants,
+            allowlisted_merchants: procControls?.allowlistedMerchants ?? [],
+            blocklisted_merchants: procControls?.blocklistedMerchants ?? [],
             auto_pause_on_zero: guardrails.autoPauseOnZero,
           } : null,
           created_at: w.createdAt,

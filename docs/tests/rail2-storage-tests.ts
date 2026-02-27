@@ -73,8 +73,6 @@ async function runStorageTests() {
       dailyBudgetUsdc: 50000000,
       monthlyBudgetUsdc: 200000000,
       requireApprovalAbove: 0,
-      allowlistedMerchants: ["amazon"],
-      blocklistedMerchants: ["ebay"],
       autoPauseOnZero: true,
     });
     log("crossmintUpsertGuardrails (create)", !!guardrails && guardrails.maxPerTxUsdc === 10000000);
@@ -198,7 +196,7 @@ async function runStorageTests() {
   }
 
   // ─── Master Guardrails Storage Tests ─────────────────────────────
-  const MASTER_TEST_OWNER = "test_master_guardrails_owner";
+  const MASTER_TEST_OWNER = `test_master_guardrails_${Date.now()}`;
 
   try {
     const config = await storage.getMasterGuardrails(MASTER_TEST_OWNER);

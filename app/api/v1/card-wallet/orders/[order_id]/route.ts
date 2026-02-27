@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { getOrderStatus } from "@/lib/card-wallet/purchase";
+import { getOrderStatus } from "@/lib/rail2/orders/purchase";
 
 export async function GET(
   request: NextRequest,

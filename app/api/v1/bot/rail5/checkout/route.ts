@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { rail5CheckoutRequestSchema } from "@/shared/schema";
-import { generateRail5CheckoutId, buildSpawnPayload, getDailySpendCents, getMonthlySpendCents } from "@/lib/rail5";
+import { generateRail5CheckoutId, buildSpawnPayload } from "@/lib/rail5";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
+import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -45,32 +47,15 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     );
   }
 
-  if (card.spendingLimitCents && amount_cents > card.spendingLimitCents) {
-    return NextResponse.json(
-      { error: "per_transaction_limit", message: `Amount $${(amount_cents / 100).toFixed(2)} exceeds per-transaction limit of $${(card.spendingLimitCents / 100).toFixed(2)}.` },
-      { status: 403 }
-    );
-  }
-
-  if (card.dailyLimitCents) {
-    const dailySpend = await getDailySpendCents(card.cardId);
-    if (dailySpend + amount_cents > card.dailyLimitCents) {
-      return NextResponse.json(
-        { error: "daily_limit", message: `Daily spend would reach $${((dailySpend + amount_cents) / 100).toFixed(2)}, exceeding daily limit of $${(card.dailyLimitCents / 100).toFixed(2)}.` },
-        { status: 403 }
-      );
-    }
-  }
-
-  if (card.monthlyLimitCents) {
-    const monthlySpend = await getMonthlySpendCents(card.cardId);
-    if (monthlySpend + amount_cents > card.monthlyLimitCents) {
-      return NextResponse.json(
-        { error: "monthly_limit", message: `Monthly spend would reach $${((monthlySpend + amount_cents) / 100).toFixed(2)}, exceeding monthly limit of $${(card.monthlyLimitCents / 100).toFixed(2)}.` },
-        { status: 403 }
-      );
-    }
-  }
+  const guardrails = await storage.getRail5Guardrails(card.cardId);
+  const approvalMode = guardrails?.approvalMode ?? GUARDRAIL_DEFAULTS.rail5.approvalMode;
+  const rules = {
+    maxPerTxCents: guardrails?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents,
+    dailyBudgetCents: guardrails?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents,
+    monthlyBudgetCents: guardrails?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents,
+    requireApprovalAbove: guardrails?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove,
+    autoPauseOnZero: guardrails?.autoPauseOnZero ?? GUARDRAIL_DEFAULTS.rail5.autoPauseOnZero,
+  };
 
   const masterDecision = await evaluateMasterGuardrails(card.ownerUid, centsToMicroUsdc(amount_cents));
   if (masterDecision.action === "block") {
@@ -80,11 +65,83 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     );
   }
 
+  if (approvalMode === "ask_for_everything") {
+    const checkoutId = generateRail5CheckoutId();
+    const wallet = await storage.getWalletByOwnerUid(card.ownerUid);
+    const walletBalance = wallet?.balanceCents ?? null;
+
+    await storage.createRail5Checkout({
+      checkoutId,
+      cardId: card.cardId,
+      botId: bot.botId,
+      ownerUid: card.ownerUid,
+      merchantName: merchant_name,
+      merchantUrl: merchant_url,
+      itemName: item_name,
+      amountCents: amount_cents,
+      category: category || null,
+      status: "pending_approval",
+      balanceAfter: walletBalance,
+    });
+
+    const owner = await storage.getOwnerByUid(card.ownerUid);
+    if (owner) {
+      const { notifyOwner } = await import("@/lib/notifications");
+      await notifyOwner({
+        ownerUid: card.ownerUid,
+        ownerEmail: owner.email,
+        type: "purchase",
+        title: `Approval needed: $${(amount_cents / 100).toFixed(2)} at ${merchant_name}`,
+        body: `Your bot wants to spend $${(amount_cents / 100).toFixed(2)} at ${merchant_name} for "${item_name}". Approval mode requires all purchases to be approved.`,
+        botId: bot.botId,
+      }).catch(() => {});
+
+      const { createApproval } = await import("@/lib/approvals/service");
+      createApproval({
+        rail: "rail5",
+        ownerUid: card.ownerUid,
+        ownerEmail: owner.email,
+        botName: bot.botName,
+        amountDisplay: `$${(amount_cents / 100).toFixed(2)}`,
+        amountRaw: amount_cents,
+        merchantName: merchant_name,
+        itemName: item_name,
+        railRef: checkoutId,
+        metadata: { cardId: card.cardId, merchantUrl: merchant_url, category },
+      }).catch((err) => {
+        console.error("[Rail5] Unified approval email failed:", err);
+      });
+    }
+
+    return NextResponse.json({
+      approved: false,
+      status: "pending_approval",
+      checkout_id: checkoutId,
+      message: "Approval mode requires all purchases to be approved. Owner notified.",
+    });
+  }
+
+  const dailySpend = await storage.getRail5DailySpendCents(card.cardId);
+  const monthlySpend = await storage.getRail5MonthlySpendCents(card.cardId);
+
+  const decision = evaluateCardGuardrails(
+    rules,
+    { amountCents: amount_cents },
+    { dailyCents: dailySpend, monthlyCents: monthlySpend }
+  );
+
+  if (decision.action === "block") {
+    return NextResponse.json(
+      { error: "guardrail_violation", message: decision.reason },
+      { status: 403 }
+    );
+  }
+
   const checkoutId = generateRail5CheckoutId();
   const wallet = await storage.getWalletByOwnerUid(card.ownerUid);
   const walletBalance = wallet?.balanceCents ?? null;
 
-  if (card.humanApprovalAboveCents && amount_cents > card.humanApprovalAboveCents) {
+  if (decision.action === "require_approval") {
     await storage.createRail5Checkout({
       checkoutId,
       cardId: card.cardId,
@@ -132,7 +189,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
       approved: false,
       status: "pending_approval",
       checkout_id: checkoutId,
-      message: `Amount exceeds approval threshold of $${(card.humanApprovalAboveCents / 100).toFixed(2)}. Owner notified.`,
+      message: `${decision.reason}. Owner notified.`,
     });
   }
 

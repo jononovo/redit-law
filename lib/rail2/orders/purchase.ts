@@ -1,12 +1,4 @@
-const CROSSMINT_API_BASE = process.env.CROSSMINT_ENV === "staging"
-  ? "https://staging.crossmint.com/api/2022-06-09"
-  : "https://www.crossmint.com/api/2022-06-09";
-
-function getServerApiKey(): string {
-  const key = process.env.CROSSMINT_SERVER_API_KEY;
-  if (!key) throw new Error("CROSSMINT_SERVER_API_KEY is required");
-  return key;
-}
+import { crossmintFetch } from "@/lib/rail2/client";
 
 export interface ShippingAddress {
   name: string;
@@ -64,14 +56,10 @@ export async function createPurchaseOrder(params: {
     quantity: qty,
   });
 
-  const response = await fetch(`${CROSSMINT_API_BASE}/orders`, {
+  const response = await crossmintFetch("/orders", {
     method: "POST",
-    headers: {
-      "X-API-KEY": getServerApiKey(),
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(body),
-  });
+  }, "orders");
 
   const data = await response.json();
 
@@ -91,12 +79,7 @@ export async function createPurchaseOrder(params: {
 }
 
 export async function getOrderStatus(orderId: string): Promise<Record<string, unknown>> {
-  const response = await fetch(`${CROSSMINT_API_BASE}/orders/${orderId}`, {
-    headers: {
-      "X-API-KEY": getServerApiKey(),
-      "Content-Type": "application/json",
-    },
-  });
+  const response = await crossmintFetch(`/orders/${orderId}`, {}, "orders");
 
   const data = await response.json();
 

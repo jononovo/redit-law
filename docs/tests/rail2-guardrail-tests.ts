@@ -51,42 +51,6 @@ function runGuardrailTests() {
   }
 
   {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "walmart"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "amazon" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Allow allowlisted merchant", result.action === "allow");
-  }
-
-  {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "walmart"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "ebay" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block non-allowlisted merchant", result.action === "block");
-  }
-
-  {
-    const rules = { ...baseRules, blocklistedMerchants: ["ebay", "aliexpress"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "ebay" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block blocklisted merchant", result.action === "block");
-  }
-
-  {
-    const rules = { ...baseRules, blocklistedMerchants: ["ebay", "aliexpress"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "amazon" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Allow non-blocklisted merchant", result.action === "allow");
-  }
-
-  {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 0, merchant: "ebay" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block non-allowlisted merchant even with zero amount", result.action === "block");
-  }
-
-  {
-    const rules = { ...baseRules, blocklistedMerchants: ["ebay"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 0, merchant: "ebay" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block blocklisted merchant even with zero amount", result.action === "block");
-  }
-
-  {
     const expires = getApprovalExpiresAt(RAIL2_APPROVAL_TTL_MINUTES);
     log("RAIL2_APPROVAL_TTL_MINUTES is 15", RAIL2_APPROVAL_TTL_MINUTES === 15);
     const diffMs = expires.getTime() - Date.now();
@@ -101,31 +65,6 @@ function runGuardrailTests() {
   {
     const expired = isApprovalExpired({ expiresAt: new Date(Date.now() - 60000) } as any);
     log("isApprovalExpired returns true for past expiry", expired === true);
-  }
-
-  // ─── Shopify merchant tests ─────────────────────────────────────
-  {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "shopify"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Allow shopify on allowlist", result.action === "allow");
-  }
-
-  {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block shopify when not on allowlist", result.action === "block");
-  }
-
-  {
-    const rules = { ...baseRules, blocklistedMerchants: ["shopify"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "shopify" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Block shopify on blocklist", result.action === "block");
-  }
-
-  {
-    const rules = { ...baseRules, allowlistedMerchants: ["amazon", "shopify", "url"] };
-    const result = evaluateGuardrails(rules, { amountUsdc: 1_000_000, merchant: "url" }, { dailyUsdc: 0, monthlyUsdc: 0 });
-    log("Allow url merchant on allowlist", result.action === "allow");
   }
 
   // ─── Master guardrails utility functions ────────────────────────

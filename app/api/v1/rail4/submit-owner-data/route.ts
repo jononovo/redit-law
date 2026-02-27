@@ -3,8 +3,8 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { rail4SubmitOwnerDataSchema } from "@/shared/schema";
 import { initializeState } from "@/lib/obfuscation-engine/state-machine";
-import { buildDecoyFileContent } from "@/lib/rail4";
-import type { FakeProfile } from "@/lib/rail4";
+import { buildDecoyFileContent } from "@/lib/rail4/obfuscation";
+import type { FakeProfile } from "@/lib/rail4/obfuscation";
 import type { ProfilePermission } from "@/shared/schema";
 
 export async function POST(request: NextRequest) {

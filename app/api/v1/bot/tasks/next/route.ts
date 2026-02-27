@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { getPendingEventsForBot, createObfuscationEvent } from "@/lib/obfuscation-engine/events";
 import { shouldRunObfuscation } from "@/lib/obfuscation-engine/state-machine";

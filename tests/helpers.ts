@@ -215,7 +215,6 @@ export async function cleanupTestData() {
   await p.query(`DELETE FROM wallets WHERE bot_id LIKE 'test_bot_%'`);
   await p.query(`DELETE FROM api_access_logs WHERE bot_id LIKE 'test_bot_%'`);
   await p.query(`DELETE FROM notifications WHERE bot_id LIKE 'test_bot_%'`);
-  await p.query(`DELETE FROM spending_permissions WHERE bot_id LIKE 'test_bot_%'`);
   await p.query(`DELETE FROM bots WHERE bot_id LIKE 'test_bot_%'`);
   console.log("  Test data cleaned up.");
 }

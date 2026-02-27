@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { createPrivyWalletSchema } from "@/shared/schema";
-import { createServerWallet } from "@/lib/stripe-wallet/server";
+import { createServerWallet } from "@/lib/rail1/wallet/create";
 import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {

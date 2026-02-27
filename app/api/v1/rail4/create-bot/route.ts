@@ -4,7 +4,7 @@ import { adminAuth } from "@/lib/firebase/admin";
 import { storage } from "@/server/storage";
 import { db } from "@/server/db";
 import { bots, wallets } from "@/shared/schema";
-import { generateBotId, generateApiKey, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/crypto";
+import { generateBotId, generateApiKey, hashApiKey, getApiKeyPrefix, generateWebhookSecret } from "@/lib/agent-management/crypto";
 
 async function getAuthUser(request: NextRequest) {
   const sessionUser = await getCurrentUser();

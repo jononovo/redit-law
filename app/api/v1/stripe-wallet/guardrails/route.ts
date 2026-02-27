@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
     }
 
-    const guardrails = await storage.privyGetGuardrails(wallet.id);
-    return NextResponse.json({ guardrails });
+    const [guardrails, procControls] = await Promise.all([
+      storage.privyGetGuardrails(wallet.id),
+      storage.getProcurementControlsByScope(user.uid, "rail1"),
+    ]);
+
+    return NextResponse.json({
+      guardrails: guardrails ? {
+        ...guardrails,
+        allowlistedDomains: procControls?.allowlistedDomains ?? [],
+        blocklistedDomains: procControls?.blocklistedDomains ?? [],
+      } : null,
+    });
   } catch (error) {
     console.error("GET /api/v1/stripe-wallet/guardrails error:", error);
     return NextResponse.json({ error: "internal_error" }, { status: 500 });
@@ -53,9 +63,10 @@ export async function POST(request: NextRequest) {
     if (guardrailData.daily_budget_usdc !== undefined) updateData.dailyBudgetUsdc = guardrailData.daily_budget_usdc;
     if (guardrailData.monthly_budget_usdc !== undefined) updateData.monthlyBudgetUsdc = guardrailData.monthly_budget_usdc;
     if (guardrailData.require_approval_above !== undefined) updateData.requireApprovalAbove = guardrailData.require_approval_above;
-    if (guardrailData.allowlisted_domains !== undefined) updateData.allowlistedDomains = guardrailData.allowlisted_domains;
-    if (guardrailData.blocklisted_domains !== undefined) updateData.blocklistedDomains = guardrailData.blocklisted_domains;
+    if (guardrailData.approval_mode !== undefined) updateData.approvalMode = guardrailData.approval_mode;
+    if (guardrailData.recurring_allowed !== undefined) updateData.recurringAllowed = guardrailData.recurring_allowed;
     if (guardrailData.auto_pause_on_zero !== undefined) updateData.autoPauseOnZero = guardrailData.auto_pause_on_zero;
+    if (guardrailData.notes !== undefined) updateData.notes = guardrailData.notes;
 
     const guardrails = await storage.privyUpsertGuardrails(wallet_id, updateData);
     return NextResponse.json({ guardrails });

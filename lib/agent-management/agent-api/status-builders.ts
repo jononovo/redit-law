@@ -1,4 +1,5 @@
 import { storage } from "@/server/storage";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export async function buildRail1Detail(botId: string) {
   const wallet = await storage.privyGetWalletByBotId(botId);
@@ -11,11 +12,13 @@ export async function buildRail1Detail(botId: string) {
     storage.privyGetPendingApprovals(wallet.id),
   ]);
 
-  const maxPerTx = guardrails?.maxPerTxUsdc ?? 100;
-  const dailyBudget = guardrails?.dailyBudgetUsdc ?? 1000;
-  const monthlyBudget = guardrails?.monthlyBudgetUsdc ?? 10000;
+  const maxPerTx = guardrails?.maxPerTxUsdc ?? GUARDRAIL_DEFAULTS.rail1.maxPerTxUsdc;
+  const dailyBudget = guardrails?.dailyBudgetUsdc ?? GUARDRAIL_DEFAULTS.rail1.dailyBudgetUsdc;
+  const monthlyBudget = guardrails?.monthlyBudgetUsdc ?? GUARDRAIL_DEFAULTS.rail1.monthlyBudgetUsdc;
   const dailySpendUsd = dailySpend / 1_000_000;
   const monthlySpendUsd = monthlySpend / 1_000_000;
+
+  const procRules = await storage.getProcurementControlsByScope(wallet.ownerUid, "rail1", null);
 
   return {
     status: wallet.status === "active" ? "active" as const : "inactive" as const,
@@ -30,10 +33,13 @@ export async function buildRail1Detail(botId: string) {
       monthly_spent_usd: monthlySpendUsd,
       monthly_remaining_usd: Math.max(0, monthlyBudget - monthlySpendUsd),
       require_approval_above_usd: guardrails?.requireApprovalAbove ?? null,
+      approval_mode: guardrails?.approvalMode ?? GUARDRAIL_DEFAULTS.rail1.approvalMode,
+      recurring_allowed: guardrails?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail1.recurringAllowed,
+      notes: guardrails?.notes ?? null,
     },
     domain_rules: {
-      allowlisted: guardrails?.allowlistedDomains ?? [],
-      blocklisted: guardrails?.blocklistedDomains ?? [],
+      allowlisted: (procRules?.allowlistedDomains as string[]) ?? [],
+      blocklisted: (procRules?.blocklistedDomains as string[]) ?? [],
     },
     pending_approvals: pendingApprovals.length,
   };
@@ -49,11 +55,13 @@ export async function buildRail2Detail(botId: string) {
     storage.crossmintGetMonthlySpend(wallet.id),
   ]);
 
-  const maxPerTx = guardrails?.maxPerTxUsdc ?? 100;
-  const dailyBudget = guardrails?.dailyBudgetUsdc ?? 500;
-  const monthlyBudget = guardrails?.monthlyBudgetUsdc ?? 2000;
+  const maxPerTx = guardrails?.maxPerTxUsdc ?? GUARDRAIL_DEFAULTS.rail2.maxPerTxUsdc;
+  const dailyBudget = guardrails?.dailyBudgetUsdc ?? GUARDRAIL_DEFAULTS.rail2.dailyBudgetUsdc;
+  const monthlyBudget = guardrails?.monthlyBudgetUsdc ?? GUARDRAIL_DEFAULTS.rail2.monthlyBudgetUsdc;
   const dailySpendUsd = dailySpend / 1_000_000;
   const monthlySpendUsd = monthlySpend / 1_000_000;
+
+  const procRules = await storage.getProcurementControlsByScope(wallet.ownerUid, "rail2", null);
 
   return {
     status: wallet.status === "active" ? "active" as const : "inactive" as const,
@@ -68,10 +76,13 @@ export async function buildRail2Detail(botId: string) {
       monthly_spent_usd: monthlySpendUsd,
       monthly_remaining_usd: Math.max(0, monthlyBudget - monthlySpendUsd),
       require_approval_above_usd: guardrails?.requireApprovalAbove ?? 0,
+      approval_mode: guardrails?.approvalMode ?? GUARDRAIL_DEFAULTS.rail2.approvalMode,
+      recurring_allowed: guardrails?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail2.recurringAllowed,
+      notes: guardrails?.notes ?? null,
     },
     merchant_rules: {
-      allowlisted: guardrails?.allowlistedMerchants ?? [],
-      blocklisted: guardrails?.blocklistedMerchants ?? [],
+      allowlisted: (procRules?.allowlistedMerchants as string[]) ?? [],
+      blocklisted: (procRules?.blocklistedMerchants as string[]) ?? [],
     },
   };
 }
@@ -153,6 +164,8 @@ export async function buildRail4Detail(botId: string) {
 
       const realProfilePerm = permissionsList.find(p => p.profile_index === card.realProfileIndex);
 
+      const guard = await storage.getRail4Guardrails(card.cardId);
+
       return {
         card_id: card.cardId,
         card_name: card.cardName,
@@ -161,6 +174,15 @@ export async function buildRail4Detail(botId: string) {
         profiles,
         approval_mode: realProfilePerm?.human_permission_required ?? "all",
         approval_threshold_usd: realProfilePerm?.confirmation_exempt_limit ?? 0,
+        guardrails: guard ? {
+          max_per_tx_usd: guard.maxPerTxCents / 100,
+          daily_budget_usd: guard.dailyBudgetCents / 100,
+          monthly_budget_usd: guard.monthlyBudgetCents / 100,
+          require_approval_above_usd: guard.requireApprovalAbove != null ? guard.requireApprovalAbove / 100 : null,
+          approval_mode: guard.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode,
+          recurring_allowed: guard.recurringAllowed,
+          notes: guard.notes ?? null,
+        } : null,
       };
     }),
   );
@@ -176,17 +198,28 @@ export async function buildRail5Detail(botId: string) {
   const card = await storage.getRail5CardByBotId(botId);
   if (!card) return { status: "inactive" as const };
 
+  const guard = await storage.getRail5Guardrails(card.cardId);
+
   return {
     status: card.status === "active" ? "active" as const : card.status,
     card_id: card.cardId,
     card_name: card.cardName,
     card_brand: card.cardBrand,
     last4: card.cardLast4,
+    guardrails: {
+      max_per_tx_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents) / 100,
+      daily_budget_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents) / 100,
+      monthly_budget_usd: (guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents) / 100,
+      require_approval_above_usd: (guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove ?? 2500) / 100,
+      approval_mode: guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail5.approvalMode,
+      recurring_allowed: guard?.recurringAllowed ?? GUARDRAIL_DEFAULTS.rail5.recurringAllowed,
+      notes: guard?.notes ?? null,
+    },
     limits: {
-      per_transaction_usd: card.spendingLimitCents / 100,
-      daily_usd: card.dailyLimitCents / 100,
-      monthly_usd: card.monthlyLimitCents / 100,
-      human_approval_above_usd: card.humanApprovalAboveCents / 100,
+      per_transaction_usd: (guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail5.maxPerTxCents) / 100,
+      daily_usd: (guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.dailyBudgetCents) / 100,
+      monthly_usd: (guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail5.monthlyBudgetCents) / 100,
+      human_approval_above_usd: (guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail5.requireApprovalAbove ?? 2500) / 100,
     },
   };
 }

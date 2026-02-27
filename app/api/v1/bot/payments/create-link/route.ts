@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { stripe } from "@/lib/stripe";
 import { createPaymentLinkSchema } from "@/shared/schema";

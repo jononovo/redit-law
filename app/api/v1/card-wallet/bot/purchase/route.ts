@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
 import { crossmintBotPurchaseSchema } from "@/shared/schema";
-import { authenticateBot } from "@/lib/bot-auth";
+import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
+import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
-import { usdToMicroUsdc } from "@/lib/card-wallet/server";
+import { usdToMicroUsdc } from "@/lib/rail2/client";
 import { createApproval } from "@/lib/approvals/service";
 
 async function handler(request: NextRequest, botId: string) {
@@ -46,22 +47,105 @@ async function handler(request: NextRequest, botId: string) {
     const dailySpend = await storage.crossmintGetDailySpend(wallet.id);
     const monthlySpend = await storage.crossmintGetMonthlySpend(wallet.id);
 
+    const procurementRules = await storage.getProcurementControlsByScope(wallet.ownerUid, "rail2", null);
+    if (procurementRules) {
+      const procDecision = evaluateProcurementControls(
+        {
+          allowlistedDomains: (procurementRules.allowlistedDomains as string[]) || [],
+          blocklistedDomains: (procurementRules.blocklistedDomains as string[]) || [],
+          allowlistedMerchants: (procurementRules.allowlistedMerchants as string[]) || [],
+          blocklistedMerchants: (procurementRules.blocklistedMerchants as string[]) || [],
+          allowlistedCategories: (procurementRules.allowlistedCategories as string[]) || [],
+          blocklistedCategories: (procurementRules.blocklistedCategories as string[]) || [],
+        },
+        { merchant }
+      );
+      if (procDecision.action === "block") {
+        return NextResponse.json({ error: "guardrail_violation", reason: procDecision.reason }, { status: 403 });
+      }
+    }
+
+    const approvalMode = guardrails.approvalMode ?? "ask_for_everything";
+
     const decision = evaluateGuardrails(
       {
         maxPerTxUsdc: guardrails.maxPerTxUsdc,
         dailyBudgetUsdc: guardrails.dailyBudgetUsdc,
         monthlyBudgetUsdc: guardrails.monthlyBudgetUsdc,
         requireApprovalAbove: guardrails.requireApprovalAbove,
-        allowlistedMerchants: guardrails.allowlistedMerchants as string[] | undefined,
-        blocklistedMerchants: guardrails.blocklistedMerchants as string[] | undefined,
         autoPauseOnZero: guardrails.autoPauseOnZero,
       },
-      { amountUsdc: estimatedAmountUsdc, merchant },
+      { amountUsdc: estimatedAmountUsdc },
       { dailyUsdc: dailySpend, monthlyUsdc: monthlySpend }
     );
 
     if (decision.action === "block") {
       return NextResponse.json({ error: "guardrail_violation", reason: decision.reason }, { status: 403 });
+    }
+
+    const needsApproval =
+      approvalMode === "ask_for_everything" ||
+      decision.action === "require_approval";
+
+    if (!needsApproval) {
+      const tx = await storage.crossmintCreateTransaction({
+        walletId: wallet.id,
+        type: "purchase",
+        amountUsdc: estimatedAmountUsdc,
+        productLocator,
+        productName: product_name || productLocator,
+        quantity: quantity || 1,
+        shippingAddress: shipping_address,
+        status: "confirmed",
+        orderStatus: "processing",
+        balanceAfter: wallet.balanceUsdc,
+      });
+
+      try {
+        const { createPurchaseOrder } = await import("@/lib/rail2/orders/purchase");
+        const bot = await storage.getBotByBotId(botId);
+        const owner = await storage.getOwnerByUid(wallet.ownerUid);
+        const ownerEmail = owner?.email || bot?.ownerEmail || "";
+
+        const result = await createPurchaseOrder({
+          merchant,
+          productId: product_id,
+          walletAddress: wallet.address,
+          ownerEmail,
+          shippingAddress: shipping_address,
+          quantity: quantity || 1,
+        });
+
+        await storage.crossmintUpdateTransaction(tx.id, {
+          crossmintOrderId: result.orderId,
+          status: "confirmed",
+          orderStatus: "processing",
+        });
+
+        if (bot) {
+          const { fireWebhook } = await import("@/lib/webhooks");
+          fireWebhook(bot, "purchase.approved", {
+            transaction_id: tx.id,
+            order_id: result.orderId,
+            product_name: tx.productName,
+            product_locator: productLocator,
+            amount_usdc: estimatedAmountUsdc,
+          }).catch(() => {});
+        }
+
+        return NextResponse.json({
+          status: "auto_approved",
+          transaction_id: tx.id,
+          order_id: result.orderId,
+          product_name: tx.productName,
+          product_locator: productLocator,
+          estimated_total_usd: estimated_price_usd ? estimated_price_usd * (quantity || 1) : null,
+        });
+      } catch (purchaseError) {
+        console.error("[Rail2] Auto-approved purchase order creation failed:", purchaseError);
+        await storage.crossmintUpdateTransaction(tx.id, { status: "failed" });
+        return NextResponse.json({ error: "Purchase order creation failed" }, { status: 500 });
+      }
     }
 
     const tx = await storage.crossmintCreateTransaction({

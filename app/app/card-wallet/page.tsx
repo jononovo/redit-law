@@ -407,26 +407,35 @@ export default function CardWalletPage() {
       const allowlisted = guardrailForm.allowlisted_merchants.split(",").map(s => s.trim()).filter(Boolean);
       const blocklisted = guardrailForm.blocklisted_merchants.split(",").map(s => s.trim()).filter(Boolean);
 
-      const res = await authFetch("/api/v1/card-wallet/guardrails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet_id: selectedWallet.id,
-          max_per_tx_usdc: guardrailForm.max_per_tx_usdc * 1_000_000,
-          daily_budget_usdc: guardrailForm.daily_budget_usdc * 1_000_000,
-          monthly_budget_usdc: guardrailForm.monthly_budget_usdc * 1_000_000,
-          require_approval_above: guardrailForm.require_approval_above * 1_000_000,
-          allowlisted_merchants: allowlisted.length > 0 ? allowlisted : null,
-          blocklisted_merchants: blocklisted.length > 0 ? blocklisted : null,
-          auto_pause_on_zero: guardrailForm.auto_pause_on_zero,
+      const [guardrailRes, procRes] = await Promise.all([
+        authFetch("/api/v1/card-wallet/guardrails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            wallet_id: selectedWallet.id,
+            max_per_tx_usdc: guardrailForm.max_per_tx_usdc * 1_000_000,
+            daily_budget_usdc: guardrailForm.daily_budget_usdc * 1_000_000,
+            monthly_budget_usdc: guardrailForm.monthly_budget_usdc * 1_000_000,
+            require_approval_above: guardrailForm.require_approval_above * 1_000_000,
+            auto_pause_on_zero: guardrailForm.auto_pause_on_zero,
+          }),
         }),
-      });
-      if (res.ok) {
+        authFetch("/api/v1/procurement-controls", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scope: "rail2",
+            allowlisted_merchants: allowlisted.length > 0 ? allowlisted : [],
+            blocklisted_merchants: blocklisted.length > 0 ? blocklisted : [],
+          }),
+        }),
+      ]);
+      if (guardrailRes.ok && procRes.ok) {
         toast({ title: "Guardrails updated" });
         setGuardrailsDialogOpen(false);
         fetchWallets();
       } else {
-        const data = await res.json();
+        const data = await (guardrailRes.ok ? procRes : guardrailRes).json();
         toast({ title: "Error", description: data.error, variant: "destructive" });
       }
     } catch {

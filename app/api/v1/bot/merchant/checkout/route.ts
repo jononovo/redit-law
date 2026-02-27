@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { unifiedCheckoutSchema, type ProfilePermission } from "@/shared/schema";
 import { fireWebhook } from "@/lib/webhooks";
 import { notifyPurchase, notifyBalanceLow, notifySuspicious } from "@/lib/notifications";
 import { recordOrganicEvent, incrementObfuscationCount } from "@/lib/obfuscation-engine/state-machine";
 import { completeObfuscationEvent } from "@/lib/obfuscation-engine/events";
-import { getWindowStart } from "@/lib/rail4";
-import type { FakeProfile } from "@/lib/rail4";
+import { getWindowStart } from "@/lib/rail4/allowance";
+import type { FakeProfile } from "@/lib/rail4/obfuscation";
 import { randomBytes } from "crypto";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
+import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -70,6 +72,44 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
     );
   }
 
+  const rail4Guard = await storage.getRail4Guardrails(card.cardId);
+  const cardRules = {
+    maxPerTxCents: rail4Guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail4.maxPerTxCents,
+    dailyBudgetCents: rail4Guard?.dailyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.dailyBudgetCents,
+    monthlyBudgetCents: rail4Guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents,
+    requireApprovalAbove: rail4Guard?.requireApprovalAbove ?? GUARDRAIL_DEFAULTS.rail4.requireApprovalAbove,
+    autoPauseOnZero: rail4Guard?.autoPauseOnZero ?? GUARDRAIL_DEFAULTS.rail4.autoPauseOnZero,
+  };
+
+  const approvalMode = rail4Guard?.approvalMode ?? GUARDRAIL_DEFAULTS.rail4.approvalMode;
+
+  let cardRequiresApproval = false;
+
+  if (approvalMode === "ask_for_everything") {
+    cardRequiresApproval = true;
+  } else {
+    const dailySpendCents = await storage.getRail4DailySpendCents(card.cardId);
+    const monthlySpendCents = await storage.getRail4MonthlySpendCents(card.cardId);
+
+    const cardDecision = evaluateCardGuardrails(
+      cardRules,
+      { amountCents: amount_cents },
+      { dailyCents: dailySpendCents, monthlyCents: monthlySpendCents }
+    );
+
+    if (cardDecision.action === "block") {
+      return NextResponse.json({
+        approved: false,
+        error: "card_guardrail_violation",
+        message: cardDecision.reason,
+      }, { status: 403 });
+    }
+
+    if (cardDecision.action === "require_approval") {
+      cardRequiresApproval = true;
+    }
+  }
+
   const permissions: ProfilePermission[] = card.profilePermissions
     ? JSON.parse(card.profilePermissions)
     : [];
@@ -117,7 +157,7 @@ export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, 
   }
 
   if (isRealProfile) {
-    return handleRealCheckout(bot, card, profilePerm, parsed.data, windowStart, usage);
+    return handleRealCheckout(bot, card, profilePerm, parsed.data, windowStart, usage, cardRequiresApproval);
   } else {
     return handleFakeCheckout(bot, card, profilePerm, parsed.data, windowStart, usage);
   }
@@ -203,6 +243,7 @@ async function handleRealCheckout(
   data: { profile_index: number; merchant_name: string; merchant_url: string; item_name: string; amount_cents: number; category?: string },
   windowStart: Date,
   usage: any,
+  cardRequiresApproval: boolean,
 ) {
   const wallet = await storage.getWalletByBotId(bot.botId);
   if (!wallet) {
@@ -253,7 +294,9 @@ async function handleRealCheckout(
   const exemptUsed = usage?.exemptUsed || false;
   let needsHumanConfirmation = false;
 
-  if (perm.human_permission_required === "all") {
+  if (cardRequiresApproval) {
+    needsHumanConfirmation = true;
+  } else if (perm.human_permission_required === "all") {
     needsHumanConfirmation = true;
   } else if (perm.human_permission_required === "above_exempt") {
     if (data.amount_cents <= exemptLimitCents && !exemptUsed) {

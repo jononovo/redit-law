@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { withBotApi } from "@/lib/bot-api";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
+import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
 
 export const GET = withBotApi("/api/v1/bot/status", async (_request, { bot }) => {
   if (bot.walletStatus === "pending") {
@@ -21,36 +22,44 @@ export const GET = withBotApi("/api/v1/bot/status", async (_request, { bot }) =>
     crossmintWallet,
     rail4Cards,
     rail5Card,
-    permissions,
   ] = await Promise.all([
     storage.getWalletByBotId(bot.botId),
     storage.privyGetWalletByBotId(bot.botId),
     storage.crossmintGetWalletByBotId(bot.botId),
     storage.getRail4CardsByBotId(bot.botId),
     storage.getRail5CardByBotId(bot.botId),
-    storage.getSpendingPermissions(bot.botId),
   ]);
 
   const rails: Record<string, any> = {};
 
   if (wallet) {
     const monthlySpent = await storage.getMonthlySpend(wallet.id);
+    const activeRail4Card = rail4Cards.find(c => c.status === "active");
+    let spendingLimits;
+
+    if (activeRail4Card) {
+      const guard = await storage.getRail4Guardrails(activeRail4Card.cardId);
+      const perTxCents = guard?.maxPerTxCents ?? GUARDRAIL_DEFAULTS.rail4.maxPerTxCents;
+      const monthlyCents = guard?.monthlyBudgetCents ?? GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents;
+      spendingLimits = {
+        per_transaction_usd: perTxCents / 100,
+        monthly_usd: monthlyCents / 100,
+        monthly_spent_usd: monthlySpent / 100,
+        monthly_remaining_usd: Math.max(0, (monthlyCents - monthlySpent) / 100),
+      };
+    } else {
+      spendingLimits = {
+        per_transaction_usd: GUARDRAIL_DEFAULTS.rail4.maxPerTxCents / 100,
+        monthly_usd: GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents / 100,
+        monthly_spent_usd: monthlySpent / 100,
+        monthly_remaining_usd: Math.max(0, (GUARDRAIL_DEFAULTS.rail4.monthlyBudgetCents - monthlySpent) / 100),
+      };
+    }
+
     rails.card_wallet = {
       status: wallet.balanceCents > 0 ? "active" : "empty",
       balance_usd: wallet.balanceCents / 100,
-      spending_limits: permissions
-        ? {
-            per_transaction_usd: permissions.perTransactionCents / 100,
-            monthly_usd: permissions.monthlyCents / 100,
-            monthly_spent_usd: monthlySpent / 100,
-            monthly_remaining_usd: Math.max(0, (permissions.monthlyCents - monthlySpent) / 100),
-          }
-        : {
-            per_transaction_usd: 25.0,
-            monthly_usd: 500.0,
-            monthly_spent_usd: monthlySpent / 100,
-            monthly_remaining_usd: Math.max(0, (50000 - monthlySpent) / 100),
-          },
+      spending_limits: spendingLimits,
     };
   }
 

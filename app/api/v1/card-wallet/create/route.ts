@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { createCrossmintWalletSchema } from "@/shared/schema";
-import { createSmartWallet } from "@/lib/card-wallet/server";
+import { createSmartWallet } from "@/lib/rail2/wallet/create";
 import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {

@@ -3,22 +3,33 @@ export interface GuardrailRules {
   dailyBudgetUsdc: number;
   monthlyBudgetUsdc: number;
   requireApprovalAbove: number | null;
-  allowlistedDomains?: string[];
-  blocklistedDomains?: string[];
-  allowlistedMerchants?: string[];
-  blocklistedMerchants?: string[];
+  autoPauseOnZero: boolean;
+}
+
+export interface CardGuardrailRules {
+  maxPerTxCents: number;
+  dailyBudgetCents: number;
+  monthlyBudgetCents: number;
+  requireApprovalAbove: number | null;
   autoPauseOnZero: boolean;
 }
 
 export interface TransactionRequest {
   amountUsdc: number;
-  resourceUrl?: string;
-  merchant?: string;
+}
+
+export interface CardTransactionRequest {
+  amountCents: number;
 }
 
 export interface CumulativeSpend {
   dailyUsdc: number;
   monthlyUsdc: number;
+}
+
+export interface CardCumulativeSpend {
+  dailyCents: number;
+  monthlyCents: number;
 }
 
 export type GuardrailDecision =

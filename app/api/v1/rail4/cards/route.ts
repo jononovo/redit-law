@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
-import { getWindowStart, getNextWindowStart } from "@/lib/rail4";
+import { getWindowStart, getNextWindowStart } from "@/lib/rail4/allowance";
 import type { ProfilePermission } from "@/shared/schema";
 
 export async function GET(request: NextRequest) {

@@ -1,4 +1,8 @@
-import type { GuardrailRules, TransactionRequest, CumulativeSpend, GuardrailDecision } from "./types";
+import type {
+  GuardrailRules, TransactionRequest, CumulativeSpend,
+  CardGuardrailRules, CardTransactionRequest, CardCumulativeSpend,
+  GuardrailDecision,
+} from "./types";
 
 function usdToMicroUsdc(usd: number): number {
   return Math.round(usd * 1_000_000);
@@ -24,44 +28,48 @@ export function evaluateGuardrails(
     return { action: "block", reason: "Would exceed monthly budget" };
   }
 
-  if (tx.resourceUrl && rules.allowlistedDomains && rules.allowlistedDomains.length > 0) {
-    try {
-      const domain = new URL(tx.resourceUrl).hostname;
-      if (!rules.allowlistedDomains.includes(domain)) {
-        return { action: "block", reason: "Domain not on allowlist" };
-      }
-    } catch {
-      return { action: "block", reason: "Invalid resource URL" };
-    }
-  }
-
-  if (tx.resourceUrl && rules.blocklistedDomains && rules.blocklistedDomains.length > 0) {
-    try {
-      const domain = new URL(tx.resourceUrl).hostname;
-      if (rules.blocklistedDomains.includes(domain)) {
-        return { action: "block", reason: "Domain is blocklisted" };
-      }
-    } catch {
-      return { action: "block", reason: "Invalid resource URL" };
-    }
-  }
-
-  if (tx.merchant && rules.allowlistedMerchants && rules.allowlistedMerchants.length > 0) {
-    if (!rules.allowlistedMerchants.includes(tx.merchant)) {
-      return { action: "block", reason: `Merchant "${tx.merchant}" not on allowlist` };
-    }
-  }
-
-  if (tx.merchant && rules.blocklistedMerchants && rules.blocklistedMerchants.length > 0) {
-    if (rules.blocklistedMerchants.includes(tx.merchant)) {
-      return { action: "block", reason: `Merchant "${tx.merchant}" is blocklisted` };
-    }
-  }
-
   if (rules.requireApprovalAbove !== null && rules.requireApprovalAbove !== undefined) {
     const approvalThresholdMicro = usdToMicroUsdc(rules.requireApprovalAbove);
     if (tx.amountUsdc >= approvalThresholdMicro) {
       return { action: "require_approval", reason: `Amount exceeds approval threshold of $${rules.requireApprovalAbove}` };
+    }
+  }
+
+  return { action: "allow" };
+}
+
+export function evaluateCardGuardrails(
+  rules: CardGuardrailRules,
+  tx: CardTransactionRequest,
+  spend: CardCumulativeSpend
+): GuardrailDecision {
+  if (tx.amountCents > rules.maxPerTxCents) {
+    return {
+      action: "block",
+      reason: `Amount $${(tx.amountCents / 100).toFixed(2)} exceeds per-transaction limit of $${(rules.maxPerTxCents / 100).toFixed(2)}`,
+    };
+  }
+
+  if (spend.dailyCents + tx.amountCents > rules.dailyBudgetCents) {
+    return {
+      action: "block",
+      reason: `Would exceed daily budget of $${(rules.dailyBudgetCents / 100).toFixed(2)}`,
+    };
+  }
+
+  if (spend.monthlyCents + tx.amountCents > rules.monthlyBudgetCents) {
+    return {
+      action: "block",
+      reason: `Would exceed monthly budget of $${(rules.monthlyBudgetCents / 100).toFixed(2)}`,
+    };
+  }
+
+  if (rules.requireApprovalAbove !== null && rules.requireApprovalAbove !== undefined) {
+    if (tx.amountCents >= rules.requireApprovalAbove) {
+      return {
+        action: "require_approval",
+        reason: `Amount $${(tx.amountCents / 100).toFixed(2)} exceeds approval threshold of $${(rules.requireApprovalAbove / 100).toFixed(2)}`,
+      };
     }
   }
 

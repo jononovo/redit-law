@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
-import { authenticateBot } from "@/lib/bot-auth";
-import { formatUsdc } from "@/lib/card-wallet/server";
+import { authenticateBot } from "@/lib/agent-management/auth";
+import { formatUsdc } from "@/lib/rail2/client";
 
 async function handler(request: NextRequest, botId: string) {
   try {
