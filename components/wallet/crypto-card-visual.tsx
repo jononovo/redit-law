@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Wallet, Copy, RefreshCw, ExternalLink, Send, Snowflake, MoreVertical } from "lucide-react";
+import { Wallet, Copy, RefreshCw, ExternalLink, Send, Snowflake, MoreVertical, Plus } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { LucideIcon } from "lucide-react";
 
@@ -21,6 +21,7 @@ interface CryptoCardVisualProps {
   status: string;
   frozen?: boolean;
   className?: string;
+  onAddAgent?: () => void;
   onCopyAddress?: () => void;
   onSyncBalance?: () => void;
   syncingBalance?: boolean;
@@ -39,6 +40,7 @@ export function CryptoCardVisual({
   status,
   frozen = false,
   className,
+  onAddAgent,
   onCopyAddress,
   onSyncBalance,
   syncingBalance,
@@ -106,7 +108,18 @@ export function CryptoCardVisual({
             <Wallet className="w-5 h-5 text-white/90" />
           </div>
           <div>
-            <span className="text-base font-bold block leading-tight" data-testid="text-wallet-bot-name">{botName}</span>
+            {onAddAgent ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); onAddAgent(); }}
+                className="text-base font-semibold text-emerald-300 hover:text-emerald-200 flex items-center gap-1.5 cursor-pointer transition-colors leading-tight"
+                data-testid="button-add-agent"
+              >
+                <Plus className="w-4 h-4" />
+                Add Agent
+              </button>
+            ) : (
+              <span className="text-base font-bold block leading-tight" data-testid="text-wallet-bot-name">{botName}</span>
+            )}
             <div className="flex items-center gap-1.5 mt-0.5">
               <code className="text-xs text-white/55 font-mono" data-testid="text-wallet-address">{truncatedAddress}</code>
               {onCopyAddress && (

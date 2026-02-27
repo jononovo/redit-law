@@ -80,6 +80,7 @@ export function CryptoWalletItem({
       <CryptoCardVisual
         color={color}
         botName={wallet.bot_name || "Unlinked Wallet"}
+        onAddAgent={!wallet.bot_id && onAddAgent ? onAddAgent : undefined}
         address={wallet.address}
         balance={wallet.balance_display}
         chain={chain}
