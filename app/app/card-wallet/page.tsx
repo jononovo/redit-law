@@ -15,16 +15,16 @@ import type { Rail2WalletInfo, Rail2TransactionInfo, Rail2ApprovalInfo } from "@
 import { microUsdcToDisplay } from "@/components/wallet/types";
 import { StatusBadge } from "@/components/wallet/status-badge";
 import { useWalletActions } from "@/components/wallet/hooks/use-wallet-actions";
+import { useBotLinking } from "@/components/wallet/hooks/use-bot-linking";
 import { useTransfer } from "@/components/wallet/hooks/use-transfer";
+import { useGuardrails } from "@/components/wallet/hooks/use-guardrails";
 import { CryptoWalletItem } from "@/components/wallet/crypto-wallet-item";
 import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
+import { CreateCryptoWalletDialog } from "@/components/wallet/dialogs/create-crypto-wallet-dialog";
+import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
+import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import type { CardGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
-
-interface BotInfo {
-  bot_id: string;
-  bot_name: string;
-}
 
 const ORDER_TIMELINE_STEPS = [
   { key: "pending", label: "Pending", icon: Clock },
@@ -128,13 +128,9 @@ export default function CardWalletPage() {
   const [wallets, setWallets] = useState<Rail2WalletInfo[]>([]);
   const [transactions, setTransactions] = useState<Rail2TransactionInfo[]>([]);
   const [approvals, setApprovals] = useState<Rail2ApprovalInfo[]>([]);
-  const [bots, setBots] = useState<BotInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWallet, setSelectedWallet] = useState<Rail2WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [guardrailsDialogOpen, setGuardrailsDialogOpen] = useState(false);
-  const [selectedBotId, setSelectedBotId] = useState("");
-  const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
 
   const [fundDialogOpen, setFundDialogOpen] = useState(false);
@@ -147,17 +143,6 @@ export default function CardWalletPage() {
   const [orderDetailOpen, setOrderDetailOpen] = useState(false);
   const [orderDetailTx, setOrderDetailTx] = useState<Rail2TransactionInfo | null>(null);
   const [orderRefreshing, setOrderRefreshing] = useState(false);
-
-  const [guardrailForm, setGuardrailForm] = useState<CardGuardrailForm>({
-    max_per_tx_usdc: 50,
-    daily_budget_usdc: 250,
-    monthly_budget_usdc: 1000,
-    require_approval_above: 0,
-    allowlisted_merchants: "",
-    blocklisted_merchants: "",
-    auto_pause_on_zero: true,
-  });
-  const [savingGuardrails, setSavingGuardrails] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -173,16 +158,6 @@ export default function CardWalletPage() {
       setLoading(false);
     }
   }, [selectedWallet]);
-
-  const fetchBots = useCallback(async () => {
-    try {
-      const res = await authFetch("/api/v1/bots/mine");
-      if (res.ok) {
-        const data = await res.json();
-        setBots(data.bots || []);
-      }
-    } catch {}
-  }, []);
 
   const fetchTransactions = useCallback(async () => {
     if (!selectedWallet) return;
@@ -213,121 +188,37 @@ export default function CardWalletPage() {
     onTransactionsRefresh: () => fetchTransactions(),
   });
 
+  const botLinking = useBotLinking({
+    railPrefix: "card-wallet",
+    entityType: "wallet",
+    onUpdate: fetchWallets,
+  });
+
   const transfer = useTransfer({
     sourceRail: "crossmint",
     onUpdate: fetchWallets,
     onTransactionsRefresh: fetchTransactions,
   });
 
-  async function handleSyncBalance(walletId: number) {
-    const result = await walletActions.syncBalance(walletId);
-    if (result) {
-      setWallets(prev => prev.map(w =>
-        w.id === walletId ? { ...w, balance_usdc: result.balance_usdc, balance_display: result.balance_display } : w
-      ));
-    }
-  }
+  const guardrails = useGuardrails<Rail2WalletInfo>({
+    variant: "card",
+    railPrefix: "card-wallet",
+    procurementScope: "rail2",
+    microUsdcMultiplier: true,
+    onUpdate: fetchWallets,
+  });
 
   useEffect(() => {
     if (user) {
       fetchWallets();
-      fetchBots();
+      botLinking.fetchBots();
       fetchApprovals();
     }
-  }, [user, fetchWallets, fetchBots, fetchApprovals]);
+  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals]);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
-
-  const handleCreate = async () => {
-    if (!selectedBotId) return;
-    setCreating(true);
-    try {
-      const res = await authFetch("/api/v1/card-wallet/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: selectedBotId }),
-      });
-      if (res.ok) {
-        toast({ title: "Card Wallet created" });
-        setCreateDialogOpen(false);
-        fetchWallets();
-      } else {
-        const data = await res.json();
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Failed to create wallet", variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleSaveGuardrails = async () => {
-    if (!selectedWallet) return;
-    setSavingGuardrails(true);
-    try {
-      const allowlisted = guardrailForm.allowlisted_merchants.split(",").map(s => s.trim()).filter(Boolean);
-      const blocklisted = guardrailForm.blocklisted_merchants.split(",").map(s => s.trim()).filter(Boolean);
-
-      const [guardrailRes, procRes] = await Promise.all([
-        authFetch("/api/v1/card-wallet/guardrails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            wallet_id: selectedWallet.id,
-            max_per_tx_usdc: guardrailForm.max_per_tx_usdc * 1_000_000,
-            daily_budget_usdc: guardrailForm.daily_budget_usdc * 1_000_000,
-            monthly_budget_usdc: guardrailForm.monthly_budget_usdc * 1_000_000,
-            require_approval_above: guardrailForm.require_approval_above * 1_000_000,
-            auto_pause_on_zero: guardrailForm.auto_pause_on_zero,
-          }),
-        }),
-        authFetch("/api/v1/procurement-controls", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            scope: "rail2",
-            allowlisted_merchants: allowlisted.length > 0 ? allowlisted : [],
-            blocklisted_merchants: blocklisted.length > 0 ? blocklisted : [],
-          }),
-        }),
-      ]);
-      if (guardrailRes.ok && procRes.ok) {
-        toast({ title: "Guardrails updated" });
-        setGuardrailsDialogOpen(false);
-        fetchWallets();
-      } else {
-        const data = await (guardrailRes.ok ? procRes : guardrailRes).json();
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Failed to save guardrails", variant: "destructive" });
-    } finally {
-      setSavingGuardrails(false);
-    }
-  };
-
-  const handleApprovalDecision = async (approvalId: number, decision: "approve" | "reject") => {
-    try {
-      const res = await authFetch("/api/v1/card-wallet/approvals/decide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approval_id: approvalId, decision }),
-      });
-      if (res.ok) {
-        toast({ title: decision === "approve" ? "Purchase approved" : "Purchase rejected" });
-        fetchApprovals();
-        fetchTransactions();
-      } else {
-        const data = await res.json();
-        toast({ title: "Error", description: data.error, variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Failed to process decision", variant: "destructive" });
-    }
-  };
 
   const handleOpenOrderDetail = (tx: Rail2TransactionInfo) => {
     setOrderDetailTx(tx);
@@ -356,22 +247,6 @@ export default function CardWalletPage() {
     } finally {
       setOrderRefreshing(false);
     }
-  };
-
-  const openGuardrailsDialog = (wallet: Rail2WalletInfo) => {
-    setSelectedWallet(wallet);
-    if (wallet.guardrails) {
-      setGuardrailForm({
-        max_per_tx_usdc: wallet.guardrails.max_per_tx_usdc / 1_000_000,
-        daily_budget_usdc: wallet.guardrails.daily_budget_usdc / 1_000_000,
-        monthly_budget_usdc: wallet.guardrails.monthly_budget_usdc / 1_000_000,
-        require_approval_above: (wallet.guardrails.require_approval_above || 0) / 1_000_000,
-        allowlisted_merchants: (wallet.guardrails.allowlisted_merchants || []).join(", "),
-        blocklisted_merchants: (wallet.guardrails.blocklisted_merchants || []).join(", "),
-        auto_pause_on_zero: wallet.guardrails.auto_pause_on_zero ?? true,
-      });
-    }
-    setGuardrailsDialogOpen(true);
   };
 
   const handleOpenFund = async (wallet: Rail2WalletInfo) => {
@@ -465,7 +340,7 @@ export default function CardWalletPage() {
                     size="sm"
                     variant="outline"
                     className="text-red-600 border-red-200 hover:bg-red-50"
-                    onClick={() => handleApprovalDecision(a.id, "reject")}
+                    onClick={() => walletActions.handleApprovalDecision(a.id, "reject", { onSuccess: () => { fetchApprovals(); fetchTransactions(); } })}
                     data-testid={`button-reject-${a.id}`}
                   >
                     <XCircle className="w-4 h-4 mr-1" />
@@ -474,7 +349,7 @@ export default function CardWalletPage() {
                   <Button
                     size="sm"
                     className="bg-emerald-600 hover:bg-emerald-700"
-                    onClick={() => handleApprovalDecision(a.id, "approve")}
+                    onClick={() => walletActions.handleApprovalDecision(a.id, "approve", { onSuccess: () => { fetchApprovals(); fetchTransactions(); } })}
                     data-testid={`button-approve-${a.id}`}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -513,10 +388,12 @@ export default function CardWalletPage() {
                   color="purple"
                   onFund={() => handleOpenFund(wallet)}
                   onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
-                  onGuardrails={() => openGuardrailsDialog(wallet)}
+                  onGuardrails={() => guardrails.openDialog(wallet)}
                   onActivity={() => { setSelectedWallet(wallet); setActiveTab("orders"); }}
+                  onAddAgent={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
+                  onUnlinkBot={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
                   onCopyAddress={() => walletActions.copyAddress(wallet.address)}
-                  onSyncBalance={() => handleSyncBalance(wallet.id)}
+                  onSyncBalance={() => walletActions.handleSyncAndPatch(wallet.id, setWallets)}
                   onTransfer={() => transfer.openTransferDialog(wallet)}
                   syncingBalance={walletActions.syncingId === wallet.id}
                   fundLabel="Fund"
@@ -631,47 +508,30 @@ export default function CardWalletPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent>
-          <DialogTitle>Create Card Wallet</DialogTitle>
-          <DialogDescription>Select a bot to create a CrossMint Card Wallet for commerce purchases.</DialogDescription>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>Select Bot</Label>
-              <select
-                value={selectedBotId}
-                onChange={(e) => setSelectedBotId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 mt-1 text-sm"
-                data-testid="select-bot-create"
-              >
-                <option value="">Choose a bot...</option>
-                {bots.map((b) => (
-                  <option key={b.bot_id} value={b.bot_id}>{b.bot_name}</option>
-                ))}
-              </select>
-            </div>
-            <Button
-              onClick={handleCreate}
-              disabled={!selectedBotId || creating}
-              className="w-full"
-              data-testid="button-confirm-create"
-            >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-              Create Card Wallet
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateCryptoWalletDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        bots={botLinking.bots}
+        config={{
+          title: "Create Card Wallet",
+          description: "Select a bot to create a CrossMint Card Wallet for commerce purchases.",
+          endpoint: "/api/v1/card-wallet/create",
+          buttonLabel: "Create Card Wallet",
+          buttonIcon: <ShoppingCart className="w-4 h-4" />,
+          successMessage: "Card Wallet created",
+        }}
+        onCreated={fetchWallets}
+      />
 
       <GuardrailDialog
-        open={guardrailsDialogOpen}
-        onOpenChange={setGuardrailsDialogOpen}
-        form={guardrailForm}
-        onFormChange={(f) => setGuardrailForm(f as CardGuardrailForm)}
-        saving={savingGuardrails}
-        onSave={handleSaveGuardrails}
+        open={guardrails.guardrailsDialogOpen}
+        onOpenChange={guardrails.setGuardrailsDialogOpen}
+        form={guardrails.form}
+        onFormChange={(f) => guardrails.setForm(f as CardGuardrailForm)}
+        saving={guardrails.saving}
+        onSave={guardrails.save}
         variant="card"
-        walletName={selectedWallet?.bot_name}
+        walletName={guardrails.selectedWallet?.bot_name}
       />
 
       <Dialog open={fundDialogOpen} onOpenChange={(open) => { if (!open) handleCloseFund(); }}>
@@ -880,6 +740,29 @@ export default function CardWalletPage() {
         submitting={transfer.transferSubmitting}
         onSubmit={transfer.handleTransfer}
         onClose={transfer.closeTransferDialog}
+      />
+
+      <LinkBotDialog
+        open={!!botLinking.linkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeLinkDialog(); }}
+        itemName={botLinking.linkTarget?.name || ""}
+        bots={botLinking.bots}
+        selectedBotId={botLinking.linkBotId}
+        onBotIdChange={botLinking.setLinkBotId}
+        loading={botLinking.linkLoading}
+        onConfirm={botLinking.handleLinkBot}
+        onCancel={botLinking.closeLinkDialog}
+        itemType="wallet"
+      />
+
+      <UnlinkBotDialog
+        open={!!botLinking.unlinkTarget}
+        onOpenChange={(open) => { if (!open) botLinking.closeUnlinkDialog(); }}
+        botName={botLinking.unlinkTarget?.bot_name || ""}
+        loading={botLinking.unlinkLoading}
+        onConfirm={botLinking.handleUnlinkBot}
+        onCancel={botLinking.closeUnlinkDialog}
+        itemType="wallet"
       />
     </div>
   );

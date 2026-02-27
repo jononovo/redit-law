@@ -13,7 +13,7 @@ type Rail2Methods = Pick<IStorage,
   | "crossmintCreateWallet" | "crossmintGetWalletById" | "crossmintGetWalletByBotId"
   | "crossmintGetWalletsByOwnerUid" | "crossmintUpdateWalletBalance"
   | "crossmintUpdateWalletBalanceAndSync" | "crossmintUpdateWalletSyncedAt"
-  | "crossmintUpdateWalletStatus"
+  | "crossmintUpdateWalletStatus" | "crossmintLinkBot" | "crossmintUnlinkBot"
   | "crossmintGetGuardrails" | "crossmintUpsertGuardrails"
   | "crossmintCreateTransaction" | "crossmintGetTransactionsByWalletId"
   | "crossmintGetTransactionById" | "crossmintGetTransactionByOrderId"
@@ -71,6 +71,24 @@ export const rail2Methods: Rail2Methods = {
     const [updated] = await db
       .update(crossmintWallets)
       .set({ status, updatedAt: new Date() })
+      .where(and(eq(crossmintWallets.id, id), eq(crossmintWallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintLinkBot(id: number, botId: string, ownerUid: string): Promise<CrossmintWallet | null> {
+    const [updated] = await db
+      .update(crossmintWallets)
+      .set({ botId, updatedAt: new Date() })
+      .where(and(eq(crossmintWallets.id, id), eq(crossmintWallets.ownerUid, ownerUid)))
+      .returning();
+    return updated || null;
+  },
+
+  async crossmintUnlinkBot(id: number, ownerUid: string): Promise<CrossmintWallet | null> {
+    const [updated] = await db
+      .update(crossmintWallets)
+      .set({ botId: "", updatedAt: new Date() })
       .where(and(eq(crossmintWallets.id, id), eq(crossmintWallets.ownerUid, ownerUid)))
       .returning();
     return updated || null;

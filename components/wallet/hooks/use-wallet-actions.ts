@@ -149,13 +149,50 @@ export function useWalletActions(config: UseWalletActionsConfig) {
     toast({ title: "Copied", description: "Card ID copied to clipboard." });
   }, [toast]);
 
+  const handleApprovalDecision = useCallback(async (
+    approvalId: number,
+    decision: "approve" | "reject",
+    opts?: { onSuccess?: () => void },
+  ) => {
+    try {
+      const res = await authFetch(`/api/v1/${config.railPrefix}/approvals/decide`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval_id: approvalId, decision }),
+      });
+      if (res.ok) {
+        toast({ title: decision === "approve" ? "Approved" : "Rejected" });
+        opts?.onSuccess?.();
+      } else {
+        const data = await res.json();
+        toast({ title: "Error", description: data.error || "Failed to process decision", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  }, [config.railPrefix, toast]);
+
+  const handleSyncAndPatch = useCallback(async <W extends { id: number; balance_usdc: number; balance_display: string }>(
+    walletId: number,
+    setWallets: React.Dispatch<React.SetStateAction<W[]>>,
+  ) => {
+    const result = await syncBalance(walletId);
+    if (result) {
+      setWallets(prev => prev.map(w =>
+        w.id === walletId ? { ...w, balance_usdc: result.balance_usdc, balance_display: result.balance_display } : w
+      ));
+    }
+  }, [syncBalance]);
+
   return {
     syncingId,
     syncCooldowns,
     handleFreeze,
     handleFreezeCard,
     syncBalance,
+    handleSyncAndPatch,
     copyAddress,
     copyCardId,
+    handleApprovalDecision,
   };
 }

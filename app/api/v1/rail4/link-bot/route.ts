@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
+import { linkBotToEntity } from "@/lib/agent-management/bot-linking";
 import { storage } from "@/server/storage";
-import { fireRailsUpdated } from "@/lib/webhooks";
 
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request);
@@ -36,29 +36,14 @@ export async function POST(request: NextRequest) {
   }
 
   const bot = ownerBots[0];
+  const result = await linkBotToEntity("rail4", card_id, bot.botId, user.uid);
 
-  const cardCount = await storage.countCardsByBotId(bot.botId);
-  if (cardCount >= 3) {
-    return NextResponse.json({
-      error: "max_cards_reached",
-      message: "This bot already has the maximum of 3 cards linked.",
-      card_count: cardCount,
-      max_cards: 3,
-    }, { status: 400 });
+  if (!result.success) {
+    return NextResponse.json({ error: result.error, ...result.data }, { status: result.status || 500 });
   }
-
-  await storage.updateRail4CardByCardId(card_id, {
-    botId: bot.botId,
-    status: "active",
-  } as any);
-
-  fireRailsUpdated(bot, "card_linked", "rail4", { card_id }).catch(() => {});
 
   return NextResponse.json({
     status: "active",
-    card_id,
-    bot_id: bot.botId,
-    bot_name: bot.botName,
-    message: "Bot linked to card. Card is now active.",
+    ...result.data,
   });
 }

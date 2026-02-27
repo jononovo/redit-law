@@ -9,7 +9,7 @@ import type { IStorage } from "./types";
 
 type Rail5Methods = Pick<IStorage,
   | "createRail5Card" | "getRail5CardByCardId" | "getRail5CardsByOwnerUid"
-  | "getRail5CardByBotId" | "updateRail5Card" | "deleteRail5Card"
+  | "getRail5CardByBotId" | "countRail5CardsByBotId" | "updateRail5Card" | "deleteRail5Card"
   | "createRail5Checkout" | "getRail5CheckoutById" | "updateRail5Checkout" | "getRail5CheckoutsByCardId"
 >;
 
@@ -31,6 +31,11 @@ export const rail5Methods: Rail5Methods = {
   async getRail5CardByBotId(botId: string): Promise<Rail5Card | null> {
     const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.botId, botId)).limit(1);
     return card || null;
+  },
+
+  async countRail5CardsByBotId(botId: string): Promise<number> {
+    const cards = await db.select().from(rail5Cards).where(eq(rail5Cards.botId, botId));
+    return cards.length;
   },
 
   async updateRail5Card(cardId: string, data: Partial<InsertRail5Card>): Promise<Rail5Card | null> {

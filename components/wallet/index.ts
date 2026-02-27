@@ -16,6 +16,7 @@ export { useWalletActions } from "./hooks/use-wallet-actions";
 export type { UseWalletActionsConfig, FreezeTarget } from "./hooks/use-wallet-actions";
 export { useBotLinking } from "./hooks/use-bot-linking";
 export { useTransfer } from "./hooks/use-transfer";
+export { useGuardrails } from "./hooks/use-guardrails";
 
 export { FreezeDialog } from "./dialogs/freeze-dialog";
 export { LinkBotDialog } from "./dialogs/link-bot-dialog";
@@ -23,3 +24,5 @@ export { UnlinkBotDialog } from "./dialogs/unlink-bot-dialog";
 export { TransferDialog } from "./dialogs/transfer-dialog";
 export { GuardrailDialog } from "./dialogs/guardrail-dialog";
 export type { CryptoGuardrailForm, CardGuardrailForm, GuardrailForm } from "./dialogs/guardrail-dialog";
+export { CreateCryptoWalletDialog } from "./dialogs/create-crypto-wallet-dialog";
+export type { CreateCryptoWalletDialogConfig } from "./dialogs/create-crypto-wallet-dialog";
