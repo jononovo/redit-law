@@ -1,6 +1,7 @@
 "use client";
 
-import { CardVisual } from "./card-visual";
+import { Plus, Unlink } from "lucide-react";
+import { CryptoCardVisual, type CryptoMenuItem } from "./crypto-card-visual";
 import { CryptoActionBar } from "./crypto-action-bar";
 import type { Rail1WalletInfo, Rail2WalletInfo } from "./types";
 
@@ -49,26 +50,48 @@ export function CryptoWalletItem({
 
   const guardrailLines: { label: string; value: string }[] = [];
   if (wallet.guardrails) {
-    guardrailLines.push({ label: "Per-tx", value: fmt(wallet.guardrails.max_per_tx_usdc) });
-    guardrailLines.push({ label: "Daily", value: fmt(wallet.guardrails.daily_budget_usdc) });
+    guardrailLines.push({ label: "Per-tx limit", value: fmt(wallet.guardrails.max_per_tx_usdc) });
+    guardrailLines.push({ label: "Daily budget", value: fmt(wallet.guardrails.daily_budget_usdc) });
+    if (wallet.guardrails.monthly_budget_usdc) {
+      guardrailLines.push({ label: "Monthly budget", value: fmt(wallet.guardrails.monthly_budget_usdc) });
+    }
+  }
+
+  const cardMenuItems: CryptoMenuItem[] = [];
+  if (!wallet.bot_id && onAddAgent) {
+    cardMenuItems.push({
+      icon: Plus,
+      label: "Add Agent",
+      onClick: onAddAgent,
+      "data-testid": `menu-add-agent-${wallet.id}`,
+    });
+  }
+  if (wallet.bot_id && onUnlinkBot) {
+    cardMenuItems.push({
+      icon: Unlink,
+      label: "Unlink Bot",
+      onClick: onUnlinkBot,
+      "data-testid": `menu-unlink-bot-${wallet.id}`,
+    });
   }
 
   return (
     <div className="flex flex-col gap-4 min-w-[320px]" data-testid={`card-${testIdPrefix}-wallet-${wallet.id}`}>
-      <CardVisual
+      <CryptoCardVisual
         color={color}
+        botName={wallet.bot_name || "Unlinked Wallet"}
+        address={wallet.address}
         balance={wallet.balance_display}
-        balanceLabel={`USDC on ${chain}`}
-        last4={wallet.address.slice(-4)}
-        holder={wallet.bot_name || "Unlinked Wallet"}
-        holderLabel="Bot"
-        frozen={isFrozen}
+        chain={chain}
         status={wallet.status}
-        line1={guardrailLines[0] ? `${guardrailLines[0].label}: ${guardrailLines[0].value}` : undefined}
-        line2={guardrailLines[1] ? `${guardrailLines[1].label}: ${guardrailLines[1].value}` : undefined}
-        bottomRightLabel="Chain"
-        bottomRightValue={chain}
-        brand="USDC"
+        frozen={isFrozen}
+        onCopyAddress={onCopyAddress}
+        onSyncBalance={onSyncBalance}
+        syncingBalance={syncingBalance}
+        basescanUrl={basescanUrl}
+        onTransfer={wallet.status === "active" ? onTransfer : undefined}
+        guardrailLines={guardrailLines}
+        menuItems={cardMenuItems}
       />
 
       <CryptoActionBar
@@ -78,15 +101,8 @@ export function CryptoWalletItem({
         onFreeze={onFreeze}
         onGuardrails={onGuardrails}
         onActivity={onActivity}
-        onAddAgent={!wallet.bot_id ? onAddAgent : undefined}
-        onUnlinkBot={wallet.bot_id ? onUnlinkBot : undefined}
-        onCopyAddress={onCopyAddress}
-        onSyncBalance={onSyncBalance}
-        onTransfer={wallet.status === "active" ? onTransfer : undefined}
-        syncingBalance={syncingBalance}
         fundLabel={fundLabel}
         testIdPrefix={testIdPrefix}
-        basescanUrl={basescanUrl}
         botName={wallet.bot_name || undefined}
       />
     </div>

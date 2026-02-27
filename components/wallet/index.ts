@@ -1,4 +1,6 @@
 export { CardVisual } from "./card-visual";
+export { CryptoCardVisual } from "./crypto-card-visual";
+export type { CryptoMenuItem } from "./crypto-card-visual";
 export { StatusBadge } from "./status-badge";
 
 export { WalletActionBar } from "./wallet-action-bar";
