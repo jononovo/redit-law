@@ -122,6 +122,31 @@ async function handler(request: NextRequest, botId: string) {
           orderStatus: "processing",
         });
 
+        try {
+          const { recordOrder } = await import("@/lib/orders/create");
+          await recordOrder({
+            ownerUid: wallet.ownerUid,
+            rail: "rail2",
+            botId,
+            botName: bot?.botName ?? null,
+            walletId: wallet.id,
+            transactionId: tx.id,
+            externalOrderId: result.orderId,
+            status: "processing",
+            vendor: merchant,
+            productName: product_name || productLocator,
+            productUrl: productLocator,
+            sku: productLocator,
+            quantity: quantity || 1,
+            priceCents: estimated_price_usd ? Math.round(estimated_price_usd * (quantity || 1) * 100) : null,
+            priceCurrency: "USD",
+            shippingAddress: shipping_address as Record<string, any> || null,
+            metadata: { source: "auto-approved" },
+          });
+        } catch (orderErr) {
+          console.error("[Rail2] Order record creation failed (non-fatal):", orderErr);
+        }
+
         if (bot) {
           const { fireWebhook } = await import("@/lib/webhooks");
           fireWebhook(bot, "purchase.approved", {

@@ -9,6 +9,7 @@ import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
 import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { createApproval } from "@/lib/approvals/service";
+import { recordOrder } from "@/lib/orders/create";
 
 async function handler(request: NextRequest, botId: string) {
   try {
@@ -205,7 +206,7 @@ async function handler(request: NextRequest, botId: string) {
       chainId: 8453,
     });
 
-    await storage.privyCreateTransaction({
+    const tx = await storage.privyCreateTransaction({
       walletId: wallet.id,
       type: "x402_payment",
       amountUsdc: amount_usdc,
@@ -214,6 +215,31 @@ async function handler(request: NextRequest, botId: string) {
       status: "pending",
       balanceAfter: wallet.balanceUsdc,
     });
+
+    let vendorDomain: string | null = null;
+    try {
+      vendorDomain = new URL(resource_url).hostname;
+    } catch {
+      vendorDomain = resource_url;
+    }
+
+    const bot = await storage.getBotByBotId(botId);
+    recordOrder({
+      ownerUid: wallet.ownerUid,
+      rail: "rail1",
+      botId,
+      botName: bot?.botName ?? null,
+      walletId: wallet.id,
+      transactionId: tx.id,
+      status: "completed",
+      vendor: vendorDomain,
+      vendorDetails: { url: resource_url },
+      productName: vendorDomain,
+      productUrl: resource_url,
+      priceCents: Math.round(microUsdcToUsd(amount_usdc) * 100),
+      priceCurrency: "USD",
+      metadata: { recipient_address, resource_url, amount_usdc },
+    }).catch((err) => console.error("[Rail1] Order creation failed:", err));
 
     return NextResponse.json({
       x_payment_header: xPaymentHeader,

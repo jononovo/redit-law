@@ -132,6 +132,31 @@ export async function POST(request: NextRequest) {
         orderStatus: "processing",
       });
 
+      try {
+        const { recordOrder } = await import("@/lib/orders/create");
+        await recordOrder({
+          ownerUid: user.uid,
+          rail: "rail2",
+          botId: wallet.botId,
+          botName: bot?.botName ?? null,
+          walletId: wallet.id,
+          transactionId: transaction.id,
+          externalOrderId: result.orderId,
+          status: "processing",
+          vendor: merchant,
+          productName: transaction.productName || null,
+          productUrl: transaction.productLocator || null,
+          sku: transaction.productLocator || null,
+          quantity: transaction.quantity ?? 1,
+          priceCents: transaction.amountUsdc ? Math.round(transaction.amountUsdc / 10000) : null,
+          priceCurrency: "USD",
+          shippingAddress: shippingAddr as Record<string, any> || null,
+          metadata: { source: "legacy-approval-decide", approvalId: approval_id },
+        });
+      } catch (orderErr) {
+        console.error("[Rail2] Order record creation failed (non-fatal):", orderErr);
+      }
+
       if (bot) {
         const { fireWebhook } = await import("@/lib/webhooks");
         fireWebhook(bot, "purchase.approved", {

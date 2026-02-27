@@ -66,6 +66,7 @@ New features should follow a feature-first folder structure. Each rail lives und
 - `master-guardrails.ts` — master guardrails + cross-rail daily/monthly spend aggregation
 - `skills.ts` — skill drafts, evidence, submitter profiles, versioning, exports
 - `approvals.ts` — unified approvals
+- `orders.ts` — central orders table CRUD (create, get by ID/externalId, get by owner with filters, get by wallet/card, update)
 - All consumers import from `@/server/storage` unchanged (the directory's `index.ts` is transparent).
 - Methods that use `this.` resolve correctly because all fragments are spread into one object.
 
@@ -162,6 +163,21 @@ All four rails route approval emails through a single system under `lib/approval
 - **Env Vars**: `UNIFIED_APPROVAL_HMAC_SECRET` (falls back to `HMAC_SECRET` or default).
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
 - **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
+
+### Central Orders (`lib/orders/`, `server/storage/orders.ts`)
+Unified cross-rail order tracking for all vendor purchases. Every confirmed purchase across all 4 rails creates a row in the `orders` table.
+- **Schema**: `orders` table in `shared/schema.ts` with columns for product info (name, image, URL, description, SKU), vendor (name, details JSONB), pricing (price_cents, taxes_cents, shipping_price_cents, currency), shipping (address, type, note), tracking (carrier, number, URL, estimated_delivery), and references (owner_uid, rail, bot_id, wallet_id/card_id, transaction_id, external_order_id).
+- **Storage**: `server/storage/orders.ts` — CRUD methods: `createOrder`, `getOrderById`, `getOrderByExternalId`, `getOrdersByOwner` (with filters: rail, botId, walletId, cardId, status, dateFrom, dateTo), `getOrdersByWallet`, `getOrdersByCard`, `updateOrder`.
+- **Order creation module**: `lib/orders/create.ts` exports `recordOrder()` — single entry point all rails call after a confirmed purchase. `lib/orders/types.ts` defines `OrderInput` interface.
+- **Rail wiring** (order creation fires ONLY after confirmed execution, never on pending requests):
+  - Rail 1: `lib/approvals/rail1-fulfillment.ts` (approved) + `app/api/v1/stripe-wallet/bot/sign/route.ts` (auto-approved)
+  - Rail 2: `lib/approvals/rail2-fulfillment.ts` (approved) + `app/api/v1/card-wallet/bot/purchase/route.ts` (auto-approved) + `app/api/v1/card-wallet/approvals/decide/route.ts` (legacy decide). Webhooks update order via `storage.getOrderByExternalId()` + `storage.updateOrder()`.
+  - Rail 4: `lib/approvals/rail4-fulfillment.ts` (approved) + `app/api/v1/bot/merchant/checkout/route.ts` (auto-approved)
+  - Rail 5: `lib/approvals/rail5-fulfillment.ts` (approved) + `app/api/v1/bot/rail5/checkout/route.ts` (auto-approved)
+- **API**: `GET /api/v1/orders` (list with query filters), `GET /api/v1/orders/[order_id]` (single order detail). Owner-authenticated.
+- **Pages**: `/app/orders` (main orders list with cross-rail filters: rail, bot, status, date range), `/app/orders/[order_id]` (order detail page with product image, timeline, price breakdown, shipping/tracking).
+- **Rail tabs**: All 4 rail pages' Orders tabs now query the central `GET /api/v1/orders?rail=X` endpoint. Clicking an order navigates to `/app/orders/[order_id]`.
+- **Sidebar**: Orders link added to dashboard sidebar.
 
 ### Crypto Onramp (`lib/crypto-onramp/`)
 Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.

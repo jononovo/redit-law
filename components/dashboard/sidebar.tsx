@@ -15,7 +15,8 @@ import {
   Send,
   Lock,
   Store,
-  ExternalLink
+  ExternalLink,
+  Package
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const mainNavItems = [
   { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
   { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
   { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
+  { icon: Package, label: "Orders", href: "/app/orders" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
