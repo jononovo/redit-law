@@ -104,7 +104,6 @@ export function CryptoWalletItem({
         onActivity={onActivity}
         fundLabel={fundLabel}
         testIdPrefix={testIdPrefix}
-        botName={wallet.bot_name || undefined}
       />
     </div>
   );

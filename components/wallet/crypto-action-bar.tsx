@@ -1,7 +1,7 @@
 "use client";
 
-import { DollarSign, Snowflake, Play, Settings2, ArrowUpRight, Bot } from "lucide-react";
-import { WalletActionBar, type ActionItem, type BadgeItem } from "./wallet-action-bar";
+import { DollarSign, Snowflake, Play, Settings2, ArrowUpRight } from "lucide-react";
+import { WalletActionBar, type ActionItem } from "./wallet-action-bar";
 
 export interface CryptoActionBarProps {
   walletId: number;
@@ -12,7 +12,6 @@ export interface CryptoActionBarProps {
   onActivity: () => void;
   fundLabel?: string;
   testIdPrefix?: string;
-  botName?: string;
 }
 
 export function CryptoActionBar({
@@ -24,7 +23,6 @@ export function CryptoActionBar({
   onActivity,
   fundLabel = "Fund",
   testIdPrefix = "stripe",
-  botName,
 }: CryptoActionBarProps) {
   const isActive = status === "active";
 
@@ -59,20 +57,9 @@ export function CryptoActionBar({
     },
   ];
 
-  let badge: BadgeItem | undefined;
-  if (botName) {
-    badge = {
-      icon: Bot,
-      label: botName,
-      className: "flex-1 flex items-center justify-center gap-2 text-xs text-blue-600 font-medium",
-      "data-testid": `badge-bot-${walletId}`,
-    };
-  }
-
   return (
     <WalletActionBar
       actions={actions}
-      badge={badge}
     />
   );
 }
