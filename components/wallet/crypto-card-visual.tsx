@@ -48,18 +48,18 @@ export function CryptoCardVisual({
   menuItems = [],
 }: CryptoCardVisualProps) {
   const gradients = {
-    primary: "bg-gradient-to-br from-primary to-orange-600",
-    dark: "bg-gradient-to-br from-neutral-900 to-neutral-800",
-    blue: "bg-gradient-to-br from-blue-500 to-purple-600",
-    purple: "bg-gradient-to-br from-purple-500 to-purple-700",
+    primary: "bg-gradient-to-br from-orange-500 via-primary to-rose-600",
+    dark: "bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-800",
+    blue: "bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600",
+    purple: "bg-gradient-to-br from-violet-500 via-purple-600 to-fuchsia-600",
   };
 
   const statusColors: Record<string, string> = {
-    active: "bg-emerald-500/20 text-emerald-100 border-emerald-300/30",
-    pending_setup: "bg-amber-500/20 text-amber-100 border-amber-300/30",
-    awaiting_bot: "bg-violet-500/20 text-violet-100 border-violet-300/30",
-    frozen: "bg-blue-500/20 text-blue-100 border-blue-300/30",
-    paused: "bg-blue-500/20 text-blue-100 border-blue-300/30",
+    active: "bg-white/15 text-emerald-200 border-emerald-300/30",
+    pending_setup: "bg-white/15 text-amber-200 border-amber-300/30",
+    awaiting_bot: "bg-white/15 text-violet-200 border-violet-300/30",
+    frozen: "bg-white/15 text-blue-200 border-blue-300/30",
+    paused: "bg-white/15 text-blue-200 border-blue-300/30",
   };
 
   const statusLabels: Record<string, string> = {
@@ -71,7 +71,7 @@ export function CryptoCardVisual({
   };
 
   const displayStatus = frozen ? "frozen" : status;
-  const statusStyle = statusColors[displayStatus] || "bg-white/20 text-white/90 border-white/30";
+  const statusStyle = statusColors[displayStatus] || "bg-white/15 text-white/90 border-white/30";
   const statusLabel = statusLabels[displayStatus] || displayStatus;
 
   const truncatedAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -79,17 +79,17 @@ export function CryptoCardVisual({
   return (
     <div
       className={cn(
-        "relative rounded-2xl p-6 text-white shadow-xl overflow-hidden flex flex-col gap-4 select-none transition-all",
+        "relative rounded-2xl p-6 pb-5 text-white shadow-xl overflow-hidden flex flex-col gap-4 select-none transition-all",
         gradients[color],
         frozen && "grayscale opacity-70",
-        !frozen && "hover:scale-[1.01]",
+        !frozen && "hover:shadow-2xl",
         className
       )}
       data-testid="crypto-card-visual"
     >
-      <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay pointer-events-none" />
-      <div className="absolute -top-[60%] -right-[30%] w-[80%] h-[80%] rounded-full bg-white/5 pointer-events-none" />
-      <div className="absolute -bottom-[40%] -left-[20%] w-[60%] h-[60%] rounded-full bg-white/5 pointer-events-none" />
+      <div className="absolute top-[-30%] right-[-15%] w-[55%] h-[75%] rounded-full bg-white/[0.07] pointer-events-none" />
+      <div className="absolute bottom-[-25%] left-[-10%] w-[45%] h-[55%] rounded-full bg-white/[0.04] pointer-events-none" />
+      <div className="absolute top-[40%] right-[5%] w-[30%] h-[40%] rounded-full bg-white/[0.03] pointer-events-none" />
 
       {frozen && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
@@ -102,17 +102,17 @@ export function CryptoCardVisual({
 
       <div className="relative z-10 flex justify-between items-start">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-xl bg-black/25 backdrop-blur-sm flex items-center justify-center">
             <Wallet className="w-5 h-5 text-white/90" />
           </div>
           <div>
-            <span className="text-sm font-semibold block" data-testid="text-wallet-bot-name">{botName}</span>
-            <div className="flex items-center gap-1.5">
-              <code className="text-xs text-white/60 font-mono" data-testid="text-wallet-address">{truncatedAddress}</code>
+            <span className="text-base font-bold block leading-tight" data-testid="text-wallet-bot-name">{botName}</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <code className="text-xs text-white/55 font-mono" data-testid="text-wallet-address">{truncatedAddress}</code>
               {onCopyAddress && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onCopyAddress(); }}
-                  className="text-white/50 hover:text-white/90 transition-colors"
+                  className="text-white/40 hover:text-white/90 transition-colors"
                   data-testid="button-copy-address"
                 >
                   <Copy className="w-3 h-3" />
@@ -121,7 +121,7 @@ export function CryptoCardVisual({
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <span
             className={cn(
               "text-[11px] font-medium tracking-wide px-3 py-1 rounded-full border backdrop-blur-sm",
@@ -131,66 +131,84 @@ export function CryptoCardVisual({
           >
             {statusLabel}
           </span>
-          {menuItems.length > 0 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="text-white/60 hover:text-white/90 transition-colors p-1"
-                  data-testid="button-wallet-card-menu"
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {menuItems.map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownMenuItem key={idx} onClick={item.onClick} data-testid={item["data-testid"]}>
-                      <Icon className="w-4 h-4 mr-2" /> {item.label}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="text-white/50 hover:text-white/90 transition-colors p-0.5"
+                data-testid="button-wallet-card-menu"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {menuItems.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <DropdownMenuItem key={idx} onClick={item.onClick} data-testid={item["data-testid"]}>
+                    <Icon className="w-4 h-4 mr-2" /> {item.label}
+                  </DropdownMenuItem>
+                );
+              })}
+              {onCopyAddress && (
+                <DropdownMenuItem onClick={onCopyAddress} data-testid="menu-copy-address">
+                  <Copy className="w-4 h-4 mr-2" /> Copy Address
+                </DropdownMenuItem>
+              )}
+              {onSyncBalance && (
+                <DropdownMenuItem onClick={onSyncBalance} data-testid="menu-sync-balance">
+                  <RefreshCw className="w-4 h-4 mr-2" /> Sync Balance
+                </DropdownMenuItem>
+              )}
+              {basescanUrl && (
+                <DropdownMenuItem onClick={() => window.open(basescanUrl, "_blank")} data-testid="menu-basescan">
+                  <ExternalLink className="w-4 h-4 mr-2" /> View on Basescan
+                </DropdownMenuItem>
+              )}
+              {onTransfer && (
+                <DropdownMenuItem onClick={onTransfer} data-testid="menu-transfer">
+                  <Send className="w-4 h-4 mr-2" /> Transfer USDC
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="relative z-10">
-        <span className="text-3xl font-bold font-mono tracking-tight block" data-testid="text-wallet-balance">{balance}</span>
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs font-medium text-white/70 uppercase tracking-wider" data-testid="text-wallet-chain-label">
+      <div className="relative z-10 mt-1">
+        <span className="text-4xl font-bold tracking-tight block" data-testid="text-wallet-balance">{balance}</span>
+        <div className="flex items-center gap-2.5 mt-1.5">
+          <span className="text-xs font-semibold text-white/60 uppercase tracking-widest" data-testid="text-wallet-chain-label">
             USDC on {chain}
           </span>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {onSyncBalance && (
               <button
                 onClick={(e) => { e.stopPropagation(); onSyncBalance(); }}
-                className="text-white/50 hover:text-white/90 transition-colors"
+                className="text-white/45 hover:text-white/90 transition-colors"
                 title="Sync balance"
                 data-testid="button-sync-balance"
               >
-                <RefreshCw className={cn("w-3.5 h-3.5", syncingBalance && "animate-spin")} />
+                <RefreshCw className={cn("w-4 h-4", syncingBalance && "animate-spin")} />
               </button>
             )}
             {basescanUrl && (
               <button
                 onClick={(e) => { e.stopPropagation(); window.open(basescanUrl, "_blank"); }}
-                className="text-white/50 hover:text-white/90 transition-colors"
+                className="text-white/45 hover:text-white/90 transition-colors"
                 title="View on Basescan"
                 data-testid="button-basescan"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="w-4 h-4" />
               </button>
             )}
             {onTransfer && (
               <button
                 onClick={(e) => { e.stopPropagation(); onTransfer(); }}
-                className="text-white/50 hover:text-white/90 transition-colors"
+                className="text-white/45 hover:text-white/90 transition-colors"
                 title="Transfer"
                 data-testid="button-transfer-inline"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -198,11 +216,11 @@ export function CryptoCardVisual({
       </div>
 
       {guardrailLines.length > 0 && (
-        <div className="relative z-10 bg-white/10 backdrop-blur-sm border border-white/15 rounded-xl px-4 py-3 space-y-1.5" data-testid="wallet-guardrails-panel">
+        <div className="relative z-10 mt-1 bg-white/[0.08] backdrop-blur-sm border border-white/[0.12] rounded-xl px-5 py-3.5 space-y-2" data-testid="wallet-guardrails-panel">
           {guardrailLines.map((line, idx) => (
             <div key={idx} className="flex items-center justify-between">
-              <span className="text-sm text-white/80">{line.label}</span>
-              <span className="text-sm font-semibold text-white/95 font-mono">{line.value}</span>
+              <span className="text-sm text-white/75">{line.label}</span>
+              <span className="text-sm font-bold text-white/90 font-mono">{line.value}</span>
             </div>
           ))}
         </div>
