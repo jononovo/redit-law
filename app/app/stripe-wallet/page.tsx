@@ -3,11 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Shield, Copy, CheckCircle2, Clock, XCircle, DollarSign, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
@@ -16,11 +13,13 @@ import type { Rail1WalletInfo, Rail1ApprovalInfo, Rail1TransactionInfo } from "@
 import { useWalletActions } from "@/components/wallet/hooks/use-wallet-actions";
 import { useBotLinking } from "@/components/wallet/hooks/use-bot-linking";
 import { useTransfer } from "@/components/wallet/hooks/use-transfer";
+import { useGuardrails } from "@/components/wallet/hooks/use-guardrails";
 import { CryptoWalletItem } from "@/components/wallet/crypto-wallet-item";
 import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
 import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
 import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
+import { CreateCryptoWalletDialog } from "@/components/wallet/dialogs/create-crypto-wallet-dialog";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
 
 export default function StripeWalletPage() {
@@ -32,9 +31,6 @@ export default function StripeWalletPage() {
   const [loading, setLoading] = useState(true);
   const [selectedWallet, setSelectedWallet] = useState<Rail1WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [guardrailsDialogOpen, setGuardrailsDialogOpen] = useState(false);
-  const [selectedBotId, setSelectedBotId] = useState("");
-  const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
 
   const [onrampDialogOpen, setOnrampDialogOpen] = useState(false);
@@ -43,14 +39,6 @@ export default function StripeWalletPage() {
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const onrampMountRef = useRef<HTMLDivElement>(null);
   const onrampSessionRef = useRef<any>(null);
-
-  const [guardrailForm, setGuardrailForm] = useState<CryptoGuardrailForm>({
-    max_per_tx_usdc: 100,
-    daily_budget_usdc: 1000,
-    monthly_budget_usdc: 10000,
-    require_approval_above: null,
-  });
-  const [savingGuardrails, setSavingGuardrails] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -115,6 +103,12 @@ export default function StripeWalletPage() {
     },
   });
 
+  const guardrails = useGuardrails<Rail1WalletInfo>({
+    variant: "crypto",
+    railPrefix: "stripe-wallet",
+    onUpdate: fetchWallets,
+  });
+
   useEffect(() => {
     if (user) {
       fetchWallets();
@@ -130,93 +124,6 @@ export default function StripeWalletPage() {
       fetchTransactions(selectedWallet.id);
     }
   }, [selectedWallet, fetchTransactions]);
-
-  async function handleCreate() {
-    if (!selectedBotId) return;
-    setCreating(true);
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bot_id: selectedBotId }),
-      });
-      if (res.ok) {
-        toast({ title: "Wallet created", description: "Privy server wallet provisioned on Base." });
-        setCreateDialogOpen(false);
-        setSelectedBotId("");
-        fetchWallets();
-      } else {
-        const err = await res.json();
-        toast({ title: "Error", description: err.error || "Failed to create wallet", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Something went wrong", variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  async function handleSaveGuardrails() {
-    if (!selectedWallet) return;
-    setSavingGuardrails(true);
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/guardrails", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet_id: selectedWallet.id,
-          ...guardrailForm,
-        }),
-      });
-      if (res.ok) {
-        toast({ title: "Guardrails updated" });
-        setGuardrailsDialogOpen(false);
-        fetchWallets();
-      }
-    } catch {
-      toast({ title: "Error", variant: "destructive" });
-    } finally {
-      setSavingGuardrails(false);
-    }
-  }
-
-  async function handleApprovalDecision(approvalId: number, decision: "approve" | "reject") {
-    try {
-      const res = await authFetch("/api/v1/stripe-wallet/approvals/decide", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approval_id: approvalId, decision }),
-      });
-      if (res.ok) {
-        toast({ title: decision === "approve" ? "Approved" : "Rejected" });
-        fetchApprovals();
-      }
-    } catch {
-      toast({ title: "Error", variant: "destructive" });
-    }
-  }
-
-  function openGuardrailsDialog(wallet: Rail1WalletInfo) {
-    setSelectedWallet(wallet);
-    if (wallet.guardrails) {
-      setGuardrailForm({
-        max_per_tx_usdc: wallet.guardrails.max_per_tx_usdc,
-        daily_budget_usdc: wallet.guardrails.daily_budget_usdc,
-        monthly_budget_usdc: wallet.guardrails.monthly_budget_usdc,
-        require_approval_above: wallet.guardrails.require_approval_above,
-      });
-    }
-    setGuardrailsDialogOpen(true);
-  }
-
-  async function handleSyncBalance(walletId: number) {
-    const result = await walletActions.syncBalance(walletId);
-    if (result) {
-      setWallets(prev => prev.map(w =>
-        w.id === walletId ? { ...w, balance_usdc: result.balance_usdc, balance_display: result.balance_display } : w
-      ));
-    }
-  }
 
   const statusIcon = (status: string) => {
     switch (status) {
@@ -410,12 +317,12 @@ export default function StripeWalletPage() {
                   color="blue"
                   onFund={() => handleOpenOnramp(wallet)}
                   onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
-                  onGuardrails={() => openGuardrailsDialog(wallet)}
+                  onGuardrails={() => guardrails.openDialog(wallet)}
                   onActivity={() => { setSelectedWallet(wallet); setActiveTab("activity"); }}
                   onAddAgent={() => botLinking.openLinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id || null, bot_name: wallet.bot_name || null })}
                   onUnlinkBot={() => botLinking.openUnlinkDialog({ id: wallet.id, name: wallet.bot_name || "Wallet", bot_id: wallet.bot_id, bot_name: wallet.bot_name })}
                   onCopyAddress={() => walletActions.copyAddress(wallet.address)}
-                  onSyncBalance={() => handleSyncBalance(wallet.id)}
+                  onSyncBalance={() => walletActions.handleSyncAndPatch(wallet.id, setWallets)}
                   onTransfer={() => transfer.openTransferDialog(wallet)}
                   syncingBalance={walletActions.syncingId === wallet.id}
                   fundLabel="Fund with Stripe"
@@ -534,7 +441,7 @@ export default function StripeWalletPage() {
                       size="sm"
                       variant="outline"
                       className="text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => handleApprovalDecision(a.id, "reject")}
+                      onClick={() => walletActions.handleApprovalDecision(a.id, "reject", { onSuccess: fetchApprovals })}
                       data-testid={`button-reject-${a.id}`}
                     >
                       Reject
@@ -542,7 +449,7 @@ export default function StripeWalletPage() {
                     <Button
                       size="sm"
                       className="bg-emerald-600 hover:bg-emerald-700"
-                      onClick={() => handleApprovalDecision(a.id, "approve")}
+                      onClick={() => walletActions.handleApprovalDecision(a.id, "approve", { onSuccess: fetchApprovals })}
                       data-testid={`button-approve-${a.id}`}
                     >
                       Approve
@@ -555,52 +462,28 @@ export default function StripeWalletPage() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>Create Stripe Wallet</DialogTitle>
-          <DialogDescription>
-            Provision a Privy server wallet on Base for your bot. It can be funded with USDC via Stripe.
-          </DialogDescription>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>Select Bot</Label>
-              <select
-                className="w-full mt-1.5 border rounded-lg px-3 py-2 text-sm bg-white"
-                value={selectedBotId}
-                onChange={(e) => setSelectedBotId(e.target.value)}
-                data-testid="select-bot-create"
-              >
-                <option value="">Choose a bot...</option>
-                {botLinking.bots.map((bot) => (
-                  <option key={bot.bot_id} value={bot.bot_id}>{bot.bot_name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setCreateDialogOpen(false)} data-testid="button-cancel-create">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreate}
-                disabled={!selectedBotId || creating}
-                className="bg-primary hover:bg-primary/90"
-                data-testid="button-confirm-create"
-              >
-                {creating && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                Create Wallet
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CreateCryptoWalletDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        bots={botLinking.bots}
+        config={{
+          title: "Create Stripe Wallet",
+          description: "Provision a Privy server wallet on Base for your bot. It can be funded with USDC via Stripe.",
+          endpoint: "/api/v1/stripe-wallet/create",
+          buttonLabel: "Create Wallet",
+          successMessage: "Wallet created",
+          successDescription: "Privy server wallet provisioned on Base.",
+        }}
+        onCreated={fetchWallets}
+      />
 
       <GuardrailDialog
-        open={guardrailsDialogOpen}
-        onOpenChange={setGuardrailsDialogOpen}
-        form={guardrailForm}
-        onFormChange={(f) => setGuardrailForm(f as CryptoGuardrailForm)}
-        saving={savingGuardrails}
-        onSave={handleSaveGuardrails}
+        open={guardrails.guardrailsDialogOpen}
+        onOpenChange={guardrails.setGuardrailsDialogOpen}
+        form={guardrails.form}
+        onFormChange={(f) => guardrails.setForm(f as CryptoGuardrailForm)}
+        saving={guardrails.saving}
+        onSave={guardrails.save}
         variant="crypto"
       />
 

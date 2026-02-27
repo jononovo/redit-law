@@ -174,13 +174,16 @@ All wallet and card page UI is consolidated into `components/wallet/` to elimina
 - **`wallet-action-bar.tsx`** — Base action bar (accepts action items array, badge, menu); used by crypto pages and `CreditCardItem`.
 - **`crypto-wallet-item.tsx`** — **Unified wallet+action bar component** for crypto rails. Wraps `CryptoCardVisual` + `CryptoActionBar`. Card handles inline actions (copy, sync, basescan, transfer) and three-dot menu (add agent, unlink bot). Action bar handles Fund/Pause/Guardrails/Activity.
 - **`crypto-action-bar.tsx`** — Crypto wallet action bar (Fund, Pause/Activate, Guardrails, Activity, Bot badge).
-- **`hooks/use-wallet-actions.ts`** — Shared freeze, sync balance, copy address handlers (accepts rail-specific config).
-- **`hooks/use-bot-linking.ts`** — Shared link/unlink bot state and handlers.
+- **`hooks/use-wallet-actions.ts`** — Shared freeze, sync balance, copy address, approval decision, sync-and-patch handlers (accepts rail-specific config).
+- **`hooks/use-bot-linking.ts`** — Shared link/unlink bot state and handlers. Also used by Rail 2 for bot list in create dialog.
 - **`hooks/use-transfer.ts`** — Shared transfer dialog state and handler (Rails 1 & 2).
-- **`dialogs/`** — Freeze, link-bot, unlink-bot, transfer, guardrail dialogs.
+- **`hooks/use-guardrails.ts`** — Shared guardrail form state, open/save logic. Supports `crypto` variant (direct USD values) and `card` variant (micro-USDC multiplier + procurement controls save).
+- **`dialogs/`** — Freeze, link-bot, unlink-bot, transfer, guardrail, create-crypto-wallet dialogs.
 - **`index.ts`** — Barrel export for all components, hooks, types, and dialogs.
 
 Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component.
+
+Rail 1 (`stripe-wallet/page.tsx`, ~664 lines) and Rail 2 (`card-wallet/page.tsx`, ~742 lines) use shared hooks (`useWalletActions`, `useBotLinking`, `useTransfer`, `useGuardrails`) and shared dialogs (`GuardrailDialog`, `CreateCryptoWalletDialog`, `TransferDialog`, `LinkBotDialog`, `UnlinkBotDialog`). Remaining page-specific code is genuinely rail-specific: Stripe Onramp Sheet (Rail 1), CrossMint checkout + fund dialog (Rail 2), OrderTimeline + order detail dialog (Rail 2), and different tab content layouts.
 
 ### Key Routes
 - `/`: Consumer landing page
