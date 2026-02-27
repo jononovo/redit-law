@@ -91,6 +91,7 @@ export interface NormalizedCard {
   bot_name: string | null;
   balance: string;
   balanceLabel: string;
+  balanceTooltip?: string | null;
   last4: string;
   brand: string | null;
   line1: string | null;
@@ -102,6 +103,11 @@ export function normalizeRail4Card(card: Rail4CardInfo, basePath: string): Norma
   const remaining = card.allowance ? card.allowance.remaining_cents / 100 : 0;
   const sign = remaining < 0 ? "-" : "";
   const balance = `${sign}$${Math.abs(remaining).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const tooltipParts: string[] = [];
+  if (card.allowance) {
+    tooltipParts.push(formatAllowanceLabel(card.allowance));
+    tooltipParts.push(formatResetsLabel(card.allowance));
+  }
   return {
     card_id: card.card_id,
     card_name: card.card_name,
@@ -110,10 +116,11 @@ export function normalizeRail4Card(card: Rail4CardInfo, basePath: string): Norma
     bot_name: null,
     balance,
     balanceLabel: "Remaining Allowance",
+    balanceTooltip: tooltipParts.length > 0 ? tooltipParts.join("\n") : null,
     last4: card.card_id.slice(-4),
     brand: null,
-    line1: card.allowance ? formatAllowanceLabel(card.allowance) : null,
-    line2: card.allowance ? formatResetsLabel(card.allowance) : null,
+    line1: null,
+    line2: null,
     detailPath: `${basePath}/${card.card_id}`,
   };
 }

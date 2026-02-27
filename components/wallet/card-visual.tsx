@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Snowflake } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CardVisualProps {
   color?: "primary" | "dark" | "blue" | "purple";
@@ -9,6 +10,7 @@ interface CardVisualProps {
   holderLabel?: string;
   balance?: string;
   balanceLabel?: string;
+  balanceTooltip?: string;
   frozen?: boolean;
   className?: string;
   line1?: string;
@@ -34,6 +36,7 @@ export function CardVisual({
   holderLabel = "Card Name",
   balance = "$0.00",
   balanceLabel = "Current Balance",
+  balanceTooltip,
   frozen = false,
   className,
   line1,
@@ -102,8 +105,26 @@ export function CardVisual({
           {line2 && (
             <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider mb-1" data-testid="text-card-line2">{line2}</span>
           )}
-          <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1" data-testid="text-balance-label">{balanceLabel}</span>
-          <span className="text-2xl font-bold font-mono tracking-tight" data-testid="text-balance-value">{balance}</span>
+          {balanceTooltip ? (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="cursor-help">
+                    <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1 block" data-testid="text-balance-label">{balanceLabel}</span>
+                    <span className="text-2xl font-bold font-mono tracking-tight block" data-testid="text-balance-value">{balance}</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="bg-black/90 text-white text-[11px] whitespace-pre-line max-w-[220px] border-white/10" data-testid="tooltip-balance">
+                  {balanceTooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <>
+              <span className="text-xs font-medium opacity-80 uppercase tracking-wider mb-1" data-testid="text-balance-label">{balanceLabel}</span>
+              <span className="text-2xl font-bold font-mono tracking-tight" data-testid="text-balance-value">{balance}</span>
+            </>
+          )}
           <div className="mt-2 w-10 h-6 rounded bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center">
             <div className="w-6 h-4 border border-white/40 rounded-[2px] relative overflow-hidden">
               <div className="absolute top-1 left-0 w-full h-[1px] bg-white/40" />

@@ -35,6 +35,7 @@ export function CreditCardItem({
         color={CARD_COLORS[index % CARD_COLORS.length]}
         balance={card.balance}
         balanceLabel={card.balanceLabel}
+        balanceTooltip={card.balanceTooltip || undefined}
         last4={card.last4}
         holder={card.card_name.toUpperCase()}
         frozen={isFrozen}
