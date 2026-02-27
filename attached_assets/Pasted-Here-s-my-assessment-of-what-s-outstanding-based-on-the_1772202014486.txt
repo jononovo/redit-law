@@ -1,0 +1,25 @@
+Here's my assessment of what's outstanding based on the session plan and the current state of the codebase:
+
+Completed (T001–T006):
+* Shared types, hooks (wallet-actions, bot-linking, transfer), dialogs (freeze, link-bot, unlink-bot, transfer, guardrail), action bars, card-visual, status-badge, index barrel — all built in components/wallet/
+* Rail 4 (self-hosted) and Rail 5 (sub-agent-cards) pages are thin 43-line config wrappers of CreditCardListPage
+* Cards page (281 lines) already uses CardVisual and WalletActionBar from shared components
+Outstanding — T007: Refactor crypto wallet pages (Rails 1 & 2)
+Both stripe-wallet/page.tsx (781 lines) and card-wallet/page.tsx (886 lines) already import and use shared hooks/components, but still have significant duplicated patterns between them:
+1. Guardrail state management — Both pages maintain identical state (guardrailForm, savingGuardrails, guardrailsDialogOpen) and have openGuardrailsDialog / handleSaveGuardrails functions. A useGuardrails hook could encapsulate all of this. The save logic differs (Rail 1 POSTs form values directly; Rail 2 multiplies by 1M and also calls a procurement-controls endpoint), but that's parameterizable.
+2. Create wallet dialog — Both pages have a nearly identical "create wallet" dialog: select a bot from a dropdown, call an endpoint, show a toast. A shared CreateCryptoWalletDialog component could handle this with a config for title/description/endpoint/button text.
+3. Approval decision handler — Both pages have handleApprovalDecision with the same shape (POST to /{railPrefix}/approvals/decide). Could be added to useWalletActions or a small utility.
+4. handleSyncBalance wrapper — Both pages have an identical 5-line function that calls walletActions.syncBalance() and patches local state. Could be folded into the hook's return value.
+5. card-wallet has its own BotInfo interface (lines 24-27) instead of importing from shared types. It also manages its own fetchBots instead of using useBotLinking — it could use useBotLinking just for the bot list, even though it doesn't use the link/unlink features.
+6. statusIcon utility in stripe-wallet — small helper mapping transaction status → icon. Minor, but could be shared if desired.
+What stays in-page (rail-specific, per the plan):
+* Stripe onramp Sheet + close-confirm dialog (Rail 1) — ~130 lines
+* CrossMint checkout + fund dialog + CrossmintCheckoutWrapper component (Rail 2) — ~120 lines
+* OrderTimeline component + order detail dialog (Rail 2) — ~140 lines
+* Activity/Orders tab JSX (different table structures per rail)
+* Approvals tab JSX (different approval shapes per rail)
+Realistic reduction estimate: Extracting items 1–5 above would remove roughly 80–100 lines from each page, bringing stripe-wallet to ~680 and card-wallet to ~780. That's about a 12–15% reduction from current state — meaningful but not the 40–50% originally hoped for, because the remaining bulk is genuinely rail-specific UI.
+Outstanding — T008: Clean up legacy cards page
+The cards/page.tsx (281 lines) already imports CardVisual, WalletActionBar, CARD_COLORS, and formatCentsToUsd from shared components. The main remaining item is the LimitsPopover component (lines 35–116) which is specific to this page's API. This page is already reasonably clean. The only cleanup would be verifying components/dashboard/card-visual.tsx is fully removed or re-exported.
+Outstanding — T009: Verify and smoke test
+Run TypeScript check, dev server, and verify all 5 pages load correctly after any changes from T007/T008.
