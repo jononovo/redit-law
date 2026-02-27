@@ -22,6 +22,7 @@ interface CryptoWalletItemProps {
   fundLabel?: string;
   testIdPrefix?: string;
   basescanUrl?: string;
+  guardrailValueFormatter?: (v: number) => string;
 }
 
 export function CryptoWalletItem({
@@ -40,14 +41,16 @@ export function CryptoWalletItem({
   fundLabel,
   testIdPrefix = "stripe",
   basescanUrl,
+  guardrailValueFormatter,
 }: CryptoWalletItemProps) {
   const isFrozen = wallet.status === "paused" || wallet.status === "frozen";
   const chain = "chain" in wallet ? wallet.chain : "Base";
+  const fmt = guardrailValueFormatter ?? ((v: number) => `$${v}`);
 
   const guardrailLines: { label: string; value: string }[] = [];
   if (wallet.guardrails) {
-    guardrailLines.push({ label: "Per-tx", value: `$${wallet.guardrails.max_per_tx_usdc}` });
-    guardrailLines.push({ label: "Daily", value: `$${wallet.guardrails.daily_budget_usdc}` });
+    guardrailLines.push({ label: "Per-tx", value: fmt(wallet.guardrails.max_per_tx_usdc) });
+    guardrailLines.push({ label: "Daily", value: fmt(wallet.guardrails.daily_budget_usdc) });
   }
 
   return (

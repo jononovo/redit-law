@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, ShoppingCart, Plus, Shield, Snowflake, Play, Copy, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, Ban, CreditCard, RefreshCw, MapPin, Eye, Send, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Loader2, ShoppingCart, Plus, CheckCircle2, Clock, XCircle, DollarSign, Package, Truck, ExternalLink, CreditCard, RefreshCw, MapPin, Eye, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,13 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { CrossmintProvider, CrossmintEmbeddedCheckout } from "@crossmint/client-sdk-react-ui";
 import type { Rail2WalletInfo, Rail2TransactionInfo, Rail2ApprovalInfo } from "@/components/wallet/types";
 import { microUsdcToDisplay } from "@/components/wallet/types";
 import { StatusBadge } from "@/components/wallet/status-badge";
 import { useWalletActions } from "@/components/wallet/hooks/use-wallet-actions";
 import { useTransfer } from "@/components/wallet/hooks/use-transfer";
+import { CryptoWalletItem } from "@/components/wallet/crypto-wallet-item";
 import { GuardrailDialog } from "@/components/wallet/dialogs/guardrail-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import type { CardGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
@@ -264,22 +264,6 @@ export default function CardWalletPage() {
     }
   };
 
-  const handleFreeze = async (wallet: Rail2WalletInfo) => {
-    try {
-      const res = await authFetch("/api/v1/card-wallet/freeze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ wallet_id: wallet.id }),
-      });
-      if (res.ok) {
-        toast({ title: wallet.status === "active" ? "Wallet paused" : "Wallet activated" });
-        fetchWallets();
-      }
-    } catch {
-      toast({ title: "Failed to update wallet status", variant: "destructive" });
-    }
-  };
-
   const handleSaveGuardrails = async () => {
     if (!selectedWallet) return;
     setSavingGuardrails(true);
@@ -521,107 +505,25 @@ export default function CardWalletPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {wallets.map((wallet) => (
-                <div key={wallet.id} className="bg-white rounded-xl border border-neutral-100 p-6 hover:shadow-sm transition-shadow" data-testid={`wallet-card-${wallet.id}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-                        <ShoppingCart className="w-5 h-5 text-violet-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-neutral-900">{wallet.bot_name}</h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <code className="text-xs text-neutral-400 font-mono">{wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}</code>
-                          <button onClick={() => walletActions.copyAddress(wallet.address)} className="text-neutral-400 hover:text-neutral-600" data-testid={`button-copy-${wallet.id}`}>
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={wallet.status} />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenFund(wallet)}
-                        className="text-violet-600 border-violet-200 hover:bg-violet-50 gap-1"
-                        data-testid={`button-fund-${wallet.id}`}
-                      >
-                        <CreditCard className="w-4 h-4" /> Fund
-                      </Button>
-                      {wallet.status === "active" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => transfer.openTransferDialog(wallet)}
-                          className="text-blue-600 border-blue-200 hover:bg-blue-50 gap-1"
-                          data-testid={`button-transfer-${wallet.id}`}
-                        >
-                          <Send className="w-4 h-4" /> Transfer
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleFreeze(wallet)}
-                        className={wallet.status === "active" ? "text-amber-600 hover:text-amber-700" : "text-emerald-600 hover:text-emerald-700"}
-                        data-testid={`button-freeze-${wallet.id}`}
-                      >
-                        {wallet.status === "active" ? <Snowflake className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openGuardrailsDialog(wallet)}
-                        data-testid={`button-guardrails-${wallet.id}`}
-                      >
-                        <Shield className="w-4 h-4 text-neutral-500" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <div className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs text-neutral-500 flex items-center gap-1">
-                        Balance
-                        <button
-                          onClick={() => handleSyncBalance(wallet.id)}
-                          disabled={walletActions.syncingId === wallet.id}
-                          className="text-neutral-400 hover:text-neutral-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                          title="Sync balance from chain"
-                          data-testid={`button-sync-balance-${wallet.id}`}
-                        >
-                          <RefreshCw className={`w-3 h-3 ${walletActions.syncingId === wallet.id ? "animate-spin" : ""}`} />
-                        </button>
-                      </p>
-                      <p className="text-lg font-bold text-neutral-900" data-testid={`text-balance-${wallet.id}`}>{wallet.balance_display}</p>
-                    </div>
-                    <div className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs text-neutral-500">Chain</p>
-                      <p className="text-sm font-medium text-neutral-700">{wallet.chain}</p>
-                    </div>
-                    <div className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs text-neutral-500">Per-Tx Limit</p>
-                      <p className="text-sm font-medium text-neutral-700">{wallet.guardrails ? microUsdcToDisplay(wallet.guardrails.max_per_tx_usdc) : "—"}</p>
-                    </div>
-                    <div className="bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs text-neutral-500">Daily Budget</p>
-                      <p className="text-sm font-medium text-neutral-700">{wallet.guardrails ? microUsdcToDisplay(wallet.guardrails.daily_budget_usdc) : "—"}</p>
-                    </div>
-                  </div>
-
-                  {wallet.guardrails && (wallet.guardrails.allowlisted_merchants?.length || wallet.guardrails.blocklisted_merchants?.length) ? (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {wallet.guardrails.allowlisted_merchants?.map((m) => (
-                        <Badge key={m} variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50 text-xs">{m}</Badge>
-                      ))}
-                      {wallet.guardrails.blocklisted_merchants?.map((m) => (
-                        <Badge key={m} variant="outline" className="text-red-700 border-red-200 bg-red-50 text-xs"><Ban className="w-3 h-3 mr-1" />{m}</Badge>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                <CryptoWalletItem
+                  key={wallet.id}
+                  wallet={wallet}
+                  color="purple"
+                  onFund={() => handleOpenFund(wallet)}
+                  onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
+                  onGuardrails={() => openGuardrailsDialog(wallet)}
+                  onActivity={() => { setSelectedWallet(wallet); setActiveTab("orders"); }}
+                  onCopyAddress={() => walletActions.copyAddress(wallet.address)}
+                  onSyncBalance={() => handleSyncBalance(wallet.id)}
+                  onTransfer={() => transfer.openTransferDialog(wallet)}
+                  syncingBalance={walletActions.syncingId === wallet.id}
+                  fundLabel="Fund"
+                  testIdPrefix="crossmint"
+                  basescanUrl={`https://basescan.org/address/${wallet.address}`}
+                  guardrailValueFormatter={microUsdcToDisplay}
+                />
               ))}
             </div>
           )}
