@@ -95,7 +95,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/sign.ts` — `signTypedData()` for x402 EIP-712 signing.
   - `wallet/transfer.ts` — `sendUsdcTransfer()` via Privy RPC with ERC-20 calldata.
   - `wallet/balance.ts` — `getOnChainUsdcBalance()` via viem + Base RPC.
-  - `onramp.ts` — `createOnrampSession()` via Stripe Crypto Onramp API.
+  - `onramp.ts` — re-export shim for `createStripeOnrampSession` from `lib/crypto-onramp/stripe-onramp/session.ts`.
   - `x402.ts` — x402 typed data builders (`buildTransferWithAuthorizationTypedData`, `buildXPaymentHeader`, `generateNonce`) and USDC format helpers (`formatUsdc`, `usdToMicroUsdc`, `microUsdcToUsd`).
   - Webhook: `STRIPE_WEBHOOK_SECRET_ONRAMP` env var, event type `crypto.onramp_session.updated`. Balance sync endpoint: `POST /api/v1/stripe-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `privy_wallets`.
 - **Rail 2 (Card Wallet):** Uses CrossMint smart wallets on Base chain, USDC funding via fiat onramp, and Amazon/commerce purchases via Orders API. Employs merchant allow/blocklists. **Modularized under `lib/rail2/`:**
@@ -103,7 +103,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `wallet/create.ts` — `createSmartWallet()` using `evm-fireblocks-custodial` signer.
   - `wallet/balance.ts` — `getWalletBalance()` with balance parsing for old/new response formats.
   - `wallet/transfer.ts` — `sendUsdcTransfer()` for on-chain USDC transfers.
-  - `orders/purchase.ts` — `createPurchaseOrder()`, `getOrderStatus()`, `ShippingAddress` interface.
+  - `orders/purchase.ts` — re-export shim for `createPurchaseOrder()`, `getOrderStatus()` from `lib/procurement/crossmint-worldstore/purchase.ts`.
   - `orders/onramp.ts` — `createOnrampOrder()` for fiat-to-USDC via checkoutcom-flow.
   - On-chain balance sync via reused `getOnChainUsdcBalance` from `lib/rail1/wallet/balance.ts`. Balance sync endpoint: `POST /api/v1/card-wallet/balance/sync` with 30-sec cooldown and `reconciliation` transaction type for discrepancies. Schema includes `last_synced_at` column on `crossmint_wallets`. Frontend ↻ button on Card Wallet dashboard mirrors Rail 1 pattern.
 - **Master Guardrails:** Owner-level, cross-rail spending limits stored in a `master_guardrails` table. These guardrails are checked before per-rail guardrails and aggregate spend across all active rails.
@@ -163,6 +163,28 @@ All four rails route approval emails through a single system under `lib/approval
 - **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
 - **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
 
+### Crypto Onramp (`lib/crypto-onramp/`)
+Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.
+- **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
+- **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address
+- **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — extracted from webhook route
+- **`stripe-onramp/types.ts`** — Stripe-specific payload types
+- **`components/use-stripe-onramp.ts`** — React hook encapsulating session creation, Stripe SDK script loading, widget mounting, close-confirm flow
+- **`components/stripe-onramp-sheet.tsx`** — `StripeOnrampSheet` — full Sheet + embedded Stripe widget + mobile header + close-confirm dialog
+- Currently hardcoded to Rail 1 only. Adding another rail = new API route + button, zero changes to the module itself.
+
+### Procurement (`lib/procurement/`)
+Standalone module for spending USDC on products/services. Provider-agnostic structure — CrossMint WorldStore is the first provider.
+- **`types.ts`** — `PurchaseRequest`, `PurchaseResult`, `ShippingAddress`, `ProcurementProvider`, `OrderStatusResult`
+- **`crossmint-worldstore/client.ts`** — `getServerApiKey()`, `worldstoreSearch()` — shared CrossMint WorldStore API client
+- **`crossmint-worldstore/types.ts`** — `CrossMintOrderEvent`, `OrderStatusMapping`, `TrackingInfo`, `ProductVariant`, `ProductSearchResult`
+- **`crossmint-worldstore/purchase.ts`** — `createPurchaseOrder()`, `getOrderStatus()` — uses `crossmintFetch` from `lib/rail2/client.ts` for Orders API
+- **`crossmint-worldstore/shopify-search.ts`** — `searchShopifyProduct()` — Shopify product variant search via WorldStore unstable API
+- **`crossmint-worldstore/webhook.ts`** — `verifyCrossMintWebhook()`, `extractOrderId()`, `buildOrderUpdates()`, `extractTrackingInfo()` — order lifecycle webhook processing
+- **Re-export shims**: `lib/rail2/orders/purchase.ts` re-exports `createPurchaseOrder`/`getOrderStatus` — all 4 consumers unchanged
+- **Cross-rail shopping gate**: CrossMint Orders API requires `payerAddress` to be the CrossMint wallet. Shopping from a Privy (Rail 1) wallet would require a pre-transfer step (Privy→CrossMint) before order creation. This is a known limitation — not yet implemented.
+- Future providers (direct merchant APIs, browser checkout agents) slot in as siblings under `lib/procurement/`.
+
 ### Agent Management (`lib/agent-management/`)
 Bot linking/unlinking is centralized in `lib/agent-management/bot-linking.ts`. A single `linkBotToEntity(rail, entityId, botId, ownerUid)` / `unlinkBotFromEntity(rail, entityId, ownerUid)` function handles all four rails with uniform rules:
 - **Max 3 entities per bot** enforced across all rails (was previously only Rail 4)
@@ -178,7 +200,12 @@ All wallet and card page UI is consolidated into `components/wallet/` to elimina
 - **`card-visual.tsx`** — Credit card visual (chip, masked card number, expiry, brand). Used by Rails 4 & 5.
 - **`crypto-card-visual.tsx`** — Crypto wallet visual (wallet icon + bot name + address with copy, balance + "USDC on Base" with inline sync/basescan/transfer icons, guardrails panel, status badge + three-dot menu). No chip, no card number. Used by Rails 1 & 2.
 - **`credit-card-item.tsx`** — **Unified card+action bar component** for all credit card rails. Renders `CardVisual` + identical action bar (Manage, Freeze, Add Agent/Bot badge, More menu) from a `NormalizedCard`.
-- **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object.
+- **`credit-card-list-page.tsx`** — **Full page shell** used by both Rail 4 and Rail 5. Handles header, add button, setup wizard, explainer, loading/empty states, card grid, freeze/link/unlink dialogs. Pages just pass a config object. Supports optional `transactionsEndpoint`/`approvalsEndpoint` to enable Transactions/Approvals tabs.
+- **`rail-page-tabs.tsx`** — **Shared tab shell** used by all rail pages. Accepts `RailTab[]` config with `id`, `label`, `content`, optional `hidden` and `badge` count. Renders shadcn Tabs with dynamic grid columns.
+- **`transaction-list.tsx`** — **Shared transaction table** (financial ledger). Displays type, amount, balance after, details, status, date. Used by Rails 1 and 2.
+- **`order-list.tsx`** — **Shared order list + detail dialog**. Card-style list with OrderTimeline, tracking info, shipping address, and refresh-status button. Used by Rail 2.
+- **`approval-list.tsx`** — **Shared approval queue**. Supports `crypto` variant (amount + resource URL) and `commerce` variant (product name + shipping). Used by Rails 1 and 2.
+- **`wallet-selector.tsx`** — **Shared wallet dropdown** for filtering transactions/orders by wallet.
 - **`status-badge.tsx`** — Reusable status badge (active/frozen/pending).
 - **`wallet-action-bar.tsx`** — Base action bar (accepts action items array, badge, menu); used by crypto pages and `CreditCardItem`.
 - **`crypto-wallet-item.tsx`** — **Unified wallet+action bar component** for crypto rails. Wraps `CryptoCardVisual` + `CryptoActionBar`. Card handles inline actions (copy, sync, basescan, transfer) and three-dot menu (add agent, unlink bot). Action bar handles Fund/Pause/Guardrails/Activity.
@@ -190,9 +217,19 @@ All wallet and card page UI is consolidated into `components/wallet/` to elimina
 - **`dialogs/`** — Freeze, link-bot, unlink-bot, transfer, guardrail, create-crypto-wallet dialogs.
 - **`index.ts`** — Barrel export for all components, hooks, types, and dialogs.
 
-Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component.
+Rail 4 (`self-hosted/page.tsx`) and Rail 5 (`sub-agent-cards/page.tsx`) are ~43 lines each — pure config objects passed to `CreditCardListPage`. Both rails render identical UI structure, identical action bars, identical dialogs. The only differences are the config: API endpoint, data normalizer, explainer content, and setup wizard component. Adding transaction/approval tabs to these rails = add endpoint URLs to the config object.
 
-Rail 1 (`stripe-wallet/page.tsx`, ~664 lines) and Rail 2 (`card-wallet/page.tsx`, ~742 lines) use shared hooks (`useWalletActions`, `useBotLinking`, `useTransfer`, `useGuardrails`) and shared dialogs (`GuardrailDialog`, `CreateCryptoWalletDialog`, `TransferDialog`, `LinkBotDialog`, `UnlinkBotDialog`). Remaining page-specific code is genuinely rail-specific: Stripe Onramp Sheet (Rail 1), CrossMint checkout + fund dialog (Rail 2), OrderTimeline + order detail dialog (Rail 2), and different tab content layouts.
+### Unified Tab Structure
+All rail pages use a consistent tab structure via `RailPageTabs`:
+
+| Tab | Shows | Rail 1 | Rail 2 | Rail 4/5 |
+|---|---|---|---|---|
+| Wallets/Cards | Entity list with action bars | Yes | Yes | Yes |
+| Transactions | Financial ledger (deposits, debits, transfers) | Yes | Yes | When endpoint added |
+| Orders | Procurement records (vendor, product, shipping) | No | Yes | When endpoint added |
+| Approvals | Pending approval queue with approve/reject | Yes | Yes | When endpoint added |
+
+Rail 1 (`stripe-wallet/page.tsx`, ~313 lines) and Rail 2 (`card-wallet/page.tsx`, ~515 lines) use shared hooks and all shared tab content components. Rail 2 separates purchases into Orders tab and transfers/deposits into Transactions tab. Remaining page-specific code is genuinely rail-specific: Stripe Onramp Sheet (Rail 1), CrossMint checkout + fund dialog (Rail 2).
 
 ### Key Routes
 - `/`: Consumer landing page

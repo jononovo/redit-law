@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { storage } from "@/server/storage";
+import { parseStripeOnrampEvent, handleStripeOnrampFulfillment } from "@/lib/crypto-onramp/stripe-onramp/webhook";
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET_ONRAMP || "";
 
@@ -39,55 +39,15 @@ export async function POST(request: NextRequest) {
       console.log("[Onramp Webhook] Session ID:", session.id);
 
       if (session.status === "fulfillment_complete") {
-        const walletAddress = session.transaction_details?.wallet_addresses?.ethereum;
-        const deliveredAmount = session.transaction_details?.destination_amount;
+        const onrampEvent = parseStripeOnrampEvent(session);
 
-        console.log("[Onramp Webhook] Fulfillment complete:", {
-          walletAddress,
-          deliveredAmount,
-          sourceCurrency: session.transaction_details?.source_currency,
-          sourceAmount: session.transaction_details?.source_amount,
-        });
-
-        if (!walletAddress) {
-          console.error("[Onramp Webhook] No wallet address in session");
-          return NextResponse.json({ received: true });
-        }
-
-        const targetWallet = await storage.privyGetWalletByAddress(walletAddress);
-        console.log("[Onramp Webhook] Found wallet:", targetWallet ? `id=${targetWallet.id}` : "NOT FOUND");
-
-        if (targetWallet) {
-          const amountUsdc = deliveredAmount ? Math.round(Number(deliveredAmount) * 1_000_000) : 0;
-          console.log("[Onramp Webhook] Crediting:", {
-            walletId: targetWallet.id,
-            currentBalance: targetWallet.balanceUsdc,
-            creditAmount: amountUsdc,
-            newBalance: targetWallet.balanceUsdc + amountUsdc,
+        if (onrampEvent) {
+          console.log("[Onramp Webhook] Fulfillment complete:", {
+            walletAddress: onrampEvent.walletAddress,
+            amountUsdc: onrampEvent.amountUsdc,
           });
 
-          if (amountUsdc > 0) {
-            await storage.privyUpdateWalletBalance(targetWallet.id, targetWallet.balanceUsdc + amountUsdc);
-
-            await storage.privyCreateTransaction({
-              walletId: targetWallet.id,
-              type: "deposit",
-              amountUsdc: amountUsdc,
-              status: "confirmed",
-              stripeSessionId: session.id,
-              balanceAfter: targetWallet.balanceUsdc + amountUsdc,
-              metadata: {
-                source_currency: session.transaction_details?.source_currency,
-                source_amount: session.transaction_details?.source_amount,
-              },
-            });
-
-            console.log("[Onramp Webhook] Balance updated and transaction created successfully");
-          } else {
-            console.error("[Onramp Webhook] Amount was zero or invalid:", deliveredAmount);
-          }
-        } else {
-          console.error("[Onramp Webhook] No wallet found for address:", walletAddress);
+          await handleStripeOnrampFulfillment(onrampEvent);
         }
       }
     }
