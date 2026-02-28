@@ -11,11 +11,12 @@ interface ApprovalThresholdProps {
   onBack: () => void;
   onNext: (thresholdCents: number) => void;
   defaultCents: number;
+  Wrapper?: React.ComponentType<any>;
 }
 
 const presets = [500, 1000, 2500, 5000];
 
-export function ApprovalThreshold({ currentStep, totalSteps, onBack, onNext, defaultCents }: ApprovalThresholdProps) {
+export function ApprovalThreshold({ currentStep, totalSteps, onBack, onNext, defaultCents, Wrapper }: ApprovalThresholdProps) {
   const [amountCents, setAmountCents] = useState(defaultCents);
   const [customMode, setCustomMode] = useState(!presets.includes(defaultCents));
 
@@ -24,8 +25,9 @@ export function ApprovalThreshold({ currentStep, totalSteps, onBack, onNext, def
     setCustomMode(false);
   }
 
+  const Step = Wrapper || WizardStep;
   return (
-    <WizardStep
+    <Step
       title="Auto-approve purchases under..."
       subtitle="Anything above this amount will need your approval."
       currentStep={currentStep}
@@ -85,6 +87,6 @@ export function ApprovalThreshold({ currentStep, totalSteps, onBack, onNext, def
       >
         Continue
       </Button>
-    </WizardStep>
+    </Step>
   );
 }

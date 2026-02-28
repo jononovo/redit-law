@@ -787,6 +787,9 @@ export const procurementControls = pgTable("procurement_controls", {
   blocklistedMerchants: jsonb("blocklisted_merchants").$type<string[]>().default([]),
   allowlistedCategories: jsonb("allowlisted_categories").$type<string[]>().default([]),
   blocklistedCategories: jsonb("blocklisted_categories").$type<string[]>().default([]),
+  approvalMode: text("approval_mode"),
+  approvalThresholdCents: integer("approval_threshold_cents"),
+  notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: text("updated_by"),
 }, (table) => [
@@ -806,6 +809,9 @@ export const upsertProcurementControlsSchema = z.object({
   blocklisted_merchants: z.array(z.string()).optional(),
   allowlisted_categories: z.array(z.string()).optional(),
   blocklisted_categories: z.array(z.string()).optional(),
+  approval_mode: z.enum(["ask_for_everything", "auto_approve_under_threshold", "auto_approve_by_category"]).nullable().optional(),
+  approval_threshold_cents: z.number().int().min(100).max(1000000).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
 });
 
 export const crossmintProductSearchSchema = z.object({

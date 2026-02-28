@@ -63,7 +63,7 @@ curl -X POST https://creditclaw.com/api/v1/${primaryMethod === "native_api" ? "c
   -d '{
     "merchant": "${vendor.slug}",
     "product_id": "${primaryConfig.locatorFormat}",
-    "shipping_address": { "name": "...", "line1": "...", "city": "...", "state": "...", "zip": "...", "country": "US" }
+    "shipping_address": { "name": "...", "line1": "...", "city": "...", "state": "...", "postalCode": "...", "country": "US" }
   }'
 \`\`\`
 `

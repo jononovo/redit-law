@@ -1,6 +1,6 @@
 import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
-import { createPurchaseOrder } from "@/lib/rail2/orders/purchase";
+import { createPurchaseOrder } from "@/lib/procurement/crossmint-worldstore/purchase";
 import { fireWebhook } from "@/lib/webhooks";
 import { recordOrder } from "@/lib/orders/create";
 import { toShippingAddressFields } from "@/lib/orders/address-utils";

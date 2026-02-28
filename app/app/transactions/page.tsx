@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { ArrowUpRight, ArrowDownLeft, Loader2, Receipt } from "lucide-react";
+import { RailPageTabs } from "@/components/wallet/rail-page-tabs";
+import { OrdersPanel } from "@/components/wallet/orders-panel";
+import { GuardrailsWizardDialog } from "@/components/onboarding/guardrails-wizard-dialog";
 
 interface TransactionData {
   id: number;
@@ -14,7 +17,7 @@ interface TransactionData {
   created_at: string;
 }
 
-export default function TransactionsPage() {
+function TransactionsTab() {
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,79 +36,118 @@ export default function TransactionsPage() {
     fetchTransactions();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
+  if (transactions.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center" data-testid="empty-transactions">
+        <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+          <Receipt className="w-8 h-8 text-neutral-400" />
+        </div>
+        <h3 className="font-bold text-neutral-900 text-lg mb-2">No transactions yet</h3>
+        <p className="text-sm text-neutral-500 max-w-sm mx-auto">
+          Once you fund your wallet or your bot makes purchases, transactions will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-neutral-100">
+            <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Type</th>
+            <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Description</th>
+            <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Amount</th>
+            <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Balance</th>
+            <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((tx) => (
+            <tr key={tx.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors" data-testid={`transaction-row-${tx.id}`}>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    tx.type === "topup" ? "bg-green-50" : tx.type === "refund" ? "bg-blue-50" : "bg-red-50"
+                  }`}>
+                    {tx.type === "topup" ? (
+                      <ArrowDownLeft className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <ArrowUpRight className="w-4 h-4 text-red-600" />
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-neutral-900 capitalize">{tx.type}</span>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <span className="text-sm text-neutral-500">{tx.description || "—"}</span>
+              </td>
+              <td className="px-6 py-4 text-right">
+                <span className={`text-sm font-semibold ${
+                  tx.type === "topup" || tx.type === "refund" ? "text-green-600" : "text-red-600"
+                }`}>
+                  {tx.type === "topup" || tx.type === "refund" ? "+" : "-"}{tx.amount}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-right">
+                <span className="text-sm text-neutral-500">{tx.balance_after_display || "—"}</span>
+              </td>
+              <td className="px-6 py-4 text-right">
+                <span className="text-sm text-neutral-400">
+                  {new Date(tx.created_at).toLocaleDateString()} {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default function TransactionsPage() {
+  const [activeTab, setActiveTab] = useState("transactions");
+  const [guardrailsOpen, setGuardrailsOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in-up">
       <div>
-        <p className="text-neutral-500">View all your wallet transactions.</p>
+        <p className="text-neutral-500">View your wallet transactions and orders.</p>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
-        </div>
-      ) : transactions.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-12 text-center" data-testid="empty-transactions">
-          <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-            <Receipt className="w-8 h-8 text-neutral-400" />
-          </div>
-          <h3 className="font-bold text-neutral-900 text-lg mb-2">No transactions yet</h3>
-          <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-            Once you fund your wallet or your bot makes purchases, transactions will appear here.
-          </p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-neutral-100">
-                <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Type</th>
-                <th className="text-left text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Description</th>
-                <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Amount</th>
-                <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Balance</th>
-                <th className="text-right text-xs font-medium text-neutral-500 uppercase tracking-wider px-6 py-4">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => (
-                <tr key={tx.id} className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors" data-testid={`transaction-row-${tx.id}`}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        tx.type === "topup" ? "bg-green-50" : tx.type === "refund" ? "bg-blue-50" : "bg-red-50"
-                      }`}>
-                        {tx.type === "topup" ? (
-                          <ArrowDownLeft className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <ArrowUpRight className="w-4 h-4 text-red-600" />
-                        )}
-                      </div>
-                      <span className="text-sm font-medium text-neutral-900 capitalize">{tx.type}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-neutral-500">{tx.description || "—"}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className={`text-sm font-semibold ${
-                      tx.type === "topup" || tx.type === "refund" ? "text-green-600" : "text-red-600"
-                    }`}>
-                      {tx.type === "topup" || tx.type === "refund" ? "+" : "-"}{tx.amount}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-sm text-neutral-500">{tx.balance_after_display || "—"}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <span className="text-sm text-neutral-400">
-                      {new Date(tx.created_at).toLocaleDateString()} {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <RailPageTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        testIdPrefix="transactions"
+        tabs={[
+          {
+            id: "transactions",
+            label: "Transactions",
+            content: <TransactionsTab />,
+          },
+          {
+            id: "orders",
+            label: "Orders",
+            content: (
+              <>
+                <OrdersPanel onConfigureGuardrails={() => setGuardrailsOpen(true)} />
+                <GuardrailsWizardDialog
+                  open={guardrailsOpen}
+                  onOpenChange={setGuardrailsOpen}
+                />
+              </>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

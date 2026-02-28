@@ -3,25 +3,27 @@
 import { WizardStep } from "../wizard-step";
 import { ShieldCheck, Zap, Tag } from "lucide-react";
 
-type ApprovalMode = "ask_for_everything" | "auto_approve_under_threshold" | "auto_approve_by_category";
+export type ApprovalModeValue = "ask_for_everything" | "auto_approve_under_threshold" | "auto_approve_by_category";
 
 interface ApprovalModeProps {
   currentStep: number;
   totalSteps: number;
   onBack: () => void;
-  onNext: (mode: ApprovalMode) => void;
-  defaultMode: ApprovalMode;
+  onNext: (mode: ApprovalModeValue) => void;
+  defaultMode: ApprovalModeValue;
+  Wrapper?: React.ComponentType<any>;
 }
 
-const options: { value: ApprovalMode; label: string; subtitle: string; Icon: typeof ShieldCheck }[] = [
+const options: { value: ApprovalModeValue; label: string; subtitle: string; Icon: typeof ShieldCheck }[] = [
   { value: "ask_for_everything", label: "Ask me every time", subtitle: "Most secure. You approve every transaction.", Icon: ShieldCheck },
   { value: "auto_approve_under_threshold", label: "Auto-approve small purchases", subtitle: "You only get asked for bigger ones.", Icon: Zap },
   { value: "auto_approve_by_category", label: "Auto-approve by category", subtitle: "You pick what's okay, everything else needs approval.", Icon: Tag },
 ];
 
-export function ApprovalMode({ currentStep, totalSteps, onBack, onNext }: ApprovalModeProps) {
+export function ApprovalMode({ currentStep, totalSteps, onBack, onNext, Wrapper }: ApprovalModeProps) {
+  const Step = Wrapper || WizardStep;
   return (
-    <WizardStep
+    <Step
       title="How should your bot handle purchases?"
       subtitle="You can always change this later from the dashboard."
       currentStep={currentStep}
@@ -48,6 +50,6 @@ export function ApprovalMode({ currentStep, totalSteps, onBack, onNext }: Approv
           </button>
         ))}
       </div>
-    </WizardStep>
+    </Step>
   );
 }

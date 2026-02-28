@@ -8,7 +8,7 @@ export function toShippingAddressFields(addr: ShippingAddress & { phone?: string
     line2: addr.line2,
     city: addr.city,
     state: addr.state,
-    postalCode: addr.zip,
+    postalCode: addr.postalCode,
     country: addr.country,
     ...(addr.phone ? { phone: addr.phone } : {}),
     ...(addr.email ? { email: addr.email } : {}),
@@ -22,7 +22,7 @@ export function toShippingAddress(fields: ShippingAddressFields): ShippingAddres
     line2: fields.line2,
     city: fields.city,
     state: fields.state,
-    zip: fields.postalCode,
+    postalCode: fields.postalCode,
     country: fields.country,
   };
 }
@@ -48,7 +48,7 @@ export function savedAddressToProcurement(saved: SavedShippingAddress): Shipping
     line2: saved.line2 ?? undefined,
     city: saved.city,
     state: saved.state,
-    zip: saved.postalCode,
+    postalCode: saved.postalCode,
     country: saved.country,
   };
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { privyOnrampSessionSchema } from "@/shared/schema";
-import { createOnrampSession } from "@/lib/rail1/onramp";
+import { createStripeOnrampSession as createOnrampSession } from "@/lib/crypto-onramp/stripe-onramp/session";
 
 export async function POST(request: NextRequest) {
   try {

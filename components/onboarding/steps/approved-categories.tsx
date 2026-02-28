@@ -11,6 +11,7 @@ interface ApprovedCategoriesProps {
   onBack: () => void;
   onNext: (approved: string[]) => void;
   defaultApproved: string[];
+  Wrapper?: React.ComponentType<any>;
 }
 
 const CATEGORIES = [
@@ -22,7 +23,7 @@ const CATEGORIES = [
   { value: "entertainment", label: "Entertainment & media" },
 ];
 
-export function ApprovedCategories({ currentStep, totalSteps, onBack, onNext, defaultApproved }: ApprovedCategoriesProps) {
+export function ApprovedCategories({ currentStep, totalSteps, onBack, onNext, defaultApproved, Wrapper }: ApprovedCategoriesProps) {
   const [approved, setApproved] = useState<string[]>(defaultApproved);
 
   function toggle(value: string) {
@@ -31,8 +32,9 @@ export function ApprovedCategories({ currentStep, totalSteps, onBack, onNext, de
     );
   }
 
+  const Step = Wrapper || WizardStep;
   return (
-    <WizardStep
+    <Step
       title="What can your bot spend on without asking?"
       subtitle="Purchases in these categories will be auto-approved."
       currentStep={currentStep}
@@ -62,6 +64,6 @@ export function ApprovedCategories({ currentStep, totalSteps, onBack, onNext, de
       >
         Continue
       </Button>
-    </WizardStep>
+    </Step>
   );
 }
