@@ -50,7 +50,15 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
       productId,
       walletAddress: wallet.address,
       ownerEmail: owner?.email || approval.ownerEmail || "",
-      shippingAddress: shippingAddr as ShippingAddress,
+      shippingAddress: {
+        name: (shippingAddr as any).name || "",
+        line1: (shippingAddr as any).line1 || "",
+        line2: (shippingAddr as any).line2,
+        city: (shippingAddr as any).city || "",
+        state: (shippingAddr as any).state || "",
+        postalCode: (shippingAddr as any).postalCode || (shippingAddr as any).zip || "",
+        country: (shippingAddr as any).country || "",
+      },
       quantity: transaction.quantity,
     });
 

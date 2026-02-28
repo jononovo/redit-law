@@ -123,7 +123,15 @@ export async function POST(request: NextRequest) {
         productId,
         walletAddress: wallet.address,
         ownerEmail,
-        shippingAddress: shippingAddr as ShippingAddress,
+        shippingAddress: {
+          name: (shippingAddr as any).name || "",
+          line1: (shippingAddr as any).line1 || "",
+          line2: (shippingAddr as any).line2,
+          city: (shippingAddr as any).city || "",
+          state: (shippingAddr as any).state || "",
+          postalCode: (shippingAddr as any).postalCode || (shippingAddr as any).zip || "",
+          country: (shippingAddr as any).country || "",
+        },
         quantity: transaction.quantity,
       });
 
