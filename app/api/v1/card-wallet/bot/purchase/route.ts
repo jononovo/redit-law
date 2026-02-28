@@ -34,7 +34,7 @@ async function handler(request: NextRequest, botId: string) {
           line2: defaultAddr.line2 ?? undefined,
           city: defaultAddr.city,
           state: defaultAddr.state,
-          postalCode: defaultAddr.postalCode,
+          zip: defaultAddr.postalCode,
           country: defaultAddr.country,
         };
       }
@@ -132,7 +132,15 @@ async function handler(request: NextRequest, botId: string) {
           productId: product_id,
           walletAddress: wallet.address,
           ownerEmail,
-          shippingAddress: shipping_address,
+          shippingAddress: {
+            name: shipping_address.name,
+            line1: shipping_address.line1,
+            line2: shipping_address.line2,
+            city: shipping_address.city,
+            state: shipping_address.state,
+            postalCode: shipping_address.zip,
+            country: shipping_address.country,
+          },
           quantity: quantity || 1,
         });
 
@@ -145,7 +153,7 @@ async function handler(request: NextRequest, botId: string) {
         try {
           const { recordOrder } = await import("@/lib/orders/create");
           const { toShippingAddressFields } = await import("@/lib/orders/address-utils");
-          const convertedAddr = toShippingAddressFields(shipping_address);
+          const convertedAddr = toShippingAddressFields(shipping_address as any);
           await recordOrder({
             ownerUid: wallet.ownerUid,
             rail: "rail2",

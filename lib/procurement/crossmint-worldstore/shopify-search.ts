@@ -40,7 +40,7 @@ export async function searchShopifyProduct(
       available: Boolean(v.available ?? v.in_stock ?? true),
       options: (v.options || v.attributes || {}) as Record<string, unknown>,
     }))
-    .filter((v) => v.variant_id && v.variant_id !== "");
+    .filter((v: any) => v.variant_id && v.variant_id !== "");
 
   const productName = data.title || data.name || data.product?.title || null;
 

@@ -55,6 +55,25 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         return;
       }
 
+      let saleStatus: "confirmed" | "amount_mismatch" = "confirmed";
+
+      if (checkoutPage.amountLocked && checkoutPage.amountUsdc) {
+        const expectedUsdc = checkoutPage.amountUsdc;
+        const lowerBound = expectedUsdc * 0.94;
+        const upperBound = expectedUsdc * 1.01;
+        if (amountUsdc < lowerBound || amountUsdc > upperBound) {
+          saleStatus = "amount_mismatch";
+          console.warn("[Onramp Webhook] Amount mismatch detected:", {
+            checkoutPageId,
+            expectedUsdc,
+            receivedUsdc: amountUsdc,
+            expectedUsd: expectedUsdc / 1_000_000,
+            receivedUsd: amountUsdc / 1_000_000,
+            diffPercent: ((amountUsdc - expectedUsdc) / expectedUsdc * 100).toFixed(2) + "%",
+          });
+        }
+      }
+
       const saleId = generateSaleId();
       await storage.createSale({
         saleId,
@@ -62,7 +81,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         ownerUid: checkoutPage.ownerUid,
         amountUsdc,
         paymentMethod: "stripe_onramp",
-        status: "confirmed",
+        status: saleStatus,
         buyerType: "stripe_customer",
         buyerEmail: (metadata?.buyer_email as string) || null,
         buyerIp: (metadata?.buyer_ip as string) || null,
@@ -87,6 +106,10 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
             checkout_page_id: checkoutPageId,
             amount_usd: amountUsdc / 1_000_000,
             payment_method: "stripe_onramp",
+            status: saleStatus,
+            ...(saleStatus === "amount_mismatch" && checkoutPage.amountUsdc ? {
+              expected_amount_usd: checkoutPage.amountUsdc / 1_000_000,
+            } : {}),
             buyer_email: (metadata?.buyer_email as string) || null,
             new_balance_usd: newBalance / 1_000_000,
           });

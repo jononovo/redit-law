@@ -72,7 +72,7 @@ export function Sidebar() {
 
       <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {mainNavItems.map((item) => {
           const isActive = pathname === item.href;
           const isInactive = "inactive" in item && item.inactive;
