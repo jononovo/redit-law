@@ -1,4 +1,5 @@
 import { storage } from "@/server/storage";
+import { fireWebhook } from "@/lib/webhooks";
 import type { OnrampWebhookEvent } from "../types";
 import crypto from "crypto";
 
@@ -65,6 +66,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         buyerType: "stripe_customer",
         buyerEmail: (metadata?.buyer_email as string) || null,
         buyerIp: (metadata?.buyer_ip as string) || null,
+        buyerUserAgent: (metadata?.buyer_user_agent as string) || null,
         stripeOnrampSessionId: sessionId,
         privyTransactionId: transaction.id,
         checkoutTitle: checkoutPage.title,
@@ -74,6 +76,24 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
 
       await storage.incrementCheckoutPageStats(checkoutPageId, amountUsdc);
       console.log("[Onramp Webhook] Sale record created:", { saleId, checkoutPageId });
+
+      try {
+        const walletWithBot = await storage.privyGetWalletById(checkoutPage.walletId);
+        const walletBotId = walletWithBot?.botId;
+        const walletBot = walletBotId ? await storage.getBotByBotId(walletBotId) : null;
+        if (walletBot) {
+          await fireWebhook(walletBot, "wallet.sale.completed", {
+            sale_id: saleId,
+            checkout_page_id: checkoutPageId,
+            amount_usd: amountUsdc / 1_000_000,
+            payment_method: "stripe_onramp",
+            buyer_email: (metadata?.buyer_email as string) || null,
+            new_balance_usd: newBalance / 1_000_000,
+          });
+        }
+      } catch (webhookErr) {
+        console.error("[Onramp Webhook] Failed to fire wallet.sale.completed webhook:", webhookErr);
+      }
     } catch (err) {
       console.error("[Onramp Webhook] Failed to create sale record:", err);
     }

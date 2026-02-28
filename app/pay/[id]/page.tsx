@@ -256,7 +256,7 @@ export default function PublicCheckoutPage() {
               </div>
             </div>
           )}
-          <div ref={mountRef} className="w-full min-h-[500px]" data-testid="container-checkout-onramp" />
+          <div ref={mountRef} className="w-full min-h-[500px] flex justify-center" data-testid="container-checkout-onramp" />
         </div>
         <footer className="p-4 border-t border-neutral-200 bg-white text-center">
           <p className="text-xs text-neutral-400 font-medium" data-testid="text-checkout-footer">

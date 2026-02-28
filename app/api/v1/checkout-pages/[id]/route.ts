@@ -28,6 +28,7 @@ function formatPage(page: any) {
     status: page.status,
     success_url: page.successUrl,
     success_message: page.successMessage,
+    view_count: page.viewCount,
     payment_count: page.paymentCount,
     total_received_usd: page.totalReceivedUsdc / 1_000_000,
     checkout_url: `/pay/${page.checkoutPageId}`,

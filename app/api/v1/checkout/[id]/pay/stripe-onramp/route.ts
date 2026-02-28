@@ -33,6 +33,7 @@ export async function POST(
     }
 
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined;
+    const userAgent = request.headers.get("user-agent") || undefined;
 
     const { clientSecret, sessionId, redirectUrl } = await createStripeOnrampSession({
       walletAddress: page.walletAddress,
@@ -40,6 +41,8 @@ export async function POST(
       amountUsd,
       metadata: {
         checkout_page_id: page.checkoutPageId,
+        buyer_ip: ip,
+        buyer_user_agent: userAgent,
       },
     });
 

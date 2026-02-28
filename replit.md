@@ -179,6 +179,18 @@ Unified cross-rail order tracking for all vendor purchases. Every confirmed purc
 - **Rail tabs**: All 4 rail pages' Orders tabs now query the central `GET /api/v1/orders?rail=X` endpoint. Clicking an order navigates to `/app/orders/[order_id]`.
 - **Sidebar**: Orders link added to dashboard sidebar.
 
+### Sales & Checkout (`server/storage/sales.ts`, `app/pay/`)
+Turns every CreditClaw wallet holder into a seller. Checkout pages are public URLs where anyone can pay (card/bank via Stripe onramp, USDC direct, or x402 wallet). The inverse of Orders — Orders track what you bought, Sales track what someone bought from you.
+- **Schema**: `checkout_pages` table (id, checkoutPageId, ownerUid, walletId, walletAddress, title, description, amountUsdc, amountLocked, allowedMethods, status, successUrl, successMessage, metadata, viewCount, paymentCount, totalReceivedUsdc, expiresAt). `sales` table (saleId, checkoutPageId, ownerUid, amountUsdc, paymentMethod, status, buyerType, buyerIdentifier, buyerIp, buyerUserAgent, buyerEmail, txHash, stripeOnrampSessionId, privyTransactionId, checkoutTitle, checkoutDescription, confirmedAt).
+- **Storage**: `server/storage/sales.ts` — CRUD for both tables: `createCheckoutPage`, `getCheckoutPageById`, `getCheckoutPagesByOwnerUid`, `updateCheckoutPage`, `archiveCheckoutPage`, `createSale`, `getSaleById`, `getSalesByOwnerUid`, `getSalesByCheckoutPageId`, `updateSaleStatus`, `incrementCheckoutPageStats`, `incrementCheckoutPageViewCount`.
+- **Owner API**: `POST/GET /api/v1/checkout-pages` (create/list), `GET/PATCH/DELETE /api/v1/checkout-pages/[id]` (detail/update/archive), `GET /api/v1/sales` (list with filters), `GET /api/v1/sales/[sale_id]` (detail).
+- **Bot API**: `POST /api/v1/bot/checkout-pages/create` (create), `GET /api/v1/bot/checkout-pages` (list), `GET /api/v1/bot/sales` (list with filters). All use `withBotApi` middleware.
+- **Public endpoints**: `GET /api/v1/checkout/[id]/public` (fetch config, increments view count), `POST /api/v1/checkout/[id]/pay/stripe-onramp` (create Stripe session targeting seller's wallet).
+- **Pages**: `/app/checkout/create` (create + manage checkout pages), `/app/sales` (sales ledger), `/pay/[id]` (public checkout page with Stripe onramp), `/pay/[id]/success` (post-payment confirmation).
+- **Webhook**: `wallet.sale.completed` event fired to seller's bot after confirmed sale via `fireWebhook()`.
+- **Skill file**: `public/checkout.md` — bot-readable instructions for creating checkout pages and viewing sales.
+- **Sidebar**: "Sales" section with "Create Checkout" and "My Sales" links.
+
 ### Crypto Onramp (`lib/crypto-onramp/`)
 Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.
 - **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
