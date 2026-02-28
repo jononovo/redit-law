@@ -1,0 +1,67 @@
+Technical Plan: Shop Profile (Public Storefront)
+Concept
+A Shop is a public view of an existing Seller Profile + a curated list of the owner's checkout pages. No new entity — just a public URL, a slug, and a join.
+1. Schema Changes
+Extend seller_profiles table:
+
+slug (text, unique, nullable) — URL-safe shop slug, e.g. westside-soccer. Admin sets this on the Shop Profile page. Null means shop is not published.
+shopPublished (boolean, default false) — toggle to make the shop live.
+shopBannerUrl (text, nullable) — optional banner/header image.
+
+Extend checkout_pages table:
+
+shopVisible (boolean, default false) — whether this checkout page appears on the owner's shop.
+shopOrder (integer, default 0) — sort order within the shop.
+imageUrl (text, nullable) — product image. Full-size on desktop, thumbnail on mobile.
+
+No new tables. No new joins. The shop page query is just: getCheckoutPagesByOwnerUid(uid) filtered by shopVisible = true, ordered by shopOrder.
+2. API Changes
+Extend existing endpoints:
+PUT /api/v1/seller-profile — add slug, shop_published, shop_banner_url to the upsert schema.
+PATCH /api/v1/checkout-pages/[id] — add shop_visible, shop_order, image_url to the update schema.
+New public endpoint:
+GET /api/v1/shop/[slug]/public — fetches the seller profile by slug (if published), then fetches all checkout pages where shopVisible = true, ordered by shopOrder. Also returns the "who paid" summary per checkout page (count + names from the sales table via getSalesByCheckoutPageId). No auth required.
+3. Pages
+Admin page: /app/settings/seller (extend existing)
+Add a "Shop" section to the existing Seller Profile page with: slug input (with live preview of creditclaw.com/s/westside-soccer), published toggle, banner image URL, and a list of their checkout pages with toggle switches for shopVisible and drag handles for shopOrder, plus an image URL field per product.
+Alternatively, if you want it as a separate sidebar item, add a "Shop Profile" link under Sales that routes to /app/shop — but it pulls/saves the same seller_profiles + checkout_pages data. Either way works; keeping it on the existing seller page is less surface area.
+Public page: /s/[slug] (new)
+This is the only truly new page. It renders:
+
+Shop logo + name (from seller profile)
+Banner image if set
+List of products (checkout pages where shopVisible = true)
+Each product shows: image (full on desktop / thumbnail on mobile), title, price, and a "Pay" button linking to /pay/[checkoutPageId]
+Below or beside each product: "who paid" — names or count from confirmed sales
+Open Graph meta tags so it previews nicely when pasted in iMessage/WhatsApp
+
+4. Sidebar
+Add one item to salesNavItems:
+typescriptconst salesNavItems = [
+  { icon: PlusCircle, label: "Create Checkout", href: "/app/checkout/create" },
+  { icon: DollarSign, label: "My Sales", href: "/app/sales" },
+  { icon: FileText, label: "Invoices", href: "/app/invoices" },
+  { icon: Store, label: "Shop Profile", href: "/app/shop" },        // ← NEW (or keep on /app/settings/seller)
+  { icon: UserCircle, label: "Seller Profile", href: "/app/settings/seller" },
+];
+Or merge Shop Profile into the existing Seller Profile page and just rename the sidebar item to "Seller & Shop" — that's a UX call.
+5. "Who Paid" Logic
+Query: getSalesByCheckoutPageId(cpId) filtered by status = 'confirmed'. Return buyer_email (or a display name if you add a buyer_name field to the sales table — probably worth adding). The public endpoint returns this as an array per product, and the /s/[slug] page renders it as a list of names with checkmarks.
+Optional addition: add buyerName (text, nullable) to the sales table. On the /pay/[id] checkout page, add an optional "Your name" field before payment. This is what shows up in the "who paid" list instead of an email.
+6. Bot API
+GET /api/v1/bot/shop — returns the bot owner's shop config.
+PATCH /api/v1/bot/shop — update slug, published status.
+PATCH /api/v1/bot/checkout-pages/[id] — update shop_visible, shop_order, image_url.
+This lets bots programmatically manage their storefront.
+7. What We're NOT Building
+
+No recurring products — admin manually adds a new checkout page per game day.
+No inventory or quantity limits.
+No cart — each product is a standalone checkout.
+No shop discovery/marketplace — shops are shared by direct link only.
+No separate shop data model — it's just seller profile + checkout pages.
+
+
+Summary of changes:
+LayerChangeEffortSchema3 fields on seller_profiles, 3 fields on checkout_pages, 1 optional on salesSmallStorageExtend existing upsert/update functions, one new getShopBySlug querySmallAPIExtend 2 existing endpoints, 1 new public endpointSmallAdmin UIExtend seller profile page or new /app/shop pageMediumPublic UINew /s/[slug] pageMediumSidebar1 new item (or rename existing)Trivial
+The whole thing sits on top of what's already there. No new payment flow, no new tables, no new concepts — just a public storefront view over existing checkout pages with a curated list and a "who paid" overlay.
