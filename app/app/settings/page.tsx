@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { PaymentSetup } from "@/components/dashboard/payment-setup";
+import { ShippingAddressManager } from "@/components/dashboard/shipping-address-manager";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Shield, TrendingUp, Zap, CreditCard, Smartphone, Bot, ChevronDown } from "lucide-react";
@@ -477,6 +478,10 @@ export default function SettingsPage() {
         <p className="text-sm text-neutral-500 mb-4">Add a card to fund your bot&apos;s wallet.</p>
         <PaymentSetup />
       </div>
+
+      <Separator />
+
+      <ShippingAddressManager />
 
       <Separator />
 

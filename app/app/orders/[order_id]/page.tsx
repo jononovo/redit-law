@@ -86,6 +86,38 @@ const RAIL_LABELS: Record<string, string> = {
   rail5: "Rail 5 — Sub-Agent Card",
 };
 
+interface ShippingAddressData {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  zip?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+}
+
+interface TrackingInfoData {
+  carrier?: string;
+  tracking_number?: string;
+  tracking_url?: string;
+  estimated_delivery?: string;
+  delivered_at?: string;
+  status?: string;
+  last_updated?: string;
+}
+
+interface VendorDetailsData {
+  url?: string;
+  category?: string;
+  vendorSlug?: string;
+  vendorOrderUrl?: string;
+  vendorCustomerId?: string;
+  notes?: string;
+}
+
 interface OrderData {
   id: number;
   ownerUid: string;
@@ -98,7 +130,8 @@ interface OrderData {
   externalOrderId: string | null;
   status: string;
   vendor: string | null;
-  vendorDetails: Record<string, any> | null;
+  vendorId: number | null;
+  vendorDetails: VendorDetailsData | null;
   productName: string | null;
   productImageUrl: string | null;
   productUrl: string | null;
@@ -111,11 +144,26 @@ interface OrderData {
   shippingPriceCents: number | null;
   shippingType: string | null;
   shippingNote: string | null;
-  shippingAddress: Record<string, any> | null;
-  trackingInfo: Record<string, any> | null;
+  shippingAddress: ShippingAddressData | null;
+  trackingInfo: TrackingInfoData | null;
   metadata: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
+}
+
+function formatShippingAddress(addr: ShippingAddressData): string[] {
+  const lines: string[] = [];
+  if (addr.name) lines.push(addr.name);
+  if (addr.line1) lines.push(addr.line1);
+  if (addr.line2) lines.push(addr.line2);
+  const cityStateParts: string[] = [];
+  if (addr.city) cityStateParts.push(addr.city);
+  if (addr.state) cityStateParts.push(addr.state);
+  const postalCode = addr.postalCode || addr.zip;
+  if (postalCode) cityStateParts.push(postalCode);
+  if (cityStateParts.length > 0) lines.push(cityStateParts.join(", "));
+  if (addr.country && addr.country !== "US") lines.push(addr.country);
+  return lines;
 }
 
 export default function OrderDetailPage() {
@@ -178,7 +226,8 @@ export default function OrderDetailPage() {
     );
   }
 
-  const totalCents = (order.priceCents || 0) + (order.taxesCents || 0) + (order.shippingPriceCents || 0);
+  const subtotalCents = (order.priceCents || 0) * (order.quantity || 1);
+  const totalCents = subtotalCents + (order.taxesCents || 0) + (order.shippingPriceCents || 0);
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto" data-testid="order-detail-page">
@@ -248,23 +297,30 @@ export default function OrderDetailPage() {
             {order.vendorDetails?.category && (
               <span className="text-neutral-400">• {order.vendorDetails.category}</span>
             )}
+            {order.vendorDetails?.vendorSlug && (
+              <span className="text-neutral-400 font-mono text-xs">({order.vendorDetails.vendorSlug})</span>
+            )}
           </div>
         )}
 
         <OrderTimeline status={order.status} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="bg-neutral-50 rounded-lg p-3">
-            <p className="text-xs text-neutral-500">Item Price</p>
+            <p className="text-xs text-neutral-500">Unit Price</p>
             <p className="text-sm font-semibold text-neutral-900" data-testid="text-price">{formatCents(order.priceCents, order.priceCurrency)}</p>
           </div>
           <div className="bg-neutral-50 rounded-lg p-3">
-            <p className="text-xs text-neutral-500">Taxes</p>
-            <p className="text-sm font-semibold text-neutral-900" data-testid="text-taxes">{formatCents(order.taxesCents, order.priceCurrency)}</p>
+            <p className="text-xs text-neutral-500">Subtotal{order.quantity > 1 ? ` (×${order.quantity})` : ""}</p>
+            <p className="text-sm font-semibold text-neutral-900" data-testid="text-subtotal">{formatCents(subtotalCents, order.priceCurrency)}</p>
           </div>
           <div className="bg-neutral-50 rounded-lg p-3">
             <p className="text-xs text-neutral-500">Shipping</p>
             <p className="text-sm font-semibold text-neutral-900" data-testid="text-shipping-price">{formatCents(order.shippingPriceCents, order.priceCurrency)}</p>
+          </div>
+          <div className="bg-neutral-50 rounded-lg p-3">
+            <p className="text-xs text-neutral-500">Taxes</p>
+            <p className="text-sm font-semibold text-neutral-900" data-testid="text-taxes">{formatCents(order.taxesCents, order.priceCurrency)}</p>
           </div>
           <div className="bg-violet-50 rounded-lg p-3 border border-violet-100">
             <p className="text-xs text-violet-600">Total</p>
@@ -317,15 +373,23 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-4 h-4 text-neutral-500" />
               <h4 className="text-sm font-semibold text-neutral-700">Shipping Address</h4>
+              {order.shippingType && (
+                <span className="text-xs text-neutral-400 ml-auto" data-testid="text-shipping-type">{order.shippingType}</span>
+              )}
             </div>
-            <p className="text-sm text-neutral-600" data-testid="text-shipping-address">
-              {Object.values(order.shippingAddress).filter(Boolean).join(", ")}
-            </p>
-            {order.shippingType && (
-              <p className="text-xs text-neutral-400 mt-1" data-testid="text-shipping-type">Method: {order.shippingType}</p>
+            <div className="text-sm text-neutral-600 space-y-0.5" data-testid="text-shipping-address">
+              {formatShippingAddress(order.shippingAddress).map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
+            {order.shippingAddress.phone && (
+              <p className="text-xs text-neutral-400 mt-1.5">Phone: {order.shippingAddress.phone}</p>
+            )}
+            {order.shippingAddress.email && (
+              <p className="text-xs text-neutral-400 mt-0.5">Email: {order.shippingAddress.email}</p>
             )}
             {order.shippingNote && (
-              <p className="text-xs text-neutral-400 mt-0.5" data-testid="text-shipping-note">{order.shippingNote}</p>
+              <p className="text-xs text-neutral-400 mt-1" data-testid="text-shipping-note">{order.shippingNote}</p>
             )}
           </div>
         )}

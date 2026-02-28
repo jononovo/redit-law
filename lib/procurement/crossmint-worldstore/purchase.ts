@@ -1,7 +1,7 @@
 import { crossmintFetch } from "@/lib/rail2/client";
 import type { ShippingAddress, PurchaseResult } from "../types";
 
-export type { ShippingAddress };
+export type { ShippingAddress, PurchaseResult };
 
 export async function createPurchaseOrder(params: {
   merchant: string;
@@ -63,9 +63,29 @@ export async function createPurchaseOrder(params: {
     orderId: data.order?.orderId || data.orderId,
   });
 
+  const orderData = data.order || data;
+  let pricing: PurchaseResult["pricing"];
+  try {
+    const quote = orderData?.quote || orderData?.payment;
+    if (quote) {
+      const totalUsd = quote.totalPrice?.amount ? parseFloat(quote.totalPrice.amount) : undefined;
+      const shippingUsd = quote.shipping?.amount ? parseFloat(quote.shipping.amount) : undefined;
+      const taxUsd = quote.tax?.amount ? parseFloat(quote.tax.amount) : undefined;
+      const subtotalUsd = quote.subtotal?.amount ? parseFloat(quote.subtotal.amount) : undefined;
+      pricing = {
+        subtotalCents: subtotalUsd != null ? Math.round(subtotalUsd * 100) : undefined,
+        shippingCents: shippingUsd != null ? Math.round(shippingUsd * 100) : undefined,
+        taxCents: taxUsd != null ? Math.round(taxUsd * 100) : undefined,
+        totalCents: totalUsd != null ? Math.round(totalUsd * 100) : undefined,
+      };
+    }
+  } catch {
+  }
+
   return {
     orderId: data.order?.orderId || data.orderId,
-    order: data.order || data,
+    order: orderData,
+    pricing,
   };
 }
 

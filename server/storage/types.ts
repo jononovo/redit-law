@@ -39,6 +39,9 @@ import {
   type Rail5Card, type InsertRail5Card,
   type Rail5Checkout, type InsertRail5Checkout,
   type Order, type InsertOrder,
+  type Vendor, type InsertVendor,
+  type MerchantAccount, type InsertMerchantAccount,
+  type SavedShippingAddress, type InsertShippingAddress,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
@@ -278,4 +281,19 @@ export interface IStorage {
   getOrdersByWallet(walletId: number): Promise<Order[]>;
   getOrdersByCard(cardId: string): Promise<Order[]>;
   updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order | null>;
+
+  getVendorBySlug(slug: string): Promise<Vendor | null>;
+  getVendorById(id: number): Promise<Vendor | null>;
+  getAllVendors(): Promise<Vendor[]>;
+  createMerchantAccount(data: InsertMerchantAccount): Promise<MerchantAccount>;
+  getMerchantAccountsByOwner(ownerUid: string): Promise<MerchantAccount[]>;
+  getMerchantAccountByVendor(ownerUid: string, vendorId: number): Promise<MerchantAccount | null>;
+  updateMerchantAccount(id: number, updates: Partial<InsertMerchantAccount>): Promise<MerchantAccount | null>;
+  deleteMerchantAccount(id: number): Promise<void>;
+
+  createShippingAddress(data: InsertShippingAddress): Promise<SavedShippingAddress>;
+  getShippingAddressesByOwner(ownerUid: string): Promise<SavedShippingAddress[]>;
+  getDefaultShippingAddress(ownerUid: string): Promise<SavedShippingAddress | null>;
+  updateShippingAddress(id: number, updates: Partial<InsertShippingAddress>): Promise<SavedShippingAddress | null>;
+  deleteShippingAddress(id: number): Promise<void>;
 }

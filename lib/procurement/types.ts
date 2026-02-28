@@ -23,6 +23,12 @@ export interface PurchaseRequest {
 export interface PurchaseResult {
   orderId: string;
   order: Record<string, unknown>;
+  pricing?: {
+    subtotalCents?: number;
+    shippingCents?: number;
+    taxCents?: number;
+    totalCents?: number;
+  };
 }
 
 export interface OrderStatusResult {
