@@ -55,6 +55,7 @@ export const POST = withBotApi("/api/v1/bot/checkout-pages/create", async (reque
 
   return NextResponse.json({
     checkout_page_id: page.checkoutPageId,
+    checkout_url: `/pay/${page.checkoutPageId}`,
     title: page.title,
     description: page.description,
     wallet_address: page.walletAddress,

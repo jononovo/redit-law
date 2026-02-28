@@ -17,6 +17,8 @@ export async function GET(
       return NextResponse.json({ error: "Checkout page has expired" }, { status: 410 });
     }
 
+    storage.incrementCheckoutPageViewCount(id).catch(() => {});
+
     return NextResponse.json({
       checkout_page_id: page.checkoutPageId,
       title: page.title,

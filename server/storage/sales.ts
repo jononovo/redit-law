@@ -23,6 +23,7 @@ type SalesMethods = Pick<IStorage,
   | "getSalesByCheckoutPageId"
   | "updateSaleStatus"
   | "incrementCheckoutPageStats"
+  | "incrementCheckoutPageViewCount"
 >;
 
 export const salesMethods: SalesMethods = {
@@ -86,6 +87,12 @@ export const salesMethods: SalesMethods = {
       paymentCount: sql`${checkoutPages.paymentCount} + 1`,
       totalReceivedUsdc: sql`${checkoutPages.totalReceivedUsdc} + ${amountUsdc}`,
       updatedAt: new Date(),
+    }).where(eq(checkoutPages.checkoutPageId, checkoutPageId));
+  },
+
+  async incrementCheckoutPageViewCount(checkoutPageId: string): Promise<void> {
+    await db.update(checkoutPages).set({
+      viewCount: sql`${checkoutPages.viewCount} + 1`,
     }).where(eq(checkoutPages.checkoutPageId, checkoutPageId));
   },
 };

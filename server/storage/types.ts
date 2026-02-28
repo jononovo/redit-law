@@ -297,6 +297,7 @@ export interface IStorage {
   getSalesByCheckoutPageId(checkoutPageId: string): Promise<Sale[]>;
   updateSaleStatus(saleId: string, status: string, confirmedAt?: Date): Promise<Sale | null>;
   incrementCheckoutPageStats(checkoutPageId: string, amountUsdc: number): Promise<void>;
+  incrementCheckoutPageViewCount(checkoutPageId: string): Promise<void>;
   getVendorBySlug(slug: string): Promise<Vendor | null>;
   getVendorById(id: number): Promise<Vendor | null>;
   getAllVendors(): Promise<Vendor[]>;

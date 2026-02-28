@@ -32,6 +32,7 @@ interface CheckoutPageData {
   allowed_methods: string[];
   status: string;
   payment_count: number;
+  view_count: number;
   total_received_usd: number;
   checkout_url: string;
   created_at: string;
@@ -407,6 +408,10 @@ export default function CreateCheckoutPage() {
                           {page.amount_usd && page.amount_locked && (
                             <Lock className="w-3 h-3 inline ml-0.5" />
                           )}
+                        </span>
+                        <span>•</span>
+                        <span data-testid={`text-checkout-views-${page.checkout_page_id}`}>
+                          {page.view_count} view{page.view_count !== 1 ? "s" : ""}
                         </span>
                         <span>•</span>
                         <span data-testid={`text-checkout-payments-${page.checkout_page_id}`}>

@@ -14,6 +14,7 @@ export const GET = withBotApi("/api/v1/bot/checkout-pages", async (request, { bo
   return NextResponse.json({
     checkout_pages: botPages.map(p => ({
       checkout_page_id: p.checkoutPageId,
+      checkout_url: `/pay/${p.checkoutPageId}`,
       title: p.title,
       description: p.description,
       wallet_address: p.walletAddress,
@@ -21,6 +22,7 @@ export const GET = withBotApi("/api/v1/bot/checkout-pages", async (request, { bo
       amount_locked: p.amountLocked,
       allowed_methods: p.allowedMethods,
       status: p.status,
+      view_count: p.viewCount,
       payment_count: p.paymentCount,
       total_received_usd: p.totalReceivedUsdc / 1_000_000,
       created_at: p.createdAt.toISOString(),
