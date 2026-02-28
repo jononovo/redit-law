@@ -18,7 +18,9 @@ import {
   Lock,
   Store,
   ExternalLink,
-  Package
+  Package,
+  UserCircle,
+  FileText
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -46,6 +48,8 @@ const procurementNavItems = [
 const salesNavItems = [
   { icon: PlusCircle, label: "Create Checkout", href: "/app/checkout/create" },
   { icon: DollarSign, label: "My Sales", href: "/app/sales" },
+  { icon: FileText, label: "Invoices", href: "/app/invoices" },
+  { icon: UserCircle, label: "Seller Profile", href: "/app/settings/seller" },
 ];
 
 export function Sidebar() {

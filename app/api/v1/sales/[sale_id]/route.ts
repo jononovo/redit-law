@@ -15,7 +15,13 @@ function formatSale(sale: Sale) {
     buyer_type: sale.buyerType,
     buyer_email: sale.buyerEmail,
     buyer_identifier: sale.buyerIdentifier,
+    buyer_ip: sale.buyerIp,
+    buyer_user_agent: sale.buyerUserAgent,
+    tx_hash: sale.txHash,
     stripe_onramp_session_id: sale.stripeOnrampSessionId,
+    privy_transaction_id: sale.privyTransactionId,
+    invoice_id: sale.invoiceId,
+    metadata: sale.metadata,
     confirmed_at: sale.confirmedAt?.toISOString() || null,
     created_at: sale.createdAt.toISOString(),
   };

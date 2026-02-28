@@ -22,11 +22,31 @@ export async function POST(
       return NextResponse.json({ error: "Stripe onramp payments are not enabled for this checkout page" }, { status: 400 });
     }
 
+    const body = await request.json().catch(() => ({}));
+    const invoiceRef = body.invoice_ref as string | undefined;
+
     let amountUsd: number | undefined;
-    if (page.amountLocked && page.amountUsdc) {
+    let resolvedInvoiceRef: string | undefined;
+
+    if (invoiceRef) {
+      const invoice = await storage.getInvoiceByReferenceNumber(invoiceRef);
+      if (!invoice || invoice.checkoutPageId !== page.checkoutPageId) {
+        return NextResponse.json({ error: "Invalid invoice reference" }, { status: 400 });
+      }
+      if (invoice.status === "draft") {
+        return NextResponse.json({ error: "Invoice has not been sent yet" }, { status: 400 });
+      }
+      if (invoice.status === "paid") {
+        return NextResponse.json({ error: "Invoice already paid" }, { status: 400 });
+      }
+      if (invoice.status === "cancelled") {
+        return NextResponse.json({ error: "Invoice has been cancelled" }, { status: 400 });
+      }
+      amountUsd = invoice.totalUsdc / 1_000_000;
+      resolvedInvoiceRef = invoice.referenceNumber;
+    } else if (page.amountLocked && page.amountUsdc) {
       amountUsd = page.amountUsdc / 1_000_000;
     } else {
-      const body = await request.json().catch(() => ({}));
       if (body.amount_usd && typeof body.amount_usd === "number" && body.amount_usd > 0) {
         amountUsd = body.amount_usd;
       }
@@ -43,6 +63,7 @@ export async function POST(
         checkout_page_id: page.checkoutPageId,
         ...(ip ? { buyer_ip: ip } : {}),
         ...(userAgent ? { buyer_user_agent: userAgent } : {}),
+        ...(resolvedInvoiceRef ? { invoice_ref: resolvedInvoiceRef } : {}),
       },
     });
 

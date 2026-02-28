@@ -181,15 +181,35 @@ Unified cross-rail order tracking for all vendor purchases. Every confirmed purc
 
 ### Sales & Checkout (`server/storage/sales.ts`, `app/pay/`)
 Turns every CreditClaw wallet holder into a seller. Checkout pages are public URLs where anyone can pay (card/bank via Stripe onramp, USDC direct, or x402 wallet). The inverse of Orders — Orders track what you bought, Sales track what someone bought from you.
-- **Schema**: `checkout_pages` table (id, checkoutPageId, ownerUid, walletId, walletAddress, title, description, amountUsdc, amountLocked, allowedMethods, status, successUrl, successMessage, metadata, viewCount, paymentCount, totalReceivedUsdc, expiresAt). `sales` table (saleId, checkoutPageId, ownerUid, amountUsdc, paymentMethod, status, buyerType, buyerIdentifier, buyerIp, buyerUserAgent, buyerEmail, txHash, stripeOnrampSessionId, privyTransactionId, checkoutTitle, checkoutDescription, confirmedAt).
+- **Schema**: `checkout_pages` table (id, checkoutPageId, ownerUid, walletId, walletAddress, title, description, amountUsdc, amountLocked, allowedMethods, status, successUrl, successMessage, metadata, viewCount, paymentCount, totalReceivedUsdc, expiresAt, sellerName, sellerLogoUrl, sellerEmail). `sales` table (saleId, checkoutPageId, ownerUid, amountUsdc, paymentMethod, status, buyerType, buyerIdentifier, buyerIp, buyerUserAgent, buyerEmail, txHash, stripeOnrampSessionId, privyTransactionId, checkoutTitle, checkoutDescription, confirmedAt, invoiceId).
 - **Storage**: `server/storage/sales.ts` — CRUD for both tables: `createCheckoutPage`, `getCheckoutPageById`, `getCheckoutPagesByOwnerUid`, `updateCheckoutPage`, `archiveCheckoutPage`, `createSale`, `getSaleById`, `getSalesByOwnerUid`, `getSalesByCheckoutPageId`, `updateSaleStatus`, `incrementCheckoutPageStats`, `incrementCheckoutPageViewCount`.
 - **Owner API**: `POST/GET /api/v1/checkout-pages` (create/list), `GET/PATCH/DELETE /api/v1/checkout-pages/[id]` (detail/update/archive), `GET /api/v1/sales` (list with filters), `GET /api/v1/sales/[sale_id]` (detail).
 - **Bot API**: `POST /api/v1/bot/checkout-pages/create` (create), `GET /api/v1/bot/checkout-pages` (list), `GET /api/v1/bot/sales` (list with filters). All use `withBotApi` middleware.
-- **Public endpoints**: `GET /api/v1/checkout/[id]/public` (fetch config, increments view count), `POST /api/v1/checkout/[id]/pay/stripe-onramp` (create Stripe session targeting seller's wallet).
-- **Pages**: `/app/checkout/create` (create + manage checkout pages), `/app/sales` (sales ledger), `/pay/[id]` (public checkout page with Stripe onramp), `/pay/[id]/success` (post-payment confirmation).
-- **Webhook**: `wallet.sale.completed` event fired to seller's bot after confirmed sale via `fireWebhook()`.
-- **Skill file**: `public/checkout.md` — bot-readable instructions for creating checkout pages and viewing sales.
-- **Sidebar**: "Sales" section with "Create Checkout" and "My Sales" links.
+- **Public endpoints**: `GET /api/v1/checkout/[id]/public` (fetch config + seller info via 3-tier fallback, increments view count), `POST /api/v1/checkout/[id]/pay/stripe-onramp` (create Stripe session, supports `invoice_ref` for server-authoritative invoice amount).
+- **Checkout Page**: `/pay/[id]` — split-panel layout (dark left panel with seller info / white right panel with embedded Stripe widget). Supports `?ref=INV-XXXX` query param for invoice payments — fetches invoice data, shows line items and totals on left panel, locks amount server-side.
+- **Pages**: `/app/checkout/create` (create + manage checkout pages with seller field overrides), `/app/sales` (sales ledger with clickable rows), `/app/sales/[sale_id]` (sale detail page), `/pay/[id]` (public checkout page), `/pay/[id]/success` (post-payment confirmation).
+- **Webhook**: `wallet.sale.completed` event fired to seller's bot after confirmed sale via `fireWebhook()`. Includes `invoice_id` and `invoice_ref` when payment was for an invoice.
+- **Invoice linking**: Webhook handler checks for `metadata.invoice_ref`, looks up invoice, verifies checkout page match and payable status, links sale to invoice and marks invoice as paid.
+- **Skill file**: `public/checkout.md` — bot-readable instructions for creating checkout pages, viewing sales, and managing invoices.
+- **Sidebar**: "Sales" section with "Create Checkout", "My Sales", "Invoices", and "Seller Profile" links.
+
+### Seller Profiles (`server/storage/seller-profiles.ts`)
+Per-owner seller identity used across all checkout pages.
+- **Schema**: `seller_profiles` table (id, ownerUid unique, businessName, logoUrl, contactEmail, websiteUrl, description, createdAt, updatedAt).
+- **Storage**: `server/storage/seller-profiles.ts` — `createSellerProfile`, `getSellerProfileByOwnerUid`, `upsertSellerProfile`.
+- **Owner API**: `GET/PUT /api/v1/seller-profile` — get or upsert seller profile.
+- **Public checkout fallback chain**: checkout page overrides → seller profile → bot name/owner email.
+- **Page**: `/app/settings/seller` — form to manage seller profile (business name, logo URL, contact email, website, description).
+
+### Invoicing (`server/storage/invoices.ts`)
+Full invoicing system — create, send, track, and collect payment on invoices tied to checkout pages.
+- **Schema**: `invoices` table (invoiceId, ownerUid, checkoutPageId, referenceNumber unique, recipientName, recipientEmail, lineItems JSONB, subtotalUsdc, taxUsdc, totalUsdc, dueDate, notes, status [draft/sent/viewed/paid/cancelled], pdfUrl, paymentUrl, paidAt, paidSaleId, sentAt, viewedAt, cancelledAt, createdAt, updatedAt).
+- **Storage**: `server/storage/invoices.ts` — full CRUD: `createInvoice`, `getInvoiceById`, `getInvoiceByReferenceNumber`, `getInvoicesByOwnerUid` (with filters), `getInvoicesByCheckoutPageId`, `updateInvoice`, `markInvoiceSent`, `markInvoiceViewed`, `markInvoicePaid`, `cancelInvoice`, `getNextReferenceNumber`.
+- **Owner API**: `POST/GET /api/v1/invoices` (create/list), `GET/PATCH /api/v1/invoices/[id]` (detail/update draft), `POST /api/v1/invoices/[id]/send` (mark sent + email + PDF), `POST /api/v1/invoices/[id]/cancel`.
+- **Public API**: `GET /api/v1/invoices/by-ref/[ref]` — returns display-safe fields only (no internal IDs or owner data).
+- **Bot API**: `POST /api/v1/bot/invoices/create` (10/hr), `GET /api/v1/bot/invoices` (12/hr), `POST /api/v1/bot/invoices/[id]/send` (5/hr).
+- **Email & PDF**: `lib/invoice-email.ts` (HTML email with SendGrid + PDF attachment), `lib/invoice-pdf.ts` (server-side PDF generation via `pdf-lib`).
+- **Pages**: `/app/invoices` (list with filters), `/app/invoices/create` (create form with line items repeater), `/app/invoices/[invoice_id]` (detail with status timeline, actions).
 
 ### Crypto Onramp (`lib/crypto-onramp/`)
 Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.

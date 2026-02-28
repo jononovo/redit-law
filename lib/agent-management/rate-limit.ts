@@ -25,6 +25,9 @@ export const BOT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   "/api/v1/bot/check/rail4": { maxRequests: 6, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/check/rail5": { maxRequests: 6, windowMs: 60 * 60 * 1000 },
   "/api/v1/bot/check/rail4/test": { maxRequests: 12, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/invoices/create": { maxRequests: 10, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/invoices": { maxRequests: 12, windowMs: 60 * 60 * 1000 },
+  "/api/v1/bot/invoices/send": { maxRequests: 5, windowMs: 60 * 60 * 1000 },
 };
 
 export function checkBotRateLimit(botId: string, endpoint: string): { allowed: boolean; retryAfterSeconds?: number } {
