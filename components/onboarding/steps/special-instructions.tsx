@@ -11,13 +11,15 @@ interface SpecialInstructionsProps {
   onBack: () => void;
   onNext: (notes: string) => void;
   defaultNotes: string;
+  Wrapper?: React.ComponentType<any>;
 }
 
-export function SpecialInstructions({ currentStep, totalSteps, onBack, onNext, defaultNotes }: SpecialInstructionsProps) {
+export function SpecialInstructions({ currentStep, totalSteps, onBack, onNext, defaultNotes, Wrapper }: SpecialInstructionsProps) {
   const [notes, setNotes] = useState(defaultNotes);
 
+  const Step = Wrapper || WizardStep;
   return (
-    <WizardStep
+    <Step
       title="Any special instructions for your bot?"
       subtitle="Optional guidelines your bot should follow when spending."
       currentStep={currentStep}
@@ -45,6 +47,6 @@ export function SpecialInstructions({ currentStep, totalSteps, onBack, onNext, d
           {notes.trim() ? "Continue" : "Skip"}
         </Button>
       </div>
-    </WizardStep>
+    </Step>
   );
 }

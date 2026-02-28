@@ -34,7 +34,7 @@ export async function createPurchaseOrder(params: {
         ...(params.shippingAddress.line2 ? { line2: params.shippingAddress.line2 } : {}),
         city: params.shippingAddress.city,
         state: params.shippingAddress.state,
-        postalCode: params.shippingAddress.zip,
+        postalCode: params.shippingAddress.postalCode,
         country: params.shippingAddress.country,
       },
     },

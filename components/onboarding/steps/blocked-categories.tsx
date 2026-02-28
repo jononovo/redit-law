@@ -12,6 +12,7 @@ interface BlockedCategoriesProps {
   onBack: () => void;
   onNext: (blocked: string[]) => void;
   defaultBlocked: string[];
+  Wrapper?: React.ComponentType<any>;
 }
 
 const SAFETY_CATEGORIES = [
@@ -21,7 +22,7 @@ const SAFETY_CATEGORIES = [
   { value: "cash_advances", label: "Cash advances" },
 ];
 
-export function BlockedCategories({ currentStep, totalSteps, onBack, onNext, defaultBlocked }: BlockedCategoriesProps) {
+export function BlockedCategories({ currentStep, totalSteps, onBack, onNext, defaultBlocked, Wrapper }: BlockedCategoriesProps) {
   const [blocked, setBlocked] = useState<string[]>(defaultBlocked);
 
   function toggle(value: string) {
@@ -34,8 +35,9 @@ export function BlockedCategories({ currentStep, totalSteps, onBack, onNext, def
     .filter(c => !blocked.includes(c.value))
     .filter(c => ["gambling", "adult_content", "cryptocurrency", "cash_advances"].includes(c.value));
 
+  const Step = Wrapper || WizardStep;
   return (
-    <WizardStep
+    <Step
       title="What should your bot never spend on?"
       subtitle="These categories are blocked by default for safety."
       currentStep={currentStep}
@@ -72,6 +74,6 @@ export function BlockedCategories({ currentStep, totalSteps, onBack, onNext, def
       >
         Continue
       </Button>
-    </WizardStep>
+    </Step>
   );
 }

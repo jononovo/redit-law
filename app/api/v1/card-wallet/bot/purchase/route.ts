@@ -34,7 +34,7 @@ async function handler(request: NextRequest, botId: string) {
           line2: defaultAddr.line2 ?? undefined,
           city: defaultAddr.city,
           state: defaultAddr.state,
-          zip: defaultAddr.postalCode,
+          postalCode: defaultAddr.postalCode,
           country: defaultAddr.country,
         };
       }
@@ -122,7 +122,7 @@ async function handler(request: NextRequest, botId: string) {
       });
 
       try {
-        const { createPurchaseOrder } = await import("@/lib/rail2/orders/purchase");
+        const { createPurchaseOrder } = await import("@/lib/procurement/crossmint-worldstore/purchase");
         const bot = await storage.getBotByBotId(botId);
         const owner = await storage.getOwnerByUid(wallet.ownerUid);
         const ownerEmail = owner?.email || bot?.ownerEmail || "";

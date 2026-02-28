@@ -6,7 +6,7 @@ export interface ShippingAddress {
   line2?: string;
   city: string;
   state: string;
-  zip: string;
+  postalCode: string;
   country: string;
 }
 
