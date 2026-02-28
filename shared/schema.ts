@@ -1247,6 +1247,29 @@ export const insertOrderSchema = z.object({
   metadata: z.record(z.any()).optional().nullable(),
 });
 
+export const sellerProfiles = pgTable("seller_profiles", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull().unique(),
+  businessName: text("business_name"),
+  logoUrl: text("logo_url"),
+  contactEmail: text("contact_email"),
+  websiteUrl: text("website_url"),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type SellerProfile = typeof sellerProfiles.$inferSelect;
+export type InsertSellerProfile = typeof sellerProfiles.$inferInsert;
+
+export const upsertSellerProfileSchema = z.object({
+  business_name: z.string().max(200).optional().nullable(),
+  logo_url: z.string().url().max(2000).optional().nullable(),
+  contact_email: z.string().email().max(200).optional().nullable(),
+  website_url: z.string().url().max(2000).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
+});
+
 export const checkoutPages = pgTable("checkout_pages", {
   id: serial("id").primaryKey(),
   checkoutPageId: text("checkout_page_id").notNull().unique(),
@@ -1261,6 +1284,9 @@ export const checkoutPages = pgTable("checkout_pages", {
   status: text("status").notNull().default("active"),
   successUrl: text("success_url"),
   successMessage: text("success_message"),
+  sellerName: text("seller_name"),
+  sellerLogoUrl: text("seller_logo_url"),
+  sellerEmail: text("seller_email"),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   viewCount: integer("view_count").notNull().default(0),
   paymentCount: integer("payment_count").notNull().default(0),
@@ -1288,6 +1314,9 @@ export const createCheckoutPageSchema = z.object({
   success_url: z.string().url().optional().nullable(),
   success_message: z.string().max(500).optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
+  seller_name: z.string().max(200).optional().nullable(),
+  seller_logo_url: z.string().url().max(2000).optional().nullable(),
+  seller_email: z.string().email().max(200).optional().nullable(),
 });
 
 export const sales = pgTable("sales", {
@@ -1308,6 +1337,7 @@ export const sales = pgTable("sales", {
   privyTransactionId: integer("privy_transaction_id"),
   checkoutTitle: text("checkout_title"),
   checkoutDescription: text("checkout_description"),
+  invoiceId: text("invoice_id"),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   confirmedAt: timestamp("confirmed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1318,6 +1348,7 @@ export const sales = pgTable("sales", {
   index("sales_payment_method_idx").on(table.paymentMethod),
   index("sales_created_at_idx").on(table.createdAt),
   index("sales_buyer_identifier_idx").on(table.buyerIdentifier),
+  index("sales_invoice_id_idx").on(table.invoiceId),
 ]);
 
 export type Sale = typeof sales.$inferSelect;
@@ -1331,4 +1362,63 @@ export const botCreateCheckoutPageSchema = z.object({
   allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
   success_url: z.string().url().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
+});
+
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceId: text("invoice_id").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  checkoutPageId: text("checkout_page_id").notNull(),
+  referenceNumber: text("reference_number").notNull().unique(),
+  status: text("status").notNull().default("draft"),
+  recipientName: text("recipient_name"),
+  recipientEmail: text("recipient_email"),
+  recipientType: text("recipient_type"),
+  lineItems: jsonb("line_items").notNull().$type<Array<{
+    description: string;
+    quantity: number;
+    unitPriceUsd: number;
+    amountUsd: number;
+  }>>(),
+  subtotalUsdc: bigint("subtotal_usdc", { mode: "number" }).notNull(),
+  taxUsdc: bigint("tax_usdc", { mode: "number" }).notNull().default(0),
+  totalUsdc: bigint("total_usdc", { mode: "number" }).notNull(),
+  paymentUrl: text("payment_url").notNull(),
+  pdfUrl: text("pdf_url"),
+  pdfGeneratedAt: timestamp("pdf_generated_at"),
+  dueDate: timestamp("due_date"),
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  paidAt: timestamp("paid_at"),
+  saleId: text("sale_id"),
+  senderName: text("sender_name"),
+  senderEmail: text("sender_email"),
+  notes: text("notes"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("invoices_owner_uid_idx").on(table.ownerUid),
+  index("invoices_checkout_page_id_idx").on(table.checkoutPageId),
+  index("invoices_reference_number_idx").on(table.referenceNumber),
+  index("invoices_status_idx").on(table.status),
+  index("invoices_sale_id_idx").on(table.saleId),
+]);
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = typeof invoices.$inferInsert;
+
+export const createInvoiceSchema = z.object({
+  checkout_page_id: z.string().min(1),
+  recipient_name: z.string().max(200).optional().nullable(),
+  recipient_email: z.string().email().max(200).optional().nullable(),
+  recipient_type: z.enum(["human", "bot", "agent"]).optional().nullable(),
+  line_items: z.array(z.object({
+    description: z.string().min(1).max(500),
+    quantity: z.number().positive(),
+    unit_price_usd: z.number().min(0),
+  })).min(1),
+  tax_usd: z.number().min(0).optional().default(0),
+  due_date: z.string().datetime().optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
 });

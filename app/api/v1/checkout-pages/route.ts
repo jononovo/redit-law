@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
       successUrl: data.success_url || null,
       successMessage: data.success_message || null,
       expiresAt: data.expires_at ? new Date(data.expires_at) : null,
+      sellerName: data.seller_name || null,
+      sellerLogoUrl: data.seller_logo_url || null,
+      sellerEmail: data.seller_email || null,
     });
 
     return NextResponse.json({

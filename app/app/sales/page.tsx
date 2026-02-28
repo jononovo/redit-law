@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, DollarSign, Filter, ExternalLink } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ interface SaleDTO {
 }
 
 export default function SalesPage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [sales, setSales] = useState<SaleDTO[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,8 +173,9 @@ export default function SalesPage() {
                 {sales.map((sale) => (
                   <tr
                     key={sale.sale_id}
-                    className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors"
+                    className="border-b border-neutral-50 hover:bg-neutral-50/50 transition-colors cursor-pointer"
                     data-testid={`sale-row-${sale.sale_id}`}
+                    onClick={() => router.push(`/app/sales/${sale.sale_id}`)}
                   >
                     <td className="px-6 py-4">
                       <span className="text-sm text-neutral-500" data-testid={`text-sale-date-${sale.sale_id}`}>

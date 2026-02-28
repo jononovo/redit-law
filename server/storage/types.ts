@@ -44,10 +44,13 @@ import {
   type Vendor, type InsertVendor,
   type MerchantAccount, type InsertMerchantAccount,
   type SavedShippingAddress, type InsertShippingAddress,
+  type SellerProfile, type InsertSellerProfile,
+  type Invoice, type InsertInvoice,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
 import type { SaleFilters } from "./sales";
+import type { InvoiceFilters } from "./invoices";
 
 export interface IStorage {
   getOwnerByUid(uid: string): Promise<Owner | null>;
@@ -312,4 +315,20 @@ export interface IStorage {
   getDefaultShippingAddress(ownerUid: string): Promise<SavedShippingAddress | null>;
   updateShippingAddress(id: number, updates: Partial<InsertShippingAddress>): Promise<SavedShippingAddress | null>;
   deleteShippingAddress(id: number): Promise<void>;
+
+  getSellerProfileByOwnerUid(ownerUid: string): Promise<SellerProfile | null>;
+  upsertSellerProfile(ownerUid: string, data: Partial<InsertSellerProfile>): Promise<SellerProfile>;
+
+  createInvoice(data: InsertInvoice): Promise<Invoice>;
+  getInvoiceById(invoiceId: string): Promise<Invoice | null>;
+  getInvoiceByReferenceNumber(ref: string): Promise<Invoice | null>;
+  getInvoicesByOwnerUid(ownerUid: string, filters?: InvoiceFilters): Promise<Invoice[]>;
+  getInvoicesByCheckoutPageId(checkoutPageId: string): Promise<Invoice[]>;
+  updateInvoice(invoiceId: string, data: Partial<InsertInvoice>): Promise<Invoice | null>;
+  markInvoiceSent(invoiceId: string): Promise<Invoice | null>;
+  markInvoiceViewed(invoiceId: string): Promise<Invoice | null>;
+  markInvoicePaid(invoiceId: string, saleId: string): Promise<Invoice | null>;
+  cancelInvoice(invoiceId: string): Promise<Invoice | null>;
+  getNextReferenceNumber(ownerUid: string): Promise<string>;
+  updateSaleInvoiceId(saleId: string, invoiceId: string): Promise<Sale | null>;
 }

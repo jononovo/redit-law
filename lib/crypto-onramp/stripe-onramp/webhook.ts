@@ -74,6 +74,38 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         }
       }
 
+      const invoiceRef = metadata?.invoice_ref as string | undefined;
+      let linkedInvoiceId: string | null = null;
+
+      if (invoiceRef) {
+        try {
+          const invoice = await storage.getInvoiceByReferenceNumber(invoiceRef);
+          if (
+            invoice &&
+            invoice.checkoutPageId === checkoutPageId &&
+            (invoice.status === "sent" || invoice.status === "viewed")
+          ) {
+            const invoiceLower = invoice.totalUsdc * 0.94;
+            const invoiceUpper = invoice.totalUsdc * 1.01;
+            if (amountUsdc < invoiceLower || amountUsdc > invoiceUpper) {
+              saleStatus = "amount_mismatch";
+              console.warn("[Onramp Webhook] Invoice amount mismatch:", {
+                invoiceRef,
+                expectedUsdc: invoice.totalUsdc,
+                receivedUsdc: amountUsdc,
+                diffPercent: ((amountUsdc - invoice.totalUsdc) / invoice.totalUsdc * 100).toFixed(2) + "%",
+              });
+            }
+            linkedInvoiceId = invoice.invoiceId;
+            console.log("[Onramp Webhook] Invoice matched for payment:", { invoiceRef, invoiceId: invoice.invoiceId });
+          } else {
+            console.warn("[Onramp Webhook] Invoice ref did not match or not payable:", { invoiceRef, invoiceStatus: invoice?.status });
+          }
+        } catch (invErr) {
+          console.error("[Onramp Webhook] Failed to look up invoice:", invErr);
+        }
+      }
+
       const saleId = generateSaleId();
       await storage.createSale({
         saleId,
@@ -91,10 +123,20 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         checkoutTitle: checkoutPage.title,
         checkoutDescription: checkoutPage.description,
         confirmedAt: new Date(),
+        invoiceId: linkedInvoiceId,
       });
 
       await storage.incrementCheckoutPageStats(checkoutPageId, amountUsdc);
-      console.log("[Onramp Webhook] Sale record created:", { saleId, checkoutPageId });
+      console.log("[Onramp Webhook] Sale record created:", { saleId, checkoutPageId, linkedInvoiceId });
+
+      if (linkedInvoiceId) {
+        try {
+          await storage.markInvoicePaid(linkedInvoiceId, saleId);
+          console.log("[Onramp Webhook] Invoice marked as paid:", { invoiceId: linkedInvoiceId, saleId });
+        } catch (invPaidErr) {
+          console.error("[Onramp Webhook] Failed to mark invoice as paid:", invPaidErr);
+        }
+      }
 
       try {
         const walletWithBot = await storage.privyGetWalletById(checkoutPage.walletId);
@@ -112,6 +154,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
             } : {}),
             buyer_email: (metadata?.buyer_email as string) || null,
             new_balance_usd: newBalance / 1_000_000,
+            ...(linkedInvoiceId ? { invoice_id: linkedInvoiceId, invoice_ref: invoiceRef } : {}),
           });
         }
       } catch (webhookErr) {

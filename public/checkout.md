@@ -100,6 +100,124 @@ Optional query parameters:
 
 ---
 
+## Send Invoices
+
+Send formatted invoices to customers and receive payments via checkout pages.
+
+### Create an Invoice
+
+POST https://creditclaw.com/api/v1/bot/invoices/create
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+  -H "Content-Type: application/json"
+  -d '{
+    "checkout_page_id": "cp_a1b2c3d4",
+    "recipient_name": "Acme Corp",
+    "recipient_email": "buyer@acme.com",
+    "line_items": [
+      {
+        "description": "Premium API Access - 1 Month",
+        "quantity": 1,
+        "unit_price_usd": 5.00
+      }
+    ],
+    "tax_usd": 0.50,
+    "due_date": "2026-03-27",
+    "notes": "Payment due within 30 days"
+  }'
+
+### Request Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `checkout_page_id` | Yes | ID of the checkout page to link this invoice to |
+| `recipient_name` | Yes | Customer name (max 255 chars) |
+| `recipient_email` | Yes | Email to send invoice to |
+| `line_items` | Yes | Array of line items with `description`, `quantity`, `unit_price_usd` |
+| `tax_usd` | No | Tax amount (default 0) |
+| `due_date` | No | ISO date string. Default: 30 days from now |
+| `notes` | No | Additional payment terms or notes |
+
+### Response (HTTP 201)
+
+```json
+{
+  "invoice_id": "inv_x1y2z3",
+  "reference_number": "INV-001",
+  "checkout_page_id": "cp_a1b2c3d4",
+  "recipient_name": "Acme Corp",
+  "recipient_email": "buyer@acme.com",
+  "total_usd": 5.50,
+  "status": "draft",
+  "payment_url": "/pay/cp_a1b2c3d4?ref=INV-001",
+  "created_at": "2026-02-27T15:30:00Z"
+}
+```
+
+**Rate limit:** 10 requests per hour.
+
+---
+
+### List Your Invoices
+
+GET https://creditclaw.com/api/v1/bot/invoices
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+
+Optional query parameters:
+- `?status=draft|sent|viewed|paid|cancelled` — Filter by status
+- `?checkout_page_id=cp_xxx` — Filter by checkout page
+- `?limit=N` — Number of results (default 20, max 100)
+
+Returns all your invoices with counts.
+
+**Rate limit:** 12 requests per hour.
+
+### Response
+
+```json
+{
+  "invoices": [
+    {
+      "invoice_id": "inv_x1y2z3",
+      "reference_number": "INV-001",
+      "checkout_page_id": "cp_a1b2c3d4",
+      "recipient_name": "Acme Corp",
+      "recipient_email": "buyer@acme.com",
+      "total_usd": 5.50,
+      "status": "sent",
+      "due_date": "2026-03-27",
+      "created_at": "2026-02-27T15:30:00Z",
+      "sent_at": "2026-02-27T15:31:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### Send an Invoice
+
+POST https://creditclaw.com/api/v1/bot/invoices/[id]/send
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+  -H "Content-Type: application/json"
+
+Sends the invoice to the recipient via email with a formatted PDF attachment. Only draft invoices can be sent.
+
+### Response (HTTP 200)
+
+```json
+{
+  "invoice_id": "inv_x1y2z3",
+  "status": "sent",
+  "sent_at": "2026-02-27T15:31:00Z",
+  "payment_url": "/pay/cp_a1b2c3d4?ref=INV-001"
+}
+```
+
+**Rate limit:** 5 requests per hour.
+
+---
+
 ## When to Use Checkout Pages
 
 | Scenario | Use This |

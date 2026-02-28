@@ -19,6 +19,30 @@ export async function GET(
 
     storage.incrementCheckoutPageViewCount(id).catch(() => {});
 
+    let sellerName: string | null = null;
+    let sellerLogoUrl: string | null = null;
+    let sellerEmail: string | null = null;
+
+    if (page.sellerName || page.sellerLogoUrl || page.sellerEmail) {
+      sellerName = page.sellerName;
+      sellerLogoUrl = page.sellerLogoUrl;
+      sellerEmail = page.sellerEmail;
+    } else {
+      const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
+      if (sellerProfile && (sellerProfile.businessName || sellerProfile.logoUrl || sellerProfile.contactEmail)) {
+        sellerName = sellerProfile.businessName;
+        sellerLogoUrl = sellerProfile.logoUrl;
+        sellerEmail = sellerProfile.contactEmail;
+      } else {
+        const bots = await storage.getBotsByOwnerUid(page.ownerUid);
+        const linkedBot = bots.find(b => b.ownerUid === page.ownerUid);
+        if (linkedBot) {
+          sellerName = linkedBot.botName;
+          sellerEmail = linkedBot.ownerEmail;
+        }
+      }
+    }
+
     return NextResponse.json({
       checkout_page_id: page.checkoutPageId,
       title: page.title,
@@ -29,6 +53,9 @@ export async function GET(
       success_url: page.successUrl,
       success_message: page.successMessage,
       wallet_address: page.walletAddress,
+      seller_name: sellerName,
+      seller_logo_url: sellerLogoUrl,
+      seller_email: sellerEmail,
     });
   } catch (error) {
     console.error("GET /api/v1/checkout/[id]/public error:", error);
