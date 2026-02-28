@@ -6,12 +6,18 @@ import { eq } from "drizzle-orm";
 
 type SellerProfileMethods = Pick<IStorage,
   | "getSellerProfileByOwnerUid"
+  | "getSellerProfileBySlug"
   | "upsertSellerProfile"
 >;
 
 export const sellerProfileMethods: SellerProfileMethods = {
   async getSellerProfileByOwnerUid(ownerUid: string): Promise<SellerProfile | null> {
     const [profile] = await db.select().from(sellerProfiles).where(eq(sellerProfiles.ownerUid, ownerUid)).limit(1);
+    return profile || null;
+  },
+
+  async getSellerProfileBySlug(slug: string): Promise<SellerProfile | null> {
+    const [profile] = await db.select().from(sellerProfiles).where(eq(sellerProfiles.slug, slug)).limit(1);
     return profile || null;
   },
 

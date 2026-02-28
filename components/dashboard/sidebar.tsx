@@ -17,6 +17,7 @@ import {
   Send,
   Lock,
   Store,
+  ShoppingBag,
   ExternalLink,
   Package,
   UserCircle,
@@ -47,6 +48,7 @@ const procurementNavItems = [
 
 const salesNavItems = [
   { icon: PlusCircle, label: "Create Checkout", href: "/app/checkout/create" },
+  { icon: ShoppingBag, label: "Shop", href: "/app/shop" },
   { icon: DollarSign, label: "My Sales", href: "/app/sales" },
   { icon: FileText, label: "Invoices", href: "/app/invoices" },
   { icon: UserCircle, label: "Seller Profile", href: "/app/settings/seller" },

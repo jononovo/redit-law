@@ -24,6 +24,7 @@ export async function POST(
 
     const body = await request.json().catch(() => ({}));
     const invoiceRef = body.invoice_ref as string | undefined;
+    const buyerName = typeof body.buyer_name === "string" ? body.buyer_name.trim().slice(0, 200) : undefined;
 
     let amountUsd: number | undefined;
     let resolvedInvoiceRef: string | undefined;
@@ -64,6 +65,7 @@ export async function POST(
         ...(ip ? { buyer_ip: ip } : {}),
         ...(userAgent ? { buyer_user_agent: userAgent } : {}),
         ...(resolvedInvoiceRef ? { invoice_ref: resolvedInvoiceRef } : {}),
+        ...(buyerName ? { buyer_name: buyerName } : {}),
       },
     });
 

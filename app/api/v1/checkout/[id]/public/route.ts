@@ -56,6 +56,8 @@ export async function GET(
       seller_name: sellerName,
       seller_logo_url: sellerLogoUrl,
       seller_email: sellerEmail,
+      page_type: page.pageType || "product",
+      collect_buyer_name: page.collectBuyerName || false,
     });
   } catch (error) {
     console.error("GET /api/v1/checkout/[id]/public error:", error);

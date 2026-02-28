@@ -116,6 +116,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
         status: saleStatus,
         buyerType: "stripe_customer",
         buyerEmail: (metadata?.buyer_email as string) || null,
+        buyerName: (metadata?.buyer_name as string) || null,
         buyerIp: (metadata?.buyer_ip as string) || null,
         buyerUserAgent: (metadata?.buyer_user_agent as string) || null,
         stripeOnrampSessionId: sessionId,

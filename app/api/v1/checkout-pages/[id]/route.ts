@@ -13,7 +13,12 @@ const updateCheckoutPageSchema = z.object({
   success_url: z.string().url().nullable().optional(),
   success_message: z.string().max(500).nullable().optional(),
   expires_at: z.string().datetime().nullable().optional(),
-}).strict();
+  page_type: z.enum(["product", "event"]).optional(),
+  shop_visible: z.boolean().optional(),
+  shop_order: z.number().int().min(0).optional(),
+  image_url: z.string().url().max(2000).nullable().optional(),
+  collect_buyer_name: z.boolean().optional(),
+});
 
 function formatPage(page: any) {
   return {
@@ -28,6 +33,11 @@ function formatPage(page: any) {
     status: page.status,
     success_url: page.successUrl,
     success_message: page.successMessage,
+    page_type: page.pageType || "product",
+    shop_visible: page.shopVisible || false,
+    shop_order: page.shopOrder || 0,
+    image_url: page.imageUrl || null,
+    collect_buyer_name: page.collectBuyerName || false,
     view_count: page.viewCount,
     payment_count: page.paymentCount,
     total_received_usd: page.totalReceivedUsdc / 1_000_000,
@@ -94,6 +104,11 @@ export async function PATCH(
     if (data.success_url !== undefined) updates.successUrl = data.success_url;
     if (data.success_message !== undefined) updates.successMessage = data.success_message;
     if (data.expires_at !== undefined) updates.expiresAt = data.expires_at ? new Date(data.expires_at) : null;
+    if (data.page_type !== undefined) updates.pageType = data.page_type;
+    if (data.shop_visible !== undefined) updates.shopVisible = data.shop_visible;
+    if (data.shop_order !== undefined) updates.shopOrder = data.shop_order;
+    if (data.image_url !== undefined) updates.imageUrl = data.image_url;
+    if (data.collect_buyer_name !== undefined) updates.collectBuyerName = data.collect_buyer_name;
 
     const updated = await storage.updateCheckoutPage(id, updates);
     if (!updated) {

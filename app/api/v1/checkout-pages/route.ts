@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
       sellerName: data.seller_name || null,
       sellerLogoUrl: data.seller_logo_url || null,
       sellerEmail: data.seller_email || null,
+      pageType: data.page_type || "product",
+      imageUrl: data.image_url || null,
+      collectBuyerName: data.collect_buyer_name || false,
     });
 
     return NextResponse.json({
@@ -92,6 +95,11 @@ export async function GET(request: NextRequest) {
       status: page.status,
       success_url: page.successUrl,
       success_message: page.successMessage,
+      page_type: page.pageType || "product",
+      shop_visible: page.shopVisible || false,
+      shop_order: page.shopOrder || 0,
+      image_url: page.imageUrl || null,
+      collect_buyer_name: page.collectBuyerName || false,
       view_count: page.viewCount,
       payment_count: page.paymentCount,
       total_received_usd: page.totalReceivedUsdc / 1_000_000,

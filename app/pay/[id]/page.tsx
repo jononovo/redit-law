@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Lock, CreditCard, Loader2, AlertCircle, Clock, Ban, Mail, FileText, Calendar } from "lucide-react";
+import { Lock, CreditCard, Loader2, AlertCircle, Clock, Ban, Mail, FileText, Calendar, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,8 @@ interface CheckoutPageData {
   seller_name: string | null;
   seller_logo_url: string | null;
   seller_email: string | null;
+  page_type: "product" | "event";
+  collect_buyer_name: boolean;
 }
 
 interface InvoiceData {
@@ -55,6 +57,8 @@ export default function PublicCheckoutPage() {
   const [checkout, setCheckout] = useState<CheckoutPageData | null>(null);
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [customAmount, setCustomAmount] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerCount, setBuyerCount] = useState<number | null>(null);
   const [paying, setPaying] = useState(false);
   const [onrampOpen, setOnrampOpen] = useState(false);
   const [onrampLoading, setOnrampLoading] = useState(false);
@@ -82,6 +86,16 @@ export default function PublicCheckoutPage() {
               if (invData.checkout_page_id === data.checkout_page_id && invData.status !== "paid" && invData.status !== "cancelled") {
                 setInvoice(invData);
               }
+            }
+          } catch {}
+        }
+
+        if (data.page_type === "event") {
+          try {
+            const buyersRes = await fetch(`/api/v1/checkout/${id}/buyers`);
+            if (buyersRes.ok) {
+              const buyersData = await buyersRes.json();
+              setBuyerCount(buyersData.buyer_count);
             }
           } catch {}
         }
@@ -134,6 +148,7 @@ export default function PublicCheckoutPage() {
       const body: Record<string, unknown> = {};
       if (amountUsd) body.amount_usd = amountUsd;
       if (invoice) body.invoice_ref = invoice.reference_number;
+      if (buyerName.trim()) body.buyer_name = buyerName.trim();
 
       const res = await fetch(`/api/v1/checkout/${id}/pay/stripe-onramp`, {
         method: "POST",
@@ -487,6 +502,20 @@ export default function PublicCheckoutPage() {
                 </div>
               )}
 
+              {checkout.collect_buyer_name && (
+                <div>
+                  <label className="text-sm font-semibold text-neutral-700 mb-2 block">Your Name</label>
+                  <Input
+                    type="text"
+                    placeholder="Enter your name"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    className="rounded-xl"
+                    data-testid="input-buyer-name"
+                  />
+                </div>
+              )}
+
               <Button
                 onClick={handlePay}
                 disabled={paying || (!displayAmount && !customAmount)}
@@ -503,6 +532,13 @@ export default function PublicCheckoutPage() {
                   </>
                 )}
               </Button>
+
+              {checkout.page_type === "event" && buyerCount !== null && buyerCount > 0 && (
+                <div className="flex items-center justify-center gap-1.5 text-sm text-neutral-400" data-testid="text-event-buyer-count">
+                  <Users className="w-4 h-4" />
+                  <span>{buyerCount} {buyerCount === 1 ? "person" : "people"} bought this</span>
+                </div>
+              )}
 
               <p className="text-center text-xs text-neutral-400 font-medium">
                 Secure payment powered by Stripe
