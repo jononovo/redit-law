@@ -80,7 +80,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
       merchantUrl: merchant_url,
       itemName: item_name,
       amountCents: amount_cents,
-      category: category || null,
+      category: category || undefined,
       status: "pending_approval",
       balanceAfter: walletBalance,
     });
@@ -152,7 +152,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
       merchantUrl: merchant_url,
       itemName: item_name,
       amountCents: amount_cents,
-      category: category || null,
+      category: category || undefined,
       status: "pending_approval",
       balanceAfter: walletBalance,
     });
@@ -203,7 +203,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     merchantUrl: merchant_url,
     itemName: item_name,
     amountCents: amount_cents,
-    category: category || null,
+    category: category || undefined,
     status: "approved",
     balanceAfter: walletBalance,
   });
@@ -227,7 +227,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     cardId: card.cardId,
     status: "completed",
     vendor: merchant_name,
-    vendorDetails: { url: merchant_url, category: category || null },
+    vendorDetails: { url: merchant_url, category: category || undefined },
     productName: item_name,
     priceCents: amount_cents,
     priceCurrency: "USD",
