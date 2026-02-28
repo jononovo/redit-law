@@ -220,6 +220,11 @@ export default function OrdersPage() {
                           {order.vendor}
                         </span>
                       )}
+                      {(order as any).vendorDetails?.category && (
+                        <span className="text-xs text-neutral-400" data-testid={`text-order-category-${order.id}`}>
+                          • {(order as any).vendorDetails.category}
+                        </span>
+                      )}
                       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${railColor(order.rail)}`} data-testid={`badge-order-rail-${order.id}`}>
                         {railLabel(order.rail)}
                       </span>

@@ -9,6 +9,7 @@ export interface OrderRow {
   rail: string;
   botName: string | null;
   vendor: string | null;
+  vendorDetails?: { url?: string; category?: string; vendorSlug?: string } | null;
   productName: string | null;
   productImageUrl: string | null;
   productUrl: string | null;
@@ -16,6 +17,8 @@ export interface OrderRow {
   quantity: number;
   priceCents: number | null;
   priceCurrency: string;
+  taxesCents?: number | null;
+  shippingPriceCents?: number | null;
   shippingAddress: Record<string, any> | null;
   trackingInfo: Record<string, any> | null;
   externalOrderId: string | null;
@@ -138,6 +141,9 @@ export function OrderList({ orders, testIdPrefix = "order" }: OrderListProps) {
                   {new Date(order.createdAt).toLocaleString()}
                   {order.vendor && order.productName && (
                     <span className="ml-1">· {order.vendor}</span>
+                  )}
+                  {order.vendorDetails?.category && (
+                    <span className="ml-1">· {order.vendorDetails.category}</span>
                   )}
                   {order.botName && (
                     <span className="ml-1">· {order.botName}</span>
