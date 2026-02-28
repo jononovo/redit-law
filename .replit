@@ -39,7 +39,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx next dev --webpack -p 5000 -H 0.0.0.0"
+args = "npx next dev -p 5000 -H 0.0.0.0"
 waitForPort = 5000
 
 [agent]
