@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink } from "lucide-react";
+import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/wallet/status-badge";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
 
@@ -34,6 +35,8 @@ interface CheckoutPageData {
   payment_count: number;
   view_count: number;
   total_received_usd: number;
+  success_url: string | null;
+  success_message: string | null;
   checkout_url: string;
   created_at: string;
   expires_at: string | null;
@@ -64,6 +67,17 @@ export default function CreateCheckoutPage() {
   const [expiresAt, setExpiresAt] = useState("");
 
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
+  const [editPage, setEditPage] = useState<CheckoutPageData | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editAmountUsd, setEditAmountUsd] = useState("");
+  const [editAmountLocked, setEditAmountLocked] = useState(true);
+  const [editAllowedMethods, setEditAllowedMethods] = useState<string[]>([]);
+  const [editStatus, setEditStatus] = useState("active");
+  const [editSuccessUrl, setEditSuccessUrl] = useState("");
+  const [editSuccessMessage, setEditSuccessMessage] = useState("");
+  const [editExpiresAt, setEditExpiresAt] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
@@ -159,6 +173,59 @@ export default function CreateCheckoutPage() {
     } catch {
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openEdit = (page: CheckoutPageData) => {
+    setEditPage(page);
+    setEditTitle(page.title);
+    setEditDescription(page.description || "");
+    setEditAmountUsd(page.amount_usd ? String(page.amount_usd) : "");
+    setEditAmountLocked(page.amount_locked);
+    setEditAllowedMethods([...page.allowed_methods]);
+    setEditStatus(page.status);
+    setEditSuccessUrl(page.success_url || "");
+    setEditSuccessMessage(page.success_message || "");
+    setEditExpiresAt(page.expires_at ? page.expires_at.slice(0, 16) : "");
+  };
+
+  const toggleEditMethod = (method: string) => {
+    setEditAllowedMethods((prev) => {
+      if (prev.includes(method)) {
+        if (prev.length <= 1) return prev;
+        return prev.filter((m) => m !== method);
+      }
+      return [...prev, method];
+    });
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editPage || !editTitle.trim()) return;
+    setEditSubmitting(true);
+    try {
+      const body: Record<string, any> = {
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        amount_usd: editAmountUsd ? parseFloat(editAmountUsd) : null,
+        amount_locked: editAmountLocked,
+        allowed_methods: editAllowedMethods,
+        status: editStatus,
+        success_url: editSuccessUrl.trim() || null,
+        success_message: editSuccessMessage.trim() || null,
+        expires_at: editExpiresAt ? new Date(editExpiresAt).toISOString() : null,
+      };
+      const res = await authFetch(`/api/v1/checkout-pages/${editPage.checkout_page_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        setEditPage(null);
+        fetchData();
+      }
+    } catch {
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -429,6 +496,16 @@ export default function CreateCheckoutPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => openEdit(page)}
+                        className="gap-1 text-xs"
+                        data-testid={`button-edit-${page.checkout_page_id}`}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => copyToClipboard(fullUrl, page.checkout_page_id)}
                         className="gap-1 text-xs"
                         data-testid={`button-copy-url-${page.checkout_page_id}`}
@@ -454,6 +531,87 @@ export default function CreateCheckoutPage() {
           </div>
         )}
       </div>
+
+      <Drawer open={!!editPage} onOpenChange={(open) => { if (!open) setEditPage(null); }}>
+        <DrawerContent className="max-h-[85vh]" data-testid="drawer-edit-checkout">
+          <DrawerHeader>
+            <DrawerTitle>Edit Checkout Page</DrawerTitle>
+            <DrawerDescription>Update the details of your checkout page</DrawerDescription>
+          </DrawerHeader>
+          <div className="px-4 pb-4 space-y-4 overflow-y-auto">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-neutral-700">Title</Label>
+              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} data-testid="input-edit-title" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-neutral-700">Description</Label>
+              <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} data-testid="input-edit-description" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">Amount (USD)</Label>
+                <Input type="number" step="0.01" min="0" value={editAmountUsd} onChange={(e) => setEditAmountUsd(e.target.value)} placeholder="Open amount" data-testid="input-edit-amount" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">Lock Amount</Label>
+                <div className="flex items-center gap-2 pt-2">
+                  <Switch checked={editAmountLocked} onCheckedChange={setEditAmountLocked} data-testid="switch-edit-amount-locked" />
+                  <span className="text-sm text-neutral-500 flex items-center gap-1">
+                    {editAmountLocked ? <><Lock className="w-3.5 h-3.5" /> Locked</> : <><Unlock className="w-3.5 h-3.5" /> Buyer can change</>}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-neutral-700">Status</Label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger data-testid="select-edit-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="paused">Paused</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-neutral-700">Payment Methods</Label>
+              <div className="flex flex-wrap gap-4 pt-1">
+                {PAYMENT_METHODS.map((method) => (
+                  <label key={method.value} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox checked={editAllowedMethods.includes(method.value)} onCheckedChange={() => toggleEditMethod(method.value)} data-testid={`checkbox-edit-method-${method.value}`} />
+                    <span className="text-sm text-neutral-700">{method.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">Success URL</Label>
+                <Input type="url" value={editSuccessUrl} onChange={(e) => setEditSuccessUrl(e.target.value)} placeholder="https://..." data-testid="input-edit-success-url" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-neutral-700">Success Message</Label>
+                <Input value={editSuccessMessage} onChange={(e) => setEditSuccessMessage(e.target.value)} placeholder="Thank you!" data-testid="input-edit-success-message" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-neutral-700">Expiry</Label>
+              <Input type="datetime-local" value={editExpiresAt} onChange={(e) => setEditExpiresAt(e.target.value)} data-testid="input-edit-expires-at" />
+            </div>
+          </div>
+          <DrawerFooter>
+            <Button onClick={handleEditSubmit} disabled={editSubmitting || !editTitle.trim()} className="w-full gap-2" data-testid="button-save-edit">
+              {editSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              Save Changes
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full" data-testid="button-cancel-edit">Cancel</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
