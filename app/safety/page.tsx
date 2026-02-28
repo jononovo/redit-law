@@ -51,9 +51,6 @@ const partners = [
   { name: "Bridge", role: "Crypto Transfers", desc: "Stablecoin payments, fiat-to-crypto rails, cross-border transfers", logo: "/logos/partners/bridge.png" },
   { name: "Circle", role: "Stablecoin Infrastructure", desc: "USDC issuance, programmable wallets, compliance", logo: "/logos/partners/circle.svg" },
   { name: "Stytch", role: "Authentication", desc: "Passwordless auth, session management, fraud prevention", logo: "/logos/partners/stytch.png" },
-  { name: "VGS", role: "Payment Security", desc: "Card vault, tokenization, PCI compliance", logo: "/logos/partners/vgs.png" },
-  { name: "PostgreSQL", role: "Database", desc: "ACID-compliant, atomic transactions, data integrity", logo: "/logos/partners/postgresql.svg" },
-  { name: "SendGrid", role: "Email Delivery", desc: "Transactional alerts, delivery tracking, anti-spam", logo: "/logos/partners/sendgrid.png" },
 ];
 
 const pendingIntegrations = [
