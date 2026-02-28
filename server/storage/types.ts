@@ -38,7 +38,10 @@ import {
   type UnifiedApproval, type InsertUnifiedApproval,
   type Rail5Card, type InsertRail5Card,
   type Rail5Checkout, type InsertRail5Checkout,
+  type Order, type InsertOrder,
 } from "@/shared/schema";
+
+import type { OrderFilters } from "./orders";
 
 export interface IStorage {
   getOwnerByUid(uid: string): Promise<Owner | null>;
@@ -267,4 +270,12 @@ export interface IStorage {
   decideUnifiedApproval(approvalId: string, decision: string): Promise<UnifiedApproval | null>;
   closeUnifiedApprovalByRailRef(rail: string, railRef: string, decision: string): Promise<void>;
   getUnifiedApprovalsByOwnerUid(ownerUid: string, status?: string): Promise<UnifiedApproval[]>;
+
+  createOrder(data: InsertOrder): Promise<Order>;
+  getOrderById(id: number): Promise<Order | null>;
+  getOrderByExternalId(externalId: string): Promise<Order | null>;
+  getOrdersByOwner(ownerUid: string, filters?: OrderFilters): Promise<Order[]>;
+  getOrdersByWallet(walletId: number): Promise<Order[]>;
+  getOrdersByCard(cardId: string): Promise<Order[]>;
+  updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order | null>;
 }

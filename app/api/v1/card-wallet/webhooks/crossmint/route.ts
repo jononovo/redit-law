@@ -76,6 +76,21 @@ export async function POST(request: NextRequest) {
 
     await storage.crossmintUpdateTransaction(transaction.id, dbUpdates);
 
+    try {
+      const existingOrder = await storage.getOrderByExternalId(orderId);
+      if (existingOrder) {
+        const orderUpdates: Record<string, unknown> = {
+          status: updates.orderStatus,
+        };
+        if (updates.trackingInfo) orderUpdates.trackingInfo = updates.trackingInfo;
+        if (updates.metadata) orderUpdates.metadata = updates.metadata;
+        await storage.updateOrder(existingOrder.id, orderUpdates);
+        console.log(`[Card Wallet Webhook] Updated order #${existingOrder.id}: status=${updates.orderStatus}`);
+      }
+    } catch (orderErr) {
+      console.error("[Card Wallet Webhook] Order update failed (non-fatal):", orderErr);
+    }
+
     console.log(`[Card Wallet Webhook] Updated transaction ${transaction.id}: orderStatus=${updates.orderStatus}${updates.status ? `, status=${updates.status}` : ""}`);
 
     if (updates.botEventType) {

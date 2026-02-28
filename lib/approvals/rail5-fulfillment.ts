@@ -22,6 +22,25 @@ async function fulfillRail5Approval(approval: UnifiedApproval): Promise<void> {
     }
   }
 
+  const { recordOrder } = await import("@/lib/orders/create");
+  if (checkout) {
+    recordOrder({
+      ownerUid: approval.ownerUid,
+      rail: "rail5",
+      botId: checkout.botId,
+      cardId: checkout.cardId,
+      status: "completed",
+      vendor: checkout.merchantName,
+      vendorDetails: { url: checkout.merchantUrl, category: checkout.category || null },
+      productName: checkout.itemName,
+      priceCents: checkout.amountCents,
+      priceCurrency: "USD",
+      metadata: { checkoutId, approvalId: approval.id },
+    }).catch((err) => {
+      console.error("[Rail5] Failed to record order after approval:", err);
+    });
+  }
+
   console.log(`[Approvals] Rail 5 approved: checkout ${checkoutId}`);
 }
 

@@ -6,6 +6,7 @@ import { generateRail5CheckoutId, buildSpawnPayload } from "@/lib/rail5";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
 import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
 import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
+import { recordOrder } from "@/lib/orders/create";
 
 export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -216,6 +217,23 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     itemName: item_name,
     amountCents: amount_cents,
     encryptedFilename,
+  });
+
+  recordOrder({
+    ownerUid: card.ownerUid,
+    rail: "rail5",
+    botId: bot.botId,
+    botName: bot.botName,
+    cardId: card.cardId,
+    status: "completed",
+    vendor: merchant_name,
+    vendorDetails: { url: merchant_url, category: category || null },
+    productName: item_name,
+    priceCents: amount_cents,
+    priceCurrency: "USD",
+    metadata: { checkoutId },
+  }).catch((err) => {
+    console.error("[Rail5] Failed to record order:", err);
   });
 
   return NextResponse.json({

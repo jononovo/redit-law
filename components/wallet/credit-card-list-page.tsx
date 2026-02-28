@@ -13,7 +13,7 @@ import { UnlinkBotDialog } from "./dialogs/unlink-bot-dialog";
 import { CreditCardItem } from "./credit-card-item";
 import { RailPageTabs, type RailTab } from "./rail-page-tabs";
 import { TransactionList, type TransactionRow } from "./transaction-list";
-import { OrderList } from "./order-list";
+import { OrderList, type OrderRow } from "./order-list";
 import { ApprovalList, type ApprovalRow } from "./approval-list";
 import type { NormalizedCard } from "./types";
 
@@ -44,6 +44,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
   const [activeTab, setActiveTab] = useState("cards");
 
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
 
   const fetchCards = useCallback(async () => {
@@ -69,6 +70,33 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
       }
     } catch {}
   }, [config.transactionsEndpoint]);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await authFetch(`/api/v1/orders?rail=${config.railPrefix}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((data.orders || []).map((o: any) => ({
+          id: o.id,
+          rail: o.rail,
+          botName: o.botName ?? o.bot_name ?? null,
+          vendor: o.vendor ?? null,
+          productName: o.productName ?? o.product_name ?? null,
+          productImageUrl: o.productImageUrl ?? o.product_image_url ?? null,
+          productUrl: o.productUrl ?? o.product_url ?? null,
+          status: o.status,
+          quantity: o.quantity ?? 1,
+          priceCents: o.priceCents ?? o.price_cents ?? null,
+          priceCurrency: o.priceCurrency ?? o.price_currency ?? "USD",
+          shippingAddress: o.shippingAddress ?? o.shipping_address ?? null,
+          trackingInfo: o.trackingInfo ?? o.tracking_info ?? null,
+          externalOrderId: o.externalOrderId ?? o.external_order_id ?? null,
+          metadata: o.metadata ?? null,
+          createdAt: o.createdAt ?? o.created_at ?? "",
+        })));
+      }
+    } catch {}
+  }, [config.railPrefix]);
 
   const fetchApprovals = useCallback(async () => {
     if (!config.approvalsEndpoint) return;
@@ -101,11 +129,12 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
         botLinking.fetchBots();
       }
       fetchTransactions();
+      fetchOrders();
       fetchApprovals();
     } else {
       setLoading(false);
     }
-  }, [user, fetchCards, botLinking.fetchBots, config.supportsBotLinking, fetchTransactions, fetchApprovals]);
+  }, [user, fetchCards, botLinking.fetchBots, config.supportsBotLinking, fetchTransactions, fetchOrders, fetchApprovals]);
 
   async function handleFreezeConfirm() {
     if (!freezeTarget) return;
@@ -188,7 +217,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
     {
       id: "orders",
       label: "Orders",
-      content: <OrderList orders={[]} testIdPrefix="order" />,
+      content: <OrderList orders={orders} testIdPrefix="order" />,
     },
     {
       id: "approvals",

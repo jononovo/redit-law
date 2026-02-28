@@ -61,6 +61,24 @@ async function fulfillRail4Approval(approval: UnifiedApproval) {
     recordOrganicEvent(card.cardId).catch(() => {});
   }
 
+  const { recordOrder } = await import("@/lib/orders/create");
+  recordOrder({
+    ownerUid: approval.ownerUid,
+    rail: "rail4",
+    botId: conf.botId,
+    botName: bot.botName,
+    cardId: conf.cardId,
+    status: "completed",
+    vendor: conf.merchantName,
+    vendorDetails: { url: conf.merchantUrl, category: conf.category || null },
+    productName: conf.itemName,
+    priceCents: conf.amountCents,
+    priceCurrency: "USD",
+    metadata: { confirmationId, profileIndex: conf.profileIndex, approvalId: approval.id },
+  }).catch((err) => {
+    console.error("[Rail4] Failed to record order after approval:", err);
+  });
+
   console.log(`[Approvals] Rail 4 approved: confirmation ${confirmationId}`);
 }
 

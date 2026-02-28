@@ -21,7 +21,7 @@ import { useStripeOnramp } from "@/lib/crypto-onramp/components/use-stripe-onram
 import { StripeOnrampSheet } from "@/lib/crypto-onramp/components/stripe-onramp-sheet";
 import { RailPageTabs } from "@/components/wallet/rail-page-tabs";
 import { TransactionList } from "@/components/wallet/transaction-list";
-import { OrderList } from "@/components/wallet/order-list";
+import { OrderList, type OrderRow } from "@/components/wallet/order-list";
 import { ApprovalList } from "@/components/wallet/approval-list";
 import { WalletSelector } from "@/components/wallet/wallet-selector";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
@@ -36,6 +36,7 @@ export default function StripeWalletPage() {
   const [selectedWallet, setSelectedWallet] = useState<Rail1WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
+  const [orders, setOrders] = useState<OrderRow[]>([]);
 
   const fetchWallets = useCallback(async () => {
     try {
@@ -61,6 +62,37 @@ export default function StripeWalletPage() {
       }
     } catch {}
   }, []);
+
+  const fetchOrders = useCallback(async (walletId?: number) => {
+    try {
+      const wId = walletId || selectedWallet?.id;
+      const url = wId
+        ? `/api/v1/orders?rail=rail1&wallet_id=${wId}`
+        : `/api/v1/orders?rail=rail1`;
+      const res = await authFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((data.orders || []).map((o: any) => ({
+          id: o.id,
+          rail: o.rail,
+          botName: o.botName ?? o.bot_name ?? null,
+          vendor: o.vendor ?? null,
+          productName: o.productName ?? o.product_name ?? null,
+          productImageUrl: o.productImageUrl ?? o.product_image_url ?? null,
+          productUrl: o.productUrl ?? o.product_url ?? null,
+          status: o.status,
+          quantity: o.quantity ?? 1,
+          priceCents: o.priceCents ?? o.price_cents ?? null,
+          priceCurrency: o.priceCurrency ?? o.price_currency ?? "USD",
+          shippingAddress: o.shippingAddress ?? o.shipping_address ?? null,
+          trackingInfo: o.trackingInfo ?? o.tracking_info ?? null,
+          externalOrderId: o.externalOrderId ?? o.external_order_id ?? null,
+          metadata: o.metadata ?? null,
+          createdAt: o.createdAt ?? o.created_at ?? "",
+        })));
+      }
+    } catch {}
+  }, [selectedWallet]);
 
   const fetchApprovals = useCallback(async () => {
     try {
@@ -116,16 +148,18 @@ export default function StripeWalletPage() {
       fetchWallets();
       botLinking.fetchBots();
       fetchApprovals();
+      fetchOrders();
     } else {
       setLoading(false);
     }
-  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals]);
+  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals, fetchOrders]);
 
   useEffect(() => {
     if (selectedWallet) {
       fetchTransactions(selectedWallet.id);
+      fetchOrders(selectedWallet.id);
     }
-  }, [selectedWallet, fetchTransactions]);
+  }, [selectedWallet, fetchTransactions, fetchOrders]);
 
   const handleSelectWallet = (id: number) => {
     const w = wallets.find(w => w.id === id);
@@ -230,7 +264,7 @@ export default function StripeWalletPage() {
           {
             id: "orders",
             label: "Orders",
-            content: <OrderList orders={[]} testIdPrefix="order" />,
+            content: <OrderList orders={orders} testIdPrefix="order" />,
           },
           {
             id: "approvals",

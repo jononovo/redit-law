@@ -2,6 +2,7 @@ import { registerRailCallbacks } from "@/lib/approvals/service";
 import { storage } from "@/server/storage";
 import { createPurchaseOrder } from "@/lib/rail2/orders/purchase";
 import { fireWebhook } from "@/lib/webhooks";
+import { recordOrder } from "@/lib/orders/create";
 import type { UnifiedApproval } from "@/shared/schema";
 
 async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
@@ -56,6 +57,31 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
       status: "confirmed",
       orderStatus: "processing",
     });
+
+    const [merchantName] = (transaction.productLocator || "").split(":");
+    try {
+      await recordOrder({
+        ownerUid: approval.ownerUid,
+        rail: "rail2",
+        botId: wallet.botId,
+        botName: bot?.botName ?? null,
+        walletId: wallet.id,
+        transactionId: transaction.id,
+        externalOrderId: result.orderId,
+        status: "processing",
+        vendor: merchantName || null,
+        productName: transaction.productName || null,
+        productUrl: transaction.productLocator || null,
+        sku: transaction.productLocator || null,
+        quantity: transaction.quantity ?? 1,
+        priceCents: transaction.amountUsdc ? Math.round(transaction.amountUsdc / 10000) : null,
+        priceCurrency: "USD",
+        shippingAddress: shippingAddr as Record<string, any> || null,
+        metadata: { source: "rail2-fulfillment", approvalId },
+      });
+    } catch (orderErr) {
+      console.error("[Rail2] Order record creation failed (non-fatal):", orderErr);
+    }
 
     if (bot) {
       fireWebhook(bot, "purchase.approved", {

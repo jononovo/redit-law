@@ -12,6 +12,7 @@ import { randomBytes } from "crypto";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
 import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
 import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
+import { recordOrder } from "@/lib/orders/create";
 
 export const POST = withBotApi("/api/v1/bot/merchant/checkout", async (request, { bot }) => {
   if (bot.walletStatus !== "active") {
@@ -427,6 +428,24 @@ async function handleRealCheckout(
   }
 
   await recordOrganicEvent(card.cardId);
+
+  recordOrder({
+    ownerUid: bot.ownerUid!,
+    rail: "rail4",
+    botId: bot.botId,
+    botName: bot.botName,
+    cardId: card.cardId,
+    transactionId: tx.id,
+    status: "completed",
+    vendor: data.merchant_name,
+    vendorDetails: { url: data.merchant_url, category: data.category || null },
+    productName: data.item_name,
+    priceCents: data.amount_cents,
+    priceCurrency: "USD",
+    metadata: { confirmationId, profileIndex: data.profile_index },
+  }).catch((err) => {
+    console.error("[Rail4] Failed to record order:", err);
+  });
 
   return NextResponse.json({
     approved: true,

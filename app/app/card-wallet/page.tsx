@@ -77,6 +77,7 @@ export default function CardWalletPage() {
   const [selectedWallet, setSelectedWallet] = useState<Rail2WalletInfo | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("wallets");
+  const [orders, setOrders] = useState<OrderRow[]>([]);
 
   const [fundDialogOpen, setFundDialogOpen] = useState(false);
   const [fundWallet, setFundWallet] = useState<Rail2WalletInfo | null>(null);
@@ -107,6 +108,37 @@ export default function CardWalletPage() {
       if (res.ok) {
         const data = await res.json();
         setTransactions(data.transactions || []);
+      }
+    } catch {}
+  }, [selectedWallet]);
+
+  const fetchOrders = useCallback(async (walletId?: number) => {
+    try {
+      const wId = walletId || selectedWallet?.id;
+      const url = wId
+        ? `/api/v1/orders?rail=rail2&wallet_id=${wId}`
+        : `/api/v1/orders?rail=rail2`;
+      const res = await authFetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((data.orders || []).map((o: any) => ({
+          id: o.id,
+          rail: o.rail,
+          botName: o.botName ?? o.bot_name ?? null,
+          vendor: o.vendor ?? null,
+          productName: o.productName ?? o.product_name ?? null,
+          productImageUrl: o.productImageUrl ?? o.product_image_url ?? null,
+          productUrl: o.productUrl ?? o.product_url ?? null,
+          status: o.status,
+          quantity: o.quantity ?? 1,
+          priceCents: o.priceCents ?? o.price_cents ?? null,
+          priceCurrency: o.priceCurrency ?? o.price_currency ?? "USD",
+          shippingAddress: o.shippingAddress ?? o.shipping_address ?? null,
+          trackingInfo: o.trackingInfo ?? o.tracking_info ?? null,
+          externalOrderId: o.externalOrderId ?? o.external_order_id ?? null,
+          metadata: o.metadata ?? null,
+          createdAt: o.createdAt ?? o.created_at ?? "",
+        })));
       }
     } catch {}
   }, [selectedWallet]);
@@ -154,20 +186,23 @@ export default function CardWalletPage() {
       fetchWallets();
       botLinking.fetchBots();
       fetchApprovals();
+      fetchOrders();
     }
-  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals]);
+  }, [user, fetchWallets, botLinking.fetchBots, fetchApprovals, fetchOrders]);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
+  useEffect(() => {
+    if (selectedWallet) {
+      fetchOrders(selectedWallet.id);
+    }
+  }, [selectedWallet, fetchOrders]);
+
   const handleSelectWallet = (id: number) => {
     const w = wallets.find(w => w.id === id);
     if (w) setSelectedWallet(w);
-  };
-
-  const handleOrderUpdated = (updated: OrderRow) => {
-    setTransactions(prev => prev.map(t => t.id === updated.id ? { ...t, ...updated } as Rail2TransactionInfo : t));
   };
 
   const handleOpenFund = async (wallet: Rail2WalletInfo) => {
@@ -212,22 +247,6 @@ export default function CardWalletPage() {
   };
 
   const pureTransactions = transactions.filter(t => t.type !== "purchase");
-  const orders: OrderRow[] = transactions.filter(t => t.type === "purchase").map(t => ({
-    id: t.id,
-    type: t.type,
-    amount_display: t.amount_display,
-    balance_after_display: t.balance_after_display,
-    product_name: t.product_name,
-    product_locator: t.product_locator,
-    quantity: t.quantity,
-    order_status: t.order_status,
-    status: t.status,
-    crossmint_order_id: t.crossmint_order_id,
-    shipping_address: t.shipping_address,
-    tracking_info: t.tracking_info,
-    metadata: t.metadata,
-    created_at: t.created_at,
-  }));
 
   const walletOptions = wallets.map(w => ({
     id: w.id,
@@ -342,8 +361,6 @@ export default function CardWalletPage() {
                 )}
                 <OrderList
                   orders={orders}
-                  onOrderUpdated={handleOrderUpdated}
-                  orderStatusEndpoint="/api/v1/card-wallet/orders"
                   testIdPrefix="order"
                 />
               </>
