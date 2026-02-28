@@ -1,5 +1,10 @@
 import { storage } from "@/server/storage";
 import type { OnrampWebhookEvent } from "../types";
+import crypto from "crypto";
+
+function generateSaleId(): string {
+  return `sale_${crypto.randomBytes(6).toString("hex")}`;
+}
 
 export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): Promise<void> {
   const { walletAddress, amountUsdc, sessionId, metadata } = event;
@@ -26,7 +31,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
 
   await storage.privyUpdateWalletBalance(targetWallet.id, newBalance);
 
-  await storage.privyCreateTransaction({
+  const transaction = await storage.privyCreateTransaction({
     walletId: targetWallet.id,
     type: "deposit",
     amountUsdc,
@@ -37,6 +42,42 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
   });
 
   console.log("[Onramp Webhook] Balance updated and transaction created successfully");
+
+  const checkoutPageId = metadata?.checkout_page_id as string | undefined;
+  if (checkoutPageId) {
+    console.log("[Onramp Webhook] Checkout payment detected:", { checkoutPageId, amountUsdc });
+
+    try {
+      const checkoutPage = await storage.getCheckoutPageById(checkoutPageId);
+      if (!checkoutPage) {
+        console.error("[Onramp Webhook] Checkout page not found:", checkoutPageId);
+        return;
+      }
+
+      const saleId = generateSaleId();
+      await storage.createSale({
+        saleId,
+        checkoutPageId,
+        ownerUid: checkoutPage.ownerUid,
+        amountUsdc,
+        paymentMethod: "stripe_onramp",
+        status: "confirmed",
+        buyerType: "stripe_customer",
+        buyerEmail: (metadata?.buyer_email as string) || null,
+        buyerIp: (metadata?.buyer_ip as string) || null,
+        stripeOnrampSessionId: sessionId,
+        privyTransactionId: transaction.id,
+        checkoutTitle: checkoutPage.title,
+        checkoutDescription: checkoutPage.description,
+        confirmedAt: new Date(),
+      });
+
+      await storage.incrementCheckoutPageStats(checkoutPageId, amountUsdc);
+      console.log("[Onramp Webhook] Sale record created:", { saleId, checkoutPageId });
+    } catch (err) {
+      console.error("[Onramp Webhook] Failed to create sale record:", err);
+    }
+  }
 }
 
 export function parseStripeOnrampEvent(session: Record<string, unknown>): OnrampWebhookEvent | null {
@@ -51,6 +92,8 @@ export function parseStripeOnrampEvent(session: Record<string, unknown>): Onramp
 
   const amountUsdc = deliveredAmount ? Math.round(Number(deliveredAmount) * 1_000_000) : 0;
 
+  const sessionMetadata = session.metadata as Record<string, unknown> | undefined;
+
   return {
     provider: "stripe",
     walletAddress,
@@ -59,6 +102,7 @@ export function parseStripeOnrampEvent(session: Record<string, unknown>): Onramp
     metadata: {
       source_currency: transactionDetails?.source_currency,
       source_amount: transactionDetails?.source_amount,
+      ...sessionMetadata,
     },
   };
 }

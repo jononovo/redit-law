@@ -1240,3 +1240,87 @@ export const insertOrderSchema = z.object({
   trackingInfo: z.record(z.any()).optional().nullable(),
   metadata: z.record(z.any()).optional().nullable(),
 });
+
+export const checkoutPages = pgTable("checkout_pages", {
+  id: serial("id").primaryKey(),
+  checkoutPageId: text("checkout_page_id").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  walletId: integer("wallet_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }),
+  amountLocked: boolean("amount_locked").notNull().default(true),
+  allowedMethods: text("allowed_methods").array().notNull().default(["x402", "usdc_direct", "stripe_onramp"]),
+  status: text("status").notNull().default("active"),
+  successUrl: text("success_url"),
+  successMessage: text("success_message"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  paymentCount: integer("payment_count").notNull().default(0),
+  totalReceivedUsdc: bigint("total_received_usdc", { mode: "number" }).notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+}, (table) => [
+  index("checkout_pages_owner_uid_idx").on(table.ownerUid),
+  index("checkout_pages_wallet_id_idx").on(table.walletId),
+  index("checkout_pages_status_idx").on(table.status),
+  index("checkout_pages_checkout_page_id_idx").on(table.checkoutPageId),
+]);
+
+export type CheckoutPage = typeof checkoutPages.$inferSelect;
+export type InsertCheckoutPage = typeof checkoutPages.$inferInsert;
+
+export const createCheckoutPageSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional().nullable(),
+  wallet_id: z.number().int(),
+  amount_usd: z.number().positive().optional().nullable(),
+  amount_locked: z.boolean().default(true),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
+  success_url: z.string().url().optional().nullable(),
+  success_message: z.string().max(500).optional().nullable(),
+  expires_at: z.string().datetime().optional().nullable(),
+});
+
+export const sales = pgTable("sales", {
+  id: serial("id").primaryKey(),
+  saleId: text("sale_id").notNull().unique(),
+  checkoutPageId: text("checkout_page_id").notNull(),
+  ownerUid: text("owner_uid").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  status: text("status").notNull().default("pending"),
+  buyerType: text("buyer_type"),
+  buyerIdentifier: text("buyer_identifier"),
+  buyerIp: text("buyer_ip"),
+  buyerEmail: text("buyer_email"),
+  txHash: text("tx_hash"),
+  stripeOnrampSessionId: text("stripe_onramp_session_id"),
+  privyTransactionId: integer("privy_transaction_id"),
+  checkoutTitle: text("checkout_title"),
+  checkoutDescription: text("checkout_description"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("sales_owner_uid_idx").on(table.ownerUid),
+  index("sales_checkout_page_id_idx").on(table.checkoutPageId),
+  index("sales_status_idx").on(table.status),
+  index("sales_payment_method_idx").on(table.paymentMethod),
+  index("sales_created_at_idx").on(table.createdAt),
+  index("sales_buyer_identifier_idx").on(table.buyerIdentifier),
+]);
+
+export type Sale = typeof sales.$inferSelect;
+export type InsertSale = typeof sales.$inferInsert;
+
+export const botCreateCheckoutPageSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(2000).optional().nullable(),
+  amount_usd: z.number().positive().optional().nullable(),
+  amount_locked: z.boolean().default(true),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
+  success_url: z.string().url().optional().nullable(),
+  expires_at: z.string().datetime().optional().nullable(),
+});

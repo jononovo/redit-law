@@ -5,6 +5,7 @@ export async function createStripeOnrampSession(params: {
   userEmail?: string;
   customerIp?: string;
   amountUsd?: number;
+  metadata?: Record<string, string>;
 }): Promise<OnrampSessionResult> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
@@ -29,6 +30,12 @@ export async function createStripeOnrampSession(params: {
   if (params.amountUsd) {
     formData.append("source_amount", String(params.amountUsd));
     formData.append("source_currency", "usd");
+  }
+
+  if (params.metadata) {
+    for (const [key, value] of Object.entries(params.metadata)) {
+      formData.append(`metadata[${key}]`, value);
+    }
   }
 
   console.log("[Stripe Onramp] Creating session with params:", {
