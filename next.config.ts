@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  turbopack: {},
   env: {},
   images: {
     unoptimized: true,
