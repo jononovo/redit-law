@@ -5,6 +5,7 @@ import { fireWebhook } from "@/lib/webhooks";
 import { recordOrder } from "@/lib/orders/create";
 import { toShippingAddressFields } from "@/lib/orders/address-utils";
 import type { UnifiedApproval } from "@/shared/schema";
+import type { ShippingAddress } from "@/lib/procurement/types";
 
 async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
   const approvalId = Number(approval.railRef);
@@ -49,7 +50,7 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
       productId,
       walletAddress: wallet.address,
       ownerEmail: owner?.email || approval.ownerEmail || "",
-      shippingAddress: shippingAddr,
+      shippingAddress: shippingAddr as ShippingAddress,
       quantity: transaction.quantity,
     });
 
