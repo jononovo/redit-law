@@ -41,8 +41,8 @@ export async function POST(
       amountUsd,
       metadata: {
         checkout_page_id: page.checkoutPageId,
-        buyer_ip: ip,
-        buyer_user_agent: userAgent,
+        ...(ip ? { buyer_ip: ip } : {}),
+        ...(userAgent ? { buyer_user_agent: userAgent } : {}),
       },
     });
 
