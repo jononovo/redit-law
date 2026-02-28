@@ -39,9 +39,12 @@ import {
   type Rail5Card, type InsertRail5Card,
   type Rail5Checkout, type InsertRail5Checkout,
   type Order, type InsertOrder,
+  type CheckoutPage, type InsertCheckoutPage,
+  type Sale, type InsertSale,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
+import type { SaleFilters } from "./sales";
 
 export interface IStorage {
   getOwnerByUid(uid: string): Promise<Owner | null>;
@@ -278,4 +281,17 @@ export interface IStorage {
   getOrdersByWallet(walletId: number): Promise<Order[]>;
   getOrdersByCard(cardId: string): Promise<Order[]>;
   updateOrder(id: number, updates: Partial<InsertOrder>): Promise<Order | null>;
+
+  createCheckoutPage(data: InsertCheckoutPage): Promise<CheckoutPage>;
+  getCheckoutPageById(checkoutPageId: string): Promise<CheckoutPage | null>;
+  getCheckoutPagesByOwnerUid(ownerUid: string): Promise<CheckoutPage[]>;
+  updateCheckoutPage(checkoutPageId: string, data: Partial<InsertCheckoutPage>): Promise<CheckoutPage | null>;
+  archiveCheckoutPage(checkoutPageId: string, ownerUid: string): Promise<CheckoutPage | null>;
+
+  createSale(data: InsertSale): Promise<Sale>;
+  getSaleById(saleId: string): Promise<Sale | null>;
+  getSalesByOwnerUid(ownerUid: string, filters?: SaleFilters): Promise<Sale[]>;
+  getSalesByCheckoutPageId(checkoutPageId: string): Promise<Sale[]>;
+  updateSaleStatus(saleId: string, status: string, confirmedAt?: Date): Promise<Sale | null>;
+  incrementCheckoutPageStats(checkoutPageId: string, amountUsdc: number): Promise<void>;
 }

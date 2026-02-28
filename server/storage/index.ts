@@ -14,6 +14,7 @@ import { skillMethods } from "./skills";
 import { rail5Methods } from "./rail5";
 import { approvalMethods } from "./approvals";
 import { orderMethods } from "./orders";
+import { salesMethods } from "./sales";
 import type { IStorage } from "./types";
 
 export type { IStorage };
@@ -35,4 +36,5 @@ export const storage: IStorage = {
   ...rail5Methods,
   ...approvalMethods,
   ...orderMethods,
+  ...salesMethods,
 };
