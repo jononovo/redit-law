@@ -20,7 +20,7 @@ const options: { value: ApprovalModeValue; label: string; subtitle: string; Icon
   { value: "auto_approve_by_category", label: "Auto-approve by category", subtitle: "You pick what's okay, everything else needs approval.", Icon: Tag },
 ];
 
-export function ApprovalMode({ currentStep, totalSteps, onBack, onNext, Wrapper }: ApprovalModeProps) {
+export function ApprovalMode({ currentStep, totalSteps, onBack, onNext, defaultMode, Wrapper }: ApprovalModeProps) {
   const Step = Wrapper || WizardStep;
   return (
     <Step
@@ -35,7 +35,11 @@ export function ApprovalMode({ currentStep, totalSteps, onBack, onNext, Wrapper 
           <button
             key={value}
             onClick={() => onNext(value)}
-            className="w-full p-5 rounded-2xl border-2 border-neutral-200 bg-white hover:border-primary hover:bg-primary/5 text-left cursor-pointer transition-all"
+            className={`w-full p-5 rounded-2xl border-2 text-left cursor-pointer transition-all ${
+              defaultMode === value
+                ? "border-primary bg-primary/5"
+                : "border-neutral-200 bg-white hover:border-primary hover:bg-primary/5"
+            }`}
             data-testid={`option-${value}`}
           >
             <div className="flex items-start gap-4">

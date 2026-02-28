@@ -122,9 +122,10 @@ export function GuardrailsWizardDialog({ open, onOpenChange }: GuardrailsWizardD
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
-  async function handleSave() {
+  async function handleSave(finalNotes?: string) {
     setSaving(true);
     try {
+      const notesValue = finalNotes !== undefined ? finalNotes : state.notes;
       await authFetch("/api/v1/procurement-controls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,7 +135,7 @@ export function GuardrailsWizardDialog({ open, onOpenChange }: GuardrailsWizardD
           blocklisted_categories: state.blockedCategories,
           approval_mode: state.approvalMode,
           approval_threshold_cents: showThreshold ? state.thresholdCents : null,
-          notes: state.notes || null,
+          notes: notesValue || null,
         }),
       });
       setSaved(true);
@@ -216,7 +217,7 @@ export function GuardrailsWizardDialog({ open, onOpenChange }: GuardrailsWizardD
             onBack={goBack}
             onNext={(notes) => {
               setState((s) => ({ ...s, notes }));
-              handleSave();
+              handleSave(notes);
             }}
             defaultNotes={state.notes}
             Wrapper={DialogWizardStep}
