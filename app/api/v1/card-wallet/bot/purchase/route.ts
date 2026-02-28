@@ -34,7 +34,7 @@ async function handler(request: NextRequest, botId: string) {
           line2: defaultAddr.line2 ?? undefined,
           city: defaultAddr.city,
           state: defaultAddr.state,
-          postalCode: defaultAddr.postalCode,
+          zip: defaultAddr.postalCode,
           country: defaultAddr.country,
         };
       }
