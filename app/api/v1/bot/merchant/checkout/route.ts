@@ -438,7 +438,7 @@ async function handleRealCheckout(
     transactionId: tx.id,
     status: "completed",
     vendor: data.merchant_name,
-    vendorDetails: { url: data.merchant_url, category: data.category || null },
+    vendorDetails: { url: data.merchant_url, category: data.category || undefined },
     productName: data.item_name,
     priceCents: data.amount_cents,
     priceCurrency: "USD",
