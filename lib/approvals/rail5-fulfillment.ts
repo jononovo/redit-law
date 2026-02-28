@@ -31,7 +31,7 @@ async function fulfillRail5Approval(approval: UnifiedApproval): Promise<void> {
       cardId: checkout.cardId,
       status: "completed",
       vendor: checkout.merchantName,
-      vendorDetails: { url: checkout.merchantUrl, category: checkout.category || null },
+      vendorDetails: { url: checkout.merchantUrl, category: checkout.category || undefined },
       productName: checkout.itemName,
       priceCents: checkout.amountCents,
       priceCurrency: "USD",

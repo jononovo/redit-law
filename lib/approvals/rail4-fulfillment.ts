@@ -70,7 +70,7 @@ async function fulfillRail4Approval(approval: UnifiedApproval) {
     cardId: conf.cardId,
     status: "completed",
     vendor: conf.merchantName,
-    vendorDetails: { url: conf.merchantUrl, category: conf.category || null },
+    vendorDetails: { url: conf.merchantUrl, category: conf.category || undefined },
     productName: conf.itemName,
     priceCents: conf.amountCents,
     priceCurrency: "USD",

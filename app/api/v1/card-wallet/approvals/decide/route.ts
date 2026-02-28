@@ -4,6 +4,7 @@ import { storage } from "@/server/storage";
 import { crossmintApprovalDecideSchema } from "@/shared/schema";
 import { isApprovalExpired } from "@/lib/approvals/lifecycle";
 import { resolveApproval } from "@/lib/approvals/service";
+import type { ShippingAddress } from "@/lib/procurement/types";
 import "@/lib/approvals/callbacks";
 
 export async function POST(request: NextRequest) {
@@ -122,7 +123,15 @@ export async function POST(request: NextRequest) {
         productId,
         walletAddress: wallet.address,
         ownerEmail,
-        shippingAddress: shippingAddr,
+        shippingAddress: {
+          name: (shippingAddr as any).name || "",
+          line1: (shippingAddr as any).line1 || "",
+          line2: (shippingAddr as any).line2,
+          city: (shippingAddr as any).city || "",
+          state: (shippingAddr as any).state || "",
+          postalCode: (shippingAddr as any).postalCode || (shippingAddr as any).zip || "",
+          country: (shippingAddr as any).country || "",
+        },
         quantity: transaction.quantity,
       });
 
@@ -150,7 +159,15 @@ export async function POST(request: NextRequest) {
           quantity: transaction.quantity ?? 1,
           priceCents: transaction.amountUsdc ? Math.round(transaction.amountUsdc / 10000) : null,
           priceCurrency: "USD",
-          shippingAddress: shippingAddr as Record<string, any> || null,
+          shippingAddress: shippingAddr ? {
+            name: (shippingAddr as any).name || "",
+            line1: (shippingAddr as any).line1 || "",
+            line2: (shippingAddr as any).line2,
+            city: (shippingAddr as any).city || "",
+            state: (shippingAddr as any).state || "",
+            postalCode: (shippingAddr as any).postalCode || (shippingAddr as any).zip || "",
+            country: (shippingAddr as any).country || "",
+          } : null,
           metadata: { source: "legacy-approval-decide", approvalId: approval_id },
         });
       } catch (orderErr) {

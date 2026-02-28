@@ -327,7 +327,7 @@ async function handleRealCheckout(
       merchantName: data.merchant_name,
       merchantUrl: data.merchant_url,
       itemName: data.item_name,
-      category: data.category || null,
+      category: data.category || undefined,
       status: "pending",
       hmacToken,
       expiresAt,
@@ -408,7 +408,7 @@ async function handleRealCheckout(
     transaction_id: tx.id,
     amount_usd: data.amount_cents / 100,
     merchant: data.merchant_name,
-    category: data.category || null,
+    category: data.category || undefined,
     new_balance_usd: updated.balanceCents / 100,
   }).catch(() => {});
 
@@ -438,7 +438,7 @@ async function handleRealCheckout(
     transactionId: tx.id,
     status: "completed",
     vendor: data.merchant_name,
-    vendorDetails: { url: data.merchant_url, category: data.category || null },
+    vendorDetails: { url: data.merchant_url, category: data.category || undefined },
     productName: data.item_name,
     priceCents: data.amount_cents,
     priceCurrency: "USD",
