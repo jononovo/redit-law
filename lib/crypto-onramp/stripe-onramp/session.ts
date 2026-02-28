@@ -5,7 +5,6 @@ export async function createStripeOnrampSession(params: {
   userEmail?: string;
   customerIp?: string;
   amountUsd?: number;
-  lockAmount?: boolean;
   metadata?: Record<string, string>;
 }): Promise<OnrampSessionResult> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -31,9 +30,6 @@ export async function createStripeOnrampSession(params: {
   if (params.amountUsd) {
     formData.append("source_amount", String(params.amountUsd));
     formData.append("source_currency", "usd");
-    if (params.lockAmount) {
-      formData.append("lock_source_amount", "true");
-    }
   }
 
   if (params.metadata) {

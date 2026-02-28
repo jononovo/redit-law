@@ -39,7 +39,6 @@ export async function POST(
       walletAddress: page.walletAddress,
       customerIp: ip,
       amountUsd,
-      lockAmount: page.amountLocked,
       metadata: {
         checkout_page_id: page.checkoutPageId,
         ...(ip ? { buyer_ip: ip } : {}),
