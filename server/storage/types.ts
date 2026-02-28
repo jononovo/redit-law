@@ -41,6 +41,9 @@ import {
   type Order, type InsertOrder,
   type CheckoutPage, type InsertCheckoutPage,
   type Sale, type InsertSale,
+  type Vendor, type InsertVendor,
+  type MerchantAccount, type InsertMerchantAccount,
+  type SavedShippingAddress, type InsertShippingAddress,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
@@ -294,4 +297,18 @@ export interface IStorage {
   getSalesByCheckoutPageId(checkoutPageId: string): Promise<Sale[]>;
   updateSaleStatus(saleId: string, status: string, confirmedAt?: Date): Promise<Sale | null>;
   incrementCheckoutPageStats(checkoutPageId: string, amountUsdc: number): Promise<void>;
+  getVendorBySlug(slug: string): Promise<Vendor | null>;
+  getVendorById(id: number): Promise<Vendor | null>;
+  getAllVendors(): Promise<Vendor[]>;
+  createMerchantAccount(data: InsertMerchantAccount): Promise<MerchantAccount>;
+  getMerchantAccountsByOwner(ownerUid: string): Promise<MerchantAccount[]>;
+  getMerchantAccountByVendor(ownerUid: string, vendorId: number): Promise<MerchantAccount | null>;
+  updateMerchantAccount(id: number, updates: Partial<InsertMerchantAccount>): Promise<MerchantAccount | null>;
+  deleteMerchantAccount(id: number): Promise<void>;
+
+  createShippingAddress(data: InsertShippingAddress): Promise<SavedShippingAddress>;
+  getShippingAddressesByOwner(ownerUid: string): Promise<SavedShippingAddress[]>;
+  getDefaultShippingAddress(ownerUid: string): Promise<SavedShippingAddress | null>;
+  updateShippingAddress(id: number, updates: Partial<InsertShippingAddress>): Promise<SavedShippingAddress | null>;
+  deleteShippingAddress(id: number): Promise<void>;
 }

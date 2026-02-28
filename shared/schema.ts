@@ -655,7 +655,7 @@ export const crossmintBotPurchaseSchema = z.object({
     state: z.string().min(1).max(100),
     zip: z.string().min(1).max(20),
     country: z.string().length(2).default("US"),
-  }),
+  }).optional(),
 });
 
 export const crossmintApprovalDecideSchema = z.object({
@@ -1034,6 +1034,137 @@ export const unifiedApprovals = pgTable("unified_approvals", {
 export type UnifiedApproval = typeof unifiedApprovals.$inferSelect;
 export type InsertUnifiedApproval = typeof unifiedApprovals.$inferInsert;
 
+export interface ShippingAddressFields {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface TrackingInfoFields {
+  carrier?: string;
+  tracking_number?: string;
+  tracking_url?: string;
+  estimated_delivery?: string;
+  delivered_at?: string;
+  status?: string;
+  last_updated?: string;
+}
+
+export interface VendorDetailsFields {
+  url?: string;
+  category?: string;
+  vendorSlug?: string;
+  vendorOrderUrl?: string;
+  vendorCustomerId?: string;
+  notes?: string;
+}
+
+export const shippingAddresses = pgTable("shipping_addresses", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull(),
+  label: text("label"),
+  isDefault: boolean("is_default").notNull().default(false),
+  name: text("name").notNull(),
+  line1: text("line1").notNull(),
+  line2: text("line2"),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  postalCode: text("postal_code").notNull(),
+  country: text("country").notNull().default("US"),
+  phone: text("phone"),
+  email: text("email"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("shipping_addresses_owner_uid_idx").on(table.ownerUid),
+  index("shipping_addresses_is_default_idx").on(table.isDefault),
+]);
+
+export type SavedShippingAddress = typeof shippingAddresses.$inferSelect;
+export type InsertShippingAddress = typeof shippingAddresses.$inferInsert;
+
+export const insertShippingAddressSchema = z.object({
+  ownerUid: z.string().min(1),
+  label: z.string().max(100).optional().nullable(),
+  isDefault: z.boolean().default(false),
+  name: z.string().min(1).max(200),
+  line1: z.string().min(1).max(500),
+  line2: z.string().max(500).optional().nullable(),
+  city: z.string().min(1).max(200),
+  state: z.string().min(1).max(100),
+  postalCode: z.string().min(1).max(20),
+  country: z.string().length(2).default("US"),
+  phone: z.string().max(30).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+});
+
+export const vendors = pgTable("vendors", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  websiteUrl: text("website_url"),
+  logoUrl: text("logo_url"),
+  vendorType: text("vendor_type"),
+  orderingSystem: text("ordering_system"),
+  config: jsonb("config").$type<Record<string, any>>(),
+  supportedCountries: text("supported_countries").array().default(["US"]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("vendors_slug_idx").on(table.slug),
+]);
+
+export type Vendor = typeof vendors.$inferSelect;
+export type InsertVendor = typeof vendors.$inferInsert;
+
+export const insertVendorSchema = z.object({
+  slug: z.string().min(1).max(100),
+  name: z.string().min(1).max(200),
+  websiteUrl: z.string().url().optional().nullable(),
+  logoUrl: z.string().url().optional().nullable(),
+  vendorType: z.string().max(50).optional().nullable(),
+  orderingSystem: z.string().max(100).optional().nullable(),
+  config: z.record(z.any()).optional().nullable(),
+  supportedCountries: z.array(z.string()).default(["US"]),
+});
+
+export const merchantAccounts = pgTable("merchant_accounts", {
+  id: serial("id").primaryKey(),
+  ownerUid: text("owner_uid").notNull(),
+  vendorId: integer("vendor_id").notNull(),
+  botId: text("bot_id"),
+  accountIdentifier: text("account_identifier"),
+  encryptedCredentials: text("encrypted_credentials"),
+  encryptionMethod: text("encryption_method"),
+  status: text("status").notNull().default("active"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("merchant_accounts_owner_uid_idx").on(table.ownerUid),
+  index("merchant_accounts_vendor_id_idx").on(table.vendorId),
+]);
+
+export type MerchantAccount = typeof merchantAccounts.$inferSelect;
+export type InsertMerchantAccount = typeof merchantAccounts.$inferInsert;
+
+export const insertMerchantAccountSchema = z.object({
+  ownerUid: z.string().min(1),
+  vendorId: z.number().int().positive(),
+  botId: z.string().optional().nullable(),
+  accountIdentifier: z.string().max(500).optional().nullable(),
+  encryptedCredentials: z.string().optional().nullable(),
+  encryptionMethod: z.string().max(50).optional().nullable(),
+  status: z.string().default("active"),
+  metadata: z.record(z.any()).optional().nullable(),
+});
+
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   ownerUid: text("owner_uid").notNull(),
@@ -1046,7 +1177,8 @@ export const orders = pgTable("orders", {
   externalOrderId: text("external_order_id"),
   status: text("status").notNull().default("pending"),
   vendor: text("vendor"),
-  vendorDetails: jsonb("vendor_details").$type<Record<string, any>>(),
+  vendorId: integer("vendor_id"),
+  vendorDetails: jsonb("vendor_details").$type<VendorDetailsFields>(),
   productName: text("product_name"),
   productImageUrl: text("product_image_url"),
   productUrl: text("product_url"),
@@ -1059,8 +1191,8 @@ export const orders = pgTable("orders", {
   shippingPriceCents: integer("shipping_price_cents"),
   shippingType: text("shipping_type"),
   shippingNote: text("shipping_note"),
-  shippingAddress: jsonb("shipping_address").$type<Record<string, any>>(),
-  trackingInfo: jsonb("tracking_info").$type<Record<string, any>>(),
+  shippingAddress: jsonb("shipping_address").$type<ShippingAddressFields>(),
+  trackingInfo: jsonb("tracking_info").$type<TrackingInfoFields>(),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1073,6 +1205,7 @@ export const orders = pgTable("orders", {
   index("orders_external_order_id_idx").on(table.externalOrderId),
   index("orders_status_idx").on(table.status),
   index("orders_created_at_idx").on(table.createdAt),
+  index("orders_vendor_id_idx").on(table.vendorId),
 ]);
 
 export type Order = typeof orders.$inferSelect;
@@ -1089,6 +1222,7 @@ export const insertOrderSchema = z.object({
   externalOrderId: z.string().optional().nullable(),
   status: z.string().default("pending"),
   vendor: z.string().optional().nullable(),
+  vendorId: z.number().int().optional().nullable(),
   vendorDetails: z.record(z.any()).optional().nullable(),
   productName: z.string().optional().nullable(),
   productImageUrl: z.string().optional().nullable(),

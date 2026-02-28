@@ -15,6 +15,8 @@ import { rail5Methods } from "./rail5";
 import { approvalMethods } from "./approvals";
 import { orderMethods } from "./orders";
 import { salesMethods } from "./sales";
+import { vendorMethods } from "./vendors";
+import { shippingAddressMethods } from "./shipping-addresses";
 import type { IStorage } from "./types";
 
 export type { IStorage };
@@ -37,4 +39,6 @@ export const storage: IStorage = {
   ...approvalMethods,
   ...orderMethods,
   ...salesMethods,
+  ...vendorMethods,
+  ...shippingAddressMethods,
 };

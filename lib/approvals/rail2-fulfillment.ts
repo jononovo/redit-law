@@ -3,6 +3,7 @@ import { storage } from "@/server/storage";
 import { createPurchaseOrder } from "@/lib/rail2/orders/purchase";
 import { fireWebhook } from "@/lib/webhooks";
 import { recordOrder } from "@/lib/orders/create";
+import { toShippingAddressFields } from "@/lib/orders/address-utils";
 import type { UnifiedApproval } from "@/shared/schema";
 
 async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
@@ -60,6 +61,7 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
 
     const [merchantName] = (transaction.productLocator || "").split(":");
     try {
+      const convertedAddr = shippingAddr ? toShippingAddressFields(shippingAddr as any) : null;
       await recordOrder({
         ownerUid: approval.ownerUid,
         rail: "rail2",
@@ -74,9 +76,12 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
         productUrl: transaction.productLocator || null,
         sku: transaction.productLocator || null,
         quantity: transaction.quantity ?? 1,
-        priceCents: transaction.amountUsdc ? Math.round(transaction.amountUsdc / 10000) : null,
+        priceCents: result.pricing?.totalCents ?? (transaction.amountUsdc ? Math.round(transaction.amountUsdc / 10000) : null),
         priceCurrency: "USD",
-        shippingAddress: shippingAddr as Record<string, any> || null,
+        taxesCents: result.pricing?.taxCents ?? null,
+        shippingPriceCents: result.pricing?.shippingCents ?? null,
+        shippingType: "standard",
+        shippingAddress: convertedAddr,
         metadata: { source: "rail2-fulfillment", approvalId },
       });
     } catch (orderErr) {

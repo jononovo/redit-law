@@ -14,6 +14,7 @@ export async function recordOrder(input: OrderInput): Promise<Order> {
     externalOrderId: input.externalOrderId ?? null,
     status: input.status ?? "pending",
     vendor: input.vendor ?? null,
+    vendorId: input.vendorId ?? null,
     vendorDetails: input.vendorDetails ?? null,
     productName: input.productName ?? null,
     productImageUrl: input.productImageUrl ?? null,

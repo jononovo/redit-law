@@ -1,3 +1,5 @@
+import type { ShippingAddressFields, TrackingInfoFields, VendorDetailsFields } from "@/shared/schema";
+
 export interface OrderInput {
   ownerUid: string;
   rail: "rail1" | "rail2" | "rail4" | "rail5";
@@ -9,7 +11,8 @@ export interface OrderInput {
   externalOrderId?: string | null;
   status?: string;
   vendor?: string | null;
-  vendorDetails?: Record<string, any> | null;
+  vendorId?: number | null;
+  vendorDetails?: VendorDetailsFields | null;
   productName?: string | null;
   productImageUrl?: string | null;
   productUrl?: string | null;
@@ -22,7 +25,7 @@ export interface OrderInput {
   shippingPriceCents?: number | null;
   shippingType?: string | null;
   shippingNote?: string | null;
-  shippingAddress?: Record<string, any> | null;
-  trackingInfo?: Record<string, any> | null;
+  shippingAddress?: ShippingAddressFields | null;
+  trackingInfo?: TrackingInfoFields | null;
   metadata?: Record<string, any> | null;
 }

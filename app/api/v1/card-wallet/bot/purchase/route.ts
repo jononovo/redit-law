@@ -17,11 +17,31 @@ async function handler(request: NextRequest, botId: string) {
       return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
     }
 
-    const { merchant, product_id, quantity, product_name, estimated_price_usd, shipping_address } = parsed.data;
+    const { merchant, product_id, quantity, product_name, estimated_price_usd } = parsed.data;
+    let { shipping_address } = parsed.data;
 
     const wallet = await storage.crossmintGetWalletByBotId(botId);
     if (!wallet) {
       return NextResponse.json({ error: "No Card Wallet found for this bot" }, { status: 404 });
+    }
+
+    if (!shipping_address) {
+      const defaultAddr = await storage.getDefaultShippingAddress(wallet.ownerUid);
+      if (defaultAddr) {
+        shipping_address = {
+          name: defaultAddr.name,
+          line1: defaultAddr.line1,
+          line2: defaultAddr.line2 ?? undefined,
+          city: defaultAddr.city,
+          state: defaultAddr.state,
+          zip: defaultAddr.postalCode,
+          country: defaultAddr.country,
+        };
+      }
+    }
+
+    if (!shipping_address) {
+      return NextResponse.json({ error: "Shipping address required. Provide one in the request or set a default address." }, { status: 400 });
     }
 
     if (wallet.status !== "active") {
@@ -124,6 +144,8 @@ async function handler(request: NextRequest, botId: string) {
 
         try {
           const { recordOrder } = await import("@/lib/orders/create");
+          const { toShippingAddressFields } = await import("@/lib/orders/address-utils");
+          const convertedAddr = toShippingAddressFields(shipping_address);
           await recordOrder({
             ownerUid: wallet.ownerUid,
             rail: "rail2",
@@ -138,9 +160,12 @@ async function handler(request: NextRequest, botId: string) {
             productUrl: productLocator,
             sku: productLocator,
             quantity: quantity || 1,
-            priceCents: estimated_price_usd ? Math.round(estimated_price_usd * (quantity || 1) * 100) : null,
+            priceCents: result.pricing?.totalCents ?? (estimated_price_usd ? Math.round(estimated_price_usd * (quantity || 1) * 100) : null),
             priceCurrency: "USD",
-            shippingAddress: shipping_address as Record<string, any> || null,
+            taxesCents: result.pricing?.taxCents ?? null,
+            shippingPriceCents: result.pricing?.shippingCents ?? null,
+            shippingType: "standard",
+            shippingAddress: convertedAddr,
             metadata: { source: "auto-approved" },
           });
         } catch (orderErr) {
