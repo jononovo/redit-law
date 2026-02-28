@@ -217,7 +217,7 @@ export default function ShopAdminPage() {
             Save Settings
           </Button>
 
-          {shopUrl && profile?.shopPublished && (
+          {shopUrl && profile?.shop_published && (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={copyShopUrl} className="gap-1" data-testid="button-copy-shop-url">
                 {copiedUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
