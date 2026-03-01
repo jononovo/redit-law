@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink, Pencil, Store } from "lucide-react";
+import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink, Pencil, Store, ImageIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,6 +77,9 @@ export default function CreateCheckoutPage() {
   const [sellerName, setSellerName] = useState("");
   const [sellerLogoUrl, setSellerLogoUrl] = useState("");
   const [sellerEmail, setSellerEmail] = useState("");
+  const [pageType, setPageType] = useState<"product" | "event">("product");
+  const [imageUrl, setImageUrl] = useState("");
+  const [collectBuyerName, setCollectBuyerName] = useState(false);
 
   const [createdUrl, setCreatedUrl] = useState<string | null>(null);
   const [editPage, setEditPage] = useState<CheckoutPageData | null>(null);
@@ -173,6 +176,9 @@ export default function CreateCheckoutPage() {
       if (sellerName.trim()) body.seller_name = sellerName.trim();
       if (sellerLogoUrl.trim()) body.seller_logo_url = sellerLogoUrl.trim();
       if (sellerEmail.trim()) body.seller_email = sellerEmail.trim();
+      body.page_type = pageType;
+      if (imageUrl.trim()) body.image_url = imageUrl.trim();
+      body.collect_buyer_name = collectBuyerName;
 
       const res = await authFetch("/api/v1/checkout-pages", {
         method: "POST",
@@ -196,6 +202,9 @@ export default function CreateCheckoutPage() {
         setSellerName(sellerProfile?.business_name || "");
         setSellerLogoUrl(sellerProfile?.logo_url || "");
         setSellerEmail(sellerProfile?.contact_email || "");
+        setPageType("product");
+        setImageUrl("");
+        setCollectBuyerName(false);
 
         fetchData();
       }
@@ -310,6 +319,50 @@ export default function CreateCheckoutPage() {
             rows={3}
             data-testid="input-checkout-description"
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-neutral-700">Page Type</Label>
+            <Select value={pageType} onValueChange={(v) => setPageType(v as "product" | "event")}>
+              <SelectTrigger data-testid="select-page-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="product">Product</SelectItem>
+                <SelectItem value="event">Event</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-neutral-400">
+              {pageType === "event" ? "Events show buyer count on the checkout page" : "Standard product checkout"}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="imageUrl" className="text-sm font-medium text-neutral-700">
+              Product Image URL
+            </Label>
+            <Input
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              data-testid="input-image-url"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Switch
+            checked={collectBuyerName}
+            onCheckedChange={setCollectBuyerName}
+            data-testid="switch-collect-buyer-name"
+          />
+          <div>
+            <Label className="text-sm font-medium text-neutral-700">Collect buyer name</Label>
+            <p className="text-xs text-neutral-400">Ask buyers for their name before payment</p>
+          </div>
         </div>
 
         <div className="space-y-1.5">

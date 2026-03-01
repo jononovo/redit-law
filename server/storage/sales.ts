@@ -15,6 +15,7 @@ type SalesMethods = Pick<IStorage,
   | "createCheckoutPage"
   | "getCheckoutPageById"
   | "getCheckoutPagesByOwnerUid"
+  | "getShopPagesByOwnerUid"
   | "updateCheckoutPage"
   | "archiveCheckoutPage"
   | "createSale"
@@ -24,6 +25,8 @@ type SalesMethods = Pick<IStorage,
   | "updateSaleStatus"
   | "incrementCheckoutPageStats"
   | "incrementCheckoutPageViewCount"
+  | "getBuyerCountForCheckoutPage"
+  | "getBuyerNamesForCheckoutPage"
 >;
 
 export const salesMethods: SalesMethods = {
@@ -94,5 +97,38 @@ export const salesMethods: SalesMethods = {
     await db.update(checkoutPages).set({
       viewCount: sql`${checkoutPages.viewCount} + 1`,
     }).where(eq(checkoutPages.checkoutPageId, checkoutPageId));
+  },
+
+  async getShopPagesByOwnerUid(ownerUid: string): Promise<CheckoutPage[]> {
+    return db.select().from(checkoutPages)
+      .where(and(
+        eq(checkoutPages.ownerUid, ownerUid),
+        eq(checkoutPages.shopVisible, true),
+        eq(checkoutPages.status, "active"),
+      ))
+      .orderBy(checkoutPages.shopOrder);
+  },
+
+  async getBuyerCountForCheckoutPage(checkoutPageId: string): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(sales)
+      .where(and(
+        eq(sales.checkoutPageId, checkoutPageId),
+        eq(sales.status, "confirmed"),
+      ));
+    return result?.count || 0;
+  },
+
+  async getBuyerNamesForCheckoutPage(checkoutPageId: string): Promise<string[]> {
+    const rows = await db.select({ buyerName: sales.buyerName })
+      .from(sales)
+      .where(and(
+        eq(sales.checkoutPageId, checkoutPageId),
+        eq(sales.status, "confirmed"),
+        sql`${sales.buyerName} IS NOT NULL AND ${sales.buyerName} != ''`,
+      ))
+      .orderBy(desc(sales.createdAt))
+      .limit(100);
+    return rows.map(r => r.buyerName!);
   },
 };

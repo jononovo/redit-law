@@ -195,11 +195,24 @@ Turns every CreditClaw wallet holder into a seller. Checkout pages are public UR
 
 ### Seller Profiles (`server/storage/seller-profiles.ts`)
 Per-owner seller identity used across all checkout pages.
-- **Schema**: `seller_profiles` table (id, ownerUid unique, businessName, logoUrl, contactEmail, websiteUrl, description, createdAt, updatedAt).
-- **Storage**: `server/storage/seller-profiles.ts` — `createSellerProfile`, `getSellerProfileByOwnerUid`, `upsertSellerProfile`.
-- **Owner API**: `GET/PUT /api/v1/seller-profile` — get or upsert seller profile.
+- **Schema**: `seller_profiles` table (id, ownerUid unique, businessName, logoUrl, contactEmail, websiteUrl, description, slug unique, shopPublished, shopBannerUrl, createdAt, updatedAt).
+- **Storage**: `server/storage/seller-profiles.ts` — `getSellerProfileByOwnerUid`, `getSellerProfileBySlug`, `upsertSellerProfile`.
+- **Owner API**: `GET/PUT /api/v1/seller-profile` — get or upsert seller profile (including slug, shop_published, shop_banner_url). Slug uniqueness enforced at API level.
 - **Public checkout fallback chain**: checkout page overrides → seller profile → bot name/owner email.
 - **Page**: `/app/settings/seller` — form to manage seller profile (business name, logo URL, contact email, website, description).
+
+### Shop (`app/s/[slug]`, `app/app/shop`)
+Public storefront for sellers, built on top of existing checkout pages.
+- **Schema extensions**: `checkout_pages` gains `pageType` (product/event), `shopVisible`, `shopOrder`, `imageUrl`, `collectBuyerName`. `sales` gains `buyerName`.
+- **Storage**: `getShopPagesByOwnerUid` (active + shopVisible pages sorted by shopOrder), `getBuyerCountForCheckoutPage` (confirmed sales count), `getBuyerNamesForCheckoutPage` (buyer names from confirmed sales).
+- **Public API**: `GET /api/v1/shop/[slug]` — returns seller profile + visible checkout pages with buyer counts for events. 404 if shop not published.
+- **Public API**: `GET /api/v1/checkout/[id]/buyers` — returns buyer count + names for event pages only.
+- **Public page**: `/s/[slug]` — storefront with seller info, product grid (image, title, description, price, buyer count for events), links to `/pay/[id]`.
+- **Checkout page updates**: `/pay/[id]` shows buyer name input when `collectBuyerName` is true, shows "X people bought this" for event pages. Buyer name passed to Stripe metadata and stored on sale record.
+- **Admin page**: `/app/shop` — configure shop slug, publish toggle, banner URL, toggle which checkout pages appear in shop.
+- **Create checkout form**: `/app/checkout/create` now includes page type (product/event), image URL, and collect buyer name toggle.
+- **Bot API**: `GET /api/v1/bot/shop` — returns shop config + all checkout pages. `POST /api/v1/bot/checkout-pages/create` now accepts `page_type`, `image_url`, `collect_buyer_name`.
+- **Sidebar**: "Shop" link added to Sales section.
 
 ### Invoicing (`server/storage/invoices.ts`)
 Full invoicing system — create, send, track, and collect payment on invoices tied to checkout pages.

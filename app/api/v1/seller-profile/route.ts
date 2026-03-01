@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
         contact_email: profile.contactEmail,
         website_url: profile.websiteUrl,
         description: profile.description,
+        slug: profile.slug,
+        shop_published: profile.shopPublished,
+        shop_banner_url: profile.shopBannerUrl,
         created_at: profile.createdAt,
         updated_at: profile.updatedAt,
       },
@@ -46,12 +49,22 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "validation_error", details: parsed.error.flatten() }, { status: 400 });
     }
 
+    if (parsed.data.slug) {
+      const existingSlug = await storage.getSellerProfileBySlug(parsed.data.slug);
+      if (existingSlug && existingSlug.ownerUid !== user.uid) {
+        return NextResponse.json({ error: "slug_taken", message: "This shop URL is already in use" }, { status: 409 });
+      }
+    }
+
     const profile = await storage.upsertSellerProfile(user.uid, {
       businessName: parsed.data.business_name ?? undefined,
       logoUrl: parsed.data.logo_url ?? undefined,
       contactEmail: parsed.data.contact_email ?? undefined,
       websiteUrl: parsed.data.website_url ?? undefined,
       description: parsed.data.description ?? undefined,
+      slug: parsed.data.slug !== undefined ? parsed.data.slug : undefined,
+      shopPublished: parsed.data.shop_published !== undefined ? parsed.data.shop_published : undefined,
+      shopBannerUrl: parsed.data.shop_banner_url !== undefined ? parsed.data.shop_banner_url : undefined,
     });
 
     return NextResponse.json({
@@ -62,6 +75,9 @@ export async function PUT(request: NextRequest) {
         contact_email: profile.contactEmail,
         website_url: profile.websiteUrl,
         description: profile.description,
+        slug: profile.slug,
+        shop_published: profile.shopPublished,
+        shop_banner_url: profile.shopBannerUrl,
         created_at: profile.createdAt,
         updated_at: profile.updatedAt,
       },

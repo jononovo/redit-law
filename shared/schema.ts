@@ -1255,6 +1255,9 @@ export const sellerProfiles = pgTable("seller_profiles", {
   contactEmail: text("contact_email"),
   websiteUrl: text("website_url"),
   description: text("description"),
+  slug: text("slug").unique(),
+  shopPublished: boolean("shop_published").notNull().default(false),
+  shopBannerUrl: text("shop_banner_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1268,6 +1271,9 @@ export const upsertSellerProfileSchema = z.object({
   contact_email: z.string().email().max(200).optional().nullable(),
   website_url: z.string().url().max(2000).optional().nullable(),
   description: z.string().max(2000).optional().nullable(),
+  slug: z.string().max(100).regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/, "Slug must be lowercase letters, numbers, and hyphens").optional().nullable(),
+  shop_published: z.boolean().optional(),
+  shop_banner_url: z.string().url().max(2000).optional().nullable(),
 });
 
 export const checkoutPages = pgTable("checkout_pages", {
@@ -1287,6 +1293,11 @@ export const checkoutPages = pgTable("checkout_pages", {
   sellerName: text("seller_name"),
   sellerLogoUrl: text("seller_logo_url"),
   sellerEmail: text("seller_email"),
+  pageType: text("page_type").notNull().default("product"),
+  shopVisible: boolean("shop_visible").notNull().default(false),
+  shopOrder: integer("shop_order").notNull().default(0),
+  imageUrl: text("image_url"),
+  collectBuyerName: boolean("collect_buyer_name").notNull().default(false),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   viewCount: integer("view_count").notNull().default(0),
   paymentCount: integer("payment_count").notNull().default(0),
@@ -1317,6 +1328,9 @@ export const createCheckoutPageSchema = z.object({
   seller_name: z.string().max(200).optional().nullable(),
   seller_logo_url: z.string().url().max(2000).optional().nullable(),
   seller_email: z.string().email().max(200).optional().nullable(),
+  page_type: z.enum(["product", "event"]).default("product").optional(),
+  image_url: z.string().url().max(2000).optional().nullable(),
+  collect_buyer_name: z.boolean().default(false).optional(),
 });
 
 export const sales = pgTable("sales", {
@@ -1332,6 +1346,7 @@ export const sales = pgTable("sales", {
   buyerIp: text("buyer_ip"),
   buyerUserAgent: text("buyer_user_agent"),
   buyerEmail: text("buyer_email"),
+  buyerName: text("buyer_name"),
   txHash: text("tx_hash"),
   stripeOnrampSessionId: text("stripe_onramp_session_id"),
   privyTransactionId: integer("privy_transaction_id"),
@@ -1362,6 +1377,9 @@ export const botCreateCheckoutPageSchema = z.object({
   allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
   success_url: z.string().url().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
+  page_type: z.enum(["product", "event"]).default("product").optional(),
+  image_url: z.string().url().max(2000).optional().nullable(),
+  collect_buyer_name: z.boolean().default(false).optional(),
 });
 
 export const invoices = pgTable("invoices", {

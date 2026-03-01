@@ -291,6 +291,7 @@ export interface IStorage {
   createCheckoutPage(data: InsertCheckoutPage): Promise<CheckoutPage>;
   getCheckoutPageById(checkoutPageId: string): Promise<CheckoutPage | null>;
   getCheckoutPagesByOwnerUid(ownerUid: string): Promise<CheckoutPage[]>;
+  getShopPagesByOwnerUid(ownerUid: string): Promise<CheckoutPage[]>;
   updateCheckoutPage(checkoutPageId: string, data: Partial<InsertCheckoutPage>): Promise<CheckoutPage | null>;
   archiveCheckoutPage(checkoutPageId: string, ownerUid: string): Promise<CheckoutPage | null>;
 
@@ -301,6 +302,8 @@ export interface IStorage {
   updateSaleStatus(saleId: string, status: string, confirmedAt?: Date): Promise<Sale | null>;
   incrementCheckoutPageStats(checkoutPageId: string, amountUsdc: number): Promise<void>;
   incrementCheckoutPageViewCount(checkoutPageId: string): Promise<void>;
+  getBuyerCountForCheckoutPage(checkoutPageId: string): Promise<number>;
+  getBuyerNamesForCheckoutPage(checkoutPageId: string): Promise<string[]>;
   getVendorBySlug(slug: string): Promise<Vendor | null>;
   getVendorById(id: number): Promise<Vendor | null>;
   getAllVendors(): Promise<Vendor[]>;
@@ -317,6 +320,7 @@ export interface IStorage {
   deleteShippingAddress(id: number): Promise<void>;
 
   getSellerProfileByOwnerUid(ownerUid: string): Promise<SellerProfile | null>;
+  getSellerProfileBySlug(slug: string): Promise<SellerProfile | null>;
   upsertSellerProfile(ownerUid: string, data: Partial<InsertSellerProfile>): Promise<SellerProfile>;
 
   createInvoice(data: InsertInvoice): Promise<Invoice>;
