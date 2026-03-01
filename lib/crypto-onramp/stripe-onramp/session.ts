@@ -1,3 +1,4 @@
+import { stripe } from "@/lib/stripe";
 import type { OnrampSessionResult } from "../types";
 
 export async function createStripeOnrampSession(params: {
@@ -7,34 +8,30 @@ export async function createStripeOnrampSession(params: {
   amountUsd?: number;
   metadata?: Record<string, string>;
 }): Promise<OnrampSessionResult> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY is required");
-  }
-
-  const formData = new URLSearchParams();
-  formData.append("wallet_addresses[ethereum]", params.walletAddress);
-  formData.append("lock_wallet_address", "true");
-  formData.append("destination_currencies[]", "usdc");
-  formData.append("destination_network", "base");
-  formData.append("destination_currency", "usdc");
+  const requestParams: Record<string, unknown> = {
+    "wallet_addresses[ethereum]": params.walletAddress,
+    lock_wallet_address: true,
+    "destination_currencies[]": "usdc",
+    destination_network: "base",
+    destination_currency: "usdc",
+  };
 
   if (params.customerIp) {
-    formData.append("customer_ip_address", params.customerIp);
+    requestParams.customer_ip_address = params.customerIp;
   }
 
   if (params.userEmail) {
-    formData.append("customer_information[email]", params.userEmail);
+    requestParams["customer_information[email]"] = params.userEmail;
   }
 
   if (params.amountUsd) {
-    formData.append("source_amount", String(params.amountUsd));
-    formData.append("source_currency", "usd");
+    requestParams.source_amount = String(params.amountUsd);
+    requestParams.source_currency = "usd";
   }
 
   if (params.metadata) {
     for (const [key, value] of Object.entries(params.metadata)) {
-      formData.append(`metadata[${key}]`, value);
+      requestParams[`metadata[${key}]`] = value;
     }
   }
 
@@ -47,39 +44,46 @@ export async function createStripeOnrampSession(params: {
     amountUsd: params.amountUsd,
   });
 
-  const response = await fetch("https://api.stripe.com/v1/crypto/onramp_sessions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${secretKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: formData.toString(),
-  });
+  try {
+    const response = await stripe.rawRequest("POST", "/v1/crypto/onramp_sessions", requestParams);
 
-  const session = await response.json();
+    const session = response as unknown as {
+      id: string;
+      status: string;
+      client_secret: string;
+      redirect_url?: string;
+    };
 
-  if (!response.ok) {
-    console.error("[Stripe Onramp] Session creation FAILED:", {
-      status: response.status,
-      errorCode: session.error?.code,
-      errorType: session.error?.type,
-      errorMessage: session.error?.message,
-      errorParam: session.error?.param,
+    if (!session.id || !session.client_secret) {
+      console.error("[Stripe Onramp] Session response missing required fields:", {
+        hasId: !!session.id,
+        hasClientSecret: !!session.client_secret,
+      });
+      throw new Error("Stripe onramp session response missing required fields");
+    }
+
+    console.log("[Stripe Onramp] Session created successfully:", {
+      sessionId: session.id,
+      status: session.status,
+      hasClientSecret: !!session.client_secret,
+      hasRedirectUrl: !!session.redirect_url,
     });
-    throw new Error(session.error?.message || "Failed to create onramp session");
+
+    return {
+      provider: "stripe" as const,
+      clientSecret: session.client_secret,
+      sessionId: session.id,
+      redirectUrl: session.redirect_url || null,
+    };
+  } catch (err: unknown) {
+    const stripeError = err as { type?: string; code?: string; message?: string; statusCode?: number; param?: string };
+    console.error("[Stripe Onramp] Session creation FAILED:", {
+      statusCode: stripeError.statusCode,
+      errorCode: stripeError.code,
+      errorType: stripeError.type,
+      errorMessage: stripeError.message,
+      errorParam: stripeError.param,
+    });
+    throw new Error(stripeError.message || "Failed to create onramp session");
   }
-
-  console.log("[Stripe Onramp] Session created successfully:", {
-    sessionId: session.id,
-    status: session.status,
-    hasClientSecret: !!session.client_secret,
-    hasRedirectUrl: !!session.redirect_url,
-  });
-
-  return {
-    provider: "stripe",
-    clientSecret: session.client_secret,
-    sessionId: session.id,
-    redirectUrl: session.redirect_url || null,
-  };
 }
