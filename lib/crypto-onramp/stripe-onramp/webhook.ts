@@ -59,7 +59,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
 
       if (checkoutPage.amountLocked && checkoutPage.amountUsdc) {
         const expectedUsdc = checkoutPage.amountUsdc;
-        const lowerBound = expectedUsdc * 0.94;
+        const lowerBound = expectedUsdc * 0.99;
         const upperBound = expectedUsdc * 1.01;
         if (amountUsdc < lowerBound || amountUsdc > upperBound) {
           saleStatus = "amount_mismatch";
@@ -85,7 +85,7 @@ export async function handleStripeOnrampFulfillment(event: OnrampWebhookEvent): 
             invoice.checkoutPageId === checkoutPageId &&
             (invoice.status === "sent" || invoice.status === "viewed")
           ) {
-            const invoiceLower = invoice.totalUsdc * 0.94;
+            const invoiceLower = invoice.totalUsdc * 0.99;
             const invoiceUpper = invoice.totalUsdc * 1.01;
             if (amountUsdc < invoiceLower || amountUsdc > invoiceUpper) {
               saleStatus = "amount_mismatch";

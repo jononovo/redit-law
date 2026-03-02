@@ -25,8 +25,7 @@ export async function createStripeOnrampSession(params: {
   }
 
   if (params.amountUsd) {
-    requestParams.source_amount = String(params.amountUsd);
-    requestParams.source_currency = "usd";
+    requestParams.destination_amount = String(params.amountUsd);
   }
 
   if (params.metadata) {
