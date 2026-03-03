@@ -115,7 +115,7 @@ Reply directly to this email to respond to ${userName}.`;
     await sgMail.send({
       to: SUPPORT_EMAIL,
       from: { email: "support@creditclaw.com", name: "CreditClaw Feedback" },
-      replyTo: userEmail !== "No email" ? userEmail : undefined,
+      replyTo: userEmail !== "No email" ? { email: userEmail, name: userName } : undefined,
       subject,
       text: textContent,
       html: htmlContent,
