@@ -263,7 +263,7 @@ export function FundWalletSheet({
                     placeholder="25.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-10 pr-20 text-3xl font-bold h-16 rounded-xl"
+                    className="pl-10 pr-20 text-2xl font-bold h-16 rounded-xl text-neutral-700"
                     data-testid="input-fund-amount"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-neutral-400 font-semibold">
