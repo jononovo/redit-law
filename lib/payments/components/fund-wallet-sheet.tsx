@@ -259,7 +259,7 @@ export function FundWalletSheet({
                     type="number"
                     min="1"
                     max="10000"
-                    step="0.01"
+                    step="1"
                     placeholder="25.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
