@@ -216,7 +216,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
   return (
     <div className="flex flex-col items-center space-y-6 py-4" data-testid="qr-handler-waiting">
       <div className="text-center space-y-1">
-        <h3 className="text-lg font-bold text-neutral-900">Send USDC</h3>
+        <h3 className="text-lg font-bold text-neutral-900">Send USDC on Base</h3>
         <p className="text-sm text-neutral-500">
           Scan QR or copy address below
         </p>
