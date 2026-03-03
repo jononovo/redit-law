@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Home, Book, Code } from "lucide-react";
+import Image from "next/image";
+import { PanelLeft, Book, Code } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -145,26 +146,27 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
         />
       </aside>
 
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-neutral-200 px-4 py-3 flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home-mobile">
+          <Image src="/images/logo-claw-chip.png" alt="CreditClaw" width={28} height={28} className="object-contain" />
+          <span className="text-base font-bold text-neutral-900">CreditClaw</span>
+        </Link>
+        <Link
+          href="/docs"
+          className="text-base font-medium text-neutral-400 hover:text-neutral-600 transition-colors"
+          data-testid="link-docs-home-mobile"
+        >
+          Docs
+        </Link>
+        <div className="ml-auto">
           <button
             onClick={() => setDrawerOpen(true)}
             className="p-1.5 rounded-md hover:bg-neutral-100 cursor-pointer"
             data-testid="button-mobile-menu"
           >
-            <Menu className="w-5 h-5" />
+            <PanelLeft className="w-5 h-5 text-neutral-600" />
           </button>
-          <Link href="/" className="text-base font-bold text-neutral-900" data-testid="link-home-mobile">
-            CreditClaw
-          </Link>
         </div>
-        <Link
-          href="/docs"
-          className="p-1.5 rounded-md hover:bg-neutral-100"
-          data-testid="link-docs-home-mobile"
-        >
-          <Home className="w-5 h-5 text-neutral-600" />
-        </Link>
       </div>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
