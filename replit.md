@@ -225,22 +225,23 @@ Full invoicing system — create, send, track, and collect payment on invoices t
 - **Pages**: `/app/invoices` (list with filters), `/app/invoices/create` (create form with line items repeater), `/app/invoices/[invoice_id]` (detail with status timeline, actions).
 
 ### Crypto Onramp (`lib/crypto-onramp/`) — Server-Side Only
-Server-side Stripe Crypto Onramp logic. The client-side UI components (`use-stripe-onramp.ts`, `stripe-onramp-sheet.tsx`) are superseded by `lib/payments/` but retained for reference.
+Server-side Stripe Crypto Onramp logic. Legacy client-side components have been removed — all client UI is now in `lib/payments/`.
 - **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
 - **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address (still used by API routes)
 - **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — still used by webhook route
 - **`stripe-onramp/types.ts`** — Stripe-specific payload types
-- **`components/`** — Legacy client components (no longer imported by any page, superseded by `lib/payments/handlers/`)
 
 ### Payments UI (`lib/payments/`)
-Modular client-side payment method selection and execution for wallet top-ups (and future checkout). Each payment method is a fully self-contained handler component. Pages provide a `PaymentContext` and render the `FundWalletSheet` — they never touch SDK details.
+Modular client-side payment method selection and execution for both wallet top-ups and checkout pages. Each payment method is a fully self-contained handler component. Pages provide a `PaymentContext` and render either `FundWalletSheet` (top-up) or `CheckoutPaymentPanel` (checkout) — they never touch SDK details.
 - **`types.ts`** — `PaymentContext` (mode, rail, amount, walletAddress, etc.), `PaymentResult`, `PaymentMethodDef`, `PaymentHandlerProps`
-- **`methods.ts`** — `PAYMENT_METHODS` registry + `getAvailableMethods(rail, mode, allowedMethods?)` — filters by rail/mode
-- **`handlers/stripe-onramp-handler.tsx`** — Self-contained Stripe handler: creates session via API, loads Stripe SDK, mounts widget, handles `fulfillment_complete`, fallback to `redirect_url`
-- **`handlers/base-pay-handler.tsx`** — Self-contained Base Pay handler: calls `pay()` from `@base-org/account` (popup), verifies via backend, reports success/error
+- **`methods.ts`** — `PAYMENT_METHODS` registry + `getAvailableMethods(rail, mode, allowedMethods?)` — filters by rail/mode/allowedMethods
+- **`handlers/stripe-onramp-handler.tsx`** — Self-contained Stripe handler: creates session via API (different endpoint per mode), loads Stripe SDK, mounts widget via `waitForRef()` rAF loop, handles `fulfillment_complete`, fallback to `redirect_url`
+- **`handlers/base-pay-handler.tsx`** — Self-contained Base Pay handler: calls `pay()` from `@base-org/account` (popup), verifies via backend (different endpoint per mode), reports success/error
 - **`components/payment-method-selector.tsx`** — Renders vertical list of payment method buttons with amount, label, subtitle
-- **`components/fund-wallet-sheet.tsx`** — Sheet wrapper: amount input → method selection → handler rendering. Used by stripe-wallet page (Rail 1). Ready for card-wallet page (Rail 2) with rail-specific method filtering.
+- **`components/fund-wallet-sheet.tsx`** — Sheet wrapper for top-ups: amount input → method selection → handler rendering. Used by stripe-wallet page (Rail 1). Ready for card-wallet page (Rail 2) with rail-specific method filtering.
+- **`components/checkout-payment-panel.tsx`** — Right panel for checkout pages: amount display/input → method selection → handler rendering. Replaces inline Stripe logic from `/pay/[id]`. Supports `allowedMethods` filtering from checkout page config. Single-method pages auto-select (no selector shown). State machine: select → paying → error (with retry).
 - **Design principle**: Each handler is independent — no shared base class, no shared hooks. One handler can't break another. Adding a new method = new handler file + entry in `methods.ts`.
+- **Checkout page refactor**: `app/pay/[id]/page.tsx` is now a thin shell (~280 lines, down from ~550) — handles data fetching, layout, and context building. All payment logic delegated to `CheckoutPaymentPanel`.
 
 ### Base Pay Backend (`lib/base-pay/`)
 Server-side Base Pay verification and ledger logic (Phase 1).
