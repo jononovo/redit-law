@@ -283,23 +283,15 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
           </Button>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex justify-center">
           <Button
             variant="ghost"
-            className="flex-1 text-neutral-500 cursor-pointer"
+            className="text-neutral-500 cursor-pointer"
             onClick={handleCopyUri}
             data-testid="button-copy-qr-uri"
           >
             <Copy className="w-4 h-4 mr-1" />
             EIP-681 URI
-          </Button>
-          <Button
-            variant="ghost"
-            className="flex-1 text-neutral-500 cursor-pointer"
-            onClick={onCancel}
-            data-testid="button-qr-cancel"
-          >
-            Cancel
           </Button>
         </div>
 
