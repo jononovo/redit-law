@@ -233,7 +233,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
       <div className="w-full max-w-xs space-y-3">
         <div className="bg-neutral-50 rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Send to</span>
+            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Wallet Address</span>
             <button
               onClick={handleCopyAddress}
               className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 cursor-pointer"
