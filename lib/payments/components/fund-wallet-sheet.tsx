@@ -252,7 +252,7 @@ export function FundWalletSheet({
                 </div>
 
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-neutral-400">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-neutral-400">
                     $
                   </span>
                   <Input
@@ -263,10 +263,10 @@ export function FundWalletSheet({
                     placeholder="25.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="pl-8 text-2xl font-bold h-14 rounded-xl"
+                    className="pl-10 pr-20 text-3xl font-bold h-16 rounded-xl"
                     data-testid="input-fund-amount"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-neutral-400 font-medium">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg text-neutral-400 font-semibold">
                     USD
                   </span>
                 </div>
