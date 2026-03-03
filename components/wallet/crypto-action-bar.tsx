@@ -36,7 +36,7 @@ export function CryptoActionBar({
     },
     {
       icon: isActive ? Snowflake : Play,
-      label: isActive ? "Pause" : "Activate",
+      label: isActive ? "Freeze" : "Activate",
       onClick: onFreeze,
       className: "flex-1 text-xs gap-2 text-neutral-600 cursor-pointer hover:bg-neutral-100 rounded-lg transition-colors",
       "data-testid": `button-freeze-${walletId}`,
