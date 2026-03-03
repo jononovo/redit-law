@@ -1,10 +1,20 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { sections, findPage, getAllPagesFlat, getAudienceFromSlug } from "@/docs/content/sections";
 import { DocRenderer } from "./doc-renderer";
+
+function findSectionRedirect(slugParts: string[]): string | null {
+  const joinedSlug = slugParts.join("/");
+  for (const section of sections) {
+    if (section.slug === joinedSlug && section.pages.length > 0) {
+      return `/docs/${section.slug}/${section.pages[0].slug}`;
+    }
+  }
+  return null;
+}
 
 interface Props {
   params: Promise<{ slug: string[] }>;
@@ -15,6 +25,10 @@ export default async function DocPage({ params }: Props) {
   const found = findPage(slug);
 
   if (!found) {
+    const sectionRedirect = findSectionRedirect(slug);
+    if (sectionRedirect) {
+      redirect(sectionRedirect);
+    }
     notFound();
   }
 
