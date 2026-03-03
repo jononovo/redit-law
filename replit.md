@@ -406,3 +406,4 @@ Self-hosted documentation at `/docs` with sidebar navigation, audience toggle (U
 - **Developer docs** (13 pages): API Overview (introduction, authentication), API Endpoints (wallets, bots, checkout-pages, invoices, sales, skills), Webhooks (setup, events), Agent Integration (quick-start, x402-protocol, mcp placeholder).
 - **URL pattern**: `/docs/{section-slug}/{page-slug}`. Developer docs use `/docs/api/...` prefix.
 - **Tailwind**: Typography plugin added via `@plugin "@tailwindcss/typography"`, source added via `@source "../docs"` in `app/globals.css`.
+- **LLM access**: Raw markdown endpoint at `GET /api/docs/{section}/{page}` (Content-Type: text/markdown). Each doc page has "Copy for LLM" and "View as Markdown" buttons. `GET /llms.txt` serves a structured index of all docs with markdown links. `GET /llms-full.txt` concatenates all docs into a single file.
