@@ -211,8 +211,6 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
     );
   }
 
-  const suggestedUsd = session.amountUsdc / 1_000_000;
-
   return (
     <div className="flex flex-col items-center space-y-6 py-4" data-testid="qr-handler-waiting">
       <div className="text-center space-y-1">
@@ -233,18 +231,6 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
       </div>
 
       <div className="w-full max-w-xs space-y-3">
-        <div className="bg-neutral-50 rounded-xl p-3 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Amount (suggested)</span>
-          </div>
-          <p className="text-xl font-bold text-neutral-900">
-            ${suggestedUsd.toFixed(2)} <span className="text-sm font-normal text-neutral-400">USDC</span>
-          </p>
-          <p className="text-xs text-neutral-400">
-            Any amount sent will be credited to your wallet.
-          </p>
-        </div>
-
         <div className="bg-neutral-50 rounded-xl p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Send to</span>
