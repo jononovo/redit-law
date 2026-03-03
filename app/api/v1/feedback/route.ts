@@ -4,7 +4,6 @@ import sgMail from "@sendgrid/mail";
 import { getSessionUser } from "@/lib/auth/session";
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@creditclaw.com";
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || "support@creditclaw.com";
 
 if (SENDGRID_API_KEY) {
@@ -115,7 +114,7 @@ Reply directly to this email to respond to ${userName}.`;
   try {
     await sgMail.send({
       to: SUPPORT_EMAIL,
-      from: { email: FROM_EMAIL, name: "CreditClaw Feedback" },
+      from: { email: "support@creditclaw.com", name: "CreditClaw Feedback" },
       replyTo: userEmail !== "No email" ? userEmail : undefined,
       subject,
       text: textContent,
