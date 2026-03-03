@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, CheckCircle, Loader2, Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import { Copy, CheckCircle, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import type { PaymentHandlerProps } from "../types";
@@ -294,13 +294,6 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
             EIP-681 URI
           </Button>
         </div>
-
-        {!autoPollActive && (
-          <div className="flex items-center justify-center gap-1 text-xs text-neutral-400">
-            <Clock className="w-3 h-3" />
-            <span>Auto-check stopped. Use the button above to check manually.</span>
-          </div>
-        )}
       </div>
     </div>
   );
