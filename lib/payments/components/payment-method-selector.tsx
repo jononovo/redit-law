@@ -8,8 +8,6 @@ interface PaymentMethodSelectorProps {
   onSelect: (methodId: string) => void;
   loading?: string;
   disabled?: boolean;
-  amount?: number;
-  buttonLabel?: string;
 }
 
 export function PaymentMethodSelector({
@@ -17,8 +15,6 @@ export function PaymentMethodSelector({
   onSelect,
   loading,
   disabled,
-  amount,
-  buttonLabel = "Pay",
 }: PaymentMethodSelectorProps) {
   if (methods.length === 0) {
     return (
@@ -52,12 +48,7 @@ export function PaymentMethodSelector({
             <span className="text-2xl flex-shrink-0">{method.iconEmoji}</span>
 
             <div className="flex-1 text-left">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-neutral-900">
-                  {amount ? `${buttonLabel} $${amount.toFixed(2)}` : buttonLabel}
-                </span>
-                <span className="text-sm font-medium text-neutral-500">{method.label}</span>
-              </div>
+              <span className="font-bold text-neutral-900">{method.label}</span>
               <p className="text-xs text-neutral-400 mt-0.5">{method.subtitle}</p>
             </div>
 

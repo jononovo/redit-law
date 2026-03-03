@@ -22,7 +22,7 @@ import { StripeOnrampHandler } from "../handlers/stripe-onramp-handler";
 import { BasePayHandler } from "../handlers/base-pay-handler";
 import type { PaymentContext, PaymentResult } from "../types";
 
-type SheetState = "amount" | "select" | "paying";
+type SheetState = "select" | "paying";
 
 interface FundWalletSheetProps {
   open: boolean;
@@ -44,7 +44,7 @@ export function FundWalletSheet({
   onSuccess,
 }: FundWalletSheetProps) {
   const { toast } = useToast();
-  const [sheetState, setSheetState] = useState<SheetState>("amount");
+  const [sheetState, setSheetState] = useState<SheetState>("select");
   const [activeMethod, setActiveMethod] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [amount, setAmount] = useState("25");
@@ -63,14 +63,14 @@ export function FundWalletSheet({
   }, [sheetState, activeMethod]);
 
   const resetAndClose = useCallback(() => {
-    setSheetState("amount");
+    setSheetState("select");
     setActiveMethod(null);
     setShowCloseConfirm(false);
     setAmount("25");
     onOpenChange(false);
   }, [onOpenChange]);
 
-  const handleAmountContinue = () => {
+  const handleMethodSelect = (methodId: string) => {
     const parsed = parseFloat(amount);
     if (!parsed || parsed < 1 || parsed > 10000) {
       toast({
@@ -80,10 +80,6 @@ export function FundWalletSheet({
       });
       return;
     }
-    setSheetState("select");
-  };
-
-  const handleMethodSelect = (methodId: string) => {
     setActiveMethod(methodId);
     setSheetState("paying");
   };
@@ -234,14 +230,14 @@ export function FundWalletSheet({
           </div>
 
           <div className="p-6">
-            {sheetState === "amount" && (
+            {sheetState === "select" && (
               <div className="max-w-sm mx-auto space-y-6">
                 <div>
                   <h3 className="text-lg font-bold text-neutral-900 mb-1">
-                    How much would you like to fund?
+                    Fund Wallet
                   </h3>
                   <p className="text-sm text-neutral-500">
-                    Enter the amount in USD to add to your wallet.
+                    Enter amount and choose how to pay.
                   </p>
                 </div>
 
@@ -265,42 +261,9 @@ export function FundWalletSheet({
                   </span>
                 </div>
 
-                <Button
-                  onClick={handleAmountContinue}
-                  disabled={!amount || parseFloat(amount) < 1}
-                  className="w-full h-12 text-base font-bold rounded-xl cursor-pointer"
-                  data-testid="button-fund-continue"
-                >
-                  Continue
-                </Button>
-              </div>
-            )}
-
-            {sheetState === "select" && (
-              <div className="max-w-sm mx-auto space-y-6">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-bold text-neutral-900">
-                      Choose payment method
-                    </h3>
-                    <button
-                      onClick={() => setSheetState("amount")}
-                      className="text-sm text-neutral-500 hover:text-neutral-700 font-medium cursor-pointer"
-                      data-testid="button-back-to-amount"
-                    >
-                      Change amount
-                    </button>
-                  </div>
-                  <p className="text-sm text-neutral-500 mt-1">
-                    Funding ${parseFloat(amount).toFixed(2)} USD
-                  </p>
-                </div>
-
                 <PaymentMethodSelector
                   methods={methods}
                   onSelect={handleMethodSelect}
-                  amount={parseFloat(amount)}
-                  buttonLabel="Fund"
                 />
               </div>
             )}

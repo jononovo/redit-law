@@ -206,7 +206,6 @@ export function CheckoutPaymentPanel({
         {autoSelect ? (
           <SingleMethodButton
             method={methods[0]}
-            amount={resolvedAmount}
             disabled={!isAmountValid}
             onSelect={handleMethodSelect}
           />
@@ -215,8 +214,6 @@ export function CheckoutPaymentPanel({
             methods={methods}
             onSelect={handleMethodSelect}
             disabled={!isAmountValid}
-            amount={resolvedAmount ?? undefined}
-            buttonLabel="Pay"
           />
         )}
 
@@ -236,19 +233,13 @@ export function CheckoutPaymentPanel({
 
 function SingleMethodButton({
   method,
-  amount,
   disabled,
   onSelect,
 }: {
   method: PaymentMethodDef;
-  amount: number | null;
   disabled: boolean;
   onSelect: (id: string) => void;
 }) {
-  const label = amount
-    ? `Pay $${amount.toFixed(2)}`
-    : "Pay";
-
   return (
     <button
       onClick={() => onSelect(method.id)}
@@ -261,8 +252,7 @@ function SingleMethodButton({
       data-testid="button-pay"
     >
       <span>{method.iconEmoji}</span>
-      {label}
-      <span className="ml-2 text-xs font-medium opacity-70">{method.label}</span>
+      Pay with {method.label}
     </button>
   );
 }
