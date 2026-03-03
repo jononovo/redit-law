@@ -31,21 +31,22 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef = useRef(true);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    abortRef.current = abortController;
+
+    createQrPayment(abortController.signal);
+
     return () => {
-      mountedRef.current = false;
+      abortController.abort();
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       if (autoPollTimeoutRef.current) clearTimeout(autoPollTimeoutRef.current);
     };
   }, []);
 
-  useEffect(() => {
-    createQrPayment();
-  }, []);
-
-  const createQrPayment = async () => {
+  const createQrPayment = async (signal: AbortSignal) => {
     try {
       const res = await fetch("/api/v1/qr-pay/create", {
         method: "POST",
@@ -54,6 +55,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
           wallet_address: context.walletAddress,
           amount_usd: context.amountUsd,
         }),
+        signal,
       });
 
       if (!res.ok) {
@@ -62,7 +64,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
       }
 
       const data = await res.json();
-      if (!mountedRef.current) return;
+      if (signal.aborted) return;
 
       const qrSession: QrSession = {
         paymentId: data.payment_id,
@@ -74,18 +76,20 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
 
       setSession(qrSession);
       setState("waiting");
-      startAutoPolling(qrSession.paymentId);
+      startAutoPolling(qrSession.paymentId, signal);
     } catch (err) {
-      if (!mountedRef.current) return;
+      if (signal.aborted) return;
       const message = err instanceof Error ? err.message : "Unknown error";
       setState("error");
       onError(message);
     }
   };
 
-  const startAutoPolling = (paymentId: string) => {
+  const startAutoPolling = (paymentId: string, signal: AbortSignal) => {
     pollTimerRef.current = setInterval(() => {
-      checkStatus(paymentId);
+      if (!signal.aborted) {
+        checkStatus(paymentId);
+      }
     }, AUTO_POLL_INTERVAL_MS);
 
     autoPollTimeoutRef.current = setTimeout(() => {
@@ -93,21 +97,19 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
         clearInterval(pollTimerRef.current);
         pollTimerRef.current = null;
       }
-      if (mountedRef.current) {
+      if (!signal.aborted) {
         setAutoPollActive(false);
       }
     }, AUTO_POLL_DURATION_MS);
   };
 
   const checkStatus = async (paymentId: string) => {
-    if (!mountedRef.current) return;
-
     try {
       const res = await fetch(`/api/v1/qr-pay/status/${paymentId}`);
       if (!res.ok) return;
 
       const data = await res.json();
-      if (!mountedRef.current) return;
+      if (abortRef.current?.signal.aborted) return;
 
       setLastCheckTime(Date.now());
 
@@ -119,7 +121,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
         setState("confirmed");
 
         setTimeout(() => {
-          if (!mountedRef.current) return;
+          if (abortRef.current?.signal.aborted) return;
           onSuccess({
             method: "qr_wallet",
             status: "completed",
@@ -152,7 +154,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
 
     setState("checking");
     checkStatus(session.paymentId).finally(() => {
-      if (mountedRef.current && state !== "confirmed") {
+      if (!abortRef.current?.signal.aborted && state !== "confirmed") {
         setState("waiting");
       }
     });
