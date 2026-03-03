@@ -225,7 +225,7 @@ Full invoicing system — create, send, track, and collect payment on invoices t
 - **Pages**: `/app/invoices` (list with filters), `/app/invoices/create` (create form with line items repeater), `/app/invoices/[invoice_id]` (detail with status timeline, actions).
 
 ### Crypto Onramp (`lib/crypto-onramp/`) — Server-Side Only
-Server-side Stripe Crypto Onramp logic. Legacy client-side components have been removed — all client UI is now in `lib/payments/`.
+Server-side Stripe Crypto Onramp logic. Client-side UI is now in `lib/payments/`. Legacy client components retained with `-legacy` suffix for reference.
 - **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
 - **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address (still used by API routes)
 - **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — still used by webhook route
