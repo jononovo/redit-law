@@ -86,10 +86,27 @@ export function BasePayHandler({ context, onSuccess, onError, onCancel }: Paymen
           });
         }, 1500);
       } catch (err) {
-        console.error("[BasePayHandler] Error:", err);
-        const message = err instanceof Error ? err.message : "Payment failed";
+        const isEmptyObject = err != null && typeof err === "object" && !(err instanceof Error) && Object.keys(err).length === 0;
+        if (isEmptyObject || err === null || err === undefined) {
+          console.warn("[BasePayHandler] Payment dismissed by user");
+          onCancel();
+          return;
+        }
 
-        if (message.includes("rejected") || message.includes("cancelled") || message.includes("canceled")) {
+        console.error("[BasePayHandler] Error:", err);
+
+        let message: string;
+        if (err instanceof Error) {
+          message = err.message;
+        } else if (typeof err === "object" && err !== null && "message" in err && typeof (err as any).message === "string") {
+          message = (err as any).message;
+        } else if (typeof err === "string") {
+          message = err;
+        } else {
+          message = "Payment failed. Please try again.";
+        }
+
+        if (message.includes("rejected") || message.includes("cancelled") || message.includes("canceled") || message.includes("closed")) {
           onCancel();
           return;
         }
