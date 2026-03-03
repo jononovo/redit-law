@@ -291,7 +291,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
             data-testid="button-copy-qr-uri"
           >
             <Copy className="w-4 h-4 mr-1" />
-            Copy Link
+            EIP-681 URI
           </Button>
           <Button
             variant="ghost"
