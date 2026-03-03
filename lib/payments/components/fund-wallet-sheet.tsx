@@ -20,6 +20,7 @@ import { getAvailableMethods } from "../methods";
 import { PaymentMethodSelector } from "./payment-method-selector";
 import { StripeOnrampHandler } from "../handlers/stripe-onramp-handler";
 import { BasePayHandler } from "../handlers/base-pay-handler";
+import { QrWalletHandler } from "../handlers/qr-wallet-handler";
 import type { PaymentContext, PaymentResult } from "../types";
 
 type SheetState = "select" | "paying";
@@ -55,7 +56,7 @@ export function FundWalletSheet({
   const title = walletDisplayName ? `Fund "${walletDisplayName}"` : "Fund Wallet";
 
   const handleClose = useCallback(() => {
-    if (sheetState === "paying" && activeMethod === "stripe_onramp") {
+    if (sheetState === "paying" && (activeMethod === "stripe_onramp" || activeMethod === "qr_wallet")) {
       setShowCloseConfirm(true);
       return;
     }
@@ -128,6 +129,15 @@ export function FundWalletSheet({
       case "base_pay":
         return (
           <BasePayHandler
+            context={ctx}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onCancel={handlePaymentCancel}
+          />
+        );
+      case "qr_wallet":
+        return (
+          <QrWalletHandler
             context={ctx}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}

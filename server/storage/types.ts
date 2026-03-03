@@ -47,6 +47,7 @@ import {
   type SellerProfile, type InsertSellerProfile,
   type Invoice, type InsertInvoice,
   type BasePayPayment, type InsertBasePayPayment,
+  type QrPayment, type InsertQrPayment,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
@@ -340,4 +341,10 @@ export interface IStorage {
   createBasePayPayment(data: InsertBasePayPayment): Promise<BasePayPayment>;
   getBasePayPaymentByTxId(txId: string): Promise<BasePayPayment | null>;
   updateBasePayPaymentStatus(txId: string, status: string, confirmedAt?: Date): Promise<BasePayPayment | null>;
+
+  createQrPayment(data: InsertQrPayment): Promise<QrPayment>;
+  getQrPaymentById(paymentId: string): Promise<QrPayment | null>;
+  confirmQrPayment(paymentId: string, creditedUsdc: number, confirmedAt: Date): Promise<QrPayment | null>;
+  expireQrPayment(paymentId: string): Promise<QrPayment | null>;
+  expireWaitingQrPaymentsForWallet(walletAddress: string): Promise<number>;
 }

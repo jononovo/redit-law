@@ -29,7 +29,7 @@ export async function verifyBasePayPayment(input: BasePayVerifyInput): Promise<B
   }
 
   if (expectedAmount && paymentStatus.amount !== expectedAmount) {
-    throw new Error(`Amount mismatch: expected ${expectedAmount}, got ${paymentStatus.amount}`);
+    console.warn(`[Base Pay] Amount differs: expected ${expectedAmount}, got ${paymentStatus.amount}. Using actual amount.`);
   }
 
   if (paymentStatus.recipient.toLowerCase() !== expectedRecipient.toLowerCase()) {

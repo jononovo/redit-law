@@ -17,6 +17,14 @@ export const PAYMENT_METHODS: Record<string, PaymentMethodDef> = {
     supportedRails: ["rail1"],
     supportedModes: ["topup", "checkout"],
   },
+  qr_wallet: {
+    id: "qr_wallet",
+    label: "Crypto Wallet",
+    subtitle: "Send USDC from any wallet",
+    iconEmoji: "📱",
+    supportedRails: ["rail1"],
+    supportedModes: ["topup"],
+  },
 };
 
 export function getAvailableMethods(

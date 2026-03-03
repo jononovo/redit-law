@@ -20,6 +20,7 @@ import { shippingAddressMethods } from "./shipping-addresses";
 import { sellerProfileMethods } from "./seller-profiles";
 import { invoiceMethods } from "./invoices";
 import { basePayMethods } from "./base-pay";
+import { qrPayMethods } from "./qr-pay";
 import type { IStorage } from "./types";
 
 export type { IStorage };
@@ -47,4 +48,5 @@ export const storage: IStorage = {
   ...sellerProfileMethods,
   ...invoiceMethods,
   ...basePayMethods,
+  ...qrPayMethods,
 };

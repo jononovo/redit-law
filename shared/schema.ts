@@ -1448,6 +1448,28 @@ export const basePayPayments = pgTable("base_pay_payments", {
 export type BasePayPayment = typeof basePayPayments.$inferSelect;
 export type InsertBasePayPayment = typeof basePayPayments.$inferInsert;
 
+export const qrPayments = pgTable("qr_payments", {
+  id: serial("id").primaryKey(),
+  paymentId: text("payment_id").notNull().unique(),
+  ownerUid: text("owner_uid").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  eip681Uri: text("eip681_uri").notNull(),
+  balanceBefore: bigint("balance_before", { mode: "number" }).notNull(),
+  creditedUsdc: bigint("credited_usdc", { mode: "number" }),
+  status: text("status").notNull().default("waiting"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+}, (table) => [
+  index("qr_payments_payment_id_idx").on(table.paymentId),
+  index("qr_payments_owner_uid_idx").on(table.ownerUid),
+  index("qr_payments_status_idx").on(table.status),
+]);
+
+export type QrPayment = typeof qrPayments.$inferSelect;
+export type InsertQrPayment = typeof qrPayments.$inferInsert;
+
 export const createInvoiceSchema = z.object({
   checkout_page_id: z.string().min(1),
   recipient_name: z.string().max(200).optional().nullable(),
