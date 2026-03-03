@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
 import { useToast } from "@/hooks/use-toast";
 import type { PaymentHandlerProps } from "../types";
@@ -171,17 +171,6 @@ export function StripeOnrampHandler({ context, onSuccess, onError, onCancel }: P
 
   return (
     <div className="flex flex-col h-full" data-testid="stripe-onramp-handler">
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-bold text-neutral-900 text-lg">Complete Payment</span>
-        <button
-          onClick={handleCancel}
-          className="text-sm text-neutral-500 hover:text-neutral-700 font-medium cursor-pointer flex items-center gap-1"
-          data-testid="button-cancel-stripe"
-        >
-          <X className="w-4 h-4" />
-          Cancel
-        </button>
-      </div>
       <div className="flex-1 relative min-h-[500px]">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
