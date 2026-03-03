@@ -54,6 +54,7 @@ const PAYMENT_METHODS = [
   { value: "x402", label: "x402 Protocol" },
   { value: "usdc_direct", label: "USDC Direct" },
   { value: "stripe_onramp", label: "Stripe Onramp (Card/Bank)" },
+  { value: "base_pay", label: "Base Pay (USDC)" },
 ];
 
 export default function CreateCheckoutPage() {
