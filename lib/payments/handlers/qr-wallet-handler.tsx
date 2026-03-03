@@ -277,7 +277,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
             ) : (
               <>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Check Payment
+                Check for Receipt
               </>
             )}
           </Button>
