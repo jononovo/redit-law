@@ -3,7 +3,12 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ChevronRight, Book, Code } from "lucide-react";
+import { Menu, Home, Book, Code } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   sections,
   getSectionsByAudience,
@@ -120,7 +125,7 @@ function SidebarSection({
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const slugParts = pathname.replace("/docs/", "").replace("/docs", "").split("/").filter(Boolean);
   const detectedAudience = slugParts.length > 0 ? getAudienceFromSlug(slugParts) : "user";
@@ -141,28 +146,38 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between">
-        <Link href="/docs" className="text-base font-bold text-neutral-900" data-testid="link-docs-home-mobile">
-          Docs
-        </Link>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-1.5 rounded-md hover:bg-neutral-100 cursor-pointer"
-          data-testid="button-mobile-menu"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="p-1.5 rounded-md hover:bg-neutral-100 cursor-pointer"
+            data-testid="button-mobile-menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Link href="/" className="text-base font-bold text-neutral-900" data-testid="link-home-mobile">
+            CreditClaw
+          </Link>
+        </div>
+        <Link
+          href="/docs"
+          className="p-1.5 rounded-md hover:bg-neutral-100"
+          data-testid="link-docs-home-mobile"
         >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+          <Home className="w-5 h-5 text-neutral-600" />
+        </Link>
       </div>
 
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-white pt-14 overflow-y-auto">
+      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <SheetContent side="left" className="p-0 max-w-[80%] w-72">
+          <SheetTitle className="sr-only">Documentation navigation</SheetTitle>
           <Sidebar
             audience={audience}
             onAudienceChange={handleAudienceChange}
             currentPath={pathname}
-            onNavigate={() => setMobileMenuOpen(false)}
+            onNavigate={() => setDrawerOpen(false)}
           />
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
       <main className="flex-1 min-w-0 lg:py-0 pt-14">
         {children}
