@@ -173,8 +173,8 @@ export default function PublicCheckoutPage() {
   const renderLeftPanel = () => {
     if (invoice) {
       return (
-        <div className="bg-neutral-900 text-white flex flex-col justify-between p-6 md:p-10 lg:p-14" data-testid="checkout-invoice-panel">
-          <div className="flex-1 flex flex-col justify-center">
+        <div className="bg-neutral-900 text-white flex flex-col justify-between p-6 md:p-10 lg:p-14 xl:p-20" data-testid="checkout-invoice-panel">
+          <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
             <div className="mb-8">
               {checkout.seller_logo_url ? (
                 <Image src={checkout.seller_logo_url} alt={checkout.seller_name || "Seller"} width={48} height={48} className="rounded-lg object-contain" data-testid="img-seller-logo" />
@@ -261,8 +261,8 @@ export default function PublicCheckoutPage() {
     }
 
     return (
-      <div className="bg-neutral-900 text-white flex flex-col justify-between p-6 md:p-10 lg:p-14">
-        <div className="flex-1 flex flex-col justify-center">
+      <div className="bg-neutral-900 text-white flex flex-col justify-between p-6 md:p-10 lg:p-14 xl:p-20">
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
           <div className="mb-8">
             {checkout.seller_logo_url ? (
               <Image src={checkout.seller_logo_url} alt={checkout.seller_name || "Seller"} width={48} height={48} className="rounded-lg object-contain" data-testid="img-seller-logo" />
