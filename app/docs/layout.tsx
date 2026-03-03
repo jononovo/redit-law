@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { PanelLeft, Book, Code } from "lucide-react";
+import { PanelLeft, Home, Book, Code } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -34,14 +34,25 @@ function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-neutral-200">
-        <Link
-          href="/docs"
-          className="text-lg font-bold text-neutral-900 hover:text-neutral-700 transition-colors"
-          onClick={onNavigate}
-          data-testid="link-docs-home"
-        >
-          Documentation
-        </Link>
+        <div className="flex items-center justify-between mb-1">
+          <Link
+            href="/"
+            className="flex items-center gap-2"
+            onClick={onNavigate}
+            data-testid="link-home"
+          >
+            <Image src="/images/logo-claw-chip.png" alt="CreditClaw" width={28} height={28} className="object-contain" />
+            <span className="text-base font-bold text-neutral-900">CreditClaw</span>
+          </Link>
+          <Link
+            href="/docs"
+            className="p-1.5 rounded-md hover:bg-neutral-100 transition-colors"
+            onClick={onNavigate}
+            data-testid="link-docs-home"
+          >
+            <Home className="w-4.5 h-4.5 text-neutral-400" />
+          </Link>
+        </div>
         <div className="mt-3 flex rounded-lg bg-neutral-100 p-0.5" data-testid="toggle-audience">
           <button
             onClick={() => onAudienceChange("user")}
