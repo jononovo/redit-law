@@ -264,7 +264,7 @@ export function QrWalletHandler({ context, onSuccess, onError, onCancel }: Payme
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
           <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800 leading-relaxed">
-            <strong>USDC on Base network only.</strong> Sending other tokens or using a different network will result in lost funds.
+            <strong>USDC on Base network only.</strong> Other tokens or networks won't be detected and your wallet won't be credited.
           </p>
         </div>
       </div>
