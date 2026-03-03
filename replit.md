@@ -224,15 +224,32 @@ Full invoicing system — create, send, track, and collect payment on invoices t
 - **Email & PDF**: `lib/invoice-email.ts` (HTML email with SendGrid + PDF attachment), `lib/invoice-pdf.ts` (server-side PDF generation via `pdf-lib`).
 - **Pages**: `/app/invoices` (list with filters), `/app/invoices/create` (create form with line items repeater), `/app/invoices/[invoice_id]` (detail with status timeline, actions).
 
-### Crypto Onramp (`lib/crypto-onramp/`)
-Standalone module for funding any USDC wallet on Base via fiat-to-crypto. Provider-agnostic structure — Stripe is the first provider.
+### Crypto Onramp (`lib/crypto-onramp/`) — Server-Side Only
+Server-side Stripe Crypto Onramp logic. The client-side UI components (`use-stripe-onramp.ts`, `stripe-onramp-sheet.tsx`) are superseded by `lib/payments/` but retained for reference.
 - **`types.ts`** — `WalletTarget`, `OnrampSessionResult`, `OnrampWebhookEvent`, `OnrampProvider`
-- **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address
-- **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — extracted from webhook route
+- **`stripe-onramp/session.ts`** — `createStripeOnrampSession()` — creates Stripe Crypto Onramp session for any wallet address (still used by API routes)
+- **`stripe-onramp/webhook.ts`** — `parseStripeOnrampEvent()` + `handleStripeOnrampFulfillment()` — still used by webhook route
 - **`stripe-onramp/types.ts`** — Stripe-specific payload types
-- **`components/use-stripe-onramp.ts`** — React hook encapsulating session creation, Stripe SDK script loading, widget mounting, close-confirm flow
-- **`components/stripe-onramp-sheet.tsx`** — `StripeOnrampSheet` — full Sheet + embedded Stripe widget + mobile header + close-confirm dialog
-- Currently hardcoded to Rail 1 only. Adding another rail = new API route + button, zero changes to the module itself.
+- **`components/`** — Legacy client components (no longer imported by any page, superseded by `lib/payments/handlers/`)
+
+### Payments UI (`lib/payments/`)
+Modular client-side payment method selection and execution for wallet top-ups (and future checkout). Each payment method is a fully self-contained handler component. Pages provide a `PaymentContext` and render the `FundWalletSheet` — they never touch SDK details.
+- **`types.ts`** — `PaymentContext` (mode, rail, amount, walletAddress, etc.), `PaymentResult`, `PaymentMethodDef`, `PaymentHandlerProps`
+- **`methods.ts`** — `PAYMENT_METHODS` registry + `getAvailableMethods(rail, mode, allowedMethods?)` — filters by rail/mode
+- **`handlers/stripe-onramp-handler.tsx`** — Self-contained Stripe handler: creates session via API, loads Stripe SDK, mounts widget, handles `fulfillment_complete`, fallback to `redirect_url`
+- **`handlers/base-pay-handler.tsx`** — Self-contained Base Pay handler: calls `pay()` from `@base-org/account` (popup), verifies via backend, reports success/error
+- **`components/payment-method-selector.tsx`** — Renders vertical list of payment method buttons with amount, label, subtitle
+- **`components/fund-wallet-sheet.tsx`** — Sheet wrapper: amount input → method selection → handler rendering. Used by stripe-wallet page (Rail 1). Ready for card-wallet page (Rail 2) with rail-specific method filtering.
+- **Design principle**: Each handler is independent — no shared base class, no shared hooks. One handler can't break another. Adding a new method = new handler file + entry in `methods.ts`.
+
+### Base Pay Backend (`lib/base-pay/`)
+Server-side Base Pay verification and ledger logic (Phase 1).
+- **`types.ts`** — `BasePayVerifyInput`, `BasePayVerifyResult`, `BasePayCheckoutInput`
+- **`verify.ts`** — RPC verification via `getPaymentStatus()`, recipient/amount check, replay protection
+- **`ledger.ts`** — `creditWalletFromBasePay()` — race-safe wallet crediting (insert pending record first, credit second)
+- **`sale.ts`** — `recordBasePaySale()` — sale recording for checkout (mirrors Stripe flow exactly)
+- **Storage**: `server/storage/base-pay.ts` — `createBasePayPayment`, `getBasePayPaymentByTxId`, `updateBasePayPaymentStatus`
+- **API routes**: `POST /api/v1/base-pay/verify` (authenticated top-up), `POST /api/v1/checkout/[id]/pay/base-pay` (public checkout)
 
 ### Procurement (`lib/procurement/`)
 Standalone module for spending USDC on products/services. Provider-agnostic structure — CrossMint WorldStore is the first provider.

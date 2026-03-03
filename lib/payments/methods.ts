@@ -1,0 +1,33 @@
+import type { PaymentMethodDef } from "./types";
+
+export const PAYMENT_METHODS: Record<string, PaymentMethodDef> = {
+  stripe_onramp: {
+    id: "stripe_onramp",
+    label: "Card / Bank",
+    subtitle: "Secure payment powered by Stripe",
+    iconEmoji: "💳",
+    supportedRails: ["rail1"],
+    supportedModes: ["topup", "checkout"],
+  },
+  base_pay: {
+    id: "base_pay",
+    label: "Base Pay",
+    subtitle: "One-tap USDC from your Base wallet",
+    iconEmoji: "🔵",
+    supportedRails: ["rail1"],
+    supportedModes: ["topup", "checkout"],
+  },
+};
+
+export function getAvailableMethods(
+  rail: "rail1" | "rail2",
+  mode: "topup" | "checkout",
+  allowedMethods?: string[],
+): PaymentMethodDef[] {
+  return Object.values(PAYMENT_METHODS).filter((m) => {
+    if (!m.supportedRails.includes(rail)) return false;
+    if (!m.supportedModes.includes(mode)) return false;
+    if (allowedMethods && !allowedMethods.includes(m.id)) return false;
+    return true;
+  });
+}

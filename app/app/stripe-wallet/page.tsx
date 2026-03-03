@@ -17,8 +17,7 @@ import { LinkBotDialog } from "@/components/wallet/dialogs/link-bot-dialog";
 import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import { CreateCryptoWalletDialog } from "@/components/wallet/dialogs/create-crypto-wallet-dialog";
-import { useStripeOnramp } from "@/lib/crypto-onramp/components/use-stripe-onramp";
-import { StripeOnrampSheet } from "@/lib/crypto-onramp/components/stripe-onramp-sheet";
+import { FundWalletSheet } from "@/lib/payments/components/fund-wallet-sheet";
 import { RailPageTabs } from "@/components/wallet/rail-page-tabs";
 import { TransactionList } from "@/components/wallet/transaction-list";
 import { OrderList, type OrderRow } from "@/components/wallet/order-list";
@@ -138,10 +137,8 @@ export default function StripeWalletPage() {
     onUpdate: fetchWallets,
   });
 
-  const onramp = useStripeOnramp({
-    apiEndpoint: "/api/v1/stripe-wallet/onramp/session",
-    onFundingComplete: fetchWallets,
-  });
+  const [fundSheetOpen, setFundSheetOpen] = useState(false);
+  const [fundTarget, setFundTarget] = useState<{ id: number; address: string; botName?: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -226,7 +223,7 @@ export default function StripeWalletPage() {
                     key={wallet.id}
                     wallet={wallet}
                     color="blue"
-                    onFund={() => onramp.open({ id: wallet.id, address: wallet.address, bot_name: wallet.bot_name })}
+                    onFund={() => { setFundTarget({ id: wallet.id, address: wallet.address, botName: wallet.bot_name }); setFundSheetOpen(true); }}
                     onFreeze={() => walletActions.handleFreeze({ id: wallet.id, name: wallet.bot_name || "Wallet", status: wallet.status })}
                     onGuardrails={() => guardrails.openDialog(wallet)}
                     onActivity={() => { setSelectedWallet(wallet); setActiveTab("transactions"); }}
@@ -236,7 +233,7 @@ export default function StripeWalletPage() {
                     onSyncBalance={() => walletActions.handleSyncAndPatch(wallet.id, setWallets)}
                     onTransfer={() => transfer.openTransferDialog(wallet)}
                     syncingBalance={walletActions.syncingId === wallet.id}
-                    fundLabel="Fund with Stripe"
+                    fundLabel="Fund"
                     testIdPrefix="stripe"
                     basescanUrl={`https://basescan.org/address/${wallet.address}#tokentxns`}
                   />
@@ -306,7 +303,17 @@ export default function StripeWalletPage() {
         variant="crypto"
       />
 
-      <StripeOnrampSheet onramp={onramp} />
+      {fundTarget && (
+        <FundWalletSheet
+          open={fundSheetOpen}
+          onOpenChange={setFundSheetOpen}
+          walletId={fundTarget.id}
+          walletAddress={fundTarget.address}
+          botName={fundTarget.botName}
+          rail="rail1"
+          onSuccess={fetchWallets}
+        />
+      )}
 
       <LinkBotDialog
         open={!!botLinking.linkTarget}
