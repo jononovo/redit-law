@@ -1,11 +1,13 @@
 "use client";
 
-import { Search, Settings, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Search, Settings, LogOut, LifeBuoy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { NotificationPopover } from "./notification-popover";
+import { FeedbackDialog } from "./feedback-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +19,7 @@ import {
 export function Header({ title }: { title: string }) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   return (
     <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-8 flex items-center justify-between">
@@ -60,6 +63,14 @@ export function Header({ title }: { title: string }) {
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setFeedbackDialogOpen(true)}
+              className="cursor-pointer"
+              data-testid="menu-item-support"
+            >
+              <LifeBuoy className="w-4 h-4 mr-2" />
+              Support
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={logout}
@@ -71,6 +82,11 @@ export function Header({ title }: { title: string }) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <FeedbackDialog
+          open={feedbackDialogOpen}
+          onOpenChange={setFeedbackDialogOpen}
+        />
       </div>
     </header>
   );

@@ -340,6 +340,15 @@ Bot/agent-facing API infrastructure consolidated into a feature folder:
 - **Shared builders:** `lib/agent-management/agent-api/status-builders.ts` — reusable functions for building per-rail detail responses.
 - **Owner Rail Management:** `GET /api/v1/bots/rails` — owner-facing aggregated rail connections per bot.
 
+### Feedback / Support Widget
+In-app feedback dialog accessible from the profile dropdown in the dashboard header. Authenticated users can submit bug reports, feature requests, billing questions, technical support requests, and general feedback.
+- **Frontend:** `components/dashboard/feedback-dialog.tsx` — Dialog component using existing UI primitives (Dialog, Select, Textarea, Button). Manages own form state and submission.
+- **Trigger:** Profile dropdown in `components/dashboard/header.tsx` — "Support" menu item with LifeBuoy icon between Settings and Log Out.
+- **Backend:** `app/api/v1/feedback/route.ts` — POST endpoint, authenticated via `getSessionUser`, validates with Zod, sends formatted HTML+text email via SendGrid to support inbox.
+- **No database storage** — feedback goes straight to email. `replyTo` is set to the user's email for direct replies.
+- **Security:** All user-supplied content is HTML-escaped before email insertion. Message length capped at 5000 chars.
+- **Config:** `SUPPORT_EMAIL` env var (defaults to `support@creditclaw.com`).
+
 ### API Endpoints
 CreditClaw provides distinct API endpoints for each rail and for master guardrails, facilitating wallet management, transactions, approvals, and guardrail configuration. Bot-facing APIs allow for purchase requests, status polling, and skill discovery. Owner-facing APIs manage cards, guardrails, and approvals.
 
