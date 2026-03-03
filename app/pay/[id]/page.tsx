@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Lock, CreditCard, Loader2, AlertCircle, Clock, Ban, Mail, FileText, Calendar, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Lock, Loader2, AlertCircle, Clock, Ban, Mail, FileText, Calendar, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CheckoutPaymentPanel } from "@/lib/payments/components/checkout-payment-panel";
+import type { PaymentResult } from "@/lib/payments/types";
 
 interface CheckoutPageData {
   checkout_page_id: string;
@@ -56,14 +56,7 @@ export default function PublicCheckoutPage() {
   const [pageState, setPageState] = useState<PageState>("loading");
   const [checkout, setCheckout] = useState<CheckoutPageData | null>(null);
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
-  const [customAmount, setCustomAmount] = useState("");
-  const [buyerName, setBuyerName] = useState("");
   const [buyerCount, setBuyerCount] = useState<number | null>(null);
-  const [paying, setPaying] = useState(false);
-  const [onrampOpen, setOnrampOpen] = useState(false);
-  const [onrampLoading, setOnrampLoading] = useState(false);
-  const mountRef = useRef<HTMLDivElement>(null);
-  const sessionRef = useRef<any>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -117,115 +110,11 @@ export default function PublicCheckoutPage() {
 
   const displayAmount = effectiveAmountUsd ? effectiveAmountUsd.toFixed(2) : null;
 
-  const loadScript = useCallback((src: string) => {
-    return new Promise<void>((resolve, reject) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
-      }
-      const script = document.createElement("script");
-      script.src = src;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load ${src}`));
-      document.head.appendChild(script);
-    });
-  }, []);
-
-  const handlePay = async () => {
-    if (!checkout) return;
-
-    const isOpenAmount = !invoice && (!checkout.amount_locked || !checkout.amount_usdc);
-    const amountUsd = isOpenAmount ? parseFloat(customAmount) : undefined;
-
-    if (isOpenAmount && (!amountUsd || amountUsd < 1 || amountUsd > 10000)) {
-      toast({ title: "Invalid amount", description: "Please enter an amount between $1 and $10,000", variant: "destructive" });
-      return;
-    }
-
-    setPaying(true);
-
-    try {
-      const body: Record<string, unknown> = {};
-      if (amountUsd) body.amount_usd = amountUsd;
-      if (invoice) body.invoice_ref = invoice.reference_number;
-      if (buyerName.trim()) body.buyer_name = buyerName.trim();
-
-      const res = await fetch(`/api/v1/checkout/${id}/pay/stripe-onramp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast({ title: "Payment error", description: err.error || "Failed to initiate payment", variant: "destructive" });
-        setPaying(false);
-        return;
-      }
-
-      const data = await res.json();
-      const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-
-      const isInIframe = window.self !== window.top;
-
-      if (publishableKey && !isInIframe) {
-        setOnrampOpen(true);
-        setOnrampLoading(true);
-
-        try {
-          await loadScript("https://js.stripe.com/clover/stripe.js");
-          await loadScript("https://crypto-js.stripe.com/crypto-onramp-outer.js");
-
-          const StripeOnramp = (window as any).StripeOnramp;
-          if (!StripeOnramp) throw new Error("SDK not loaded");
-
-          const stripeOnramp = StripeOnramp(publishableKey);
-          const session = stripeOnramp.createSession({
-            clientSecret: data.client_secret,
-          });
-
-          sessionRef.current = session;
-
-          session.addEventListener("onramp_ui_loaded", () => {
-            setOnrampLoading(false);
-          });
-
-          session.addEventListener("onramp_session_updated", (e: any) => {
-            const status = e?.payload?.session?.status;
-            if (status === "fulfillment_complete") {
-              toast({ title: "Payment successful!", description: "Your payment has been processed." });
-              setTimeout(() => {
-                router.push(`/pay/${id}/success`);
-              }, 1500);
-            }
-          });
-
-          setTimeout(() => {
-            if (mountRef.current) {
-              session.mount(mountRef.current);
-            }
-            setOnrampLoading(false);
-          }, 100);
-        } catch {
-          setOnrampOpen(false);
-          if (data.redirect_url) {
-            window.open(data.redirect_url, "_blank");
-            toast({ title: "Opening Stripe", description: "Payment opened in a new tab." });
-          } else {
-            toast({ title: "Error", description: "Failed to load payment widget", variant: "destructive" });
-          }
-        }
-      } else if (data.redirect_url) {
-        window.open(data.redirect_url, "_blank");
-        toast({ title: "Opening Stripe", description: "Payment opened in a new tab." });
-      } else {
-        toast({ title: "Error", description: "Payment method unavailable", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Error", description: "Failed to initiate payment", variant: "destructive" });
-    } finally {
-      setPaying(false);
-    }
+  const handlePaymentSuccess = (_result: PaymentResult) => {
+    toast({ title: "Payment successful!", description: "Your payment has been processed." });
+    setTimeout(() => {
+      router.push(`/pay/${id}/success`);
+    }, 1500);
   };
 
   if (pageState === "loading") {
@@ -435,117 +324,18 @@ export default function PublicCheckoutPage() {
       {renderLeftPanel()}
 
       <div className="bg-white flex flex-col justify-center p-6 md:p-10 lg:p-14">
-        {onrampOpen ? (
-          <div className="flex flex-col h-full" data-testid="checkout-onramp">
-            <div className="flex items-center justify-between mb-4">
-              <span className="font-bold text-neutral-900 text-lg">Complete Payment</span>
-              <button
-                onClick={() => {
-                  if (sessionRef.current) {
-                    try { sessionRef.current.destroy?.(); } catch {}
-                    sessionRef.current = null;
-                  }
-                  setOnrampOpen(false);
-                }}
-                className="text-sm text-neutral-500 hover:text-neutral-700 font-medium cursor-pointer"
-                data-testid="button-cancel-payment"
-              >
-                Cancel
-              </button>
-            </div>
-            <div className="flex-1 relative min-h-[500px]">
-              {onrampLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                    <p className="text-sm text-neutral-500">Loading payment...</p>
-                  </div>
-                </div>
-              )}
-              <div ref={mountRef} className="w-full min-h-[500px]" data-testid="container-checkout-onramp" />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full max-w-sm mx-auto">
-            <h2 className="text-xl font-bold text-neutral-900 mb-6" data-testid="text-payment-heading">
-              {invoice ? `Pay Invoice ${invoice.reference_number}` : "Payment Details"}
-            </h2>
-
-            <div className="space-y-6">
-              {!displayAmount && (
-                <div>
-                  <label className="text-sm font-semibold text-neutral-700 mb-2 block">Amount</label>
-                  <div className="relative" data-testid="input-custom-amount-wrapper">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-neutral-400">$</span>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="10000"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={customAmount}
-                      onChange={(e) => setCustomAmount(e.target.value)}
-                      className="pl-8 text-2xl font-bold h-14 rounded-xl"
-                      data-testid="input-custom-amount"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-neutral-400 font-medium">USD</span>
-                  </div>
-                </div>
-              )}
-
-              {displayAmount && (
-                <div className="bg-neutral-50 rounded-xl px-4 py-3 border border-neutral-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-neutral-500">Total</span>
-                    <span className="text-2xl font-bold text-neutral-900" data-testid="text-payment-total">${displayAmount} USD</span>
-                  </div>
-                </div>
-              )}
-
-              {checkout.collect_buyer_name && (
-                <div>
-                  <label className="text-sm font-semibold text-neutral-700 mb-2 block">Your Name</label>
-                  <Input
-                    type="text"
-                    placeholder="Enter your name"
-                    value={buyerName}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                    className="rounded-xl"
-                    data-testid="input-buyer-name"
-                  />
-                </div>
-              )}
-
-              <Button
-                onClick={handlePay}
-                disabled={paying || (!displayAmount && !customAmount)}
-                className="w-full h-12 text-base font-bold rounded-xl cursor-pointer"
-                data-testid="button-pay"
-              >
-                {paying ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    {displayAmount ? `Pay $${displayAmount}` : customAmount ? `Pay $${parseFloat(customAmount).toFixed(2)}` : "Pay"}
-                    <span className="ml-2 text-xs font-medium opacity-70">Card / Bank</span>
-                  </>
-                )}
-              </Button>
-
-              {checkout.page_type === "event" && buyerCount !== null && buyerCount > 0 && (
-                <div className="flex items-center justify-center gap-1.5 text-sm text-neutral-400" data-testid="text-event-buyer-count">
-                  <Users className="w-4 h-4" />
-                  <span>{buyerCount} {buyerCount === 1 ? "person" : "people"} bought this</span>
-                </div>
-              )}
-
-              <p className="text-center text-xs text-neutral-400 font-medium">
-                Secure payment powered by Stripe
-              </p>
-            </div>
-          </div>
-        )}
+        <CheckoutPaymentPanel
+          checkoutPageId={checkout.checkout_page_id}
+          walletAddress={checkout.wallet_address}
+          effectiveAmount={effectiveAmountUsd}
+          displayAmount={displayAmount}
+          invoiceRef={invoice?.reference_number}
+          collectBuyerName={checkout.collect_buyer_name}
+          allowedMethods={checkout.allowed_methods}
+          pageType={checkout.page_type}
+          buyerCount={buyerCount}
+          onSuccess={handlePaymentSuccess}
+        />
       </div>
     </div>
   );
