@@ -92,6 +92,6 @@
   },
   "private": true,
   "overrides": {
-    "@base-org/account": "latest"
+    "@base-org/account": "$@base-org/account"
   }
 }
