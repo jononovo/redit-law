@@ -115,3 +115,10 @@ Unlinking a bot is the safest way to revoke access without deleting the wallet. 
 - **Review transactions regularly**: Check the transaction history for each wallet to spot unexpected patterns
 - **Freeze first, ask questions later**: If something looks wrong, freeze the wallet immediately — you can always unfreeze it
 - **One bot per wallet**: While you can relink wallets, it's cleaner to have dedicated wallets per bot for easier tracking
+
+
+## Next Steps
+
+- [Spending Limits](/docs/guardrails/spending-limits) — Detailed guide to spending caps
+- [Approval Modes](/docs/guardrails/approval-modes) — Configure how purchases are approved
+- [Category Controls](/docs/guardrails/category-controls) — Block or allow specific merchant categories

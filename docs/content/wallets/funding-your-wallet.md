@@ -78,3 +78,10 @@ Transfers between your own wallets are instant and free. You can transfer betwee
 - **Set guardrails first**: Configure spending limits and approval modes before funding to ensure your bot operates within your comfort zone
 - **Monitor balances**: Check wallet balances regularly from the dashboard — you can see all wallet balances at a glance
 - **Auto-pause**: Card Wallets support auto-pause when the balance hits zero, preventing failed transactions
+
+
+## Next Steps
+
+- [Freezing & Controls](/docs/wallets/freezing-and-controls) — Set up spending limits and guardrails
+- [Spending Limits](/docs/guardrails/spending-limits) — Configure per-transaction and daily caps
+- [Checkout Pages](/docs/selling/checkout-pages) — Accept payments from others

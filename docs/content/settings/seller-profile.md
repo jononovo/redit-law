@@ -62,3 +62,10 @@ Your seller profile information is used across several features:
 - **Keep your logo URL stable.** If you change where your logo is hosted, remember to update the URL here too.
 - **Use a professional email.** A business email (e.g., billing@yourcompany.com) builds more trust than a personal email.
 - **Update your profile before sending invoices.** Invoice headers are generated using your current profile at the time the invoice is created.
+
+
+## Next Steps
+
+- [Checkout Pages](/docs/selling/checkout-pages) — Create checkout pages that display your profile
+- [Invoices](/docs/selling/invoices) — Send professional invoices to customers
+- [Shop & Storefront](/docs/selling/shop) — Set up your public storefront

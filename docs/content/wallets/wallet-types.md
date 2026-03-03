@@ -67,3 +67,10 @@ The **Card Wallet** is a custodial wallet powered by Crossmint, designed for pur
 | Funding required | Yes | Yes | No | No |
 
 Most users start with a **Stripe Wallet** for digital purchases and add a **Card Wallet** if they need physical goods. **Sub-Agent** and **Self-Hosted Cards** are for advanced users who want to use their own payment cards with their bots.
+
+
+## Next Steps
+
+- [Creating a Wallet](/docs/wallets/creating-a-wallet) — Set up your first wallet
+- [Funding Your Wallet](/docs/wallets/funding-your-wallet) — Add funds to get started
+- [Self-Hosted & Encrypted Cards](/docs/wallets/encrypted-cards) — Advanced card security options

@@ -102,3 +102,10 @@ To change a threshold, enter the new value and click away from the field — it 
 - **Set up notifications early** so you're always aware of your bot's activity, especially transaction alerts and budget warnings.
 - **Keep a default shipping address** set if your bot frequently orders physical goods — it speeds up the checkout process.
 - **Review your bot's default rail** periodically to ensure it's using the most cost-effective or preferred payment method.
+
+
+## Next Steps
+
+- [Wallet Types](/docs/wallets/wallet-types) — Learn about the different wallet types
+- [Spending Limits](/docs/guardrails/spending-limits) — Configure detailed spending controls
+- [Seller Profile](/docs/settings/seller-profile) — Set up your business profile

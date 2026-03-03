@@ -72,3 +72,10 @@ You can create multiple wallets of any type. Each wallet is linked to a specific
 - Switch between wallets to see balances, transactions, and settings
 - Link or unlink bots from wallets at any time
 - Transfer funds between Stripe Wallets and Card Wallets
+
+
+## Next Steps
+
+- [Funding Your Wallet](/docs/wallets/funding-your-wallet) — Add funds to your new wallet
+- [Freezing & Controls](/docs/wallets/freezing-and-controls) — Set up spending limits and safety controls
+- [Managing Your Bots](/docs/bots/managing-bots) — Link wallets to your bots

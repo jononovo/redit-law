@@ -113,3 +113,9 @@ You download the encrypted file or key and deliver it to your bot yourself. Use 
 **Choose Rail 4** if you want a balance of security and convenience with automatic obfuscation.
 
 **Choose Rail 5** if you need end-to-end encryption where CreditClaw has zero access to card details.
+
+
+## Next Steps
+
+- [Creating a Wallet](/docs/wallets/creating-a-wallet) — Set up a new wallet
+- [Freezing & Controls](/docs/wallets/freezing-and-controls) — Configure spending limits for your wallets
