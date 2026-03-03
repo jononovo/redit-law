@@ -1286,7 +1286,7 @@ export const checkoutPages = pgTable("checkout_pages", {
   description: text("description"),
   amountUsdc: bigint("amount_usdc", { mode: "number" }),
   amountLocked: boolean("amount_locked").notNull().default(true),
-  allowedMethods: text("allowed_methods").array().notNull().default(["x402", "usdc_direct", "stripe_onramp"]),
+  allowedMethods: text("allowed_methods").array().notNull().default(["x402", "usdc_direct", "stripe_onramp", "base_pay"]),
   status: text("status").notNull().default("active"),
   successUrl: text("success_url"),
   successMessage: text("success_message"),
@@ -1321,7 +1321,7 @@ export const createCheckoutPageSchema = z.object({
   wallet_id: z.number().int(),
   amount_usd: z.number().positive().optional().nullable(),
   amount_locked: z.boolean().default(true),
-  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay"])).min(1).default(["x402", "usdc_direct", "stripe_onramp", "base_pay"]),
   success_url: z.string().url().optional().nullable(),
   success_message: z.string().max(500).optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
@@ -1374,7 +1374,7 @@ export const botCreateCheckoutPageSchema = z.object({
   description: z.string().max(2000).optional().nullable(),
   amount_usd: z.number().positive().optional().nullable(),
   amount_locked: z.boolean().default(true),
-  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp"])).min(1).default(["x402", "usdc_direct", "stripe_onramp"]),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay"])).min(1).default(["x402", "usdc_direct", "stripe_onramp", "base_pay"]),
   success_url: z.string().url().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
   page_type: z.enum(["product", "event"]).default("product").optional(),
@@ -1425,6 +1425,28 @@ export const invoices = pgTable("invoices", {
 
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = typeof invoices.$inferInsert;
+
+export const basePayPayments = pgTable("base_pay_payments", {
+  id: serial("id").primaryKey(),
+  txId: text("tx_id").notNull().unique(),
+  sender: text("sender"),
+  recipient: text("recipient").notNull(),
+  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
+  type: text("type").notNull(),
+  checkoutPageId: text("checkout_page_id"),
+  saleId: text("sale_id"),
+  payerEmail: text("payer_email"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+}, (table) => [
+  index("base_pay_payments_tx_id_idx").on(table.txId),
+  index("base_pay_payments_recipient_idx").on(table.recipient),
+  index("base_pay_payments_status_idx").on(table.status),
+]);
+
+export type BasePayPayment = typeof basePayPayments.$inferSelect;
+export type InsertBasePayPayment = typeof basePayPayments.$inferInsert;
 
 export const createInvoiceSchema = z.object({
   checkout_page_id: z.string().min(1),

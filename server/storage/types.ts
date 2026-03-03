@@ -46,6 +46,7 @@ import {
   type SavedShippingAddress, type InsertShippingAddress,
   type SellerProfile, type InsertSellerProfile,
   type Invoice, type InsertInvoice,
+  type BasePayPayment, type InsertBasePayPayment,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
@@ -335,4 +336,8 @@ export interface IStorage {
   cancelInvoice(invoiceId: string): Promise<Invoice | null>;
   getNextReferenceNumber(ownerUid: string): Promise<string>;
   updateSaleInvoiceId(saleId: string, invoiceId: string): Promise<Sale | null>;
+
+  createBasePayPayment(data: InsertBasePayPayment): Promise<BasePayPayment>;
+  getBasePayPaymentByTxId(txId: string): Promise<BasePayPayment | null>;
+  updateBasePayPaymentStatus(txId: string, status: string, confirmedAt?: Date): Promise<BasePayPayment | null>;
 }
