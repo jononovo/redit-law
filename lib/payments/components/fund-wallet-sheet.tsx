@@ -48,7 +48,7 @@ export function FundWalletSheet({
   const [sheetState, setSheetState] = useState<SheetState>("select");
   const [activeMethod, setActiveMethod] = useState<string | null>(null);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const [amount, setAmount] = useState("25");
+  const [amount, setAmount] = useState("25.00");
 
   const methods = getAvailableMethods(rail, "topup");
 
@@ -67,7 +67,7 @@ export function FundWalletSheet({
     setSheetState("select");
     setActiveMethod(null);
     setShowCloseConfirm(false);
-    setAmount("25");
+    setAmount("25.00");
     onOpenChange(false);
   }, [onOpenChange]);
 
