@@ -46,12 +46,12 @@ interface NavItem {
 const mainNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: Wallet, label: "Stripe Wallet", subtitle: "USDC for x402", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
-  { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
+  { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify.", requiredAccess: "admin" },
   { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
-  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge." },
+  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge.", requiredAccess: "admin" },
   { icon: Package, label: "Orders", href: "/app/orders" },
   { icon: Activity, label: "Transactions", href: "/app/transactions" },
-  { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
+  { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true, requiredAccess: "admin" },
 ];
 
 const procurementNavItems: NavItem[] = [
