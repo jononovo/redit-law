@@ -42,7 +42,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             {i < current ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={`w-8 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
+            <div className={`w-5 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
           )}
         </div>
       ))}
@@ -323,7 +323,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8">
         <VisuallyHidden>
           <DialogTitle>Rail 5 Card Setup</DialogTitle>
         </VisuallyHidden>
