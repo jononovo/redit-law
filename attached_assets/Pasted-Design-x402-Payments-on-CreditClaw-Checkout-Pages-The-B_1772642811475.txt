@@ -1,0 +1,109 @@
+Design: x402 Payments on CreditClaw Checkout Pages
+The Big Picture
+Right now, CreditClaw checkout pages are "receive money" endpoints — someone visits /pay/[id], picks a payment method, and pays. To support x402, we'd be adding the ability for a bot to pay a CreditClaw checkout page programmatically using the x402 handshake, without ever loading a webpage.
+
+The Flow
+Here's how it would work end-to-end:
+
+Buying Bot                    CreditClaw (Seller)                 Blockchain
+    │                              │                                  │
+    │── GET /pay/cp_abc123 ───────►│                                  │
+    │   Accept: application/json   │                                  │
+    │◄── 402 Payment Required ────│                                  │
+    │   {amount, recipient, chain} │                                  │
+    │                              │                                  │
+    │   (bot gets signature from   │                                  │
+    │    its own CreditClaw or     │                                  │
+    │    signs directly)           │                                  │
+    │                              │                                  │
+    │── POST /api/v1/checkout/     │                                  │
+    │   cp_abc123/pay/x402         │                                  │
+    │   X-PAYMENT: <base64>        │                                  │
+    │                              │── transferWithAuthorization() ──►│
+    │                              │◄── tx confirmed ────────────────│
+    │                              │   (credit seller wallet,        │
+    │                              │    record sale)                  │
+    │◄── 200 {sale_id, receipt} ──│                                  │
+What We'd Need to Build
+1. Payment Requirements Endpoint — returns the x402 challenge
+
+A new route or modification to the existing public endpoint that, when called with the right headers (like Accept: application/json or a specific x402 header), responds with 402 instead of the HTML checkout page:
+
+GET /api/v1/checkout/[id]/x402-requirements
+→ 402 Payment Required
+{
+  "x402": {
+    "version": 1,
+    "accepts": [{
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "5000000",    // 5 USDC in micro
+      "resource": "https://creditclaw.com/pay/cp_abc123",
+      "description": "Widget Pro License",
+      "payTo": "0x<seller_wallet_address>",
+      "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    }]
+  }
+}
+This is straightforward — we already have the walletAddress, amountUsdc, and title on every checkout page.
+
+2. Payment Submission Endpoint — receives and settles the x402 payment
+
+A new route: POST /api/v1/checkout/[id]/pay/x402
+
+This is the key new piece. It would:
+
+Parse the X-PAYMENT header (base64 → JSON)
+Validate the payload fields (signature, from, to, value, nonce, validBefore, chainId, token)
+Verify to matches the checkout page's walletAddress
+Verify value matches the expected amount (if amount-locked)
+Verify chainId is 8453 (Base) and token is USDC
+Verify validBefore hasn't expired
+Call transferWithAuthorization() on-chain — this is where CreditClaw (the seller) actually pulls the USDC from the buyer's wallet using the signature
+Wait for transaction confirmation
+Credit the seller's wallet balance in the DB
+Record the sale (same as Stripe onramp and Base Pay flows do)
+Return success with sale details
+3. On-chain Settlement — the new piece of infrastructure
+
+This is the part that doesn't exist yet. We need a function that calls transferWithAuthorization() on the USDC contract. We'd use viem (already installed) to:
+
+// Pseudocode
+const hash = await walletClient.writeContract({
+  address: USDC_CONTRACT,
+  abi: [{
+    name: "transferWithAuthorization",
+    inputs: [from, to, value, validAfter, validBefore, nonce, v, r, s]
+  }],
+  functionName: "transferWithAuthorization",
+  args: [from, to, value, validAfter, validBefore, nonce, v, r, s]
+});
+The question is: who pays the gas? The seller's server needs to submit the on-chain transaction. Options:
+
+Use the seller's Privy wallet to submit the tx (Privy sponsors gas on Base, so it's free)
+Use a dedicated CreditClaw relayer wallet that submits all x402 settlements
+Using the seller's own Privy wallet as the submitter makes the most sense — it's already managed by CreditClaw via Privy, and Privy handles gas sponsorship on Base. We already have sendUsdcTransfer as a pattern for calling Privy's RPC.
+
+Key Design Decisions
+Who can use this?
+
+Any bot that can construct or obtain a TransferWithAuthorization signature. This could be:
+A CreditClaw bot (gets signature from its own CreditClaw /bot/sign endpoint)
+Any external bot with its own wallet that can sign EIP-3009 messages
+Another CreditClaw user's bot paying a different CreditClaw user's checkout page
+What about the sale record?
+It would follow the exact same pattern as Base Pay: verify the payment on-chain → credit the wallet → record the sale → fire the wallet.sale.completed webhook. The payment_method on the sale would be "x402".
+
+What about invoices?
+Same as the other methods — the buyer could include an invoice_ref, and the sale would link to and mark the invoice as paid.
+
+What's Nice About This
+CreditClaw becomes both an x402 payer AND receiver — bots can pay external x402 services, and external bots can pay CreditClaw sellers
+Bot-to-bot commerce — one CreditClaw bot creates a checkout page, another CreditClaw bot pays it with x402. Fully autonomous machine-to-machine payments with guardrails on both sides.
+The infrastructure mostly exists — we have the x402 typed data building, the sale recording, the wallet crediting. The main new piece is the on-chain transferWithAuthorization call to settle the payment.
+What Doesn't Exist Yet
+The transferWithAuthorization settlement function (calling the USDC contract to pull funds)
+The 402 requirements endpoint
+The POST .../pay/x402 handler
+Signature verification logic (recovering the signer address from the EIP-712 signature to ensure it matches from)
+It's a contained feature — probably 3-4 files of new code
