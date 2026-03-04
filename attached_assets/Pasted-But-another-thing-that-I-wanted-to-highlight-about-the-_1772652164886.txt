@@ -1,0 +1,38 @@
+But another thing that I wanted to highlight about the digital product is that is is only "shipped/delivered" if the user is a bot on x402.
+
+We need to, create a default sale, success page with a default message and a link to the digital product.
+
+Honestly, I think we should have a default purchased success page anyway, that is nice and very important, and it should work for all transactions on checkout, but with the digital product, it should have an additional button or highlight or something that says click here to download, and it should open it in a new page/tab or download.
+
+Whatever the user wants.
+
+Does that make sense?
+
+Don't change anything yet
+
+That makes total sense. Right now after a successful payment, there's no proper success page — the digital product URL only gets returned in the x402 API response (for bots). Human buyers who pay via Stripe, Base Pay, or the testing method don't get the product at all.
+
+What you're describing is:
+
+A default success page for all checkout payments — shows a confirmation ("Payment successful!"), the product/event title, amount paid, and any custom success message the seller set. This works for every payment method and every page type.
+
+For digital products specifically — the success page also shows a prominent button like "Access your product" or "Download" that opens the digital_product_url in a new tab. This closes the delivery loop for human buyers the same way the x402 response closes it for bots.
+
+The success page should be the default destination after payment completes, unless the seller configured a custom success_url redirect.
+
+This is actually important infrastructure that was missing — right now what happens after a human pays? Let me check what the current post-payment flow looks like so I can give you a clear picture of what needs to change before building it.
+
+Good — there's already a success page at /pay/[id]/success. It shows a confirmation message, optional custom seller message, and a "Return to seller" button. But it has no awareness of digital products — it never checks page_type or digital_product_url.
+
+So the situation is:
+
+Success page exists and works for all payment methods already
+What's missing is just the digital product delivery on that page — a prominent download/access button when the checkout page is a digital_product type
+The fix is actually pretty targeted:
+
+The public API endpoint (/api/v1/checkout/[id]/public) needs to return digital_product_url only after a payment has been made (we don't want to expose the URL before payment)
+The success page needs to show a download/access button when it's a digital product
+One design question though: the success page currently fetches from the public endpoint, which doesn't require authentication. If we put the product URL in that response, anyone who knows the checkout page ID could see it without paying. We'd need either a separate authenticated endpoint for the success page, or pass the product URL through as a query parameter from the payment result, or use the sale ID to verify payment happened before revealing the URL.
+
+Want me to build this? I'd lean toward having the success page pass the sale_id from the payment result, and the server verifies a completed sale exists before returning the product URL.
+

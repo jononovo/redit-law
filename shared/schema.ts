@@ -1386,6 +1386,25 @@ export const botCreateCheckoutPageSchema = z.object({
   image_url: z.string().url().max(2000).optional().nullable(),
   collect_buyer_name: z.boolean().default(false).optional(),
   digital_product_url: z.string().url().max(2000).optional().nullable(),
+  shop_visible: z.boolean().default(false).optional(),
+  shop_order: z.number().int().min(0).default(0).optional(),
+});
+
+export const botUpdateCheckoutPageSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  amount_usd: z.number().positive().nullable().optional(),
+  amount_locked: z.boolean().optional(),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay", "testing"])).min(1).optional(),
+  status: z.enum(["active", "paused", "archived"]).optional(),
+  success_url: z.string().url().nullable().optional(),
+  expires_at: z.string().datetime().nullable().optional(),
+  page_type: z.enum(["product", "event", "digital_product"]).optional(),
+  image_url: z.string().url().max(2000).nullable().optional(),
+  collect_buyer_name: z.boolean().optional(),
+  digital_product_url: z.string().url().max(2000).nullable().optional(),
+  shop_visible: z.boolean().optional(),
+  shop_order: z.number().int().min(0).optional(),
 });
 
 export const invoices = pgTable("invoices", {

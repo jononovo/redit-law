@@ -26,6 +26,8 @@ export const GET = withBotApi("/api/v1/bot/checkout-pages", async (request, { bo
       image_url: p.imageUrl || null,
       collect_buyer_name: p.collectBuyerName || false,
       digital_product_url: p.digitalProductUrl || null,
+      shop_visible: p.shopVisible || false,
+      shop_order: p.shopOrder || 0,
       view_count: p.viewCount,
       payment_count: p.paymentCount,
       total_received_usd: p.totalReceivedUsdc / 1_000_000,
