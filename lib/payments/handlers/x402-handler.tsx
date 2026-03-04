@@ -62,17 +62,20 @@ export function X402Handler({ context, onCancel }: PaymentHandlerProps) {
     : null;
 
   const amountLine = amountUsdc
-    ? `Amount: ${amountUsdc} (${context.amountUsd!.toFixed(2)} USDC)`
+    ? `Amount: ${amountUsdc} (${context.amountUsd!.toFixed(2)} USDC, 6 decimals)`
     : "Amount: Open (buyer sets amount)";
 
-  const agentBlock = `Pay ${amountDisplay} for "${context.title || "this product"}"
-
-This product accepts x402 payments (EIP-3009 on Base, USDC).
+  const agentBlock = `Pay ${amountDisplay} for "${context.title || "this product"}" via x402 on Base.
 
 Requirements: GET ${requirementsUrl}
 Pay: POST ${payUrl}
 Recipient: ${context.walletAddress}
-${amountLine}`;
+${amountLine}
+Token: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 (USDC on Base)
+Chain: 8453 (Base)
+Protocol: EIP-3009 transferWithAuthorization
+
+Sign the payload and send it as a base64-encoded X-PAYMENT header to the Pay endpoint.`;
 
   const snippet = `// 1. Build the x402 payment payload
 const payload = {
@@ -119,7 +122,7 @@ console.log(result);
         </button>
         <div>
           <h3 className="text-lg font-bold text-neutral-900">Agent Pay (x402)</h3>
-          <p className="text-xs text-neutral-500">Copy and paste this to your AI agent</p>
+          <p className="text-xs text-neutral-500">Copy and send to your AI agent</p>
         </div>
       </div>
 
@@ -128,7 +131,7 @@ console.log(result);
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
               <Wallet className="w-4 h-4" />
-              Agent Instructions
+              Copy instructions for your agent
             </div>
             <CopyButton text={agentBlock} label="agent-block" />
           </div>
@@ -139,7 +142,7 @@ console.log(result);
             {agentBlock}
           </pre>
           <p className="text-xs text-neutral-400 mt-2">
-            Works with any x402-compatible agent — CreditClaw, custom bots, or any EIP-3009 signer.
+            Any x402-compatible agent can use these instructions
           </p>
         </div>
 
@@ -153,7 +156,7 @@ console.log(result);
           ) : (
             <ChevronDown className="w-4 h-4" />
           )}
-          {showDetails ? "Hide" : "Show"} technical details
+          {showDetails ? "Hide" : "Show"} developer details
         </button>
 
         {showDetails && (
