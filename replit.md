@@ -395,3 +395,15 @@ CreditClaw provides distinct API endpoints for each rail and for master guardrai
 - **shadcn/ui:** UI component library.
 - **React Query (@tanstack/react-query):** Server state management.
 - **Anthropic (@anthropic-ai/sdk):** LLM-powered vendor analysis for Skill Builder.
+- **react-markdown + remark-gfm + @tailwindcss/typography:** Markdown rendering for documentation pages.
+
+### Documentation System (`docs/content/`, `app/docs/`)
+Self-hosted documentation at `/docs` with sidebar navigation, audience toggle (User Guide / Developers), and markdown rendering.
+- **Config**: `docs/content/sections.ts` — typed section/page registry with audience tagging.
+- **Layout**: `app/docs/layout.tsx` — persistent sidebar with audience toggle. `app/docs/page.tsx` redirects to first page.
+- **Renderer**: `app/docs/[...slug]/page.tsx` — reads markdown from `docs/content/{section}/{page}.md`, renders via `react-markdown` with `prose` typography classes. Prev/next navigation at bottom.
+- **User docs** (27 pages): Getting Started, Bots, Wallets, Guardrails, Selling, Settings, Transactions, Skills.
+- **Developer docs** (13 pages): API Overview (introduction, authentication), API Endpoints (wallets, bots, checkout-pages, invoices, sales, skills), Webhooks (setup, events), Agent Integration (quick-start, x402-protocol, mcp placeholder).
+- **URL pattern**: `/docs/{section-slug}/{page-slug}`. Developer docs use `/docs/api/...` prefix.
+- **Tailwind**: Typography plugin added via `@plugin "@tailwindcss/typography"`, source added via `@source "../docs"` in `app/globals.css`.
+- **LLM access**: Raw markdown endpoint at `GET /api/docs/{section}/{page}` (Content-Type: text/markdown). Each doc page has "Copy for LLM" and "View as Markdown" buttons. `GET /llms.txt` serves a structured index of all docs with markdown links. `GET /llms-full.txt` concatenates all docs into a single file.
