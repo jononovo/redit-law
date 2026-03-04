@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { PanelLeft, Book, Code } from "lucide-react";
 import {
@@ -139,13 +139,18 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const router = useRouter();
   const slugParts = pathname.replace("/docs/", "").replace("/docs", "").split("/").filter(Boolean);
   const detectedAudience = slugParts.length > 0 ? getAudienceFromSlug(slugParts) : "user";
   const [audience, setAudience] = useState<Audience>(detectedAudience);
 
   const handleAudienceChange = useCallback((a: Audience) => {
     setAudience(a);
-  }, []);
+    const firstSection = getSectionsByAudience(a)[0];
+    if (firstSection?.pages[0]) {
+      router.push(`/docs/${firstSection.slug}/${firstSection.pages[0].slug}`);
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-white flex" data-testid="docs-layout">
