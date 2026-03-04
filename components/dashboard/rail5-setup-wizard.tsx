@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -23,7 +23,7 @@ interface BotOption {
   bot_name: string;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
@@ -46,6 +46,166 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function Rail5InteractiveCard({
+  cardNumber,
+  onCardNumberChange,
+  expiryMonth,
+  expiryYear,
+  onExpiryMonthChange,
+  onExpiryYearChange,
+  cvv,
+  onCvvChange,
+  holderName,
+  onHolderNameChange,
+}: {
+  cardNumber: string;
+  onCardNumberChange: (val: string) => void;
+  expiryMonth: string;
+  expiryYear: string;
+  onExpiryMonthChange: (val: string) => void;
+  onExpiryYearChange: (val: string) => void;
+  cvv: string;
+  onCvvChange: (val: string) => void;
+  holderName: string;
+  onHolderNameChange: (val: string) => void;
+}) {
+  const numberRef = useRef<HTMLInputElement>(null);
+  const cvvRef = useRef<HTMLInputElement>(null);
+  const holderRef = useRef<HTMLInputElement>(null);
+  const monthRef = useRef<HTMLSelectElement>(null);
+  const yearRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => {
+    numberRef.current?.focus();
+  }, []);
+
+  const cleanNumber = cardNumber.replace(/\s/g, "");
+  const formatted = cleanNumber.replace(/(\d{4})(?=\d)/g, "$1 ");
+
+  const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+  const currentYear = new Date().getFullYear();
+  const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
+
+  const monthFilled = !!expiryMonth;
+  const yearFilled = !!expiryYear;
+
+  return (
+    <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
+      <div
+        className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+        style={{
+          aspectRatio: "1.586",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
+        }}
+        data-testid="r5-interactive-card"
+      >
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
+          }}
+        />
+
+        <div className="relative h-full flex flex-col justify-between p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-7 rounded bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center">
+                <div className="w-6 h-4 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
+              </div>
+              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                <CreditCard className="w-3.5 h-3.5 text-white/50" />
+              </div>
+            </div>
+            <span className="text-white/40 text-xs font-medium tracking-widest uppercase">CreditClaw</span>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center gap-4">
+            <input
+              ref={numberRef}
+              type="text"
+              inputMode="numeric"
+              value={formatted}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 19);
+                onCardNumberChange(digits);
+              }}
+              placeholder="0000 0000 0000 0000"
+              className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-colors"
+              data-testid="input-r5-card-number"
+              autoComplete="off"
+            />
+
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
+                <input
+                  ref={holderRef}
+                  type="text"
+                  value={holderName}
+                  onChange={(e) => onHolderNameChange(e.target.value)}
+                  placeholder="Full Name"
+                  className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
+                  data-testid="input-r5-holder"
+                  autoComplete="off"
+                />
+              </div>
+
+              <div className="flex items-end gap-3 shrink-0">
+                <div>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
+                  <div className="flex items-center gap-1">
+                    <select
+                      ref={monthRef}
+                      value={expiryMonth}
+                      onChange={(e) => onExpiryMonthChange(e.target.value)}
+                      className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
+                        monthFilled ? "border-green-400" : "border-white/20"
+                      }`}
+                      data-testid="select-r5-exp-month"
+                    >
+                      <option value="" className="bg-neutral-800 text-white">MM</option>
+                      {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
+                    </select>
+                    <span className="text-white/40 text-sm">/</span>
+                    <select
+                      ref={yearRef}
+                      value={expiryYear}
+                      onChange={(e) => onExpiryYearChange(e.target.value)}
+                      className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
+                        yearFilled ? "border-green-400" : "border-white/20"
+                      }`}
+                      data-testid="select-r5-exp-year"
+                    >
+                      <option value="" className="bg-neutral-800 text-white">YYYY</option>
+                      {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
+                  <input
+                    ref={cvvRef}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={cvv}
+                    onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="•••"
+                    className="w-14 bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
+                    data-testid="input-r5-cvv"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -240,7 +400,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       setState("");
       setZip("");
 
-      setStep(6);
+      setStep(7);
     } catch (e: unknown) {
       toast({ title: "Error", description: e instanceof Error ? e.message : "Encryption failed.", variant: "destructive" });
     } finally {
@@ -272,7 +432,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         }),
       });
       if (!res.ok) throw new Error("Failed to update limits");
-      setStep(4);
+      setStep(5);
     } catch {
       toast({ title: "Error", description: "Failed to save spending limits.", variant: "destructive" });
     } finally {
@@ -303,14 +463,14 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   useEffect(() => {
-    if (step === 4 && !botsFetched && !botsLoading) {
+    if (step === 5 && !botsFetched && !botsLoading) {
       fetchBots();
     }
   }, [step, botsFetched, botsLoading]);
 
   async function handleBotLink() {
     if (!selectedBotId) {
-      setStep(5);
+      setStep(6);
       return;
     }
     setLoading(true);
@@ -321,7 +481,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         body: JSON.stringify({ bot_id: selectedBotId }),
       });
       if (!res.ok) throw new Error("Failed to link bot");
-      setStep(5);
+      setStep(6);
     } catch {
       toast({ title: "Error", description: "Failed to link bot.", variant: "destructive" });
     } finally {
@@ -333,10 +493,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     handleClose(false);
     onComplete();
   }
-
-  const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-  const currentYear = new Date().getFullYear();
-  const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -447,66 +603,41 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <p className="text-xs text-neutral-400 mt-1">This data never leaves your browser. It's encrypted locally.</p>
             </div>
 
+            <Rail5InteractiveCard
+              cardNumber={cardNumber}
+              onCardNumberChange={setCardNumber}
+              expiryMonth={expMonth}
+              expiryYear={expYear}
+              onExpiryMonthChange={setExpMonth}
+              onExpiryYearChange={setExpYear}
+              cvv={cardCvv}
+              onCvvChange={setCardCvv}
+              holderName={holderName}
+              onHolderNameChange={setHolderName}
+            />
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+                Next <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6" data-testid="r5-step-address">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+                <CreditCard className="w-6 h-6 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-bold text-neutral-900">Billing Address</h2>
+              <p className="text-sm text-neutral-500 mt-1">Enter the billing address associated with this card.</p>
+            </div>
+
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="r5-number">Card Number</Label>
-                <Input
-                  id="r5-number"
-                  placeholder="4111 1111 1111 1111"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/[^\d\s]/g, "").slice(0, 23))}
-                  data-testid="input-r5-card-number"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Month</Label>
-                  <Select value={expMonth} onValueChange={setExpMonth}>
-                    <SelectTrigger data-testid="select-r5-exp-month">
-                      <SelectValue placeholder="MM" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTHS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Year</Label>
-                  <Select value={expYear} onValueChange={setExpYear}>
-                    <SelectTrigger data-testid="select-r5-exp-year">
-                      <SelectValue placeholder="YYYY" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="r5-cvv">CVV</Label>
-                  <Input
-                    id="r5-cvv"
-                    type="password"
-                    placeholder="123"
-                    maxLength={4}
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    data-testid="input-r5-cvv"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="r5-holder">Cardholder Name</Label>
-                <Input
-                  id="r5-holder"
-                  placeholder="Harry Smith"
-                  value={holderName}
-                  onChange={(e) => setHolderName(e.target.value)}
-                  data-testid="input-r5-holder"
-                />
-              </div>
-
               <div>
                 <Label htmlFor="r5-address">Street Address</Label>
                 <Input
@@ -535,17 +666,17 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+              <Button onClick={() => setStep(4)} className="flex-1 gap-2" data-testid="button-r5-step4-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && /* Spending Limits */ (
           <div className="space-y-6" data-testid="r5-step-limits">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-3">
@@ -612,10 +743,10 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step5-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step4-next">
+              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step5-next">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                 Next
               </Button>
@@ -623,7 +754,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-6" data-testid="r5-step-bot">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
@@ -678,7 +809,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             )}
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => { setSelectedBotId(""); setStep(5); }} className="flex-1" data-testid="button-r5-skip-bot">
+              <Button variant="outline" onClick={() => { setSelectedBotId(""); setStep(6); }} className="flex-1" data-testid="button-r5-skip-bot">
                 Skip for Now
               </Button>
               <Button
@@ -694,7 +825,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-6" data-testid="r5-step-encrypt">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-3">
@@ -742,7 +873,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(4)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step6-back">
+              <Button variant="outline" onClick={() => setStep(5)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step7-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               <Button onClick={handleEncryptAndDownload} disabled={loading || downloadDone} className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700" data-testid="button-r5-encrypt">
@@ -753,7 +884,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <div className="space-y-6" data-testid="r5-step-success">
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
