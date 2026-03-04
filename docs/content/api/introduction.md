@@ -10,20 +10,19 @@ All API endpoints are served under:
 /api/v1/
 ```
 
-## Two audiences
+## Authentication
 
-The API is split into two sets of endpoints:
+All API endpoints require an API key passed via the `Authorization` header:
 
-| Audience | Prefix | Auth method |
-|----------|--------|-------------|
-| **Bot-facing** | `/api/v1/bot/...` | API key (`Authorization: Bearer cck_live_...`) |
-| **Owner-facing** | `/api/v1/...` | Firebase session cookie |
+```
+Authorization: Bearer cck_live_...
+```
 
-Bot-facing endpoints are designed for autonomous agents. Owner-facing endpoints power the dashboard and are authenticated via browser session.
+API keys are generated during bot registration. See the [Authentication](/docs/api/authentication) guide for full details.
 
 ## What bots can do
 
-Through the bot-facing API, an agent can:
+Through the API, an agent can:
 
 - **Check wallet status** — query balance, spending limits, and remaining allowance
 - **Request purchases** — initiate merchant checkouts with guardrail evaluation

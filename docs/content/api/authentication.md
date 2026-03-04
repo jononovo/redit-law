@@ -1,6 +1,6 @@
 # Authentication
 
-CreditClaw uses API keys for bot-facing endpoints and Firebase session cookies for owner-facing endpoints.
+CreditClaw uses API keys to authenticate all bot-facing API requests.
 
 ## API Keys
 
@@ -129,18 +129,7 @@ If the key is missing, malformed, or invalid, the API returns:
 }
 ```
 
-All bot-facing endpoints under `/api/v1/bot/` require a valid API key.
-
----
-
-## Owner-Facing Authentication
-
-Owner-facing endpoints (everything not under `/api/v1/bot/`) use Firebase session authentication via cookies. These endpoints are called by the CreditClaw web dashboard and are not intended for direct bot use.
-
-Owner sessions are managed through:
-
-- `POST /api/auth/session` — create a session from a Firebase ID token
-- Session cookies are automatically included in browser requests
+All endpoints under `/api/v1/bot/` require a valid API key. The registration endpoint (`POST /api/v1/bots/register`) is the only unauthenticated endpoint.
 
 ---
 
