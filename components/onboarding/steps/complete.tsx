@@ -43,7 +43,15 @@ export function Complete({ currentStep, totalSteps, state }: CompleteProps) {
     fetch("/api/v1/owners/onboarded", {
       method: "POST",
     }).catch((err) => console.error("Failed to stamp onboarded_at:", err));
-  }, [state.perTransactionCents, state.dailyCents, state.monthlyCents]);
+
+    if (state.botId && state.botConnected) {
+      fetch("/api/v1/stripe-wallet/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bot_id: state.botId }),
+      }).catch((err) => console.error("Failed to auto-create Privy wallet:", err));
+    }
+  }, [state.perTransactionCents, state.dailyCents, state.monthlyCents, state.botId, state.botConnected]);
 
   return (
     <WizardStep

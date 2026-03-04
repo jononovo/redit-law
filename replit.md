@@ -97,7 +97,7 @@ The system supports multiple payment methods per owner, webhook notifications fo
 Advanced features:
 - **Payment Links:** Bots generate Stripe Checkout Sessions for receiving payments.
 - **Wallet Freeze:** Owners can freeze bot wallets, preventing transactions.
-- **Onboarding Wizard:** A multi-step wizard for new bot owner setup, supporting "bot-first" or "owner-first" flows. Flow: choose-path → sign-in → [claim-token | pairing-code] → spending-limits → [connect-bot] → add-card-prompt → [card-entry] → complete. Includes inline Firebase auth (Google/GitHub/Magic Link), encrypted credit card setup via Rail 5 (AES-256-GCM client-side encryption), and master spending limits configuration. The onboarding page has no auth gate — authentication happens within the wizard flow.
+- **Onboarding Wizard:** A multi-step wizard for new bot owner setup, supporting "bot-first" or "owner-first" flows. Flow: choose-path → sign-in → [claim-token | pairing-code] → spending-limits → [connect-bot] → add-card-prompt → [card-entry] → complete. Includes inline Firebase auth (Google/GitHub/Magic Link), encrypted credit card setup via Rail 5 (AES-256-GCM client-side encryption), and master spending limits configuration. The onboarding page has no auth gate — authentication happens within the wizard flow. On completion, if a bot is connected: auto-creates a Privy/Rail 1 wallet for the bot, and if a card was added, auto-links the bot to the Rail 5 card record.
 - **Split-Knowledge Card Model (Rail 4):** Manages bot card configurations and transactions using payment profiles and obfuscation. Includes a multi-step setup wizard and a human approval workflow for transactions via HMAC-signed email links.
 
 ### Multi-Rail Architecture
