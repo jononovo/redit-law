@@ -65,7 +65,6 @@ const salesNavItems: NavItem[] = [
   { icon: ShoppingBag, label: "Shop", href: "/app/shop" },
   { icon: DollarSign, label: "My Sales", href: "/app/sales" },
   { icon: FileText, label: "Invoices", href: "/app/invoices" },
-  { icon: UserCircle, label: "Seller Profile", href: "/app/settings/seller" },
 ];
 
 export function Sidebar() {

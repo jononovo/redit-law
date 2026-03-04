@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink, Pencil, Store, ImageIcon, Users } from "lucide-react";
+import { Loader2, PlusCircle, Copy, Check, Link2, Lock, Unlock, DollarSign, ExternalLink, Pencil, ImageIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +13,6 @@ import { StatusBadge } from "@/components/wallet/status-badge";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
 import { useAuth } from "@/lib/auth/auth-context";
 import { authFetch } from "@/lib/auth-fetch";
-
-interface SellerProfile {
-  business_name: string | null;
-  logo_url: string | null;
-  contact_email: string | null;
-  website_url: string | null;
-  description: string | null;
-}
 
 interface WalletOption {
   id: number;
@@ -75,10 +67,6 @@ export default function CreateCheckoutPage() {
   const [successUrl, setSuccessUrl] = useState("");
   const [successMessage, setSuccessMessage] = useState("Your payment has been received and is being processed.");
   const [expiresAt, setExpiresAt] = useState("");
-  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
-  const [sellerName, setSellerName] = useState("");
-  const [sellerLogoUrl, setSellerLogoUrl] = useState("");
-  const [sellerEmail, setSellerEmail] = useState("");
   const [pageType, setPageType] = useState<"product" | "event" | "digital_product">("product");
   const [digitalProductUrl, setDigitalProductUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -99,10 +87,9 @@ export default function CreateCheckoutPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [walletsRes, pagesRes, profileRes] = await Promise.all([
+      const [walletsRes, pagesRes] = await Promise.all([
         authFetch("/api/v1/stripe-wallet/list"),
         authFetch("/api/v1/checkout-pages"),
-        authFetch("/api/v1/seller-profile"),
       ]);
 
       if (walletsRes.ok) {
@@ -123,16 +110,6 @@ export default function CreateCheckoutPage() {
       if (pagesRes.ok) {
         const data = await pagesRes.json();
         setCheckoutPages(data.checkout_pages || []);
-      }
-
-      if (profileRes.ok) {
-        const data = await profileRes.json();
-        if (data.profile) {
-          setSellerProfile(data.profile);
-          setSellerName(data.profile.business_name || "");
-          setSellerLogoUrl(data.profile.logo_url || "");
-          setSellerEmail(data.profile.contact_email || "");
-        }
       }
     } catch {
     } finally {
@@ -177,9 +154,6 @@ export default function CreateCheckoutPage() {
       if (successUrl.trim()) body.success_url = successUrl.trim();
       if (successMessage.trim()) body.success_message = successMessage.trim();
       if (expiresAt) body.expires_at = new Date(expiresAt).toISOString();
-      if (sellerName.trim()) body.seller_name = sellerName.trim();
-      if (sellerLogoUrl.trim()) body.seller_logo_url = sellerLogoUrl.trim();
-      if (sellerEmail.trim()) body.seller_email = sellerEmail.trim();
       body.page_type = pageType;
       if (imageUrl.trim()) body.image_url = imageUrl.trim();
       body.collect_buyer_name = collectBuyerName;
@@ -206,9 +180,6 @@ export default function CreateCheckoutPage() {
         setSuccessUrl("");
         setSuccessMessage("Your payment has been received and is being processed.");
         setExpiresAt("");
-        setSellerName(sellerProfile?.business_name || "");
-        setSellerLogoUrl(sellerProfile?.logo_url || "");
-        setSellerEmail(sellerProfile?.contact_email || "");
         setPageType("product");
         setDigitalProductUrl("");
         setImageUrl("");
@@ -517,59 +488,6 @@ export default function CreateCheckoutPage() {
             onChange={(e) => setExpiresAt(e.target.value)}
             data-testid="input-expires-at"
           />
-        </div>
-
-        <div className="border-t border-neutral-100 pt-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <Store className="w-4 h-4 text-neutral-500" />
-            <Label className="text-sm font-medium text-neutral-700">Seller Info</Label>
-            {sellerProfile && (
-              <span className="text-xs text-neutral-400">Auto-filled from your seller profile</span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="sellerName" className="text-sm font-medium text-neutral-700">
-                Seller Name
-              </Label>
-              <Input
-                id="sellerName"
-                value={sellerName}
-                onChange={(e) => setSellerName(e.target.value)}
-                placeholder="Your business name"
-                data-testid="input-seller-name"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="sellerEmail" className="text-sm font-medium text-neutral-700">
-                Seller Email
-              </Label>
-              <Input
-                id="sellerEmail"
-                type="email"
-                value={sellerEmail}
-                onChange={(e) => setSellerEmail(e.target.value)}
-                placeholder="contact@example.com"
-                data-testid="input-seller-email"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="sellerLogoUrl" className="text-sm font-medium text-neutral-700">
-              Seller Logo URL
-            </Label>
-            <Input
-              id="sellerLogoUrl"
-              type="url"
-              value={sellerLogoUrl}
-              onChange={(e) => setSellerLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-              data-testid="input-seller-logo-url"
-            />
-          </div>
         </div>
 
         <Button

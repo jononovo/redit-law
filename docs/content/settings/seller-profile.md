@@ -1,12 +1,10 @@
 # Seller Profile
 
-Your **Seller Profile** controls how your business appears to buyers on checkout pages, invoices, and your public storefront. Setting it up ensures a professional, branded experience for anyone making a payment to you.
+Your seller identity controls how your business appears to buyers on checkout pages, invoices, and your public storefront. These details are now managed directly on the **Shop** page.
 
-## Accessing Your Seller Profile
+## Where to Find It
 
-1. Open the <a href="/app" target="_blank">**Dashboard**</a> and navigate to **Settings** from the sidebar.
-2. Click the **Seller Profile** link, or go directly to <a href="/app/settings/seller" target="_blank">**Settings → Seller Profile**</a>.
-3. You'll see a form with all your business details.
+Your seller profile fields have moved to the <a href="/app/shop" target="_blank">**Shop**</a> page in the dashboard sidebar. Look for the **Your Details** section between Shop Settings and Products.
 
 ## Fields You Can Configure
 
@@ -34,9 +32,9 @@ Once you enter a URL, a preview of the logo will appear below the field so you c
 
 The email address shown to buyers on your checkout pages. This lets customers reach you with questions about their purchase. If left blank, buyers won't see a contact email on your checkout pages.
 
-### Website
+### Link
 
-An optional link to your company website. This can help establish trust with buyers who want to learn more about your business before completing a purchase.
+A link to your website, Instagram, or anywhere people can learn more about you. This can help establish trust with buyers who want to learn more about your business before completing a purchase.
 
 ### Description
 
@@ -44,7 +42,7 @@ A short description of your business. This may be displayed on your public store
 
 ## Saving Your Profile
 
-After filling in your details, click the **Save Profile** button at the bottom of the form. You'll see a confirmation when your profile has been saved successfully. Changes take effect immediately — any new checkout pages or invoices will use your updated details.
+After filling in your details, click the **Save Settings** button on the Shop page. You'll see a confirmation when your settings have been saved successfully. Changes take effect immediately — any checkout pages or invoices will use your updated details.
 
 ## Where Your Profile Appears
 

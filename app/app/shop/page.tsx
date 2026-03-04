@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Store, Copy, Check, ExternalLink, Eye, EyeOff, GripVertical, Users, ShoppingBag } from "lucide-react";
+import { Loader2, Store, Copy, Check, ExternalLink, Eye, EyeOff, GripVertical, ShoppingBag, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +51,12 @@ export default function ShopAdminPage() {
   const [shopPublished, setShopPublished] = useState(false);
   const [shopBannerUrl, setShopBannerUrl] = useState("");
 
+  const [businessName, setBusinessName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [description, setDescription] = useState("");
+
   const fetchData = useCallback(async () => {
     try {
       const [profileRes, pagesRes] = await Promise.all([
@@ -65,6 +71,11 @@ export default function ShopAdminPage() {
           setSlug(data.profile.slug || "");
           setShopPublished(data.profile.shop_published || false);
           setShopBannerUrl(data.profile.shop_banner_url || "");
+          setBusinessName(data.profile.business_name || "");
+          setLogoUrl(data.profile.logo_url || "");
+          setContactEmail(data.profile.contact_email || "");
+          setWebsiteUrl(data.profile.website_url || "");
+          setDescription(data.profile.description || "");
         }
       }
 
@@ -86,7 +97,7 @@ export default function ShopAdminPage() {
     if (user) fetchData();
   }, [user, fetchData]);
 
-  const handleSaveProfile = async () => {
+  const handleSave = async () => {
     setSaving(true);
     try {
       const res = await authFetch("/api/v1/seller-profile", {
@@ -96,6 +107,11 @@ export default function ShopAdminPage() {
           slug: slug.trim() || null,
           shop_published: shopPublished,
           shop_banner_url: shopBannerUrl.trim() || null,
+          business_name: businessName.trim() || null,
+          logo_url: logoUrl.trim() || null,
+          contact_email: contactEmail.trim() || null,
+          website_url: websiteUrl.trim() || null,
+          description: description.trim() || null,
         }),
       });
 
@@ -209,7 +225,7 @@ export default function ShopAdminPage() {
 
         <div className="flex items-center gap-3">
           <Button
-            onClick={handleSaveProfile}
+            onClick={handleSave}
             disabled={saving}
             data-testid="button-save-shop-settings"
           >
@@ -229,6 +245,103 @@ export default function ShopAdminPage() {
               </a>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-neutral-100 p-6 space-y-5" data-testid="seller-details-form">
+        <div className="flex items-center gap-2 mb-2">
+          <UserCircle className="w-5 h-5 text-neutral-600" />
+          <h2 className="text-lg font-semibold text-neutral-900">Your Details</h2>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="businessName" className="text-sm font-medium text-neutral-700">
+            Business Name
+          </Label>
+          <Input
+            id="businessName"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="Your Company Name"
+            className="max-w-md"
+            data-testid="input-business-name"
+          />
+          <p className="text-xs text-neutral-400">Displayed on checkout pages and invoices</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="logoUrl" className="text-sm font-medium text-neutral-700">
+            Logo URL
+          </Label>
+          <Input
+            id="logoUrl"
+            type="url"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://example.com/logo.png"
+            className="max-w-md"
+            data-testid="input-logo-url"
+          />
+          <p className="text-xs text-neutral-400">Direct URL to your business logo (square image recommended)</p>
+          {logoUrl && (
+            <div className="mt-2 p-3 bg-neutral-50 rounded-lg inline-block">
+              <img
+                src={logoUrl}
+                alt="Logo preview"
+                className="w-16 h-16 object-contain rounded"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+                data-testid="img-logo-preview"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="contactEmail" className="text-sm font-medium text-neutral-700">
+            Contact Email
+          </Label>
+          <Input
+            id="contactEmail"
+            type="email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            placeholder={user?.email || "you@example.com"}
+            className="max-w-md"
+            data-testid="input-contact-email"
+          />
+          <p className="text-xs text-neutral-400">Shown to buyers on checkout pages</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="websiteUrl" className="text-sm font-medium text-neutral-700">
+            Link
+          </Label>
+          <Input
+            id="websiteUrl"
+            value={websiteUrl}
+            onChange={(e) => setWebsiteUrl(e.target.value)}
+            placeholder="https://yoursite.com"
+            className="max-w-md"
+            data-testid="input-website-url"
+          />
+          <p className="text-xs text-neutral-400">Your website, Instagram, or anywhere people can learn more</p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="description" className="text-sm font-medium text-neutral-700">
+            Description
+          </Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="A short description of your business..."
+            className="max-w-md resize-none"
+            rows={3}
+            data-testid="input-description"
+          />
         </div>
       </div>
 

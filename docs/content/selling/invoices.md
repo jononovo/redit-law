@@ -89,4 +89,4 @@ On the invoice detail page, click **Cancel Invoice** to void it. This prevents t
 
 - [Checkout Pages](/docs/selling/checkout-pages) — The payment pages behind every invoice
 - [Sales Tracking](/docs/selling/sales-tracking) — Track when invoices get paid
-- [Seller Profile](/docs/settings/seller-profile) — Set up your business details for invoices
+- [Shop](/docs/selling/shop) — Set up your business details for invoices

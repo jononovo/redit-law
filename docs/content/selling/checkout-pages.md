@@ -27,7 +27,7 @@ Navigate to <a href="/app/checkout/create" target="_blank">**Checkout**</a> in t
 
 ### Seller Info
 
-Your seller profile information (business name, logo, email) is auto-filled from your [Seller Profile](/docs/settings/seller-profile) if you've set one up. You can override these on a per-page basis.
+Your seller profile information (business name, logo, email) is automatically pulled from the **Your Details** section on the [Shop](/docs/selling/shop) page. All checkout pages use the same seller identity.
 
 ## Sharing a Checkout Page
 

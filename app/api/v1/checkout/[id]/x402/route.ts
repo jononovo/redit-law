@@ -23,6 +23,8 @@ export async function GET(
       return NextResponse.json({ error: "x402 payments are not enabled for this checkout page" }, { status: 400 });
     }
 
+    const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
+
     const payload = {
       x402: {
         version: 1,
@@ -38,7 +40,7 @@ export async function GET(
             checkout_page_id: page.checkoutPageId,
             title: page.title,
             amount_locked: page.amountLocked,
-            seller_name: page.sellerName,
+            seller_name: sellerProfile?.businessName || null,
           },
         }],
       },

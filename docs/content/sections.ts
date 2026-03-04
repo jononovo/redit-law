@@ -72,7 +72,7 @@ export const sections: DocSection[] = [
     slug: "settings",
     audience: "user",
     pages: [
-      { title: "Seller Profile", slug: "seller-profile" },
+      { title: "Seller Identity", slug: "seller-profile" },
       { title: "Account Settings", slug: "account-settings" },
     ],
   },
