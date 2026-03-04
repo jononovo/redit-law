@@ -190,7 +190,7 @@ function Rail5InteractiveCard({
               autoComplete="off"
             />
 
-            <div className="flex items-end justify-end gap-3 mt-3">
+            <div className="flex items-end justify-end gap-3 mt-3 w-full">
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
                 <div className="flex items-center gap-1">
