@@ -106,6 +106,11 @@ export const POST = withBotApi("/api/v1/bot/rail5/confirm", async (request, { bo
     balanceAfter: updated.balanceCents,
   });
 
+  const rail5Card = await storage.getRail5CardByBotId(bot.botId);
+  if (rail5Card && rail5Card.status === "confirmed") {
+    await storage.updateRail5Card(rail5Card.cardId, { status: "active" });
+  }
+
   const newBalance = updated.balanceCents;
 
   fireWebhook(bot, "rail5.checkout.completed", {

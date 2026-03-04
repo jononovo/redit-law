@@ -139,6 +139,8 @@ export default function Rail5CardDetailPage() {
         <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
           card.status === "active" ? "bg-green-100 text-green-700" :
           card.status === "frozen" ? "bg-blue-100 text-blue-700" :
+          card.status === "confirmed" ? "bg-teal-100 text-teal-700" :
+          card.status === "pending_delivery" ? "bg-amber-100 text-amber-700" :
           "bg-amber-100 text-amber-700"
         }`} data-testid="badge-r5-status">
           {card.status}
@@ -231,7 +233,7 @@ export default function Rail5CardDetailPage() {
         )}
       </div>
 
-      {card.status !== "pending_setup" && (
+      {["confirmed", "active", "frozen"].includes(card.status) && (
         <Button
           variant="outline"
           onClick={handleFreeze}

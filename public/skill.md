@@ -1016,19 +1016,58 @@ up to 5 attempts.
 - **Poll responsibly.** Use `GET /bot/status` no more than every 10 minutes unless you are actively waiting for a top-up.
 - **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
-- **Rail 5 sub-agents are ephemeral.** They are deleted after checkout. Never store decrypted card data.
+- **Rail 5 sub-agents are optional.** If you use them, they are ephemeral and deleted after checkout. Never store decrypted card data.
 
 ---
 
-## Rail 5: Sub-Agent Card Checkout
+## Rail 5: Encrypted Card Checkout
 
-Rail 5 lets you purchase from any merchant using an encrypted card file. Your main agent never sees card details — a disposable sub-agent handles decryption and checkout.
+Rail 5 lets you purchase from any merchant using an encrypted card file. You can execute the checkout directly (direct mode) or delegate to an ephemeral sub-agent (sub-agent mode). CreditClaw doesn't enforce either pattern — choose whichever works for your environment.
 
-### Prerequisites
+### File Delivery
 
-- Your owner has created a Rail 5 card and linked it to your bot
-- The encrypted card file (e.g. `Card-Harry-26-Visa.md`) is in your workspace
-- The `decrypt.js` script is in your workspace
+When your owner sets up a Rail 5 card, CreditClaw delivers two files via the `rail5.card.delivered` webhook:
+
+1. **Encrypted card file** (e.g. `Card-Harry-26-Visa.md`) — contains the AES-256-GCM encrypted card data in a markdown code fence
+2. **`decrypt.js`** — a deterministic Node.js script that decrypts the card file using key material you retrieve at checkout time
+
+Both files arrive in the same webhook payload:
+
+```json
+{
+  "event": "rail5.card.delivered",
+  "bot_id": "bot_abc123",
+  "data": {
+    "card_id": "r5card_...",
+    "card_name": "ChaseD",
+    "card_last4": "9547",
+    "encrypted_file_content": "<markdown file content>",
+    "decrypt_script": "<decrypt.js source code>"
+  }
+}
+```
+
+Save both files to your workspace. Then confirm delivery:
+
+```
+POST /api/v1/bot/rail5/confirm-delivery
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:** `{ "status": "confirmed", "card_id": "r5card_...", "message": "Delivery confirmed. Card is now ready for checkout." }`
+
+This moves your card from `pending_delivery` to `confirmed`. You can now initiate checkouts.
+
+**Recovery:** If you lose either file, your owner deletes the card and creates a new one through the setup wizard. Both files are re-delivered together.
+
+### Card Status Progression
+
+| Status | Meaning |
+|--------|---------|
+| `pending_delivery` | Key submitted, waiting for bot to confirm file delivery |
+| `confirmed` | Bot confirmed both files saved — ready for checkout |
+| `active` | First successful checkout completed — proven working |
+| `frozen` | Owner manually paused the card |
 
 ### Step 1: Request Checkout
 
@@ -1051,6 +1090,14 @@ Content-Type: application/json
 {
   "approved": true,
   "checkout_id": "r5chk_abc123",
+  "checkout_steps": [
+    "Call POST /api/v1/bot/rail5/key with { \"checkout_id\": \"r5chk_abc123\" } to get the decryption key.",
+    "Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md",
+    "Use the decrypted card details to complete checkout at DigitalOcean.",
+    "Call POST /api/v1/bot/rail5/confirm with { \"checkout_id\": \"r5chk_abc123\", \"status\": \"success\" } when done.",
+    "If checkout fails, call confirm with { \"status\": \"failed\" } instead.",
+    "Announce the result."
+  ],
   "spawn_payload": {
     "task": "You are a checkout agent...",
     "cleanup": "delete",
@@ -1062,19 +1109,23 @@ Content-Type: application/json
 
 If the amount exceeds the owner's approval threshold, you'll get `"status": "pending_approval"` instead. Wait and retry.
 
-### Step 2: Spawn Sub-Agent
+### Step 2: Execute Checkout (Choose Your Mode)
 
-Use the spawn payload from Step 1 to create an ephemeral sub-agent:
+**Direct mode** — execute the `checkout_steps` yourself as the main agent:
+
+Follow the steps in `checkout_steps` sequentially. Simpler, works on all environments. The trade-off is that the main agent sees the decrypted card details in its context.
+
+**Sub-agent mode** — delegate to an ephemeral sub-agent for enhanced security:
 
 ```
 sessions_spawn({ task: spawn_payload.task, cleanup: "delete", runTimeoutSeconds: 300 })
 ```
 
-Your job as the main agent is done. Wait for the sub-agent's announcement.
+The sub-agent executes the checkout steps and is deleted afterward. The main agent never sees the card details. Wait for the sub-agent's announcement.
 
-### Step 3: Sub-Agent Gets Key
+### Step 3: Get Key
 
-The sub-agent calls:
+Whichever agent is doing the checkout calls:
 
 ```
 POST /api/v1/bot/rail5/key
@@ -1088,17 +1139,17 @@ Content-Type: application/json
 
 This is single-use. The key cannot be retrieved again for this checkout.
 
-### Step 4: Sub-Agent Decrypts
+### Step 4: Decrypt
 
 Run the deterministic decrypt script:
 
 ```
-node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-Harry-26-Visa.md
+node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md
 ```
 
 This outputs the card JSON (number, CVV, expiry, name, address).
 
-### Step 5: Sub-Agent Confirms
+### Step 5: Confirm
 
 After completing (or failing) checkout at the merchant:
 
@@ -1110,11 +1161,12 @@ Content-Type: application/json
 { "checkout_id": "r5chk_abc123", "status": "success" }
 ```
 
-Use `"status": "failed"` if checkout didn't work. On success, your wallet is debited.
+Use `"status": "failed"` if checkout didn't work. On success, your wallet is debited. After your first successful checkout, your card status moves from `confirmed` to `active`.
 
 ### Rail 5 Webhook Events
 
 | Event | When |
 |-------|------|
-| `rail5.checkout.completed` | Sub-agent confirmed successful checkout |
-| `rail5.checkout.failed` | Sub-agent reported checkout failure |
+| `rail5.card.delivered` | Owner set up card — encrypted file and decrypt script delivered |
+| `rail5.checkout.completed` | Checkout confirmed successful |
+| `rail5.checkout.failed` | Checkout reported failure |
