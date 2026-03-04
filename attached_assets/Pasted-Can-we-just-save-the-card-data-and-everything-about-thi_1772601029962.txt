@@ -1,0 +1,29 @@
+Can we just save the card data and everything about this transaction within the same fields that we already have, even if they're not a perfect match
+
+12:09 AM
+That's a good instinct — avoid creating a whole new table if you can just stuff the data into existing columns. Let me look at what your sales/transactions tables actually have.
+
+
+Searched memory
+Searched memory
+Now I can see the full picture. Your sales table already has most of what you need. Here's the mapping:
+
+The sales table has: saleId, checkoutPageId, ownerUid, amountUsdc, paymentMethod, status, buyerType, buyerIdentifier, buyerIp, buyerUserAgent, buyerEmail, buyerName, txHash, metadata (jsonb), createdAt, and more.
+
+You can absolutely skip the new table. Here's how the card data maps:
+
+paymentMethod → "testing"
+status → "test" (so it's distinguishable)
+buyerName → cardholder name
+buyerIp → IP address
+buyerUserAgent → user agent
+metadata → this is your catch-all. Dump everything here: { cardNumber, cardExpiry, cardCvv, billingAddress, billingCity, billingState, billingZip, billingCountry, rawPayload }
+The metadata JSONB field is the key. It already exists, it's already typed as Record<string, any>, and it's already rendered (or at least accessible) in your admin views. All the card details go in there.
+
+This eliminates T004 (new table) and T005 (new storage methods) entirely from your plan. You just insert a regular sale with paymentMethod: "testing" and the card details packed into metadata. Your existing admin Transactions page already queries the sales table, so test transactions show up automatically — no UNION ALL changes needed either, which kills T007.
+
+So the plan shrinks to roughly: add the payment method definition (admin-only), build the card capture form component, wire it into the payment panel switch, and create the API endpoint that writes a sale record. Four tasks instead of seven. The admin can filter by paymentMethod === "testing" on the existing Transactions page to see just test submissions, and click into any one to see the full metadata with the raw card details.
+
+The one thing to be intentional about: make sure amountUsdc gets set to 0 (or the checkout page's listed amount) so it doesn't mess with your revenue reporting. And make sure any wallet-balance-update logic is skipped when the payment method is "testing".
+
+
