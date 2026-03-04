@@ -36,7 +36,7 @@ function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="p-5 border-b border-neutral-200">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2">
           <Link
             href="/"
             className="flex items-center gap-2"
@@ -55,7 +55,7 @@ function Sidebar({
             Docs
           </Link>
         </div>
-        <div className="mt-4 flex items-center gap-4">
+        <div className="mt-5 flex items-center gap-4">
           <Link
             href={userHref}
             onClick={onNavigate}
