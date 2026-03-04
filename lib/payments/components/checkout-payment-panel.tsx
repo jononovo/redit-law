@@ -7,6 +7,7 @@ import { getAvailableMethods } from "../methods";
 import { PaymentMethodSelector } from "./payment-method-selector";
 import { StripeOnrampHandler } from "../handlers/stripe-onramp-handler";
 import { BasePayHandler } from "../handlers/base-pay-handler";
+import { TestingHandler } from "../handlers/testing-handler";
 import type { PaymentContext, PaymentResult, PaymentMethodDef } from "../types";
 
 type PanelState = "select" | "paying" | "error";
@@ -109,6 +110,15 @@ export function CheckoutPaymentPanel({
       case "base_pay":
         return (
           <BasePayHandler
+            context={ctx}
+            onSuccess={handlePaymentSuccess}
+            onError={handlePaymentError}
+            onCancel={handlePaymentCancel}
+          />
+        );
+      case "testing":
+        return (
+          <TestingHandler
             context={ctx}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}

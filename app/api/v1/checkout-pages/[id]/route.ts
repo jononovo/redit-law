@@ -8,7 +8,7 @@ const updateCheckoutPageSchema = z.object({
   description: z.string().max(2000).nullable().optional(),
   amount_usd: z.number().positive().nullable().optional(),
   amount_locked: z.boolean().optional(),
-  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay"])).min(1).optional(),
+  allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay", "testing"])).min(1).optional(),
   status: z.enum(["active", "paused", "archived"]).optional(),
   success_url: z.string().url().nullable().optional(),
   success_message: z.string().max(500).nullable().optional(),
