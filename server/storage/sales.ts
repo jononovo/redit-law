@@ -20,6 +20,7 @@ type SalesMethods = Pick<IStorage,
   | "archiveCheckoutPage"
   | "createSale"
   | "getSaleById"
+  | "getSaleByX402Nonce"
   | "getSalesByOwnerUid"
   | "getSalesByCheckoutPageId"
   | "updateSaleStatus"
@@ -61,6 +62,17 @@ export const salesMethods: SalesMethods = {
 
   async getSaleById(saleId: string): Promise<Sale | null> {
     const [sale] = await db.select().from(sales).where(eq(sales.saleId, saleId)).limit(1);
+    return sale || null;
+  },
+
+  async getSaleByX402Nonce(nonce: string, checkoutPageId: string): Promise<Sale | null> {
+    const [sale] = await db.select().from(sales).where(
+      and(
+        eq(sales.x402Nonce, nonce),
+        eq(sales.checkoutPageId, checkoutPageId),
+        eq(sales.status, "confirmed"),
+      )
+    ).limit(1);
     return sale || null;
   },
 
