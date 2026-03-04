@@ -55,7 +55,7 @@ function Sidebar({
             Docs
           </Link>
         </div>
-        <div className="mt-3 flex items-center gap-4">
+        <div className="mt-4 flex items-center gap-4">
           <Link
             href={userHref}
             onClick={onNavigate}
