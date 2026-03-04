@@ -21,7 +21,7 @@ interface CheckoutPageData {
   seller_name: string | null;
   seller_logo_url: string | null;
   seller_email: string | null;
-  page_type: "product" | "event";
+  page_type: "product" | "event" | "digital_product";
   collect_buyer_name: boolean;
 }
 

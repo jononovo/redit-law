@@ -13,11 +13,12 @@ const updateCheckoutPageSchema = z.object({
   success_url: z.string().url().nullable().optional(),
   success_message: z.string().max(500).nullable().optional(),
   expires_at: z.string().datetime().nullable().optional(),
-  page_type: z.enum(["product", "event"]).optional(),
+  page_type: z.enum(["product", "event", "digital_product"]).optional(),
   shop_visible: z.boolean().optional(),
   shop_order: z.number().int().min(0).optional(),
   image_url: z.string().url().max(2000).nullable().optional(),
   collect_buyer_name: z.boolean().optional(),
+  digital_product_url: z.string().url().max(2000).nullable().optional(),
 });
 
 function formatPage(page: any) {
@@ -38,6 +39,7 @@ function formatPage(page: any) {
     shop_order: page.shopOrder || 0,
     image_url: page.imageUrl || null,
     collect_buyer_name: page.collectBuyerName || false,
+    digital_product_url: page.digitalProductUrl || null,
     view_count: page.viewCount,
     payment_count: page.paymentCount,
     total_received_usd: page.totalReceivedUsdc / 1_000_000,
@@ -109,6 +111,7 @@ export async function PATCH(
     if (data.shop_order !== undefined) updates.shopOrder = data.shop_order;
     if (data.image_url !== undefined) updates.imageUrl = data.image_url;
     if (data.collect_buyer_name !== undefined) updates.collectBuyerName = data.collect_buyer_name;
+    if (data.digital_product_url !== undefined) updates.digitalProductUrl = data.digital_product_url;
 
     const updated = await storage.updateCheckoutPage(id, updates);
     if (!updated) {

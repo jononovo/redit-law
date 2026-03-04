@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       pageType: data.page_type || "product",
       imageUrl: data.image_url || null,
       collectBuyerName: data.collect_buyer_name || false,
+      digitalProductUrl: data.digital_product_url || null,
     });
 
     return NextResponse.json({
@@ -61,6 +62,10 @@ export async function POST(request: NextRequest) {
       status: page.status,
       success_url: page.successUrl,
       success_message: page.successMessage,
+      page_type: page.pageType || "product",
+      image_url: page.imageUrl || null,
+      collect_buyer_name: page.collectBuyerName || false,
+      digital_product_url: page.digitalProductUrl || null,
       view_count: page.viewCount,
       payment_count: page.paymentCount,
       total_received_usd: page.totalReceivedUsdc / 1_000_000,
@@ -100,6 +105,7 @@ export async function GET(request: NextRequest) {
       shop_order: page.shopOrder || 0,
       image_url: page.imageUrl || null,
       collect_buyer_name: page.collectBuyerName || false,
+      digital_product_url: page.digitalProductUrl || null,
       view_count: page.viewCount,
       payment_count: page.paymentCount,
       total_received_usd: page.totalReceivedUsdc / 1_000_000,

@@ -79,7 +79,8 @@ export default function CreateCheckoutPage() {
   const [sellerName, setSellerName] = useState("");
   const [sellerLogoUrl, setSellerLogoUrl] = useState("");
   const [sellerEmail, setSellerEmail] = useState("");
-  const [pageType, setPageType] = useState<"product" | "event">("product");
+  const [pageType, setPageType] = useState<"product" | "event" | "digital_product">("product");
+  const [digitalProductUrl, setDigitalProductUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [collectBuyerName, setCollectBuyerName] = useState(false);
 
@@ -158,6 +159,7 @@ export default function CreateCheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !walletId) return;
+    if (pageType === "digital_product" && !digitalProductUrl.trim()) return;
 
     setSubmitting(true);
     setCreatedUrl(null);
@@ -181,6 +183,9 @@ export default function CreateCheckoutPage() {
       body.page_type = pageType;
       if (imageUrl.trim()) body.image_url = imageUrl.trim();
       body.collect_buyer_name = collectBuyerName;
+      if (pageType === "digital_product" && digitalProductUrl.trim()) {
+        body.digital_product_url = digitalProductUrl.trim();
+      }
 
       const res = await authFetch("/api/v1/checkout-pages", {
         method: "POST",
@@ -205,6 +210,7 @@ export default function CreateCheckoutPage() {
         setSellerLogoUrl(sellerProfile?.logo_url || "");
         setSellerEmail(sellerProfile?.contact_email || "");
         setPageType("product");
+        setDigitalProductUrl("");
         setImageUrl("");
         setCollectBuyerName(false);
 
@@ -326,17 +332,22 @@ export default function CreateCheckoutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-sm font-medium text-neutral-700">Page Type</Label>
-            <Select value={pageType} onValueChange={(v) => setPageType(v as "product" | "event")}>
+            <Select value={pageType} onValueChange={(v) => setPageType(v as "product" | "event" | "digital_product")}>
               <SelectTrigger data-testid="select-page-type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="product">Product</SelectItem>
                 <SelectItem value="event">Event</SelectItem>
+                <SelectItem value="digital_product">Digital Product</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-neutral-400">
-              {pageType === "event" ? "Events show buyer count on the checkout page" : "Standard product checkout"}
+              {pageType === "event"
+                ? "Events show buyer count on the checkout page"
+                : pageType === "digital_product"
+                ? "Delivers a URL to the buyer after payment"
+                : "Standard product checkout"}
             </p>
           </div>
 
@@ -354,6 +365,26 @@ export default function CreateCheckoutPage() {
             />
           </div>
         </div>
+
+        {pageType === "digital_product" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="digitalProductUrl" className="text-sm font-medium text-neutral-700">
+              Digital Product URL <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="digitalProductUrl"
+              type="url"
+              value={digitalProductUrl}
+              onChange={(e) => setDigitalProductUrl(e.target.value)}
+              placeholder="https://example.com/download/your-product"
+              required
+              data-testid="input-digital-product-url"
+            />
+            <p className="text-xs text-neutral-400">
+              This URL will be sent to the buyer after successful payment. Use a secure or signed URL.
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <Switch
@@ -542,7 +573,7 @@ export default function CreateCheckoutPage() {
 
         <Button
           type="submit"
-          disabled={submitting || !title.trim() || !walletId}
+          disabled={submitting || !title.trim() || !walletId || (pageType === "digital_product" && !digitalProductUrl.trim())}
           className="w-full gap-2"
           data-testid="button-create-checkout"
         >
