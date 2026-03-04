@@ -35,7 +35,7 @@ function Sidebar({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-neutral-200">
+      <div className="p-5 border-b border-neutral-200">
         <div className="flex items-center gap-2 mb-1">
           <Link
             href="/"
