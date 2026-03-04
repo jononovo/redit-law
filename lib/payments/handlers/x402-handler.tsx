@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Copy, Check, ArrowLeft, Terminal, Wallet, ChevronDown, ChevronUp } from "lucide-react";
+import { Copy, Check, ArrowLeft, ChevronDown, ChevronUp, Terminal } from "lucide-react";
 import type { PaymentHandlerProps } from "../types";
 
 function CopyButton({ text, label, size = "sm" }: { text: string; label?: string; size?: "sm" | "lg" }) {
@@ -89,24 +89,23 @@ export function X402Handler({ context, onCancel }: PaymentHandlerProps) {
     ? Math.round(context.amountUsd * 1_000_000)
     : null;
 
-  const amountLine = amountUsdc
-    ? `Amount: ${amountUsdc} (${context.amountUsd!.toFixed(2)} USDC, 6 decimals)`
-    : "Amount: Open (buyer sets amount)";
+  const amountDetail = amountUsdc
+    ? `${amountUsdc} (${context.amountUsd!.toFixed(2)} USDC, 6 decimals)`
+    : "Open amount";
 
-  const agentBlock = `Pay ${amountDisplay} for "${context.title || "this product"}" via x402 on Base.
+  const agentInstructions = `Pay ${amountDisplay} for this product via x402 on Base.
 
 Requirements: GET ${requirementsUrl}
 Pay: POST ${payUrl}
 Recipient: ${context.walletAddress}
-${amountLine}
+Amount: ${amountDetail}
 Token: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 (USDC on Base)
 Chain: 8453 (Base)
 Protocol: EIP-3009 transferWithAuthorization
 
 Sign the payload and send it as a base64-encoded X-PAYMENT header to the Pay endpoint.`;
 
-  const snippet = `// 1. Build the x402 payment payload
-const payload = {
+  const snippet = `const payload = {
   from: "YOUR_WALLET_ADDRESS",
   to: "${context.walletAddress}",${amountUsdc ? `\n  value: "${amountUsdc}",` : '\n  value: "AMOUNT_IN_USDC_ATOMIC", // 1 USDC = 1000000'}
   validAfter: 0,
@@ -154,35 +153,35 @@ console.log(result);`;
 
       <div className="space-y-4">
         <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-              <Wallet className="w-4 h-4" />
-              Copy instructions for your agent
-            </div>
-            <CopyButton text={agentBlock} label="agent-block" />
-          </div>
           <pre
-            className="text-xs font-mono text-neutral-600 bg-white rounded-lg px-3 py-3 border border-neutral-200 overflow-x-auto whitespace-pre leading-relaxed"
-            data-testid="text-x402-agent-block"
+            className="text-sm font-mono text-neutral-700 whitespace-pre-wrap leading-relaxed break-all"
+            data-testid="text-x402-agent-instructions"
           >
-            {agentBlock}
+            {agentInstructions}
           </pre>
           <p className="text-xs text-neutral-400 mt-2">
             Any x402-compatible agent can use these instructions
           </p>
         </div>
 
+        <CopyButton text={agentInstructions} label="agent-instructions" size="lg" />
+
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="flex items-center gap-2 w-full text-sm font-medium text-neutral-500 hover:text-neutral-700 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 text-xs font-medium text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer py-2"
           data-testid="button-toggle-details"
         >
           {showDetails ? (
-            <ChevronUp className="w-4 h-4" />
+            <>
+              <ChevronUp className="w-3.5 h-3.5" />
+              Hide developer details
+            </>
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <>
+              <ChevronDown className="w-3.5 h-3.5" />
+              Show developer details
+            </>
           )}
-          {showDetails ? "Hide" : "Show"} developer details
         </button>
 
         {showDetails && (
@@ -218,15 +217,12 @@ console.log(result);`;
                 {curlSnippet}
               </pre>
             </div>
-
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <Wallet className="w-3.5 h-3.5 text-neutral-400" />
-              <p className="text-xs text-neutral-400">
-                x402 uses EIP-3009 transferWithAuthorization on Base
-              </p>
-            </div>
           </div>
         )}
+
+        <p className="text-center text-xs text-neutral-400">
+          Any x402-compatible agent can use these instructions
+        </p>
       </div>
     </div>
   );
