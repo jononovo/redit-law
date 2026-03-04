@@ -159,21 +159,21 @@ function Rail5InteractiveCard({
         data-testid="r5-interactive-card"
       >
         <div
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-10 pointer-events-none"
           style={{
             backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
           }}
         />
 
         <div className="relative h-full flex flex-col p-6">
-          <div className="flex items-start justify-between">
-            <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center">
-              <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
-            </div>
+          <div className="flex items-start justify-end">
             <BrandLogo brand={detectedBrand} />
           </div>
 
-          <div className="flex-1 flex flex-col justify-center">
+          <div className="flex-1 flex flex-col items-start justify-center">
+            <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mb-3">
+              <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
+            </div>
             <input
               ref={numberRef}
               type="text"
