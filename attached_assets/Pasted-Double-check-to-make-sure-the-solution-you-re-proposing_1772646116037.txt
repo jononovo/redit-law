@@ -1,0 +1,68 @@
+Double check to make sure the solution you're proposing is actually going to solve the problem and not break anything else
+
+Good call. Let me trace through every touchpoint to make sure nothing breaks.
+
+Now let me also check what other places consume pageType to make sure nothing breaks:
+
+Let me check the key consumers to understand how pageType is used:
+
+Now I can see the full picture. Let me also check the checkout payment panel and the public checkout page for the type constraint:
+
+Good. Now I have the full picture. Here are the places where page_type is type-constrained that would need updating:
+
+TypeScript type constraints (will break if not updated):
+
+app/pay/[id]/page.tsx line 24: page_type: "product" | "event" — needs | "digital_product"
+lib/payments/components/checkout-payment-panel.tsx line 24: pageType: "product" | "event" — needs | "digital_product"
+app/s/[slug]/page.tsx line 24: page_type: "product" | "event" — needs | "digital_product"
+app/app/checkout/create/page.tsx line 82: useState<"product" | "event"> — needs | "digital_product"
+Zod validation schemas (will reject "digital_product" if not updated):
+5. shared/schema.ts line 1332: z.enum(["product", "event"]) — needs "digital_product"
+
+app/api/v1/checkout-pages/[id]/route.ts line 16: z.enum(["product", "event"]) — needs "digital_product"
+Conditional logic that checks page type (won't break, but worth noting):
+7. app/pay/[id]/page.tsx line 86: if (data.page_type === "event") — for buyer count display, no change needed
+
+lib/payments/components/checkout-payment-panel.tsx line 240: pageType === "event" — same, no change needed
+app/s/[slug]/page.tsx lines 174, 182: event-specific rendering — no change needed
+app/app/shop/page.tsx line 274-276: shows page type badge — will automatically show "digital_product" as text, which is fine
+Bot API (will reject "digital_product" if not updated):
+11. app/api/v1/bot/checkout-pages/create/route.ts line 38: destructures page_type — need to check if it has its own Zod schema
+
+Let me check that bot route:
+
+Now I have the complete picture. Let me also check the bot create route to see if it passes digitalProductUrl:
+
+Now I have the complete picture. Here's my updated analysis:
+
+Full list of files that need changes (12 total):
+
+Schema & validation (3 files):
+
+shared/schema.ts — Add digitalProductUrl column to checkout_pages table. Update createCheckoutPageSchema to allow "digital_product" in page_type enum and add digital_product_url field. Update botCreateCheckoutPageSchema same way.
+API routes (4 files):
+2. app/api/v1/checkout-pages/route.ts — Pass digitalProductUrl through on create. Return it in GET list response.
+
+app/api/v1/checkout-pages/[id]/route.ts — Update PATCH validation to accept "digital_product" in page_type enum. Handle digital_product_url on update.
+app/api/v1/bot/checkout-pages/create/route.ts — Pass digitalProductUrl through on bot create.
+app/api/v1/checkout/[id]/pay/x402/route.ts — Include product object in settlement response.
+Frontend type constraints (3 files):
+6. app/pay/[id]/page.tsx — Update page_type type from "product" | "event" to include "digital_product".
+
+lib/payments/components/checkout-payment-panel.tsx — Same type update.
+app/s/[slug]/page.tsx — Same type update.
+Frontend form (1 file):
+9. app/app/checkout/create/page.tsx — Add "Digital Product" option, conditional URL input, state, and submission logic.
+
+Won't break but worth noting:
+
+app/app/shop/page.tsx — Already uses string type for page_type and renders it as a badge. Will automatically show "digital_product" text. Fine as-is but could capitalize it nicely.
+app/api/v1/checkout/[id]/public/route.ts — Returns page_type but doesn't type-constrain it. Fine as-is.
+app/api/v1/checkout/[id]/x402/route.ts — Requirements endpoint. Should NOT include the product URL (bot pays first, receives second). No change needed.
+My original plan missed 5 files. Specifically:
+
+The bot API create route and its separate Zod schema (botCreateCheckoutPageSchema)
+The PATCH route's separate Zod schema
+The three frontend files with TypeScript union types for page_type
+Those would have caused either validation rejections or TypeScript compile errors. Updated plan is solid now — all 12 touchpoints covered. Ready to build when you give the word.
+
