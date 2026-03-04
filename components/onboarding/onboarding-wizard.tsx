@@ -8,8 +8,9 @@ import { ClaimToken } from "./steps/claim-token";
 import { PairingCode } from "./steps/pairing-code";
 import { SpendingLimits } from "./steps/spending-limits";
 import { ConnectBot } from "./steps/connect-bot";
-import { AddPayment } from "./steps/add-payment";
-import { FundWallet } from "./steps/fund-wallet";
+import { SignInStep } from "./steps/sign-in";
+import { AddCardPrompt } from "./steps/add-card-prompt";
+import { CardEntry } from "./steps/card-entry";
 import { Complete } from "./steps/complete";
 
 interface WizardState {
@@ -21,18 +22,21 @@ interface WizardState {
   perTransactionCents: number;
   dailyCents: number;
   monthlyCents: number;
-  paymentMethodAdded: boolean;
   fundedAmountCents: number;
+  isAuthenticated: boolean;
+  wantsCard: boolean;
+  cardAdded: boolean;
 }
 
 type StepId =
   | "choose-path"
+  | "sign-in"
   | "claim-token"
   | "pairing-code"
   | "spending-limits"
   | "connect-bot"
-  | "add-payment"
-  | "fund-wallet"
+  | "add-card-prompt"
+  | "card-entry"
   | "complete";
 
 const initialState: WizardState = {
@@ -44,8 +48,10 @@ const initialState: WizardState = {
   perTransactionCents: 2500,
   dailyCents: 5000,
   monthlyCents: 50000,
-  paymentMethodAdded: false,
   fundedAmountCents: 0,
+  isAuthenticated: false,
+  wantsCard: false,
+  cardAdded: false,
 };
 
 export function OnboardingWizard() {
@@ -56,6 +62,8 @@ export function OnboardingWizard() {
 
   const activeSteps = useMemo<StepId[]>(() => {
     const steps: StepId[] = ["choose-path"];
+
+    steps.push("sign-in");
 
     if (state.entryPath === "bot-first") {
       steps.push("claim-token");
@@ -69,10 +77,16 @@ export function OnboardingWizard() {
       steps.push("connect-bot");
     }
 
+    steps.push("add-card-prompt");
+
+    if (state.wantsCard) {
+      steps.push("card-entry");
+    }
+
     steps.push("complete");
 
     return steps;
-  }, [state.entryPath, state.botConnected, state.paymentMethodAdded]);
+  }, [state.entryPath, state.botConnected, state.wantsCard]);
 
   const animateTransition = useCallback((direction: "forward" | "back", callback: () => void) => {
     setTransitionClass(direction === "forward" ? "wizard-step-exit" : "wizard-step-exit-back");
@@ -97,6 +111,17 @@ export function OnboardingWizard() {
     });
   }, [animateTransition]);
 
+  const goToComplete = useCallback(() => {
+    animateTransition("forward", () => {
+      const completeIndex = activeSteps.indexOf("complete");
+      if (completeIndex !== -1) {
+        setCurrentStepIndex(completeIndex);
+      } else {
+        setCurrentStepIndex(activeSteps.length - 1);
+      }
+    });
+  }, [animateTransition, activeSteps]);
+
   useEffect(() => {
     setCurrentStepIndex((prev) => Math.min(prev, activeSteps.length - 1));
   }, [activeSteps.length]);
@@ -113,6 +138,19 @@ export function OnboardingWizard() {
             totalSteps={totalSteps}
             onNext={(path) => {
               setState((s) => ({ ...s, entryPath: path }));
+              goForward();
+            }}
+          />
+        );
+
+      case "sign-in":
+        return (
+          <SignInStep
+            currentStep={currentStepIndex}
+            totalSteps={totalSteps}
+            onBack={goBack}
+            onNext={() => {
+              setState((s) => ({ ...s, isAuthenticated: true }));
               goForward();
             }}
           />
@@ -181,29 +219,32 @@ export function OnboardingWizard() {
           />
         );
 
-      case "add-payment":
+      case "add-card-prompt":
         return (
-          <AddPayment
+          <AddCardPrompt
             currentStep={currentStepIndex}
             totalSteps={totalSteps}
             onBack={goBack}
-            onNext={(added) => {
-              setState((s) => ({ ...s, paymentMethodAdded: added }));
+            onNext={() => {
+              setState((s) => ({ ...s, wantsCard: true }));
               goForward();
             }}
+            onSkip={goToComplete}
           />
         );
 
-      case "fund-wallet":
+      case "card-entry":
         return (
-          <FundWallet
+          <CardEntry
             currentStep={currentStepIndex}
             totalSteps={totalSteps}
             onBack={goBack}
-            onNext={(amountCents) => {
-              setState((s) => ({ ...s, fundedAmountCents: amountCents }));
+            onNext={() => {
+              setState((s) => ({ ...s, cardAdded: true }));
               goForward();
             }}
+            botId={state.botId || undefined}
+            botName={state.botName || undefined}
           />
         );
 
