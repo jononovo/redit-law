@@ -3,42 +3,115 @@
 import { useState } from "react";
 import { Loader2, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { PaymentHandlerProps } from "../types";
 
 type HandlerState = "form" | "submitting" | "success" | "error";
 
+const MONTHS = [
+  { value: "01", label: "01 - January" },
+  { value: "02", label: "02 - February" },
+  { value: "03", label: "03 - March" },
+  { value: "04", label: "04 - April" },
+  { value: "05", label: "05 - May" },
+  { value: "06", label: "06 - June" },
+  { value: "07", label: "07 - July" },
+  { value: "08", label: "08 - August" },
+  { value: "09", label: "09 - September" },
+  { value: "10", label: "10 - October" },
+  { value: "11", label: "11 - November" },
+  { value: "12", label: "12 - December" },
+];
+
+function getYearOptions(): { value: string; label: string }[] {
+  const currentYear = new Date().getFullYear();
+  const years: { value: string; label: string }[] = [];
+  for (let i = 0; i < 11; i++) {
+    const year = currentYear + i;
+    const short = String(year).slice(-2);
+    years.push({ value: short, label: String(year) });
+  }
+  return years;
+}
+
 export function TestingHandler({ context, onSuccess, onError, onCancel }: PaymentHandlerProps) {
   const { toast } = useToast();
   const [state, setState] = useState<HandlerState>("form");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
+  const [expiryMonth, setExpiryMonth] = useState("");
+  const [expiryYear, setExpiryYear] = useState("");
   const [cardCvv, setCardCvv] = useState("");
   const [cardholderName, setCardholderName] = useState("");
-  const [billingAddress, setBillingAddress] = useState("");
-  const [billingCity, setBillingCity] = useState("");
-  const [billingState, setBillingState] = useState("");
   const [billingZip, setBillingZip] = useState("");
-  const [billingCountry, setBillingCountry] = useState("");
+
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCardNumber(formatCardNumber(e.target.value));
+    if (errors.cardNumber) setErrors((prev) => ({ ...prev, cardNumber: "" }));
+  };
+
+  const handleCvvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+    setCardCvv(digits);
+    if (errors.cardCvv) setErrors((prev) => ({ ...prev, cardCvv: "" }));
+  };
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!cardholderName.trim()) {
+      newErrors.cardholderName = "Name is required";
+    }
+
+    const rawDigits = cardNumber.replace(/\s/g, "");
+    if (!rawDigits || rawDigits.length < 13 || rawDigits.length > 16) {
+      newErrors.cardNumber = "Enter a valid card number";
+    }
+
+    if (!expiryMonth) {
+      newErrors.expiryMonth = "Select a month";
+    }
+
+    if (!expiryYear) {
+      newErrors.expiryYear = "Select a year";
+    }
+
+    if (!cardCvv || cardCvv.length < 3 || cardCvv.length > 4) {
+      newErrors.cardCvv = "Enter a valid CVV (3-4 digits)";
+    }
+
+    if (!billingZip.trim()) {
+      newErrors.billingZip = "ZIP code is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async () => {
+    if (!validate()) return;
+
     setState("submitting");
+
+    const cardExpiry = `${expiryMonth}/${expiryYear}`;
 
     try {
       const res = await fetch(`/api/v1/checkout/${context.checkoutPageId}/pay/testing`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          card_number: cardNumber,
+          card_number: cardNumber.replace(/\s/g, ""),
           card_expiry: cardExpiry,
           card_cvv: cardCvv,
-          cardholder_name: cardholderName,
-          billing_address: billingAddress,
-          billing_city: billingCity,
-          billing_state: billingState,
-          billing_zip: billingZip,
-          billing_country: billingCountry,
+          cardholder_name: cardholderName.trim(),
+          billing_zip: billingZip.trim(),
           buyer_name: context.buyerName,
         }),
       });
@@ -89,6 +162,8 @@ export function TestingHandler({ context, onSuccess, onError, onCancel }: Paymen
     );
   }
 
+  const yearOptions = getYearOptions();
+
   return (
     <div className="w-full max-w-sm mx-auto" data-testid="testing-handler-form">
       <div className="flex items-center gap-2 mb-6">
@@ -104,107 +179,128 @@ export function TestingHandler({ context, onSuccess, onError, onCancel }: Paymen
 
       <div className="space-y-4">
         <div>
+          <label className="text-sm font-medium text-neutral-700 mb-1 block">Cardholder Name</label>
+          <Input
+            type="text"
+            placeholder="John Doe"
+            value={cardholderName}
+            onChange={(e) => {
+              setCardholderName(e.target.value);
+              if (errors.cardholderName) setErrors((prev) => ({ ...prev, cardholderName: "" }));
+            }}
+            className={errors.cardholderName ? "border-red-400" : ""}
+            data-testid="input-test-cardholder-name"
+          />
+          {errors.cardholderName && (
+            <p className="text-xs text-red-500 mt-1" data-testid="error-cardholder-name">{errors.cardholderName}</p>
+          )}
+        </div>
+
+        <div>
           <label className="text-sm font-medium text-neutral-700 mb-1 block">Card Number</label>
           <Input
             type="text"
             placeholder="4242 4242 4242 4242"
             value={cardNumber}
-            onChange={(e) => setCardNumber(e.target.value)}
-            className="font-mono"
+            onChange={handleCardNumberChange}
+            className={`font-mono ${errors.cardNumber ? "border-red-400" : ""}`}
+            maxLength={19}
             data-testid="input-test-card-number"
           />
+          {errors.cardNumber && (
+            <p className="text-xs text-red-500 mt-1" data-testid="error-card-number">{errors.cardNumber}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">Expiry</label>
-            <Input
-              type="text"
-              placeholder="MM/YY"
-              value={cardExpiry}
-              onChange={(e) => setCardExpiry(e.target.value)}
-              className="font-mono"
-              data-testid="input-test-card-expiry"
-            />
+            <label className="text-sm font-medium text-neutral-700 mb-1 block">Expiry Month</label>
+            <Select
+              value={expiryMonth}
+              onValueChange={(v) => {
+                setExpiryMonth(v);
+                if (errors.expiryMonth) setErrors((prev) => ({ ...prev, expiryMonth: "" }));
+              }}
+            >
+              <SelectTrigger
+                className={errors.expiryMonth ? "border-red-400" : ""}
+                data-testid="select-test-expiry-month"
+              >
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((m) => (
+                  <SelectItem key={m.value} value={m.value} data-testid={`option-month-${m.value}`}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.expiryMonth && (
+              <p className="text-xs text-red-500 mt-1" data-testid="error-expiry-month">{errors.expiryMonth}</p>
+            )}
           </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700 mb-1 block">Expiry Year</label>
+            <Select
+              value={expiryYear}
+              onValueChange={(v) => {
+                setExpiryYear(v);
+                if (errors.expiryYear) setErrors((prev) => ({ ...prev, expiryYear: "" }));
+              }}
+            >
+              <SelectTrigger
+                className={errors.expiryYear ? "border-red-400" : ""}
+                data-testid="select-test-expiry-year"
+              >
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {yearOptions.map((y) => (
+                  <SelectItem key={y.value} value={y.value} data-testid={`option-year-${y.value}`}>
+                    {y.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.expiryYear && (
+              <p className="text-xs text-red-500 mt-1" data-testid="error-expiry-year">{errors.expiryYear}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium text-neutral-700 mb-1 block">CVV</label>
             <Input
               type="text"
               placeholder="123"
               value={cardCvv}
-              onChange={(e) => setCardCvv(e.target.value)}
-              className="font-mono"
+              onChange={handleCvvChange}
+              className={`font-mono ${errors.cardCvv ? "border-red-400" : ""}`}
+              maxLength={4}
               data-testid="input-test-card-cvv"
             />
+            {errors.cardCvv && (
+              <p className="text-xs text-red-500 mt-1" data-testid="error-cvv">{errors.cardCvv}</p>
+            )}
           </div>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-neutral-700 mb-1 block">Cardholder Name</label>
-          <Input
-            type="text"
-            placeholder="John Doe"
-            value={cardholderName}
-            onChange={(e) => setCardholderName(e.target.value)}
-            data-testid="input-test-cardholder-name"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-neutral-700 mb-1 block">Billing Address</label>
-          <Input
-            type="text"
-            placeholder="123 Main St"
-            value={billingAddress}
-            onChange={(e) => setBillingAddress(e.target.value)}
-            data-testid="input-test-billing-address"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">City</label>
-            <Input
-              type="text"
-              placeholder="New York"
-              value={billingCity}
-              onChange={(e) => setBillingCity(e.target.value)}
-              data-testid="input-test-billing-city"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">State</label>
-            <Input
-              type="text"
-              placeholder="NY"
-              value={billingState}
-              onChange={(e) => setBillingState(e.target.value)}
-              data-testid="input-test-billing-state"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-sm font-medium text-neutral-700 mb-1 block">ZIP Code</label>
             <Input
               type="text"
               placeholder="10001"
               value={billingZip}
-              onChange={(e) => setBillingZip(e.target.value)}
+              onChange={(e) => {
+                setBillingZip(e.target.value);
+                if (errors.billingZip) setErrors((prev) => ({ ...prev, billingZip: "" }));
+              }}
+              className={errors.billingZip ? "border-red-400" : ""}
               data-testid="input-test-billing-zip"
             />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">Country</label>
-            <Input
-              type="text"
-              placeholder="US"
-              value={billingCountry}
-              onChange={(e) => setBillingCountry(e.target.value)}
-              data-testid="input-test-billing-country"
-            />
+            {errors.billingZip && (
+              <p className="text-xs text-red-500 mt-1" data-testid="error-billing-zip">{errors.billingZip}</p>
+            )}
           </div>
         </div>
 
