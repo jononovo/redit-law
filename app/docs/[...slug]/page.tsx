@@ -53,10 +53,16 @@ export default async function DocPage({ params }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12" data-testid={`doc-page-${section.slug}-${page.slug}`}>
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-neutral-400 font-medium" aria-label="Breadcrumb" data-testid="breadcrumb">
+        <Link href="/docs" className="hover:text-neutral-600 transition-colors" data-testid="breadcrumb-docs">Docs</Link>
+        <ChevronRight className="w-3 h-3" />
+        <span data-testid="breadcrumb-section">{section.title}</span>
+        <ChevronRight className="w-3 h-3" />
+        <span className="text-neutral-600" data-testid="breadcrumb-page">{page.title}</span>
+      </nav>
+
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-          {section.title}
-        </p>
+        <div />
         <div className="flex items-center gap-3">
           <CopyMarkdownButton content={content} />
           <Link
