@@ -18,7 +18,7 @@ CreditClaw uses Firebase Authentication. You can sign in with:
 - **Email and password**
 - **Google account**
 
-Once authenticated, you'll land on the main dashboard at `/app`.
+Once authenticated, you'll land on the main <a href="/app" target="_blank">dashboard</a>.
 
 ## The Onboarding Wizard
 
@@ -36,7 +36,7 @@ You can skip the wizard and configure these settings later from the dashboard, b
 
 ## What Happens After Signup
 
-Once you've completed signup (with or without the wizard), you'll have access to the full dashboard where you can:
+Once you've completed signup (with or without the wizard), you'll have access to the full <a href="/app" target="_blank">dashboard</a> where you can:
 
 - View and manage your connected bots
 - Create and fund wallets

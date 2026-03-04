@@ -13,7 +13,7 @@ Giving an AI agent direct access to your full credit card number is risky. Encry
 
 ## Sub-Agent Cards (Rail 4): Split-Knowledge Encryption
 
-Sub-Agent Cards use a **split-knowledge** approach. When you enter your card number during setup:
+<a href="/app/sub-agent-cards" target="_blank">Sub-Agent Cards</a> use a **split-knowledge** approach. When you enter your card number during setup:
 
 1. **Card splitting**: Your card number is divided across multiple encrypted "payment profiles"
 2. **Decoy profiles**: Fake profiles are generated alongside the real one, so even if intercepted, an attacker can't tell which profile is real
@@ -48,7 +48,7 @@ Sub-Agent Cards support an optional **obfuscation engine** that periodically re-
 
 ## Self-Hosted Encrypted Cards (Rail 5): End-to-End Encryption
 
-Self-Hosted Cards use **end-to-end encryption** with a key that only you and your bot share. CreditClaw acts as a secure intermediary but never has access to the decrypted card details.
+<a href="/app/self-hosted" target="_blank">Self-Hosted Cards</a> use **end-to-end encryption** with a key that only you and your bot share. CreditClaw acts as a secure intermediary but never has access to the decrypted card details.
 
 ### How It Works
 

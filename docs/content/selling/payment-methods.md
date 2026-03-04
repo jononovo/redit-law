@@ -68,7 +68,7 @@ When creating or editing a checkout page, you can enable or disable each method 
 
 ## How Sellers Receive Funds
 
-Regardless of which payment method a buyer uses, all funds are deposited as USDC into the Stripe Wallet you selected when creating the checkout page. You can view incoming payments in the [Sales Tracking](/docs/selling/sales-tracking) section.
+Regardless of which payment method a buyer uses, all funds are deposited as USDC into the Stripe Wallet you selected when creating the checkout page. You can view incoming payments in the <a href="/app/sales" target="_blank">Sales</a> section of the dashboard, or read the [Sales Tracking](/docs/selling/sales-tracking) docs.
 
 ## Next Steps
 

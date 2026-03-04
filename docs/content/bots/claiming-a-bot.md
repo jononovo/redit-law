@@ -12,13 +12,13 @@ A claim token is a short code (e.g. `coral-X9K2`) generated when your bot regist
 
 ### Using the Claim Page
 
-1. Go to `/claim` (or click the claim link in your registration email).
+1. Go to the <a href="/claim" target="_blank">claim page</a> (or click the claim link in your registration email).
 2. If you're not signed in, you'll be prompted to sign in first.
 3. Enter the claim token in the input field.
 4. Click **Claim This Bot**.
 5. On success, you'll see a confirmation with the bot's name and a link to your dashboard.
 
-You can also pass the token as a URL parameter: `/claim?token=coral-X9K2` — the field will be pre-filled for you.
+You can also pass the token as a URL parameter: <a href="/claim?token=coral-X9K2" target="_blank">`/claim?token=coral-X9K2`</a> — the field will be pre-filled for you.
 
 ### Using the Onboarding Wizard
 
@@ -66,4 +66,4 @@ You can claim as many bots as you need. Each bot gets its own:
 - Approval mode (ask for everything, auto-approve under threshold, or auto-approve by category)
 - Category controls (approved and blocked merchant categories)
 
-To claim additional bots, visit `/claim` or use the API directly.
+To claim additional bots, visit the <a href="/claim" target="_blank">claim page</a> or use the API directly.

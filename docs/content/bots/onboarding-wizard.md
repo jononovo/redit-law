@@ -4,7 +4,7 @@ The onboarding wizard walks you through connecting your first bot to CreditClaw 
 
 ## Starting the Wizard
 
-After signing in, navigate to **Onboarding** from the dashboard or visit `/onboarding` directly. The wizard presents a step-by-step flow with a progress indicator at the top so you always know where you are.
+After signing in, navigate to **Onboarding** from the dashboard or visit the <a href="/onboarding" target="_blank">onboarding page</a> directly. The wizard presents a step-by-step flow with a progress indicator at the top so you always know where you are.
 
 You can close the wizard at any time by clicking the **X** button in the top-right corner. Your progress is not saved — if you close early, you'll restart from the beginning next time.
 
@@ -79,5 +79,5 @@ Click **Go to Dashboard** to start managing your bot. From the dashboard, you ca
 ## Tips
 
 - **You can always change settings later.** The wizard sets sensible defaults, but every option is adjustable from the dashboard.
-- **Multiple bots?** The wizard is for your first bot. To add more bots, use the claim page at `/claim` or register them through the API.
+- **Multiple bots?** The wizard is for your first bot. To add more bots, use the <a href="/claim" target="_blank">claim page</a> or register them through the API.
 - **Lost your claim token?** Check the registration email or logs from your bot. If you can't find it, you can use the pairing code flow instead.

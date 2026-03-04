@@ -4,8 +4,8 @@ Your **Seller Profile** controls how your business appears to buyers on checkout
 
 ## Accessing Your Seller Profile
 
-1. Open the **Dashboard** and navigate to **Settings** from the sidebar.
-2. Click the **Seller Profile** link, or go directly to **Settings → Seller Profile**.
+1. Open the <a href="/app" target="_blank">**Dashboard**</a> and navigate to **Settings** from the sidebar.
+2. Click the **Seller Profile** link, or go directly to <a href="/app/settings/seller" target="_blank">**Settings → Seller Profile**</a>.
 3. You'll see a form with all your business details.
 
 ## Fields You Can Configure

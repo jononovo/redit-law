@@ -4,7 +4,7 @@ Invoices let you send itemized bills to specific recipients. Each invoice genera
 
 ## Creating an Invoice
 
-Navigate to **Invoices** in the dashboard sidebar, then click **Create Invoice**.
+Navigate to <a href="/app/invoices" target="_blank">**Invoices**</a> in the dashboard sidebar, then click **Create Invoice**.
 
 ### Setting Up the Invoice
 

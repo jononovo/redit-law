@@ -4,7 +4,7 @@ The CreditClaw dashboard is your command center for managing bots, wallets, tran
 
 ## Top-Level Stats
 
-When you land on the dashboard at `/app`, you'll see three key metrics at the top:
+When you land on the <a href="/app" target="_blank">dashboard</a>, you'll see three key metrics at the top:
 
 - **Total Bots** — The number of bots connected to your account
 - **Wallet Balance** — Your current wallet balance across active wallets
@@ -18,13 +18,13 @@ The left sidebar organizes the dashboard into three main groups:
 
 | Section | Description |
 |---------|-------------|
-| **Overview** | The main dashboard with stats, bot cards, activity, and health |
-| **Stripe Wallet** | Manage your USDC wallet for x402 purchases. Fund with Stripe or Link |
-| **Shop Wallet** | USDC wallet for shopping at Amazon, Shopify, and other merchants |
-| **My Card (Encrypted)** | Self-hosted card setup with encryption and ephemeral sub-agents |
-| **My Card (Split-Knowledge)** | Legacy self-hosted card with obfuscation and split-knowledge security |
-| **Orders** | Track physical goods orders and shipping status |
-| **Transactions** | Unified transaction ledger across all wallets |
+| **<a href="/app" target="_blank">Overview</a>** | The main dashboard with stats, bot cards, activity, and health |
+| **<a href="/app/stripe-wallet" target="_blank">Stripe Wallet</a>** | Manage your USDC wallet for x402 purchases. Fund with Stripe or Link |
+| **<a href="/app/card-wallet" target="_blank">Shop Wallet</a>** | USDC wallet for shopping at Amazon, Shopify, and other merchants |
+| **<a href="/app/sub-agent-cards" target="_blank">My Card (Encrypted)</a>** | Self-hosted card setup with encryption and ephemeral sub-agents |
+| **<a href="/app/self-hosted" target="_blank">My Card (Split-Knowledge)</a>** | Legacy self-hosted card with obfuscation and split-knowledge security |
+| **<a href="/app/orders" target="_blank">Orders</a>** | Track physical goods orders and shipping status |
+| **<a href="/app/transactions" target="_blank">Transactions</a>** | Unified transaction ledger across all wallets |
 
 ### Procurement
 
@@ -38,11 +38,11 @@ The left sidebar organizes the dashboard into three main groups:
 
 | Section | Description |
 |---------|-------------|
-| **Create Checkout** | Build checkout pages to accept payments |
-| **Shop** | Manage your public storefront |
-| **My Sales** | View completed sales and revenue |
-| **Invoices** | Create, send, and track invoices |
-| **Seller Profile** | Configure your business name, logo, and contact details |
+| **<a href="/app/checkout/create" target="_blank">Create Checkout</a>** | Build checkout pages to accept payments |
+| **<a href="/app/shop" target="_blank">Shop</a>** | Manage your public storefront |
+| **<a href="/app/sales" target="_blank">My Sales</a>** | View completed sales and revenue |
+| **<a href="/app/invoices" target="_blank">Invoices</a>** | Create, send, and track invoices |
+| **<a href="/app/settings/seller" target="_blank">Seller Profile</a>** | Configure your business name, logo, and contact details |
 
 ## Bot Cards
 
@@ -70,8 +70,8 @@ From the dashboard, you can also view and manage your active payment links — s
 
 Access account settings from the sidebar to configure:
 
-- **Seller Profile** — Business name, logo, and contact email
-- **Account Settings** — Display name, notifications, shipping addresses
+- **<a href="/app/settings/seller" target="_blank">Seller Profile</a>** — Business name, logo, and contact email
+- **<a href="/app/settings" target="_blank">Account Settings</a>** — Display name, notifications, shipping addresses
 
 ## Next Steps
 

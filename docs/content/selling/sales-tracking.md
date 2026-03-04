@@ -4,7 +4,7 @@ The Sales page gives you a complete view of every payment received through your 
 
 ## Viewing Sales
 
-Navigate to **Sales** in the dashboard sidebar. The page displays a table of all incoming payments with the following columns:
+Navigate to <a href="/app/sales" target="_blank">**Sales**</a> in the dashboard sidebar. The page displays a table of all incoming payments with the following columns:
 
 | Column | Description |
 |--------|-------------|

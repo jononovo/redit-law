@@ -4,7 +4,7 @@ Once you've claimed one or more bots, you can view and manage them from the Cred
 
 ## Dashboard Overview
 
-The main dashboard at `/app` shows a summary of your bots and wallet:
+The main <a href="/app" target="_blank">dashboard</a> shows a summary of your bots and wallet:
 
 - **Total Bots** — the number of bots linked to your account
 - **Wallet Balance** — your current wallet balance across all funding sources
@@ -107,7 +107,7 @@ Keep track of what your bots are doing:
 
 To add another bot to your account:
 
-1. **From the API** — have your new bot call the registration endpoint, then claim it at `/claim`
+1. **From the API** — have your new bot call the registration endpoint, then claim it on the <a href="/claim" target="_blank">claim page</a>
 2. **Using a pairing code** — generate a pairing code from the onboarding flow and share it with your new bot
 
 There is no limit to the number of bots you can have on your account. Each bot gets independent spending rules and can be linked to different wallets.

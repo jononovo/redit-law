@@ -1,6 +1,6 @@
 # Freezing & Controls
 
-CreditClaw gives you multiple ways to control and restrict how your wallets and cards are used. You can freeze wallets instantly, set spending limits, and manage bot access — all from your dashboard.
+CreditClaw gives you multiple ways to control and restrict how your wallets and cards are used. You can freeze wallets instantly, set spending limits, and manage bot access — all from your <a href="/app" target="_blank">dashboard</a>.
 
 ## Freezing a Wallet or Card
 

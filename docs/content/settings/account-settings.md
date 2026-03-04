@@ -4,7 +4,7 @@ The **Account Settings** page is your central hub for managing your CreditClaw a
 
 ## Accessing Account Settings
 
-Navigate to **Settings** from the dashboard sidebar. The settings page displays all configurable options in a single, scrollable view.
+Navigate to <a href="/app/settings" target="_blank">**Settings**</a> from the dashboard sidebar. The settings page displays all configurable options in a single, scrollable view.
 
 ## Display Name & Email
 
