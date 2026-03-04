@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { PanelLeft, Book, Code } from "lucide-react";
 import {
@@ -20,16 +20,18 @@ import {
 
 function Sidebar({
   audience,
-  onAudienceChange,
   currentPath,
   onNavigate,
 }: {
   audience: Audience;
-  onAudienceChange: (a: Audience) => void;
   currentPath: string;
   onNavigate?: () => void;
 }) {
   const filteredSections = getSectionsByAudience(audience);
+  const userFirstPage = getSectionsByAudience("user")[0];
+  const devFirstPage = getSectionsByAudience("developer")[0];
+  const userHref = userFirstPage ? `/docs/${userFirstPage.slug}/${userFirstPage.pages[0].slug}` : "/docs";
+  const devHref = devFirstPage ? `/docs/${devFirstPage.slug}/${devFirstPage.pages[0].slug}` : "/docs";
 
   return (
     <div className="flex flex-col h-full">
@@ -53,31 +55,33 @@ function Sidebar({
             Docs
           </Link>
         </div>
-        <div className="mt-3 flex rounded-lg bg-neutral-100 p-0.5" data-testid="toggle-audience">
-          <button
-            onClick={() => onAudienceChange("user")}
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-md transition-all cursor-pointer ${
+        <div className="mt-3 flex items-center gap-4">
+          <Link
+            href={userHref}
+            onClick={onNavigate}
+            className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
               audience === "user"
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-700"
+                ? "text-neutral-900"
+                : "text-neutral-400 hover:text-neutral-600"
             }`}
-            data-testid="button-audience-user"
+            data-testid="link-audience-user"
           >
             <Book className="w-3.5 h-3.5" />
             User Guide
-          </button>
-          <button
-            onClick={() => onAudienceChange("developer")}
-            className={`flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-md transition-all cursor-pointer ${
+          </Link>
+          <Link
+            href={devHref}
+            onClick={onNavigate}
+            className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
               audience === "developer"
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-700"
+                ? "text-neutral-900"
+                : "text-neutral-400 hover:text-neutral-600"
             }`}
-            data-testid="button-audience-developer"
+            data-testid="link-audience-developer"
           >
             <Code className="w-3.5 h-3.5" />
             Developers
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -139,25 +143,14 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const router = useRouter();
   const slugParts = pathname.replace("/docs/", "").replace("/docs", "").split("/").filter(Boolean);
-  const detectedAudience = slugParts.length > 0 ? getAudienceFromSlug(slugParts) : "user";
-  const [audience, setAudience] = useState<Audience>(detectedAudience);
-
-  const handleAudienceChange = useCallback((a: Audience) => {
-    setAudience(a);
-    const firstSection = getSectionsByAudience(a)[0];
-    if (firstSection?.pages[0]) {
-      router.push(`/docs/${firstSection.slug}/${firstSection.pages[0].slug}`);
-    }
-  }, [router]);
+  const audience: Audience = slugParts.length > 0 ? getAudienceFromSlug(slugParts) : "user";
 
   return (
     <div className="min-h-screen bg-white flex" data-testid="docs-layout">
       <aside className="hidden lg:flex flex-col w-72 border-r border-neutral-200 sticky top-0 h-screen shrink-0">
         <Sidebar
           audience={audience}
-          onAudienceChange={handleAudienceChange}
           currentPath={pathname}
         />
       </aside>
@@ -190,7 +183,6 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
           <SheetTitle className="sr-only">Documentation navigation</SheetTitle>
           <Sidebar
             audience={audience}
-            onAudienceChange={handleAudienceChange}
             currentPath={pathname}
             onNavigate={() => setDrawerOpen(false)}
           />
