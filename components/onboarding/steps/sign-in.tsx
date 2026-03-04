@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { WizardStep } from "../wizard-step";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,11 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const hasAdvanced = useRef(false);
+
   useEffect(() => {
-    if (user) {
+    if (user && !hasAdvanced.current) {
+      hasAdvanced.current = true;
       onNext();
     }
   }, [user, onNext]);
