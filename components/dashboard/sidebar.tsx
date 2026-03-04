@@ -28,8 +28,22 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/auth/auth-context";
+import type { Tier } from "@/lib/feature-flags/tiers";
 
-const mainNavItems = [
+interface NavItem {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href: string;
+  subtitle?: string;
+  tag?: string;
+  tooltip?: string;
+  inactive?: boolean;
+  external?: boolean;
+  requiredAccess?: Tier;
+}
+
+const mainNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: "Overview", href: "/app" },
   { icon: Wallet, label: "Stripe Wallet", subtitle: "USDC for x402", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
   { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify." },
@@ -40,13 +54,13 @@ const mainNavItems = [
   { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true },
 ];
 
-const procurementNavItems = [
+const procurementNavItems: NavItem[] = [
   { icon: Send, label: "Submit Supplier", href: "/app/skills/submit" },
   { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
   { icon: Store, label: "Supplier Hub", href: "/skills", external: true },
 ];
 
-const salesNavItems = [
+const salesNavItems: NavItem[] = [
   { icon: PlusCircle, label: "Create Checkout", href: "/app/checkout/create" },
   { icon: ShoppingBag, label: "Shop", href: "/app/shop" },
   { icon: DollarSign, label: "My Sales", href: "/app/sales" },
@@ -57,6 +71,15 @@ const salesNavItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [newCardModalOpen, setNewCardModalOpen] = useState(false);
+  const { user } = useAuth();
+  const userFlags = user?.flags ?? [];
+
+  const filterByAccess = (items: NavItem[]) =>
+    items.filter(item => !item.requiredAccess || userFlags.includes(item.requiredAccess));
+
+  const visibleMainNav = filterByAccess(mainNavItems);
+  const visibleProcurementNav = filterByAccess(procurementNavItems);
+  const visibleSalesNav = filterByAccess(salesNavItems);
 
   return (
     <aside className="w-64 bg-white border-r border-neutral-100 h-screen fixed left-0 top-0 flex flex-col z-50">
@@ -79,10 +102,10 @@ export function Sidebar() {
       <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {mainNavItems.map((item) => {
+        {visibleMainNav.map((item) => {
           const isActive = pathname === item.href;
-          const isInactive = "inactive" in item && item.inactive;
-          const hasTooltip = "tooltip" in item && item.tooltip;
+          const isInactive = item.inactive;
+          const hasTooltip = item.tooltip;
           const navLink = (
             <Link key={item.href} href={item.href}>
               <div className={cn(
@@ -96,7 +119,7 @@ export function Sidebar() {
                 <item.icon className={cn("w-5 h-5 flex-shrink-0", isInactive ? "text-neutral-300" : isActive ? "text-white" : "text-neutral-400")} />
                 <div className="relative flex flex-col">
                   <span>{item.label}</span>
-                  {"subtitle" in item && item.subtitle && (
+                  {item.subtitle && (
                     <span className={cn(
                       "text-[10px] font-medium leading-none mt-0.5",
                       isActive ? "text-white/50" : "text-neutral-400"
@@ -104,7 +127,7 @@ export function Sidebar() {
                       {item.subtitle}
                     </span>
                   )}
-                  {("tag" in item && item.tag) && (
+                  {item.tag && (
                     <span className={cn(
                       "absolute -top-1 -right-8 text-[8px] font-semibold uppercase tracking-wider px-1 py-px rounded-sm transition-colors z-10",
                       isActive
@@ -146,9 +169,9 @@ export function Sidebar() {
           </p>
         </div>
 
-        {procurementNavItems.map((item) => {
+        {visibleProcurementNav.map((item) => {
           const isActive = pathname === item.href;
-          const isExternal = "external" in item && item.external;
+          const isExternal = item.external;
           const linkProps = isExternal ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
           return (
             <Link key={item.href} href={item.href} {...linkProps}>
@@ -174,7 +197,7 @@ export function Sidebar() {
           </p>
         </div>
 
-        {salesNavItems.map((item) => {
+        {visibleSalesNav.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link key={item.href} href={item.href}>

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     const user = await adminAuth.getUser(decodedToken.uid);
 
-    await storage.upsertOwner(user.uid, {
+    const owner = await storage.upsertOwner(user.uid, {
       email: user.email || "",
       displayName: user.displayName || null,
     });
@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       email: user.email || null,
       displayName: user.displayName || null,
       photoURL: user.photoURL || null,
+      flags: owner?.flags ?? [],
     });
   } catch (error: any) {
     console.error("Session creation failed:", error?.message);
