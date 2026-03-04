@@ -35,7 +35,7 @@ export const POST = withBotApi("/api/v1/bot/checkout-pages/create", async (reque
     );
   }
 
-  const { title, description, amount_usd, amount_locked, allowed_methods, success_url, expires_at, page_type, image_url, collect_buyer_name, digital_product_url } = parsed.data;
+  const { title, description, amount_usd, amount_locked, allowed_methods, success_url, expires_at, page_type, image_url, collect_buyer_name, digital_product_url, shop_visible, shop_order } = parsed.data;
   const checkoutPageId = generateCheckoutPageId();
   const amountUsdc = amount_usd ? Math.round(amount_usd * 1_000_000) : null;
 
@@ -55,6 +55,8 @@ export const POST = withBotApi("/api/v1/bot/checkout-pages/create", async (reque
     imageUrl: image_url || null,
     collectBuyerName: collect_buyer_name || false,
     digitalProductUrl: digital_product_url || null,
+    shopVisible: shop_visible || false,
+    shopOrder: shop_order || 0,
   });
 
   return NextResponse.json({
@@ -71,6 +73,8 @@ export const POST = withBotApi("/api/v1/bot/checkout-pages/create", async (reque
     image_url: page.imageUrl || null,
     collect_buyer_name: page.collectBuyerName || false,
     digital_product_url: page.digitalProductUrl || null,
+    shop_visible: page.shopVisible || false,
+    shop_order: page.shopOrder || 0,
     created_at: page.createdAt.toISOString(),
   }, { status: 201 });
 });
