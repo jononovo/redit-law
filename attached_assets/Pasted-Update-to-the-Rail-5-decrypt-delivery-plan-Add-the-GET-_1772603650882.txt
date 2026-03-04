@@ -1,0 +1,24 @@
+Update to the Rail 5 decrypt delivery plan:
+Add the GET /api/v1/bot/rail5/decrypt-script endpoint you suggested — bot-auth, returns the static decrypt.js content. This closes the resupply case if a bot ever loses the file.
+Do NOT build the "re-deliver card file" dashboard button. CreditClaw never stores the encrypted card file (by design, split-knowledge model), so there's nothing to re-deliver from the server side. If a bot loses its encrypted card file, the owner deletes the old Rail 5 card and creates a new one through the setup wizard using the same physical card. New card ID, new encryption keys, new encrypted file, fresh delivery to the bot. This flow already works today — no new features needed.
+So the final scope for this feature is:
+
+Include decrypt_script in the rail5.card.delivered webhook payload
+Refactor the checkout endpoint response to return both checkout_steps (direct mode) and spawn_payload (sub-agent mode)
+Add GET /api/v1/bot/rail5/decrypt-script resupply endpoint
+Update public/skill.md to document both execution modes and explain that decrypt.js arrives with the card delivery
+
+That's the complete feature. Nothing else to add.No, just about this new stuff, can you tell him what he should include? ( the endpoint for decrypt.) 
+But if that loses the decrypt and he doesn't lose the card encrypted file?That's weird, isn't it?So should we just determine that if he loses either of those files he just needs to create a whole new card?Would that simplify it?12:53 AMYeah, that simplifies it a lot. If the bot loses either file — the encrypted card or the decrypt script — the fix is the same: owner deletes the card, creates a new one, both files get re-delivered together in one webhook. One recovery path for any failure, no extra endpoints to build or maintain.
+And honestly, the scenario where a bot loses decrypt.js but keeps the encrypted card file (or vice versa) is an edge case of an edge case. Both files land in the same workspace from the same webhook delivery. If something went wrong enough to lose one, the other is probably gone too.
+So drop the GET /api/v1/bot/rail5/decrypt-script endpoint entirely. Here's the note:
+
+Quick update on the decrypt delivery plan:
+We decided against adding a resupply endpoint for the decrypt script. If the bot loses either file (the encrypted card file or decrypt.js), the recovery path is the same: the owner deletes the Rail 5 card and creates a new one through the setup wizard. Both files get re-delivered together in the next rail5.card.delivered webhook. One recovery path, no extra endpoints needed.
+Final scope stays at:
+
+Include decrypt_script in the rail5.card.delivered webhook payload
+Refactor the checkout endpoint response to return both checkout_steps (direct mode) and spawn_payload (sub-agent mode)
+Update public/skill.md to document both execution modes and explain that decrypt.js arrives with the card delivery
+
+That's it. Feature closed.
