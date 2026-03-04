@@ -14,23 +14,21 @@ export async function GET(
       return NextResponse.json({ error: "Checkout page not found" }, { status: 404 });
     }
 
-    let sellerName: string | null = page.sellerName;
-    let sellerLogoUrl: string | null = page.sellerLogoUrl;
-    let sellerEmail: string | null = page.sellerEmail;
+    let sellerName: string | null = null;
+    let sellerLogoUrl: string | null = null;
+    let sellerEmail: string | null = null;
 
-    if (!sellerName && !sellerLogoUrl && !sellerEmail) {
-      const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
-      if (sellerProfile) {
-        sellerName = sellerProfile.businessName;
-        sellerLogoUrl = sellerProfile.logoUrl;
-        sellerEmail = sellerProfile.contactEmail;
-      } else {
-        const bots = await storage.getBotsByOwnerUid(page.ownerUid);
-        const linkedBot = bots.find(b => b.ownerUid === page.ownerUid);
-        if (linkedBot) {
-          sellerName = linkedBot.botName;
-          sellerEmail = linkedBot.ownerEmail;
-        }
+    const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
+    if (sellerProfile && (sellerProfile.businessName || sellerProfile.logoUrl || sellerProfile.contactEmail)) {
+      sellerName = sellerProfile.businessName;
+      sellerLogoUrl = sellerProfile.logoUrl;
+      sellerEmail = sellerProfile.contactEmail;
+    } else {
+      const bots = await storage.getBotsByOwnerUid(page.ownerUid);
+      const linkedBot = bots.find(b => b.ownerUid === page.ownerUid);
+      if (linkedBot) {
+        sellerName = linkedBot.botName;
+        sellerEmail = linkedBot.ownerEmail;
       }
     }
 

@@ -23,23 +23,17 @@ export async function GET(
     let sellerLogoUrl: string | null = null;
     let sellerEmail: string | null = null;
 
-    if (page.sellerName || page.sellerLogoUrl || page.sellerEmail) {
-      sellerName = page.sellerName;
-      sellerLogoUrl = page.sellerLogoUrl;
-      sellerEmail = page.sellerEmail;
+    const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
+    if (sellerProfile && (sellerProfile.businessName || sellerProfile.logoUrl || sellerProfile.contactEmail)) {
+      sellerName = sellerProfile.businessName;
+      sellerLogoUrl = sellerProfile.logoUrl;
+      sellerEmail = sellerProfile.contactEmail;
     } else {
-      const sellerProfile = await storage.getSellerProfileByOwnerUid(page.ownerUid);
-      if (sellerProfile && (sellerProfile.businessName || sellerProfile.logoUrl || sellerProfile.contactEmail)) {
-        sellerName = sellerProfile.businessName;
-        sellerLogoUrl = sellerProfile.logoUrl;
-        sellerEmail = sellerProfile.contactEmail;
-      } else {
-        const bots = await storage.getBotsByOwnerUid(page.ownerUid);
-        const linkedBot = bots.find(b => b.ownerUid === page.ownerUid);
-        if (linkedBot) {
-          sellerName = linkedBot.botName;
-          sellerEmail = linkedBot.ownerEmail;
-        }
+      const bots = await storage.getBotsByOwnerUid(page.ownerUid);
+      const linkedBot = bots.find(b => b.ownerUid === page.ownerUid);
+      if (linkedBot) {
+        sellerName = linkedBot.botName;
+        sellerEmail = linkedBot.ownerEmail;
       }
     }
 

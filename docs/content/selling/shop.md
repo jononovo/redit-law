@@ -24,9 +24,21 @@ After saving your settings, you can:
 - **Copy the URL** — Click "Copy URL" to copy your shop link to the clipboard
 - **View the shop** — Click "View Shop" to open your storefront in a new tab
 
+## Your Details (Seller Identity)
+
+The **Your Details** section on the Shop page is where you configure your business identity. These details are displayed on checkout pages, invoices, and your public storefront.
+
+- **Business Name** — Your company or brand name
+- **Logo URL** — A direct URL to your logo image (square recommended). A live preview is shown below the field.
+- **Contact Email** — Shown to buyers on checkout pages
+- **Link** — Your website, Instagram, or anywhere people can learn more
+- **Description** — A short description of your business
+
+All fields save together with the shop settings when you click **Save Settings**.
+
 ## Managing Products
 
-Below the shop settings, you'll see a list of all your **active** checkout pages. Each item shows:
+Below the shop settings and your details, you'll see a list of all your **active** checkout pages. Each item shows:
 
 - **Title** — The checkout page name
 - **Type** — Whether it's a "Product" or "Event"
@@ -50,7 +62,7 @@ Products are displayed in the shop in the order shown in the admin panel. The or
 
 When someone visits your shop URL, they see:
 
-1. **Your business name and logo** — Pulled from your [Seller Profile](/docs/settings/seller-profile)
+1. **Your business name and logo** — From the Your Details section on this page
 2. **Banner image** — If you've set one
 3. **Product grid** — All visible checkout pages displayed as cards with:
    - Product image (if set)
@@ -65,12 +77,12 @@ Clicking a product takes the buyer to the corresponding checkout page where they
 
 Before setting up your shop, make sure you have:
 
-1. **A Seller Profile** — Set up your business name and logo in [Seller Profile](/docs/settings/seller-profile)
+1. **Your business details** — Fill in the Your Details section on the Shop page
 2. **At least one active checkout page** — Create checkout pages in the [Checkout](/docs/selling/checkout-pages) section
 3. **A shop slug** — Choose a memorable URL for your storefront
 
 ## Next Steps
 
 - [Checkout Pages](/docs/selling/checkout-pages) — Create products to sell in your shop
-- [Seller Profile](/docs/settings/seller-profile) — Set up your branding
+- [Seller Profile](/docs/settings/seller-profile) — Learn more about your business identity fields
 - [Sales Tracking](/docs/selling/sales-tracking) — Monitor payments from your shop

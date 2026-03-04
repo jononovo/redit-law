@@ -804,11 +804,11 @@ RETURNING id;
 INSERT INTO checkout_pages (
   checkout_page_id, owner_uid, wallet_id, wallet_address,
   title, description, amount_usdc, amount_locked,
-  allowed_methods, status, seller_name
+  allowed_methods, status
 ) VALUES (
   'cp_test_x402', 'test-checkout-owner', $WALLET_ID, '0xTESTWALLETADDRESS1234567890abcdef12345678',
   'Test x402 Product', 'A test product for x402 payments', 5000000, true,
-  ARRAY['stripe_onramp', 'base_pay', 'x402'], 'active', 'Test Seller'
+  ARRAY['stripe_onramp', 'base_pay', 'x402'], 'active'
 )
 ON CONFLICT DO NOTHING;
 
@@ -816,11 +816,11 @@ ON CONFLICT DO NOTHING;
 INSERT INTO checkout_pages (
   checkout_page_id, owner_uid, wallet_id, wallet_address,
   title, description, amount_usdc, amount_locked,
-  allowed_methods, status, seller_name
+  allowed_methods, status
 ) VALUES (
   'cp_test_no_x402', 'test-checkout-owner', $WALLET_ID, '0xTESTWALLETADDRESS1234567890abcdef12345678',
   'No x402 Product', 'A test product without x402', 5000000, true,
-  ARRAY['stripe_onramp', 'base_pay'], 'active', 'Test Seller'
+  ARRAY['stripe_onramp', 'base_pay'], 'active'
 )
 ON CONFLICT DO NOTHING;
 ```

@@ -39,10 +39,9 @@ The left sidebar organizes the dashboard into three main groups:
 | Section | Description |
 |---------|-------------|
 | **<a href="/app/checkout/create" target="_blank">Create Checkout</a>** | Build checkout pages to accept payments |
-| **<a href="/app/shop" target="_blank">Shop</a>** | Manage your public storefront |
+| **<a href="/app/shop" target="_blank">Shop</a>** | Manage your public storefront and seller identity |
 | **<a href="/app/sales" target="_blank">My Sales</a>** | View completed sales and revenue |
 | **<a href="/app/invoices" target="_blank">Invoices</a>** | Create, send, and track invoices |
-| **<a href="/app/settings/seller" target="_blank">Seller Profile</a>** | Configure your business name, logo, and contact details |
 
 ## Bot Cards
 
@@ -70,7 +69,7 @@ From the dashboard, you can also view and manage your active payment links — s
 
 Access account settings from the sidebar to configure:
 
-- **<a href="/app/settings/seller" target="_blank">Seller Profile</a>** — Business name, logo, and contact email
+- **<a href="/app/shop" target="_blank">Shop</a>** — Business name, logo, contact details, and storefront settings
 - **<a href="/app/settings" target="_blank">Account Settings</a>** — Display name, notifications, shipping addresses
 
 ## Next Steps

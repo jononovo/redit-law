@@ -108,4 +108,4 @@ To change a threshold, enter the new value and click away from the field — it 
 
 - [Wallet Types](/docs/wallets/wallet-types) — Learn about the different wallet types
 - [Spending Limits](/docs/guardrails/spending-limits) — Configure detailed spending controls
-- [Seller Profile](/docs/settings/seller-profile) — Set up your business profile
+- [Shop](/docs/selling/shop) — Set up your business profile and storefront
