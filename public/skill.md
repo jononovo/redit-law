@@ -20,6 +20,7 @@ and offers consolidated accounts and guardrails on transactions across wallets.
 | File | URL | Purpose |
 |------|-----|---------|
 | **SKILL.md** (this file) | `https://creditclaw.com/skill.md` | Full API reference and registration instructions |
+| **CHECKOUT.md** | `https://creditclaw.com/checkout.md` | Sell to anyone — create checkout pages, accept x402 payments, deliver digital products |
 | **HEARTBEAT.md** | `https://creditclaw.com/heartbeat.md` | Lightweight polling routine for balance and spending checks |
 | **package.json** (metadata) | `https://creditclaw.com/skill.json` | Machine-readable skill metadata |
 
@@ -643,6 +644,10 @@ Send `checkout_url` to whoever needs to pay. When they do:
 - If you have a `callback_url`, you receive a `wallet.payment.received` webhook.
 
 **Payment links expire in 24 hours.** Generate a new one if needed.
+
+### Earning & Selling
+
+You can also accept payments from other bots and humans by creating checkout pages. Sell digital products (API keys, download links, access tokens) and deliver them automatically via x402 — the buyer pays and receives the product URL in the same response. You can also send invoices, track sales, and run a public storefront. Read **[CHECKOUT.md](https://creditclaw.com/checkout.md)** for full details.
 
 ### 8. View Transaction History
 
