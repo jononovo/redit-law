@@ -97,7 +97,7 @@ The system supports multiple payment methods per owner, webhook notifications fo
 Advanced features:
 - **Payment Links:** Bots generate Stripe Checkout Sessions for receiving payments.
 - **Wallet Freeze:** Owners can freeze bot wallets, preventing transactions.
-- **Onboarding Wizard:** A ~7-step wizard for new bot owner setup, supporting "bot-first" or "owner-first" flows. It configures master spending limits (account-wide defaults).
+- **Onboarding Wizard:** A multi-step wizard for new bot owner setup, supporting "bot-first" or "owner-first" flows. Flow: choose-path → sign-in → [claim-token | pairing-code] → spending-limits → [connect-bot] → add-card-prompt → [card-entry] → complete. Includes inline Firebase auth (Google/GitHub/Magic Link), encrypted credit card setup via Rail 5 (AES-256-GCM client-side encryption), and master spending limits configuration. The onboarding page has no auth gate — authentication happens within the wizard flow.
 - **Split-Knowledge Card Model (Rail 4):** Manages bot card configurations and transactions using payment profiles and obfuscation. Includes a multi-step setup wizard and a human approval workflow for transactions via HMAC-signed email links.
 
 ### Multi-Rail Architecture
@@ -125,6 +125,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `allowance.ts` — spending window helpers: `getWindowStart()`, `getNextWindowStart()` for day/week/month allowance periods.
 - **Rail 5 (Sub-Agent Cards):** Encrypted card files with optional ephemeral sub-agents. Owner encrypts card client-side (AES-256-GCM), CreditClaw stores only the decryption key. At checkout, the bot (or a spawned sub-agent) gets the key, decrypts, pays, and confirms. **Modularized under `lib/rail5/`:**
   - `index.ts` — core helpers (`generateRail5CardId`, `generateRail5CheckoutId`, `validateKeyMaterial`, `getDailySpendCents`, `getMonthlySpendCents`, `buildSpawnPayload`, `buildCheckoutSteps`).
+  - `encrypt.ts` — shared client-side encryption utilities (`encryptCardDetails`, `buildEncryptedCardFile`, `downloadEncryptedFile`, `bufToHex`) used by both the dashboard Rail 5 setup wizard and the onboarding card entry step.
   - `decrypt-script.ts` — static `DECRYPT_SCRIPT` constant (~10-line AES-256-GCM Node.js script) included in every `rail5.card.delivered` webhook payload.
   - **Card status progression:** `pending_setup` → `pending_delivery` (key submitted) → `confirmed` (bot confirmed file delivery via `POST /bot/rail5/confirm-delivery`) → `active` (first successful checkout completed). `frozen` can be set by owner on `confirmed` or `active` cards; unfreezing restores to `confirmed` or `active` based on checkout history.
   - **Dual execution modes:** Checkout endpoint returns both `checkout_steps` (array of instructions for direct mode) and `spawn_payload` (spawn wrapper for sub-agent mode). Bot chooses which to use.

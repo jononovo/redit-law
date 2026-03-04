@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
+import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/rail5/encrypt";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -23,10 +24,6 @@ interface BotOption {
 }
 
 const TOTAL_STEPS = 7;
-
-function bufToHex(buf: ArrayBuffer): string {
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
@@ -160,7 +157,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     }
     setLoading(true);
     try {
-      const cardJson = JSON.stringify({
+      const { keyHex, ivHex, tagHex, ciphertextBytes } = await encryptCardDetails({
         number: cardNumber.replace(/\s/g, ""),
         cvv: cardCvv,
         exp_month: parseInt(expMonth),
@@ -171,28 +168,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         state: state,
         zip: zip,
       });
-
-      const key = await crypto.subtle.generateKey(
-        { name: "AES-GCM", length: 256 },
-        true,
-        ["encrypt"]
-      );
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-
-      const ciphertext = await crypto.subtle.encrypt(
-        { name: "AES-GCM", iv },
-        key,
-        new TextEncoder().encode(cardJson)
-      );
       setEncryptionDone(true);
-
-      const rawKey = await crypto.subtle.exportKey("raw", key);
-      const ciphertextBytes = new Uint8Array(ciphertext);
-      const tagBytes = ciphertextBytes.slice(-16);
-
-      const keyHex = bufToHex(rawKey);
-      const ivHex = bufToHex(iv);
-      const tagHex = bufToHex(tagBytes);
 
       const res = await authFetch("/api/v1/rail5/submit-key", {
         method: "POST",
@@ -210,8 +186,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       }
       setKeySent(true);
 
-      const b64 = btoa(String.fromCharCode(...ciphertextBytes));
-      const md = `# CreditClaw Encrypted Card\n\nThis file contains your encrypted card details for Rail 5 sub-agent checkout.\nDo not edit or share this file. Place it in your bot's OpenClaw workspace.\n\n\`\`\`\n${b64}\n\`\`\`\n`;
+      const md = buildEncryptedCardFile(ciphertextBytes);
 
       if (selectedBotId) {
         setDeliveryAttempted(true);
@@ -235,15 +210,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         }
       }
 
-      const blob = new Blob([md], { type: "text/markdown" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadEncryptedFile(md, `Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md`);
       setDownloadDone(true);
 
       setCardNumber("");
