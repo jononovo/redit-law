@@ -50,12 +50,27 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
+const FUN_CARD_NAMES = [
+  "Titanium Claw",
+  "Robo Platinum",
+  "Agent Gold",
+  "The Money Paw",
+  "Claw Express",
+  "Bot's Black Card",
+  "Operation Checkout",
+  "Stealth Card Alpha",
+];
+
+function randomCardName() {
+  return FUN_CARD_NAMES[Math.floor(Math.random() * FUN_CARD_NAMES.length)];
+}
+
 export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const [cardName, setCardName] = useState("");
+  const [cardName, setCardName] = useState(randomCardName);
   const [cardBrand, setCardBrand] = useState("visa");
   const [cardLast4, setCardLast4] = useState("");
   const [cardId, setCardId] = useState("");
@@ -91,7 +106,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const resetWizard = useCallback(() => {
     setStep(0);
     setLoading(false);
-    setCardName("");
+    setCardName(randomCardName());
     setCardBrand("visa");
     setCardLast4("");
     setCardId("");
