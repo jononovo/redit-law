@@ -167,16 +167,13 @@ function Rail5InteractiveCard({
 
         <div className="relative h-full flex flex-col p-6">
           <div className="flex items-start justify-between">
-            <BrandLogo brand={detectedBrand} />
-          </div>
-
-          <div className="mt-2 mb-3">
             <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center">
               <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
             </div>
+            <BrandLogo brand={detectedBrand} />
           </div>
 
-          <div className="mb-3">
+          <div className="flex-1 flex flex-col justify-center">
             <input
               ref={numberRef}
               type="text"
@@ -192,24 +189,8 @@ function Rail5InteractiveCard({
               data-testid="input-r5-card-number"
               autoComplete="off"
             />
-          </div>
 
-          <div className="mt-auto flex items-end justify-between gap-4">
-            <div className="flex-1">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
-              <input
-                ref={holderRef}
-                type="text"
-                value={holderName}
-                onChange={(e) => onHolderNameChange(e.target.value)}
-                placeholder="Full Name"
-                className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors uppercase tracking-wider"
-                data-testid="input-r5-holder"
-                autoComplete="off"
-              />
-            </div>
-
-            <div className="flex items-end gap-3 shrink-0">
+            <div className="flex items-end justify-end gap-3 mt-3">
               <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
                 <div className="flex items-center gap-1">
@@ -257,6 +238,20 @@ function Rail5InteractiveCard({
                 />
               </div>
             </div>
+          </div>
+
+          <div className="mt-auto">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
+            <input
+              ref={holderRef}
+              type="text"
+              value={holderName}
+              onChange={(e) => onHolderNameChange(e.target.value)}
+              placeholder="Full Name"
+              className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors uppercase tracking-wider"
+              data-testid="input-r5-holder"
+              autoComplete="off"
+            />
           </div>
         </div>
       </div>
