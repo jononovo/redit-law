@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sections, getSectionsByAudience } from "@/docs/content/sections";
+import { sections, sitePages, getSectionsByAudience } from "@/docs/content/sections";
 
 export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://creditclaw.com";
@@ -20,13 +20,19 @@ export async function GET() {
     `- Documentation: ${baseUrl}/docs`,
     `- API base URL: ${baseUrl}/api/v1/`,
     "",
-    "## Documentation",
-    "",
     `- [Full documentation (all pages, single file)](${baseUrl}/llms-full.txt)`,
     "",
-    "### User Guide",
+    "## Site Pages",
     "",
   ];
+
+  for (const page of sitePages) {
+    lines.push(`- [${page.title}](${baseUrl}/api/docs/${page.slug}): ${page.url}`);
+  }
+
+  lines.push("");
+  lines.push("## User Guide");
+  lines.push("");
 
   for (const section of userSections) {
     for (const page of section.pages) {
@@ -35,7 +41,7 @@ export async function GET() {
   }
 
   lines.push("");
-  lines.push("### Developer Documentation");
+  lines.push("## Developer Documentation");
   lines.push("");
 
   for (const section of devSections) {

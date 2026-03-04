@@ -169,6 +169,13 @@ export function findPage(slugParts: string[]): { section: DocSection; page: DocP
   return null;
 }
 
+export const sitePages: { title: string; slug: string; file: string; url: string }[] = [
+  { title: "Homepage", slug: "homepage", file: "site/homepage.md", url: "/" },
+  { title: "How It Works", slug: "how-it-works", file: "site/how-it-works.md", url: "/how-it-works" },
+  { title: "Safety & Security", slug: "safety", file: "site/safety.md", url: "/safety" },
+  { title: "Procurement Skills", slug: "skills", file: "site/skills.md", url: "/skills" },
+];
+
 export function getAllPagesFlat(audience: Audience): { section: DocSection; page: DocPage; path: string }[] {
   const result: { section: DocSection; page: DocPage; path: string }[] = [];
   for (const section of sections.filter((s) => s.audience === audience)) {
