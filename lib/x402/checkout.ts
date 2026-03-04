@@ -14,6 +14,7 @@ interface RecordX402SaleInput {
   senderAddress: string;
   transaction: PrivyTransaction;
   newBalance: number;
+  nonce?: string;
   buyerEmail?: string;
   buyerName?: string;
   buyerIp?: string;
@@ -58,7 +59,7 @@ export async function creditWalletFromX402(input: {
 export async function recordX402Sale(input: RecordX402SaleInput): Promise<RecordX402SaleResult> {
   const {
     checkoutPage, amountUsdc, txHash, senderAddress, transaction, newBalance,
-    buyerEmail, buyerName, buyerIp, buyerUserAgent, invoiceRef,
+    nonce, buyerEmail, buyerName, buyerIp, buyerUserAgent, invoiceRef,
   } = input;
 
   let saleStatus: "confirmed" | "amount_mismatch" = "confirmed";
@@ -119,6 +120,7 @@ export async function recordX402Sale(input: RecordX402SaleInput): Promise<Record
     checkoutDescription: checkoutPage.description,
     confirmedAt: new Date(),
     invoiceId: linkedInvoiceId,
+    x402Nonce: nonce || null,
   });
 
   await storage.incrementCheckoutPageStats(checkoutPage.checkoutPageId, amountUsdc);

@@ -46,6 +46,20 @@ export async function POST(
       return NextResponse.json({ error: "Invalid X-PAYMENT header", details: (parseErr as Error).message }, { status: 400 });
     }
 
+    const existingSale = await storage.getSaleByX402Nonce(payment.nonce, id);
+    if (existingSale) {
+      const product = page.pageType === "digital_product" && page.digitalProductUrl
+        ? { url: page.digitalProductUrl, type: "digital_product" }
+        : null;
+      return NextResponse.json({
+        status: existingSale.status,
+        sale_id: existingSale.saleId,
+        tx_hash: existingSale.txHash,
+        amount_usd: existingSale.amountUsdc / 1_000_000,
+        product,
+      });
+    }
+
     dedupeKey = buildX402DedupeKey(payment);
     if (processingNonces.has(dedupeKey)) {
       return NextResponse.json({ error: "Payment is already being processed" }, { status: 409 });
@@ -149,6 +163,7 @@ export async function POST(
       senderAddress: payment.from,
       transaction,
       newBalance,
+      nonce: payment.nonce,
       buyerEmail: buyer_email,
       buyerName: buyer_name,
       buyerIp: ip,

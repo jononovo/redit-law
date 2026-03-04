@@ -299,6 +299,7 @@ export interface IStorage {
 
   createSale(data: InsertSale): Promise<Sale>;
   getSaleById(saleId: string): Promise<Sale | null>;
+  getSaleByX402Nonce(nonce: string, checkoutPageId: string): Promise<Sale | null>;
   getSalesByOwnerUid(ownerUid: string, filters?: SaleFilters): Promise<Sale[]>;
   getSalesByCheckoutPageId(checkoutPageId: string): Promise<Sale[]>;
   updateSaleStatus(saleId: string, status: string, confirmedAt?: Date): Promise<Sale | null>;

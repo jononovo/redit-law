@@ -1357,6 +1357,7 @@ export const sales = pgTable("sales", {
   checkoutDescription: text("checkout_description"),
   invoiceId: text("invoice_id"),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
+  x402Nonce: text("x402_nonce"),
   confirmedAt: timestamp("confirmed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
@@ -1367,6 +1368,7 @@ export const sales = pgTable("sales", {
   index("sales_created_at_idx").on(table.createdAt),
   index("sales_buyer_identifier_idx").on(table.buyerIdentifier),
   index("sales_invoice_id_idx").on(table.invoiceId),
+  index("sales_x402_nonce_idx").on(table.x402Nonce),
 ]);
 
 export type Sale = typeof sales.$inferSelect;
