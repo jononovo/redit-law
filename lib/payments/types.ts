@@ -36,4 +36,5 @@ export interface PaymentMethodDef {
   iconEmoji: string;
   supportedRails: ("rail1" | "rail2")[];
   supportedModes: ("topup" | "checkout")[];
+  minAmount?: number;
 }
