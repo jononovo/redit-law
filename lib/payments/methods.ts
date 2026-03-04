@@ -25,6 +25,14 @@ export const PAYMENT_METHODS: Record<string, PaymentMethodDef> = {
     supportedRails: ["rail1"],
     supportedModes: ["topup"],
   },
+  testing: {
+    id: "testing",
+    label: "Testing (Card Capture)",
+    subtitle: "Captures card details without processing — for testing only",
+    iconEmoji: "🧪",
+    supportedRails: ["rail1"],
+    supportedModes: ["checkout"],
+  },
 };
 
 export function getAvailableMethods(
