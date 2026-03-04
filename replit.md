@@ -418,6 +418,14 @@ CreditClaw provides distinct API endpoints for each rail and for master guardrai
 - **Anthropic (@anthropic-ai/sdk):** LLM-powered vendor analysis for Skill Builder.
 - **react-markdown + remark-gfm + @tailwindcss/typography:** Markdown rendering for documentation pages.
 
+### Testing (`tests/`, `docs/testing.md`)
+Two layers of testing:
+- **Automated unit tests** (`tests/`): Vitest-based test suite. Run with `npx vitest run`. Config in `vitest.config.ts` with `@/` path alias.
+  - `tests/x402/receive.test.ts` — x402 header parsing (`parseXPaymentHeader`), payment validation (`validateX402Payment`), dedupe keys (29 tests)
+  - `tests/rail1/x402-utils.test.ts` — EIP-712 typed data building, nonce generation, x402 payment header encoding, USDC formatting utilities (19 tests)
+  - `tests/guardrails/evaluate.test.ts` — guardrail evaluation for both USDC rails (`evaluateGuardrails`) and card rails (`evaluateCardGuardrails`), covering per-tx limits, daily/monthly budgets, approval thresholds (18 tests)
+- **Manual integration tests** (`docs/testing.md`): curl-based test suite covering bot registration, wallet ops, purchases, guardrails, checkout pages, x402 endpoints. Sections 1-12 cover core API, Section 13 covers checkout & x402, Section 14 references the automated tests.
+
 ### Documentation System (`docs/content/`, `app/docs/`)
 Self-hosted documentation at `/docs` with sidebar navigation, audience toggle (User Guide / Developers), and markdown rendering.
 - **Config**: `docs/content/sections.ts` — typed section/page registry with audience tagging.
