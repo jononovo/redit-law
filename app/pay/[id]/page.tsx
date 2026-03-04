@@ -110,10 +110,13 @@ export default function PublicCheckoutPage() {
 
   const displayAmount = effectiveAmountUsd ? effectiveAmountUsd.toFixed(2) : null;
 
-  const handlePaymentSuccess = (_result: PaymentResult) => {
+  const handlePaymentSuccess = (result: PaymentResult) => {
     toast({ title: "Payment successful!", description: "Your payment has been processed." });
     setTimeout(() => {
-      router.push(`/pay/${id}/success`);
+      const successUrl = result.saleId
+        ? `/pay/${id}/success?sale_id=${result.saleId}`
+        : `/pay/${id}/success`;
+      router.push(successUrl);
     }, 1500);
   };
 

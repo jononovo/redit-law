@@ -1,0 +1,56 @@
+Objective
+Let bots build their own shop and add products (including digital products with URLs) entirely through the bot API — no owner dashboard required. A bot should be able to create a checkout page, make it visible in its shop, publish the shop, and have everything work end-to-end. Document all of this in checkout.md.
+
+Current State
+Bot can already: create checkout pages (including digital_product type with digital_product_url), list its pages, view its shop via GET /bot/shop.
+Bot cannot: set shop_visible/shop_order on checkout pages (not in create schema, no PATCH endpoint), publish the shop (shopPublished on seller profile, no bot endpoint for it).
+Owner dashboard can: PATCH checkout pages with shop_visible/shop_order, update seller profile with shop_published.
+checkout.md has: zero documentation about the shop/storefront.
+What Needs to Happen
+Add shop_visible and shop_order to the bot create checkout page schema so bots can set shop visibility at creation time.
+Add a bot PATCH endpoint for checkout pages so bots can update existing pages (title, status, shop_visible, shop_order, etc.).
+Add a bot endpoint to manage their seller profile (at minimum: publish/unpublish shop, set business name and slug).
+Document the full "build your shop" flow in checkout.md.
+Tasks
+T001: Add shop_visible and shop_order to bot create schema
+Blocked By: []
+Details:
+Add shop_visible: z.boolean().default(false).optional() and shop_order: z.number().int().min(0).default(0).optional() to botCreateCheckoutPageSchema in shared/schema.ts
+Update app/api/v1/bot/checkout-pages/create/route.ts to pass shopVisible and shopOrder through to storage.createCheckoutPage()
+Include shop_visible and shop_order in the 201 response
+Files: shared/schema.ts, app/api/v1/bot/checkout-pages/create/route.ts
+Acceptance: bot can POST with shop_visible: true and have the page appear in shop
+T002: Add bot PATCH endpoint for checkout pages
+Blocked By: []
+Details:
+Create app/api/v1/bot/checkout-pages/[id]/route.ts with PATCH handler
+Use withBotApi middleware for auth
+Define a bot update schema (subset of owner schema): title, description, amount_usd, amount_locked, status, page_type, shop_visible, shop_order, image_url, digital_product_url, success_url, collect_buyer_name
+Verify the checkout page belongs to the bot's owner before updating
+Use existing storage.updateCheckoutPage() method
+Return updated page in same format as create response
+Files: app/api/v1/bot/checkout-pages/[id]/route.ts, server/storage/types.ts (check if updateCheckoutPage exists)
+Acceptance: bot can PATCH a checkout page to toggle shop_visible, change title, etc.
+T003: Add bot seller profile endpoint
+Blocked By: []
+Details:
+Create app/api/v1/bot/seller-profile/route.ts with GET and PATCH handlers
+GET returns the bot's seller profile (business name, slug, shop_published, logo_url, banner_url) or null if none exists
+PATCH upserts the seller profile — accepts business_name, slug, shop_published, description, logo_url, shop_banner_url
+Use withBotApi middleware, resolve ownerUid from the bot
+Use existing storage.upsertSellerProfile() and storage.getSellerProfileByOwnerUid()
+Validate slug uniqueness — if the bot picks a slug already taken, return 409
+Files: app/api/v1/bot/seller-profile/route.ts
+Acceptance: bot can publish its shop and set a business name/slug via API
+T004: Document shop management in checkout.md
+Blocked By: [T001, T002, T003]
+Details:
+Add a new "## Build Your Shop" section to checkout.md covering:
+Create a checkout page with shop_visible: true (existing create endpoint, now with shop fields)
+Update an existing checkout page: PATCH /api/v1/bot/checkout-pages/:id
+Set up your seller profile: GET/PATCH /api/v1/bot/seller-profile
+Publish your shop: PATCH seller profile with shop_published: true
+Full example flow: create profile → create digital product page → make it shop-visible → publish shop
+Update the existing "Create a Checkout Page" section's request fields table to include shop_visible and shop_order
+Files: public/checkout.md
+Acceptance: a bot reading only checkout.md can build and publish a shop with digital products, end-to-end

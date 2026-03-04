@@ -73,7 +73,7 @@ export default function CreateCheckoutPage() {
   const [amountLocked, setAmountLocked] = useState(true);
   const [allowedMethods, setAllowedMethods] = useState<string[]>(["x402", "usdc_direct", "stripe_onramp"]);
   const [successUrl, setSuccessUrl] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("Your payment has been received and is being processed.");
   const [expiresAt, setExpiresAt] = useState("");
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [sellerName, setSellerName] = useState("");
@@ -204,7 +204,7 @@ export default function CreateCheckoutPage() {
         setAmountLocked(true);
         setAllowedMethods(["x402", "usdc_direct", "stripe_onramp"]);
         setSuccessUrl("");
-        setSuccessMessage("");
+        setSuccessMessage("Your payment has been received and is being processed.");
         setExpiresAt("");
         setSellerName(sellerProfile?.business_name || "");
         setSellerLogoUrl(sellerProfile?.logo_url || "");
@@ -479,16 +479,17 @@ export default function CreateCheckoutPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="successUrl" className="text-sm font-medium text-neutral-700">
-              Custom Success URL
+              Return URL
             </Label>
             <Input
               id="successUrl"
               type="url"
               value={successUrl}
               onChange={(e) => setSuccessUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder="https://yoursite.com"
               data-testid="input-success-url"
             />
+            <p className="text-xs text-neutral-400 mt-1">Shown as a &quot;Return to seller&quot; link after payment</p>
           </div>
 
           <div className="space-y-1.5">
@@ -499,9 +500,9 @@ export default function CreateCheckoutPage() {
               id="successMessage"
               value={successMessage}
               onChange={(e) => setSuccessMessage(e.target.value)}
-              placeholder="Thank you for your purchase!"
               data-testid="input-success-message"
             />
+            <p className="text-xs text-neutral-400 mt-1">Displayed on the payment confirmation page</p>
           </div>
         </div>
 
@@ -756,12 +757,14 @@ export default function CreateCheckoutPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-neutral-700">Success URL</Label>
-                <Input type="url" value={editSuccessUrl} onChange={(e) => setEditSuccessUrl(e.target.value)} placeholder="https://..." data-testid="input-edit-success-url" />
+                <Label className="text-sm font-medium text-neutral-700">Return URL</Label>
+                <Input type="url" value={editSuccessUrl} onChange={(e) => setEditSuccessUrl(e.target.value)} placeholder="https://yoursite.com" data-testid="input-edit-success-url" />
+                <p className="text-xs text-neutral-400 mt-1">Shown as a &quot;Return to seller&quot; link after payment</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm font-medium text-neutral-700">Success Message</Label>
-                <Input value={editSuccessMessage} onChange={(e) => setEditSuccessMessage(e.target.value)} placeholder="Thank you!" data-testid="input-edit-success-message" />
+                <Input value={editSuccessMessage} onChange={(e) => setEditSuccessMessage(e.target.value)} data-testid="input-edit-success-message" />
+                <p className="text-xs text-neutral-400 mt-1">Displayed on the payment confirmation page</p>
               </div>
             </div>
             <div className="space-y-1.5">
