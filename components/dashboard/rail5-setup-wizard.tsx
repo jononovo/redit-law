@@ -7,10 +7,10 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/rail5/encrypt";
+import { detectCardBrand, brandToApiValue, BRAND_DISPLAY_NAMES, type CardBrand } from "@/lib/card-brand";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -50,6 +50,59 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
+function BrandLogo({ brand }: { brand: CardBrand }) {
+  const size = "w-14 h-10";
+  const base = `${size} flex items-center justify-center rounded-md transition-all duration-300`;
+
+  switch (brand) {
+    case "visa":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#1A1F71] font-extrabold italic text-lg tracking-tight" style={{ fontFamily: "Arial, sans-serif" }}>VISA</span>
+        </div>
+      );
+    case "mastercard":
+      return (
+        <div className={`${base} bg-transparent`}>
+          <div className="relative w-10 h-7">
+            <div className="absolute left-0 top-0 w-7 h-7 rounded-full bg-[#EB001B] opacity-90" />
+            <div className="absolute right-0 top-0 w-7 h-7 rounded-full bg-[#F79E1B] opacity-90" />
+          </div>
+        </div>
+      );
+    case "amex":
+      return (
+        <div className={`${base} bg-[#006FCF]`}>
+          <span className="text-white font-bold text-[10px] tracking-wider">AMEX</span>
+        </div>
+      );
+    case "discover":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#FF6000] font-bold text-xs tracking-wide">DISCOVER</span>
+        </div>
+      );
+    case "jcb":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#0B4EA2] font-bold text-sm">JCB</span>
+        </div>
+      );
+    case "diners":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#004A97] font-bold text-[9px] tracking-tight">DINERS</span>
+        </div>
+      );
+    default:
+      return (
+        <div className={`${base} bg-white/10`}>
+          <CreditCard className="w-6 h-6 text-white/50" />
+        </div>
+      );
+  }
+}
+
 function Rail5InteractiveCard({
   cardNumber,
   onCardNumberChange,
@@ -61,6 +114,7 @@ function Rail5InteractiveCard({
   onCvvChange,
   holderName,
   onHolderNameChange,
+  detectedBrand,
 }: {
   cardNumber: string;
   onCardNumberChange: (val: string) => void;
@@ -72,6 +126,7 @@ function Rail5InteractiveCard({
   onCvvChange: (val: string) => void;
   holderName: string;
   onHolderNameChange: (val: string) => void;
+  detectedBrand: CardBrand;
 }) {
   const numberRef = useRef<HTMLInputElement>(null);
   const cvvRef = useRef<HTMLInputElement>(null);
@@ -120,7 +175,7 @@ function Rail5InteractiveCard({
                 <CreditCard className="w-3.5 h-3.5 text-white/50" />
               </div>
             </div>
-            <span className="text-white/40 text-xs font-medium tracking-widest uppercase">CreditClaw</span>
+            <BrandLogo brand={detectedBrand} />
           </div>
 
           <div className="flex-1 flex flex-col justify-center gap-4">
@@ -231,7 +286,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [loading, setLoading] = useState(false);
 
   const [cardName, setCardName] = useState(randomCardName);
-  const [cardBrand, setCardBrand] = useState("visa");
   const [cardId, setCardId] = useState("");
 
   const [cardNumber, setCardNumber] = useState("");
@@ -266,7 +320,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setStep(0);
     setLoading(false);
     setCardName(randomCardName());
-    setCardBrand("visa");
     setCardId("");
     setCardNumber("");
     setCardCvv("");
@@ -298,6 +351,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   const cardLast4 = cardNumber.replace(/\s/g, "").slice(-4);
+  const detectedBrand = detectCardBrand(cardNumber);
+  const cardBrand = brandToApiValue(detectedBrand);
 
   async function handleStep1Next() {
     if (!cardName.trim()) {
@@ -355,6 +410,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           iv_hex: ivHex,
           tag_hex: tagHex,
           card_last4: cardNumber.replace(/\s/g, "").slice(-4),
+          card_brand: cardBrand,
         }),
       });
       if (!res.ok) {
@@ -525,21 +581,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 />
               </div>
 
-              <div>
-                <Label>Card Brand</Label>
-                <Select value={cardBrand} onValueChange={setCardBrand}>
-                  <SelectTrigger data-testid="select-r5-card-brand">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="visa">Visa</SelectItem>
-                    <SelectItem value="mastercard">Mastercard</SelectItem>
-                    <SelectItem value="amex">American Express</SelectItem>
-                    <SelectItem value="discover">Discover</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
             </div>
 
             <Button onClick={handleStep1Next} disabled={loading} className="w-full gap-2" data-testid="button-r5-step1-next">
@@ -614,6 +655,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               onCvvChange={setCardCvv}
               holderName={holderName}
               onHolderNameChange={setHolderName}
+              detectedBrand={detectedBrand}
             />
 
             <div className="flex gap-3">

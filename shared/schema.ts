@@ -972,7 +972,7 @@ export type InsertRail5Checkout = typeof rail5Checkouts.$inferInsert;
 export const rail5InitializeSchema = z.object({
   card_name: z.string().min(1).max(200),
   card_last4: z.string().length(4).regex(/^\d{4}$/),
-  card_brand: z.enum(["visa", "mastercard", "amex", "discover"]),
+  card_brand: z.enum(["visa", "mastercard", "amex", "discover", "jcb", "diners"]),
 });
 
 export const rail5SubmitKeySchema = z.object({
@@ -981,6 +981,7 @@ export const rail5SubmitKeySchema = z.object({
   iv_hex: z.string().length(24).regex(/^[0-9a-f]{24}$/i),
   tag_hex: z.string().length(32).regex(/^[0-9a-f]{32}$/i),
   card_last4: z.string().length(4).regex(/^\d{4}$/).optional(),
+  card_brand: z.enum(["visa", "mastercard", "amex", "discover", "jcb", "diners"]).optional(),
   spending_limit_cents: z.number().int().min(100).max(10000000).optional(),
   daily_limit_cents: z.number().int().min(100).max(10000000).optional(),
   monthly_limit_cents: z.number().int().min(100).max(100000000).optional(),

@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { card_id, key_hex, iv_hex, tag_hex, card_last4, spending_limit_cents, daily_limit_cents, monthly_limit_cents, human_approval_above_cents } = parsed.data;
+  const { card_id, key_hex, iv_hex, tag_hex, card_last4, card_brand, spending_limit_cents, daily_limit_cents, monthly_limit_cents, human_approval_above_cents } = parsed.data;
 
   const keyValidation = validateKeyMaterial(key_hex, iv_hex, tag_hex);
   if (!keyValidation.valid) {
@@ -54,6 +54,10 @@ export async function POST(request: NextRequest) {
 
   if (card_last4) {
     updates.cardLast4 = card_last4;
+  }
+
+  if (card_brand) {
+    updates.cardBrand = card_brand;
   }
 
   await storage.updateRail5Card(card_id, updates);
