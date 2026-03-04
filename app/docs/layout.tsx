@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { PanelLeft, Home, Book, Code } from "lucide-react";
+import { PanelLeft, Book, Code } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -34,7 +34,7 @@ function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-neutral-200">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2 mb-1">
           <Link
             href="/"
             className="flex items-center gap-2"
@@ -46,11 +46,11 @@ function Sidebar({
           </Link>
           <Link
             href="/docs"
-            className="p-1.5 rounded-md hover:bg-neutral-100 transition-colors"
+            className="text-base font-medium text-neutral-400 hover:text-neutral-600 transition-colors"
             onClick={onNavigate}
             data-testid="link-docs-home"
           >
-            <Home className="w-4.5 h-4.5 text-neutral-400" />
+            Docs
           </Link>
         </div>
         <div className="mt-3 flex rounded-lg bg-neutral-100 p-0.5" data-testid="toggle-audience">
