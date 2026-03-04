@@ -15,7 +15,7 @@ const ROTATING_PHRASES = [
   "a crypto wallet.",
   "a product checkout.",
   "a store front.",
-  "invoicing capabilities.",
+  "invoicing.",
   "accounting tools.",
   "a business machine.",
 ];
