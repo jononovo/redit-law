@@ -25,6 +25,14 @@ export const PAYMENT_METHODS: Record<string, PaymentMethodDef> = {
     supportedRails: ["rail1"],
     supportedModes: ["topup"],
   },
+  x402: {
+    id: "x402",
+    label: "Agent Pay (x402)",
+    subtitle: "Send this to your AI agent",
+    iconEmoji: "🤖",
+    supportedRails: ["rail1"],
+    supportedModes: ["checkout"],
+  },
   testing: {
     id: "testing",
     label: "Testing (Card Capture)",
