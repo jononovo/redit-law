@@ -158,7 +158,12 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
+      if (res.ok) {
+        const updated = await res.json().catch(() => null);
+        if (updated?.status) {
+          setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: updated.status } : c));
+        }
+      } else {
         setCards((prev) => prev.map((c) => c.card_id === freezeTarget.card_id ? { ...c, status: freezeTarget.status } : c));
       }
     } catch {
