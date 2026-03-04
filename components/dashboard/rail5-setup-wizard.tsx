@@ -165,20 +165,18 @@ function Rail5InteractiveCard({
           }}
         />
 
-        <div className="relative h-full flex flex-col justify-between p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-7 rounded bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center">
-                <div className="w-6 h-4 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
-              </div>
-              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
-                <CreditCard className="w-3.5 h-3.5 text-white/50" />
-              </div>
-            </div>
+        <div className="relative h-full flex flex-col p-6">
+          <div className="flex items-start justify-between">
             <BrandLogo brand={detectedBrand} />
           </div>
 
-          <div className="flex-1 flex flex-col justify-center gap-4">
+          <div className="mt-2 mb-3">
+            <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center">
+              <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
+            </div>
+          </div>
+
+          <div className="mb-3">
             <input
               ref={numberRef}
               type="text"
@@ -194,69 +192,69 @@ function Rail5InteractiveCard({
               data-testid="input-r5-card-number"
               autoComplete="off"
             />
+          </div>
 
-            <div className="flex items-end justify-between gap-4">
-              <div className="flex-1">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
-                <input
-                  ref={holderRef}
-                  type="text"
-                  value={holderName}
-                  onChange={(e) => onHolderNameChange(e.target.value)}
-                  placeholder="Full Name"
-                  className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
-                  data-testid="input-r5-holder"
-                  autoComplete="off"
-                />
+          <div className="mt-auto flex items-end justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
+              <input
+                ref={holderRef}
+                type="text"
+                value={holderName}
+                onChange={(e) => onHolderNameChange(e.target.value)}
+                placeholder="Full Name"
+                className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors uppercase tracking-wider"
+                data-testid="input-r5-holder"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex items-end gap-3 shrink-0">
+              <div>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
+                <div className="flex items-center gap-1">
+                  <select
+                    ref={monthRef}
+                    value={expiryMonth}
+                    onChange={(e) => onExpiryMonthChange(e.target.value)}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
+                      monthFilled ? "border-green-400" : "border-white/20"
+                    }`}
+                    data-testid="select-r5-exp-month"
+                  >
+                    <option value="" className="bg-neutral-800 text-white">MM</option>
+                    {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
+                  </select>
+                  <span className="text-white/40 text-sm">/</span>
+                  <select
+                    ref={yearRef}
+                    value={expiryYear}
+                    onChange={(e) => onExpiryYearChange(e.target.value)}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
+                      yearFilled ? "border-green-400" : "border-white/20"
+                    }`}
+                    data-testid="select-r5-exp-year"
+                  >
+                    <option value="" className="bg-neutral-800 text-white">YYYY</option>
+                    {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
+                  </select>
+                </div>
               </div>
 
-              <div className="flex items-end gap-3 shrink-0">
-                <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
-                  <div className="flex items-center gap-1">
-                    <select
-                      ref={monthRef}
-                      value={expiryMonth}
-                      onChange={(e) => onExpiryMonthChange(e.target.value)}
-                      className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
-                        monthFilled ? "border-green-400" : "border-white/20"
-                      }`}
-                      data-testid="select-r5-exp-month"
-                    >
-                      <option value="" className="bg-neutral-800 text-white">MM</option>
-                      {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
-                    </select>
-                    <span className="text-white/40 text-sm">/</span>
-                    <select
-                      ref={yearRef}
-                      value={expiryYear}
-                      onChange={(e) => onExpiryYearChange(e.target.value)}
-                      className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
-                        yearFilled ? "border-green-400" : "border-white/20"
-                      }`}
-                      data-testid="select-r5-exp-year"
-                    >
-                      <option value="" className="bg-neutral-800 text-white">YYYY</option>
-                      {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
-                  <input
-                    ref={cvvRef}
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={cvv}
-                    onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="•••"
-                    className="w-14 bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
-                    data-testid="input-r5-cvv"
-                    autoComplete="off"
-                  />
-                </div>
+              <div>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
+                <input
+                  ref={cvvRef}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={cvv}
+                  onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="•••"
+                  className="w-14 bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
+                  data-testid="input-r5-cvv"
+                  autoComplete="off"
+                />
               </div>
             </div>
           </div>
