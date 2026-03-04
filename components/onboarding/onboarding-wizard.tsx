@@ -69,12 +69,6 @@ export function OnboardingWizard() {
       steps.push("connect-bot");
     }
 
-    steps.push("add-payment");
-
-    if (state.paymentMethodAdded) {
-      steps.push("fund-wallet");
-    }
-
     steps.push("complete");
 
     return steps;
