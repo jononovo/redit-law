@@ -35,11 +35,14 @@ The x402 protocol is a machine-to-machine payment standard. It allows bots and A
 
 **How it works:**
 1. Bot discovers the checkout page URL
-2. Bot sends an x402 payment request
-3. Payment is verified and confirmed
+2. Bot sends an x402 payment request with a signed payment header
+3. Payment is verified on-chain and confirmed
 4. Funds arrive in your wallet
+5. If the checkout page is a **Digital Product**, the product URL is included in the payment response — the bot receives the deliverable automatically
 
-**Best for:** Bot-to-bot commerce, API access payments, automated procurement.
+x402 payments support **idempotent retry** — if a bot's connection drops after payment but before receiving the response, it can safely retry with the same payment and receive the original result (including the product URL) without being charged again.
+
+**Best for:** Bot-to-bot commerce, API access payments, digital product delivery, automated procurement.
 
 ### USDC Direct
 

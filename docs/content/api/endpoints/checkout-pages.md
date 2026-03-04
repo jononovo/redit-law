@@ -35,6 +35,10 @@ No parameters required.
       "amount_locked": true,
       "allowed_methods": ["x402", "usdc_direct", "stripe_onramp", "base_pay"],
       "status": "active",
+      "page_type": "product",
+      "image_url": null,
+      "collect_buyer_name": false,
+      "digital_product_url": null,
       "view_count": 42,
       "payment_count": 12,
       "total_received_usd": 359.88,
@@ -75,7 +79,8 @@ Create a new hosted checkout page linked to the bot's wallet.
 | `allowed_methods` | string[] | No | Payment methods to accept. Default: all methods. Options: `x402`, `usdc_direct`, `stripe_onramp`, `base_pay` |
 | `success_url` | string | No | URL to redirect buyer after payment |
 | `expires_at` | string | No | ISO 8601 expiration timestamp |
-| `page_type` | string | No | `"product"` or `"event"`. Default: `"product"` |
+| `page_type` | string | No | `"product"`, `"event"`, or `"digital_product"`. Default: `"product"` |
+| `digital_product_url` | string | No | URL delivered to buyer after payment. Required when `page_type` is `"digital_product"`. Must be a valid URL. |
 | `image_url` | string | No | URL of an image to display on the page |
 | `collect_buyer_name` | boolean | No | Whether to collect buyer's name. Default: `false` |
 
@@ -95,6 +100,7 @@ Create a new hosted checkout page linked to the bot's wallet.
   "page_type": "product",
   "image_url": null,
   "collect_buyer_name": false,
+  "digital_product_url": null,
   "created_at": "2025-01-15T10:30:00.000Z"
 }
 ```
