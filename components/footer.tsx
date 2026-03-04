@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="bg-neutral-900 text-white pt-16 pb-8">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+        <div className="grid md:grid-cols-5 gap-12 mb-12">
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4" data-testid="footer-logo-link">
               <Image src="/images/logo-claw-chip.png" alt="CreditClaw Logo" width={32} height={32} className="object-contain" />
@@ -34,6 +34,14 @@ export function Footer() {
               <li><Link href="/app/cards" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-cards">Cards</Link></li>
               <li><Link href="/app/transactions" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-transactions">Transactions</Link></li>
               <li><Link href="/app/settings" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-settings">Settings</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-sm uppercase tracking-wider text-neutral-300 mb-4">Resources</h4>
+            <ul className="space-y-3">
+              <li><Link href="/docs" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-documentation">Documentation</Link></li>
+              <li><Link href="/docs/api/introduction" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-developer">Developer</Link></li>
             </ul>
           </div>
 

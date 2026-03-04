@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Settings, LogOut, LifeBuoy } from "lucide-react";
+import { Search, Settings, LogOut, LifeBuoy, BookOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -62,6 +62,14 @@ export function Header({ title }: { title: string }) {
             >
               <Settings className="w-4 h-4 mr-2" />
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push("/docs")}
+              className="cursor-pointer"
+              data-testid="menu-item-documentation"
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Documentation
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => setFeedbackDialogOpen(true)}
