@@ -195,6 +195,16 @@ describe("validateX402Payment", () => {
     expect(result.error).toContain("not yet valid");
   });
 
+  it("rejects unsupported token", () => {
+    const result = validateX402Payment(
+      makePayment({ token: "0x0000000000000000000000000000000000000000" }),
+      recipient,
+      5_000_000
+    );
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("Unsupported token");
+  });
+
   it("accepts null expected amount (open-price)", () => {
     const result = validateX402Payment(makePayment({ value: "999999" }), recipient, null);
     expect(result.valid).toBe(true);

@@ -782,6 +782,232 @@ UPDATE owners SET onboarded_at = NOW() WHERE uid = 'test-onboard-owner';
 
 ---
 
+## Section 13: Checkout Pages & x402 Payments
+
+### Prerequisites
+
+Create a test checkout page via SQL:
+
+```sql
+-- Create a test owner and wallet first
+INSERT INTO owners (uid, email, display_name)
+VALUES ('test-checkout-owner', 'checkout@example.com', 'Checkout Tester')
+ON CONFLICT (uid) DO NOTHING;
+
+INSERT INTO privy_wallets (owner_uid, privy_wallet_id, wallet_address, balance_usdc, chain)
+VALUES ('test-checkout-owner', 'privy-test-wallet-id', '0xTESTWALLETADDRESS1234567890abcdef12345678', 0, 'base')
+ON CONFLICT DO NOTHING
+RETURNING id;
+-- Save: $WALLET_ID from the result
+
+-- Create a checkout page with x402 enabled
+INSERT INTO checkout_pages (
+  checkout_page_id, owner_uid, wallet_id, wallet_address,
+  title, description, amount_usdc, amount_locked,
+  allowed_methods, status, seller_name
+) VALUES (
+  'cp_test_x402', 'test-checkout-owner', $WALLET_ID, '0xTESTWALLETADDRESS1234567890abcdef12345678',
+  'Test x402 Product', 'A test product for x402 payments', 5000000, true,
+  ARRAY['stripe_onramp', 'base_pay', 'x402'], 'active', 'Test Seller'
+)
+ON CONFLICT DO NOTHING;
+
+-- Create a checkout page WITHOUT x402
+INSERT INTO checkout_pages (
+  checkout_page_id, owner_uid, wallet_id, wallet_address,
+  title, description, amount_usdc, amount_locked,
+  allowed_methods, status, seller_name
+) VALUES (
+  'cp_test_no_x402', 'test-checkout-owner', $WALLET_ID, '0xTESTWALLETADDRESS1234567890abcdef12345678',
+  'No x402 Product', 'A test product without x402', 5000000, true,
+  ARRAY['stripe_onramp', 'base_pay'], 'active', 'Test Seller'
+)
+ON CONFLICT DO NOTHING;
+```
+
+---
+
+### Test 13.1 — x402 requirements endpoint returns 402 with payment details
+
+```bash
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  http://localhost:5000/api/v1/checkout/cp_test_x402/x402
+```
+
+**Expected:** HTTP 402
+**Verify:**
+- Response contains `x402.version` equal to `1`
+- `x402.accepts` is an array with one entry
+- `x402.accepts[0].scheme` is `"exact"`
+- `x402.accepts[0].network` is `"base"`
+- `x402.accepts[0].maxAmountRequired` is `"5000000"`
+- `x402.accepts[0].payTo` matches the wallet address
+- `x402.accepts[0].token` is `"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"`
+- `x402.accepts[0].description` is `"Test x402 Product"`
+- `x402.accepts[0].extra.checkout_page_id` is `"cp_test_x402"`
+- `x402.accepts[0].extra.amount_locked` is `true`
+
+---
+
+### Test 13.2 — x402 requirements endpoint rejects page without x402 method
+
+```bash
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  http://localhost:5000/api/v1/checkout/cp_test_no_x402/x402
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` mentions x402 payments are not enabled
+
+---
+
+### Test 13.3 — x402 requirements endpoint returns 404 for nonexistent page
+
+```bash
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  http://localhost:5000/api/v1/checkout/cp_does_not_exist/x402
+```
+
+**Expected:** HTTP 404
+**Verify:**
+- `error` is `"Checkout page not found"`
+
+---
+
+### Test 13.4 — x402 pay endpoint rejects missing X-PAYMENT header
+
+```bash
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` is `"Missing X-PAYMENT header"`
+
+---
+
+### Test 13.5 — x402 pay endpoint rejects malformed X-PAYMENT header
+
+```bash
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: bm90LXZhbGlkLWpzb24=" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` is `"Invalid X-PAYMENT header"`
+- `details` contains information about the parse failure
+
+---
+
+### Test 13.6 — x402 pay endpoint rejects wrong chain
+
+```bash
+WRONG_CHAIN=$(echo '{"from":"0x1111111111111111111111111111111111111111","to":"0xTESTWALLETADDRESS1234567890abcdef12345678","value":"5000000","validAfter":0,"validBefore":9999999999,"nonce":"0xababababababababababababababababababababababababababababababababab","signature":"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd","chainId":1,"token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}' | base64 -w 0)
+
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: $WRONG_CHAIN" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` contains `"Unsupported chain"`
+
+---
+
+### Test 13.7 — x402 pay endpoint rejects recipient mismatch
+
+```bash
+WRONG_RECIPIENT=$(echo '{"from":"0x1111111111111111111111111111111111111111","to":"0x9999999999999999999999999999999999999999","value":"5000000","validAfter":0,"validBefore":9999999999,"nonce":"0xababababababababababababababababababababababababababababababababab","signature":"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd","chainId":8453,"token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}' | base64 -w 0)
+
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: $WRONG_RECIPIENT" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` contains `"Recipient mismatch"`
+
+---
+
+### Test 13.8 — x402 pay endpoint rejects expired signature
+
+```bash
+EXPIRED_SIG=$(echo '{"from":"0x1111111111111111111111111111111111111111","to":"0xTESTWALLETADDRESS1234567890abcdef12345678","value":"5000000","validAfter":0,"validBefore":1000000000,"nonce":"0xababababababababababababababababababababababababababababababababab","signature":"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd","chainId":8453,"token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}' | base64 -w 0)
+
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: $EXPIRED_SIG" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` contains `"expired"`
+
+---
+
+### Test 13.9 — x402 pay endpoint rejects page without x402 method
+
+```bash
+VALID_HEADER=$(echo '{"from":"0x1111111111111111111111111111111111111111","to":"0xTESTWALLETADDRESS1234567890abcdef12345678","value":"5000000","validAfter":0,"validBefore":9999999999,"nonce":"0xababababababababababababababababababababababababababababababababab","signature":"0xcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd","chainId":8453,"token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}' | base64 -w 0)
+
+curl -s -w "\nHTTP_STATUS: %{http_code}" \
+  -X POST http://localhost:5000/api/v1/checkout/cp_test_no_x402/pay/x402 \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: $VALID_HEADER" \
+  -d '{}'
+```
+
+**Expected:** HTTP 400
+**Verify:**
+- `error` mentions x402 payments are not enabled
+
+---
+
+### Test 13.10 — Public checkout page data includes x402 in allowed methods
+
+```bash
+curl -s http://localhost:5000/api/v1/checkout/cp_test_x402/public
+```
+
+**Expected:** HTTP 200
+**Verify:**
+- `allowedMethods` array contains `"x402"`
+- `title` is `"Test x402 Product"`
+
+---
+
+## Section 14: Automated Unit Tests
+
+Run the automated test suite covering x402 parsing, validation, guardrail evaluation, and utility functions:
+
+```bash
+npx vitest run
+```
+
+**Expected:** All tests pass
+**Test files:**
+- `tests/x402/receive.test.ts` — x402 header parsing, payment validation, dedupe keys (29 tests)
+- `tests/rail1/x402-utils.test.ts` — EIP-712 typed data, nonce generation, USDC formatting (19 tests)
+- `tests/guardrails/evaluate.test.ts` — spending limit enforcement, approval thresholds (18 tests)
+
+---
+
 ## Cleanup
 
 After running all tests, clean up test data:
@@ -792,6 +1018,9 @@ DELETE FROM wallets WHERE owner_uid LIKE 'test-%';
 DELETE FROM topup_requests WHERE bot_id IN (SELECT bot_id FROM bots WHERE owner_email LIKE '%@example.com' AND bot_name LIKE 'TestBot-%' OR bot_name LIKE 'PairedBot-%' OR bot_name LIKE 'RateBot-%' OR bot_name LIKE 'UnclaimedBot-%' OR bot_name LIKE 'BadCodeBot' OR bot_name LIKE 'ExpiredPairBot' OR bot_name LIKE 'ReusePairedBot');
 DELETE FROM pairing_codes WHERE owner_uid LIKE 'test-%';
 DELETE FROM bots WHERE owner_email LIKE '%@example.com' AND (bot_name LIKE 'TestBot-%' OR bot_name LIKE 'PairedBot-%' OR bot_name LIKE 'RateBot-%' OR bot_name LIKE 'UnclaimedBot-%' OR bot_name LIKE 'BadCodeBot' OR bot_name LIKE 'ExpiredPairBot' OR bot_name LIKE 'ReusePairedBot' OR bot_name LIKE 'TestBot-WH-%');
+DELETE FROM sales WHERE checkout_page_id IN ('cp_test_x402', 'cp_test_no_x402');
+DELETE FROM checkout_pages WHERE checkout_page_id IN ('cp_test_x402', 'cp_test_no_x402');
+DELETE FROM privy_wallets WHERE owner_uid = 'test-checkout-owner';
 DELETE FROM waitlist_entries WHERE email LIKE 'waitlist-test-%@example.com' OR email = 'duplicate-waitlist@example.com';
 DELETE FROM owners WHERE uid LIKE 'test-%';
 DELETE FROM master_guardrails WHERE owner_uid LIKE 'test-%';
@@ -844,3 +1073,14 @@ DELETE FROM master_guardrails WHERE owner_uid LIKE 'test-%';
 | 12.3 | Onboarded endpoint auth check | 401 | Auth |
 | 12.4 | Master guardrails input validation | 400 | Validation |
 | 12.5 | Onboarding guardrails save via DB | — | Onboarding |
+| 13.1 | x402 requirements endpoint | 402 | x402 |
+| 13.2 | x402 requirements (not enabled) | 400 | x402 |
+| 13.3 | x402 requirements (not found) | 404 | x402 |
+| 13.4 | x402 pay missing header | 400 | x402 |
+| 13.5 | x402 pay malformed header | 400 | x402 |
+| 13.6 | x402 pay wrong chain | 400 | x402 |
+| 13.7 | x402 pay recipient mismatch | 400 | x402 |
+| 13.8 | x402 pay expired signature | 400 | x402 |
+| 13.9 | x402 pay on non-x402 page | 400 | x402 |
+| 13.10 | Public checkout shows x402 method | 200 | Checkout |
+| 14.1 | Automated unit tests (npx vitest) | Pass | Unit Tests |

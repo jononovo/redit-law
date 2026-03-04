@@ -106,6 +106,23 @@ describe("buildXPaymentHeader", () => {
     expect(decoded.chainId).toBe(8453);
     expect(decoded.token).toBe(USDC_CONTRACT);
   });
+
+  it("overrides chainId to 8453 even when a different value is passed", () => {
+    const header = buildXPaymentHeader({
+      signature: "0x",
+      from: "0x",
+      to: "0x",
+      value: "1",
+      validAfter: 0,
+      validBefore: 1,
+      nonce: "0x",
+      chainId: 1,
+    });
+
+    const decoded = JSON.parse(Buffer.from(header, "base64").toString("utf-8"));
+    expect(decoded.chainId).toBe(8453);
+    expect(decoded.token).toBe(USDC_CONTRACT);
+  });
 });
 
 describe("formatUsdc", () => {
@@ -140,7 +157,8 @@ describe("usdToMicroUsdc", () => {
   });
 
   it("rounds to nearest integer", () => {
-    expect(usdToMicroUsdc(1.999999)).toBe(2_000_000);
+    expect(usdToMicroUsdc(1.5)).toBe(1_500_000);
+    expect(usdToMicroUsdc(1.0000005)).toBe(1_000_001);
   });
 
   it("converts zero", () => {
