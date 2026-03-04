@@ -51,7 +51,7 @@ export function Complete({ currentStep, totalSteps, state }: CompleteProps) {
         body: JSON.stringify({ bot_id: state.botId }),
       }).catch((err) => console.error("Failed to auto-create Privy wallet:", err));
     }
-  }, [state.perTransactionCents, state.dailyCents, state.monthlyCents]);
+  }, [state.perTransactionCents, state.dailyCents, state.monthlyCents, state.botId, state.botConnected]);
 
   return (
     <WizardStep
