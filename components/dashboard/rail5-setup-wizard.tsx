@@ -72,7 +72,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
   const [cardName, setCardName] = useState(randomCardName);
   const [cardBrand, setCardBrand] = useState("visa");
-  const [cardLast4, setCardLast4] = useState("");
   const [cardId, setCardId] = useState("");
 
   const [cardNumber, setCardNumber] = useState("");
@@ -108,7 +107,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setLoading(false);
     setCardName(randomCardName());
     setCardBrand("visa");
-    setCardLast4("");
     setCardId("");
     setCardNumber("");
     setCardCvv("");
@@ -139,9 +137,11 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     onOpenChange(val);
   }
 
+  const cardLast4 = cardNumber.replace(/\s/g, "").slice(-4);
+
   async function handleStep1Next() {
-    if (!cardName.trim() || !/^\d{4}$/.test(cardLast4)) {
-      toast({ title: "Missing info", description: "Enter a card name and 4-digit last4.", variant: "destructive" });
+    if (!cardName.trim()) {
+      toast({ title: "Missing info", description: "Enter a card name.", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -149,7 +149,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       const res = await authFetch("/api/v1/rail5/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_name: cardName.trim(), card_brand: cardBrand, card_last4: cardLast4 }),
+        body: JSON.stringify({ card_name: cardName.trim(), card_brand: cardBrand, card_last4: "0000" }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -166,7 +166,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   async function handleEncryptAndDownload() {
-    if (!cardNumber.trim() || !cardCvv.trim() || !expMonth || !expYear || !holderName.trim()) {
+    const cleanNumber = cardNumber.replace(/\s/g, "");
+    if (!cleanNumber || cleanNumber.length < 13 || !cardCvv.trim() || !expMonth || !expYear || !holderName.trim()) {
       toast({ title: "Missing info", description: "Fill in all card details.", variant: "destructive" });
       return;
     }
@@ -193,6 +194,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           key_hex: keyHex,
           iv_hex: ivHex,
           tag_hex: tagHex,
+          card_last4: cardNumber.replace(/\s/g, "").slice(-4),
         }),
       });
       if (!res.ok) {
@@ -382,17 +384,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="r5-last4">Last 4 Digits</Label>
-                <Input
-                  id="r5-last4"
-                  placeholder="1234"
-                  maxLength={4}
-                  value={cardLast4}
-                  onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  data-testid="input-r5-last4"
-                />
-              </div>
             </div>
 
             <Button onClick={handleStep1Next} disabled={loading} className="w-full gap-2" data-testid="button-r5-step1-next">

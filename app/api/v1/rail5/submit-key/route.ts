@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { card_id, key_hex, iv_hex, tag_hex, spending_limit_cents, daily_limit_cents, monthly_limit_cents, human_approval_above_cents } = parsed.data;
+  const { card_id, key_hex, iv_hex, tag_hex, card_last4, spending_limit_cents, daily_limit_cents, monthly_limit_cents, human_approval_above_cents } = parsed.data;
 
   const keyValidation = validateKeyMaterial(key_hex, iv_hex, tag_hex);
   if (!keyValidation.valid) {
@@ -51,6 +51,10 @@ export async function POST(request: NextRequest) {
     encryptedTagHex: tag_hex,
     status: "pending_delivery",
   };
+
+  if (card_last4) {
+    updates.cardLast4 = card_last4;
+  }
 
   await storage.updateRail5Card(card_id, updates);
 

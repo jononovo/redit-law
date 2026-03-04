@@ -980,6 +980,7 @@ export const rail5SubmitKeySchema = z.object({
   key_hex: z.string().length(64).regex(/^[0-9a-f]{64}$/i),
   iv_hex: z.string().length(24).regex(/^[0-9a-f]{24}$/i),
   tag_hex: z.string().length(32).regex(/^[0-9a-f]{32}$/i),
+  card_last4: z.string().length(4).regex(/^\d{4}$/).optional(),
   spending_limit_cents: z.number().int().min(100).max(10000000).optional(),
   daily_limit_cents: z.number().int().min(100).max(10000000).optional(),
   monthly_limit_cents: z.number().int().min(100).max(100000000).optional(),
