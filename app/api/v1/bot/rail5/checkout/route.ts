@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
 import { rail5CheckoutRequestSchema } from "@/shared/schema";
-import { generateRail5CheckoutId, buildSpawnPayload } from "@/lib/rail5";
+import { generateRail5CheckoutId, buildSpawnPayload, buildCheckoutSteps } from "@/lib/rail5";
 import { evaluateMasterGuardrails, centsToMicroUsdc } from "@/lib/guardrails/master";
 import { evaluateCardGuardrails } from "@/lib/guardrails/evaluate";
 import { GUARDRAIL_DEFAULTS } from "@/lib/guardrails/defaults";
@@ -41,7 +41,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
     );
   }
 
-  if (card.status !== "active") {
+  if (!["confirmed", "active"].includes(card.status)) {
     return NextResponse.json(
       { error: "card_not_active", message: `Card is ${card.status}. Cannot checkout.` },
       { status: 403 }
@@ -210,14 +210,17 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
 
   const encryptedFilename = `Card-${card.cardName.replace(/[^a-zA-Z0-9-_]/g, "-")}-${card.cardLast4}.md`;
 
-  const spawnPayload = buildSpawnPayload({
+  const checkoutStepParams = {
     checkoutId,
     merchantName: merchant_name,
     merchantUrl: merchant_url,
     itemName: item_name,
     amountCents: amount_cents,
     encryptedFilename,
-  });
+  };
+
+  const spawnPayload = buildSpawnPayload(checkoutStepParams);
+  const checkoutSteps = buildCheckoutSteps(checkoutStepParams);
 
   recordOrder({
     ownerUid: card.ownerUid,
@@ -239,6 +242,7 @@ export const POST = withBotApi("/api/v1/bot/rail5/checkout", async (request, { b
   return NextResponse.json({
     approved: true,
     checkout_id: checkoutId,
+    checkout_steps: checkoutSteps,
     spawn_payload: spawnPayload,
   });
 });

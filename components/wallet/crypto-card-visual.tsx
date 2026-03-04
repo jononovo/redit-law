@@ -59,6 +59,8 @@ export function CryptoCardVisual({
   const statusColors: Record<string, string> = {
     active: "bg-white/15 text-emerald-200 border-emerald-300/30",
     pending_setup: "bg-white/15 text-amber-200 border-amber-300/30",
+    pending_delivery: "bg-white/15 text-orange-200 border-orange-300/30",
+    confirmed: "bg-white/15 text-teal-200 border-teal-300/30",
     awaiting_bot: "bg-white/15 text-violet-200 border-violet-300/30",
     frozen: "bg-white/15 text-blue-200 border-blue-300/30",
     paused: "bg-white/15 text-blue-200 border-blue-300/30",
@@ -67,6 +69,8 @@ export function CryptoCardVisual({
   const statusLabels: Record<string, string> = {
     active: "active",
     pending_setup: "pending",
+    pending_delivery: "awaiting bot",
+    confirmed: "confirmed",
     awaiting_bot: "awaiting bot",
     frozen: "frozen",
     paused: "paused",

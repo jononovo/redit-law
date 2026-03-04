@@ -1,0 +1,18 @@
+export const DECRYPT_SCRIPT = [
+  'const crypto = require("crypto");',
+  'const fs = require("fs");',
+  "const [,, keyHex, ivHex, tagHex, filePath] = process.argv;",
+  "",
+  'const raw = fs.readFileSync(filePath, "utf8");',
+  "const b64 = raw.match(/```([\\s\\S]+?)```/)[1].trim();",
+  'const data = Buffer.from(b64, "base64");',
+  "",
+  "const decipher = crypto.createDecipheriv(",
+  '  "aes-256-gcm",',
+  '  Buffer.from(keyHex, "hex"),',
+  '  Buffer.from(ivHex, "hex")',
+  ");",
+  'decipher.setAuthTag(Buffer.from(tagHex, "hex"));',
+  'const plain = decipher.update(data.slice(0, -16)) + decipher.final("utf8");',
+  "process.stdout.write(plain);",
+].join("\n") + "\n";

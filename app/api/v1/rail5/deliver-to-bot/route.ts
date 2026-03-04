@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { signPayload, attemptDelivery } from "@/lib/webhooks";
+import { DECRYPT_SCRIPT } from "@/lib/rail5/decrypt-script";
 import { z } from "zod";
 
 const deliverSchema = z.object({
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
         card_name: card.cardName,
         card_last4: card.cardLast4,
         encrypted_file_content,
+        decrypt_script: DECRYPT_SCRIPT,
       },
     };
 

@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     encryptedKeyHex: key_hex,
     encryptedIvHex: iv_hex,
     encryptedTagHex: tag_hex,
-    status: "active",
+    status: "pending_delivery",
   };
 
   await storage.updateRail5Card(card_id, updates);
@@ -64,5 +64,5 @@ export async function POST(request: NextRequest) {
     await storage.upsertRail5Guardrails(card_id, guardrailUpdates);
   }
 
-  return NextResponse.json({ card_id, status: "active" });
+  return NextResponse.json({ card_id, status: "pending_delivery" });
 }

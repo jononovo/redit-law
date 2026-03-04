@@ -41,6 +41,25 @@ export async function getMonthlySpendCents(cardId: string): Promise<number> {
     .reduce((sum, c) => sum + c.amountCents, 0);
 }
 
+export function buildCheckoutSteps(params: {
+  checkoutId: string;
+  merchantName: string;
+  merchantUrl: string;
+  itemName: string;
+  amountCents: number;
+  encryptedFilename: string;
+}): string[] {
+  const amountUsd = (params.amountCents / 100).toFixed(2);
+  return [
+    `Call POST /api/v1/bot/rail5/key with { "checkout_id": "${params.checkoutId}" } to get the decryption key.`,
+    `Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> ${params.encryptedFilename}`,
+    `Use the decrypted card details to complete checkout at ${params.merchantName} (${params.merchantUrl}) for "${params.itemName}" — $${amountUsd}.`,
+    `Call POST /api/v1/bot/rail5/confirm with { "checkout_id": "${params.checkoutId}", "status": "success" } when done.`,
+    `If checkout fails, call confirm with { "checkout_id": "${params.checkoutId}", "status": "failed" } instead.`,
+    `Announce the result: "Purchase of ${params.itemName} at ${params.merchantName} — SUCCESS" or "— FAILED".`,
+  ];
+}
+
 export function buildSpawnPayload(params: {
   checkoutId: string;
   merchantName: string;

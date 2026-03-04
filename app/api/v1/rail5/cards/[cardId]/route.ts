@@ -67,10 +67,16 @@ export async function PATCH(
   if (data.notes !== undefined) guardrailUpdates.notes = data.notes;
 
   if (data.status !== undefined) {
-    if (card.status === "pending_setup") {
-      return NextResponse.json({ error: "cannot_change_status", message: "Card must be set up before changing status." }, { status: 400 });
+    if (card.status === "pending_setup" || card.status === "pending_delivery") {
+      return NextResponse.json({ error: "cannot_change_status", message: "Card must be set up and delivered before changing status." }, { status: 400 });
     }
-    updates.status = data.status;
+    if (data.status === "active" && card.status === "frozen") {
+      const checkouts = await storage.getRail5CheckoutsByCardId(cardId, 50);
+      const hasCompleted = checkouts.some((c) => c.status === "completed");
+      updates.status = hasCompleted ? "active" : "confirmed";
+    } else {
+      updates.status = data.status;
+    }
   }
 
   if (Object.keys(updates).length === 0 && Object.keys(guardrailUpdates).length === 0) {
