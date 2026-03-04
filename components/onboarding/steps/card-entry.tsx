@@ -71,6 +71,16 @@ export function CardEntry({ currentStep, totalSteps, onBack, onNext, botId }: Ca
       }
       const { card_id: cardId } = await initRes.json();
 
+      if (botId) {
+        try {
+          await authFetch(`/api/v1/rail5/cards/${cardId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bot_id: botId }),
+          });
+        } catch {}
+      }
+
       const { keyHex, ivHex, tagHex, ciphertextBytes } = await encryptCardDetails({
         number: cleanNumber,
         cvv: cardCvv,
