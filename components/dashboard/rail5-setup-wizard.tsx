@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/rail5/encrypt";
-import { detectCardBrand, brandToApiValue, BRAND_DISPLAY_NAMES, type CardBrand } from "@/lib/card-brand";
+import { detectCardBrand, brandToApiValue, BRAND_DISPLAY_NAMES, getMaxDigits, formatCardNumber, getCardPlaceholder, type CardBrand } from "@/lib/card-brand";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -139,7 +139,7 @@ function Rail5InteractiveCard({
   }, []);
 
   const cleanNumber = cardNumber.replace(/\s/g, "");
-  const formatted = cleanNumber.replace(/(\d{4})(?=\d)/g, "$1 ");
+  const formatted = formatCardNumber(cleanNumber, detectedBrand);
 
   const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -185,10 +185,11 @@ function Rail5InteractiveCard({
               inputMode="numeric"
               value={formatted}
               onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, "").slice(0, 19);
-                onCardNumberChange(digits);
+                const digits = e.target.value.replace(/\D/g, "");
+                const brand = detectCardBrand(digits);
+                onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
               }}
-              placeholder="0000 0000 0000 0000"
+              placeholder={getCardPlaceholder(detectedBrand)}
               className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-colors"
               data-testid="input-r5-card-number"
               autoComplete="off"

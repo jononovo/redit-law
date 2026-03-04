@@ -37,6 +37,34 @@ export const BRAND_DISPLAY_NAMES: Record<CardBrand, string> = {
   unknown: "Card",
 };
 
+export function getMaxDigits(brand: CardBrand): number {
+  switch (brand) {
+    case "amex": return 15;
+    case "diners": return 14;
+    default: return 16;
+  }
+}
+
+export function formatCardNumber(digits: string, brand: CardBrand): string {
+  const clean = digits.replace(/\D/g, "");
+  switch (brand) {
+    case "amex":
+      return [clean.slice(0, 4), clean.slice(4, 10), clean.slice(10, 15)].filter(Boolean).join(" ");
+    case "diners":
+      return [clean.slice(0, 4), clean.slice(4, 10), clean.slice(10, 14)].filter(Boolean).join(" ");
+    default:
+      return [clean.slice(0, 4), clean.slice(4, 8), clean.slice(8, 12), clean.slice(12, 16)].filter(Boolean).join(" ");
+  }
+}
+
+export function getCardPlaceholder(brand: CardBrand): string {
+  switch (brand) {
+    case "amex": return "0000 000000 00000";
+    case "diners": return "0000 000000 0000";
+    default: return "0000 0000 0000 0000";
+  }
+}
+
 export type ApiBrand = "visa" | "mastercard" | "amex" | "discover" | "jcb" | "diners";
 
 export function brandToApiValue(brand: CardBrand): ApiBrand {
