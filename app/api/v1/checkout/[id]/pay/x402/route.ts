@@ -166,11 +166,16 @@ export async function POST(
 
     processingNonces.delete(dedupeKey);
 
+    const product = page.pageType === "digital_product" && page.digitalProductUrl
+      ? { url: page.digitalProductUrl, type: "digital_product" }
+      : null;
+
     return NextResponse.json({
       status: saleStatus,
       sale_id: saleId,
       tx_hash: txHash,
       amount_usd: amountUsdc / 1_000_000,
+      product,
     });
   } catch (error) {
     if (dedupeKey) processingNonces.delete(dedupeKey);

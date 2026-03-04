@@ -21,7 +21,7 @@ interface CheckoutPaymentPanelProps {
   invoiceRef?: string;
   collectBuyerName: boolean;
   allowedMethods: string[];
-  pageType: "product" | "event";
+  pageType: "product" | "event" | "digital_product";
   buyerCount: number | null;
   onSuccess: (result: PaymentResult) => void;
 }

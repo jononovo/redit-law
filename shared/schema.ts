@@ -1299,6 +1299,7 @@ export const checkoutPages = pgTable("checkout_pages", {
   shopOrder: integer("shop_order").notNull().default(0),
   imageUrl: text("image_url"),
   collectBuyerName: boolean("collect_buyer_name").notNull().default(false),
+  digitalProductUrl: text("digital_product_url"),
   metadata: jsonb("metadata").$type<Record<string, any>>(),
   viewCount: integer("view_count").notNull().default(0),
   paymentCount: integer("payment_count").notNull().default(0),
@@ -1329,9 +1330,10 @@ export const createCheckoutPageSchema = z.object({
   seller_name: z.string().max(200).optional().nullable(),
   seller_logo_url: z.string().url().max(2000).optional().nullable(),
   seller_email: z.string().email().max(200).optional().nullable(),
-  page_type: z.enum(["product", "event"]).default("product").optional(),
+  page_type: z.enum(["product", "event", "digital_product"]).default("product").optional(),
   image_url: z.string().url().max(2000).optional().nullable(),
   collect_buyer_name: z.boolean().default(false).optional(),
+  digital_product_url: z.string().url().max(2000).optional().nullable(),
 });
 
 export const sales = pgTable("sales", {
@@ -1378,9 +1380,10 @@ export const botCreateCheckoutPageSchema = z.object({
   allowed_methods: z.array(z.enum(["x402", "usdc_direct", "stripe_onramp", "base_pay", "testing"])).min(1).default(["x402", "usdc_direct", "stripe_onramp", "base_pay"]),
   success_url: z.string().url().optional().nullable(),
   expires_at: z.string().datetime().optional().nullable(),
-  page_type: z.enum(["product", "event"]).default("product").optional(),
+  page_type: z.enum(["product", "event", "digital_product"]).default("product").optional(),
   image_url: z.string().url().max(2000).optional().nullable(),
   collect_buyer_name: z.boolean().default(false).optional(),
+  digital_product_url: z.string().url().max(2000).optional().nullable(),
 });
 
 export const invoices = pgTable("invoices", {

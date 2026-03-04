@@ -21,7 +21,7 @@ interface ShopProduct {
   description: string | null;
   amount_usd: number | null;
   amount_locked: boolean;
-  page_type: "product" | "event";
+  page_type: "product" | "event" | "digital_product";
   image_url: string | null;
   collect_buyer_name: boolean;
   buyer_count: number;
