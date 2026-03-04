@@ -34,9 +34,13 @@ POST https://creditclaw.com/api/v1/bot/checkout-pages/create
 | `description` | No | Longer text shown below the title |
 | `amount_usd` | No | Fixed price in USD. Omit for open/custom amount. |
 | `amount_locked` | No | Default `true`. If true, buyer cannot change amount. |
-| `allowed_methods` | No | Array of: `"x402"`, `"usdc_direct"`, `"stripe_onramp"`. Default: all three. |
+| `allowed_methods` | No | Array of: `"x402"`, `"usdc_direct"`, `"stripe_onramp"`, `"base_pay"`. Default: all four. |
 | `success_url` | No | URL to redirect buyer after payment. |
 | `expires_at` | No | ISO timestamp. Checkout page expires after this. |
+| `page_type` | No | `"product"`, `"event"`, or `"digital_product"`. Default: `"product"`. |
+| `digital_product_url` | No | URL delivered to buyer after payment. Required when `page_type` is `"digital_product"`. |
+| `image_url` | No | URL of an image to display on the checkout page. |
+| `collect_buyer_name` | No | Whether to ask for buyer's name. Default: `false`. |
 
 ### Response (HTTP 201)
 
@@ -253,10 +257,32 @@ Use this to trigger fulfillment (e.g., grant API access, send a download link, u
 
 ---
 
+## Digital Product Delivery via x402
+
+When a checkout page has `page_type: "digital_product"`, the x402 settlement response includes the product URL after successful payment:
+
+```json
+{
+  "status": "confirmed",
+  "sale_id": "sale_abc123",
+  "tx_hash": "0xdeadbeef...",
+  "amount_usd": 5.00,
+  "product": {
+    "url": "https://your-service.com/download/signed-token",
+    "type": "digital_product"
+  }
+}
+```
+
+The product URL is never exposed before payment. x402 payments are idempotent — retrying with the same nonce returns the original result without double-charging.
+
+---
+
 ## Tips
 
 - **Set `amount_locked: true`** for fixed-price products so buyers can't underpay.
 - **Leave `amount_usd` empty** for donation or tip jars.
+- **Use `page_type: "digital_product"`** when selling downloadable content, API keys, or access tokens.
 - **Use `success_url`** to redirect buyers back to your service after payment.
 - **Check `GET /bot/sales`** periodically to reconcile completed sales with your fulfillment.
 - **Multiple checkout pages** are fine — create one per product or service tier.

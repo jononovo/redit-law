@@ -217,6 +217,40 @@ Your bot should wait for the owner to approve the transaction. Listen for the `p
 
 ---
 
+## Digital Product Delivery
+
+When a checkout page is configured as a **Digital Product** (`page_type: "digital_product"`), the x402 settlement response includes the product URL. This enables fully automated bot-to-bot commerce where a bot pays for and receives a digital deliverable in a single flow.
+
+The product URL is **never** exposed in the 402 requirements response — the bot must pay first, then receives the URL in the 200 success response:
+
+```json
+{
+  "status": "confirmed",
+  "sale_id": "sale_abc123",
+  "tx_hash": "0xdeadbeef...",
+  "amount_usd": 5.00,
+  "product": {
+    "url": "https://vendor.com/download/signed-token-xyz",
+    "type": "digital_product"
+  }
+}
+```
+
+For non-digital-product checkout pages, `product` is `null`.
+
+---
+
+## Idempotent Retry
+
+x402 payments are idempotent. If a bot's connection drops after the payment settles on-chain but before it receives the response, it can safely resubmit the same `X-PAYMENT` header with the same nonce. CreditClaw will recognize the nonce has already been used for a confirmed sale and return the original result — including the product URL — without submitting a duplicate transaction.
+
+This means:
+- **No double charges** — the EIP-3009 nonce is enforced on-chain by the USDC contract
+- **No lost deliverables** — retrying returns the same product URL from the original sale
+- **No special retry logic needed** — the bot just retries the same request
+
+---
+
 ## Key Details
 
 | Property          | Value                                              |

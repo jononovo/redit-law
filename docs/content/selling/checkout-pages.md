@@ -16,7 +16,8 @@ Navigate to <a href="/app/checkout/create" target="_blank">**Checkout**</a> in t
 - **Description** — A brief explanation of what the buyer is paying for
 - **Amount (USD)** — A fixed price. Leave blank to let the buyer enter any amount.
 - **Lock Amount** — When enabled, the buyer cannot change the price. When disabled, the amount is a suggestion they can adjust.
-- **Page Type** — Choose between "Product" (standard checkout) or "Event" (shows a buyer count on the page)
+- **Page Type** — Choose between "Product" (standard checkout), "Event" (shows a buyer count on the page), or "Digital Product" (delivers a URL to the buyer after payment)
+- **Digital Product URL** — When "Digital Product" is selected, enter the URL that buyers will receive after payment. Use a secure or signed URL. This field only appears when Digital Product is selected as the page type.
 - **Product Image URL** — An image displayed on the checkout page
 - **Collect Buyer Name** — When toggled on, buyers are prompted for their name before payment
 - **Payment Methods** — Select which payment methods buyers can use (x402 Protocol, USDC Direct, Stripe Onramp, Base Pay)
