@@ -8,6 +8,7 @@ export const PAYMENT_METHODS: Record<string, PaymentMethodDef> = {
     iconEmoji: "💳",
     supportedRails: ["rail1"],
     supportedModes: ["topup", "checkout"],
+    minAmount: 1,
   },
   base_pay: {
     id: "base_pay",

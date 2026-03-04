@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Copy, Check, ArrowLeft, Terminal, Wallet, ChevronDown, ChevronUp } from "lucide-react";
 import type { PaymentHandlerProps } from "../types";
 
-function CopyButton({ text, label }: { text: string; label?: string }) {
+function CopyButton({ text, label, size = "sm" }: { text: string; label?: string; size?: "sm" | "lg" }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -23,6 +23,34 @@ function CopyButton({ text, label }: { text: string; label?: string }) {
       setTimeout(() => setCopied(false), 2000);
     }
   }, [text]);
+
+  if (size === "lg") {
+    return (
+      <button
+        onClick={handleCopy}
+        className={`
+          w-full flex items-center justify-center gap-2 h-11 rounded-xl font-bold text-sm transition-all cursor-pointer
+          ${copied
+            ? "bg-green-50 text-green-600 border-2 border-green-200"
+            : "bg-neutral-900 text-white hover:bg-neutral-800 border-2 border-neutral-900"
+          }
+        `}
+        data-testid={`button-copy-${label || "text"}`}
+      >
+        {copied ? (
+          <>
+            <Check className="w-4 h-4" />
+            Copied to clipboard
+          </>
+        ) : (
+          <>
+            <Copy className="w-4 h-4" />
+            Copy instructions for your agent
+          </>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
@@ -55,7 +83,7 @@ export function X402Handler({ context, onCancel }: PaymentHandlerProps) {
 
   const amountDisplay = context.amountUsd
     ? `$${context.amountUsd.toFixed(2)}`
-    : "Any amount";
+    : "Open amount";
 
   const amountUsdc = context.amountUsd
     ? Math.round(context.amountUsd * 1_000_000)
@@ -80,7 +108,7 @@ Sign the payload and send it as a base64-encoded X-PAYMENT header to the Pay end
   const snippet = `// 1. Build the x402 payment payload
 const payload = {
   from: "YOUR_WALLET_ADDRESS",
-  to: "${context.walletAddress}",${amountUsdc ? `\n  value: "${amountUsdc}",` : "\n  value: \"AMOUNT_IN_USDC_ATOMIC\", // 1 USDC = 1000000"}
+  to: "${context.walletAddress}",${amountUsdc ? `\n  value: "${amountUsdc}",` : '\n  value: "AMOUNT_IN_USDC_ATOMIC", // 1 USDC = 1000000'}
   validAfter: 0,
   validBefore: Math.floor(Date.now() / 1000) + 3600,
   nonce: "0x" + crypto.randomUUID().replace(/-/g, "").padEnd(64, "0"),
@@ -89,7 +117,6 @@ const payload = {
   signature: "SIGNED_VIA_EIP3009"
 };
 
-// 2. Base64-encode and send as X-PAYMENT header
 const header = btoa(JSON.stringify(payload));
 
 const res = await fetch("${payUrl}", {
@@ -102,12 +129,11 @@ const res = await fetch("${payUrl}", {
 });
 
 const result = await res.json();
-console.log(result);
-// { status: "confirmed", sale_id: "sale_...", tx_hash: "0x...", amount_usd: ${context.amountUsd?.toFixed(2) || "..."} }`;
+console.log(result);`;
 
   const curlSnippet = `curl -X POST "${payUrl}" \\
   -H "Content-Type: application/json" \\
-  -H "X-PAYMENT: <base64-encoded-payment-payload>" \\
+  -H "X-PAYMENT: <base64-encoded-payload>" \\
   -d '{}'`;
 
   return (

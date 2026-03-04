@@ -49,25 +49,35 @@ export function CheckoutPaymentPanel({
 
   const resolvedAmount = effectiveAmount ?? (customAmount ? parseFloat(customAmount) : null);
 
-  const isAmountValid = resolvedAmount !== null && resolvedAmount >= 1 && resolvedAmount <= 10000;
+  const isAmountValid = resolvedAmount !== null && resolvedAmount >= 0.10 && resolvedAmount <= 10000;
+
+  const disabledMethods = methods
+    .filter((m) => m.minAmount !== undefined && resolvedAmount !== null && resolvedAmount < m.minAmount)
+    .map((m) => m.id);
 
   const autoSelect = methods.length === 1;
 
   const handleMethodSelect = useCallback((methodId: string) => {
     if (!isAmountValid) {
-      const parsed = customAmount ? parseFloat(customAmount) : 0;
-      if (!parsed || parsed < 1 || parsed > 10000) {
-        toast({
-          title: "Invalid amount",
-          description: "Please enter an amount between $1 and $10,000",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Invalid amount",
+        description: "Please enter an amount between $0.10 and $10,000",
+        variant: "destructive",
+      });
+      return;
+    }
+    const method = methods.find((m) => m.id === methodId);
+    if (method?.minAmount && resolvedAmount !== null && resolvedAmount < method.minAmount) {
+      toast({
+        title: "Minimum not met",
+        description: `${method.label} requires at least $${method.minAmount.toFixed(2)}`,
+        variant: "destructive",
+      });
       return;
     }
     setActiveMethod(methodId);
     setPanelState("paying");
-  }, [isAmountValid, customAmount, toast]);
+  }, [isAmountValid, methods, resolvedAmount, toast]);
 
   const buildContext = useCallback((): PaymentContext => ({
     mode: "checkout",
@@ -186,7 +196,7 @@ export function CheckoutPaymentPanel({
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-neutral-400">$</span>
               <Input
                 type="number"
-                min="1"
+                min="0.10"
                 max="10000"
                 step="0.01"
                 placeholder="0.00"
@@ -226,7 +236,7 @@ export function CheckoutPaymentPanel({
         {autoSelect ? (
           <SingleMethodButton
             method={methods[0]}
-            disabled={!isAmountValid}
+            disabled={!isAmountValid || disabledMethods.includes(methods[0].id)}
             onSelect={handleMethodSelect}
           />
         ) : (
@@ -234,6 +244,7 @@ export function CheckoutPaymentPanel({
             methods={methods}
             onSelect={handleMethodSelect}
             disabled={!isAmountValid}
+            disabledMethods={disabledMethods}
           />
         )}
 
