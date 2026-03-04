@@ -671,6 +671,7 @@ export const owners = pgTable("owners", {
   email: text("email").notNull(),
   displayName: text("display_name"),
   stripeCustomerId: text("stripe_customer_id"),
+  flags: text("flags").array().notNull().default([]),
   onboardedAt: timestamp("onboarded_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

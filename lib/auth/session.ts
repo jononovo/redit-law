@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebase/admin";
+import { storage } from "@/server/storage";
 
 const SESSION_COOKIE_NAME = "__session";
 const SESSION_EXPIRY_MS = 5 * 24 * 60 * 60 * 1000;
@@ -30,11 +31,13 @@ export async function getCurrentUser() {
   try {
     const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie, true);
     const user = await adminAuth.getUser(decodedClaims.uid);
+    const owner = await storage.getOwnerByUid(user.uid);
     return {
       uid: user.uid,
       email: user.email || null,
       displayName: user.displayName || null,
       photoURL: user.photoURL || null,
+      flags: owner?.flags ?? [],
     };
   } catch {
     return null;
@@ -51,7 +54,8 @@ export async function getSessionUser(request: Request) {
       const token = authHeader.slice(7);
       const decoded = await adminAuth.verifyIdToken(token);
       const user = await adminAuth.getUser(decoded.uid);
-      return { uid: user.uid, email: user.email || null, displayName: user.displayName || null, photoURL: user.photoURL || null };
+      const owner = await storage.getOwnerByUid(user.uid);
+      return { uid: user.uid, email: user.email || null, displayName: user.displayName || null, photoURL: user.photoURL || null, flags: owner?.flags ?? [] };
     } catch {
       return null;
     }
