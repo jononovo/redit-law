@@ -813,6 +813,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 <Switch
                   checked={approveAll}
                   onCheckedChange={setApproveAll}
+                  className="data-[state=checked]:bg-success"
                   data-testid="switch-r5-approve-all"
                 />
               </div>
