@@ -277,7 +277,7 @@ function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className={`w-4/5 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
+              className={`w-3/4 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
