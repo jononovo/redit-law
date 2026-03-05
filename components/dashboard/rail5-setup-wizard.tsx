@@ -116,19 +116,18 @@ const CIPHER_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 
 function useCipherScramble(text: string, active: boolean, delayOffset: number = 0) {
   const [display, setDisplay] = useState(text);
-  const [opacity, setOpacity] = useState(1);
+  const [settled, setSettled] = useState(false);
   const scrambleDuration = 1200;
-  const fadeDuration = 400;
 
   useEffect(() => {
     if (!active) {
       setDisplay(text);
-      setOpacity(1);
+      setSettled(false);
       return;
     }
     if (!text || text.trim().length === 0) {
       setDisplay("");
-      setOpacity(0);
+      setSettled(true);
       return;
     }
     let frame: number;
@@ -140,6 +139,10 @@ function useCipherScramble(text: string, active: boolean, delayOffset: number = 
     const maxDelay = Math.max(0, ...charDelays);
     const totalDuration = maxDelay + scrambleDuration;
 
+    const finalChars = chars.map(ch =>
+      ch === " " ? " " : CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)]
+    );
+
     function tick(ts: number) {
       if (!start) start = ts;
       const elapsed = ts - start;
@@ -147,22 +150,17 @@ function useCipherScramble(text: string, active: boolean, delayOffset: number = 
       const result = chars.map((original, i) => {
         if (original === " ") return " ";
         const charElapsed = elapsed - charDelays[i];
-        if (charElapsed > scrambleDuration) return " ";
+        if (charElapsed > scrambleDuration) return finalChars[i];
         return CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)];
       });
 
       setDisplay(result.join(""));
 
-      const fadeElapsed = elapsed - (totalDuration - fadeDuration);
-      if (fadeElapsed > 0) {
-        setOpacity(Math.max(0, 1 - fadeElapsed / fadeDuration));
-      }
-
       if (elapsed < totalDuration + 50) {
         frame = requestAnimationFrame(tick);
       } else {
-        setDisplay("");
-        setOpacity(0);
+        setDisplay(finalChars.join(""));
+        setSettled(true);
       }
     }
 
@@ -170,7 +168,7 @@ function useCipherScramble(text: string, active: boolean, delayOffset: number = 
     return () => cancelAnimationFrame(frame);
   }, [active, text, delayOffset]);
 
-  return { display, opacity };
+  return { display, settled };
 }
 
 function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: string; active: boolean; className?: string; delayOffset?: number }) {
@@ -477,6 +475,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [deliveryAttempted, setDeliveryAttempted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [cardEncrypting, setCardEncrypting] = useState(false);
+  const [cardEncrypted, setCardEncrypted] = useState(false);
 
   function handleEncryptCard() {
     const cleanNumber = cardNumber.replace(/\s/g, "");
@@ -496,9 +495,19 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setCardErrors({});
     setCardEncrypting(true);
     setTimeout(() => {
-      setCardEncrypting(false);
-      setStep(3);
+      setCardEncrypted(true);
     }, 2000);
+  }
+
+  function handleRestartCard() {
+    setCardEncrypting(false);
+    setCardEncrypted(false);
+    setCardNumber("");
+    setCardCvv("");
+    setExpMonth("");
+    setExpYear("");
+    setHolderName("");
+    setCardErrors({});
   }
 
   const resetWizard = useCallback(() => {
@@ -521,6 +530,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDownloadDone(false);
     setKeySent(false);
     setCardEncrypting(false);
+    setCardEncrypted(false);
     setSpendingLimit("50");
     setDailyLimit("100");
     setMonthlyLimit("500");
@@ -967,22 +977,42 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               isEncrypting={cardEncrypting}
             />
 
-            <Button
-              onClick={handleEncryptCard}
-              disabled={cardEncrypting}
-              className="w-full gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-600/25 transition-all"
-              data-testid="button-r5-encrypt-card"
-            >
-              {cardEncrypting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Encrypting...
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" /> Encrypt
-                </>
+            <div className="flex gap-3">
+              {(cardEncrypting || cardEncrypted) && (
+                <Button
+                  variant="outline"
+                  onClick={handleRestartCard}
+                  className="flex-1 gap-2"
+                  data-testid="button-r5-restart-card"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Restart
+                </Button>
               )}
-            </Button>
+              <Button
+                onClick={handleEncryptCard}
+                disabled={cardEncrypting || cardEncrypted}
+                className={`flex-1 gap-2 font-semibold py-3 rounded-xl shadow-lg transition-all ${
+                  cardEncrypted
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-green-600/25"
+                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/25"
+                }`}
+                data-testid="button-r5-encrypt-card"
+              >
+                {cardEncrypted ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Encrypted
+                  </>
+                ) : cardEncrypting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Encrypting...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" /> Encrypt
+                  </>
+                )}
+              </Button>
+            </div>
 
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" disabled={cardEncrypting} data-testid="button-r5-step3-back">
