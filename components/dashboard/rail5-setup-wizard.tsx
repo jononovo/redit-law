@@ -495,6 +495,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setCardErrors({});
     setCardEncrypting(true);
     setTimeout(() => {
+      setCardEncrypting(false);
       setCardEncrypted(true);
     }, 2000);
   }
