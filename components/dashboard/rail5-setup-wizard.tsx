@@ -184,7 +184,7 @@ function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: str
   );
 }
 
-function useTemporaryValid(filled: boolean, delayMs = 3000): boolean {
+function useTemporaryValid(filled: boolean, delayMs = 5000): boolean {
   const [showValid, setShowValid] = useState(false);
   const prevFilled = useRef(false);
 
