@@ -120,7 +120,7 @@ export function Rail5InteractiveCard({
               <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
             </div>
             <div
-              className={`relative w-4/5 ${fieldClass(errors.number, numberValid, numberFocused)} pb-1 cursor-text`}
+              className={`relative w-4/5 ${fieldClass(errors.number, numberValid, numberFocused)} cursor-text`}
               onClick={() => numberRef.current?.focus()}
             >
               <input
@@ -178,7 +178,7 @@ export function Rail5InteractiveCard({
                     ref={monthRef}
                     value={expiryMonth}
                     onChange={(e) => onExpiryMonthChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.month, monthValid)}`}
+                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer ${fieldClass(errors.month, monthValid)}`}
                     data-testid="select-r5-exp-month"
                   >
                     <option value="" className="bg-neutral-800 text-white">MM</option>
@@ -189,7 +189,7 @@ export function Rail5InteractiveCard({
                     ref={yearRef}
                     value={expiryYear}
                     onChange={(e) => onExpiryYearChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.year, yearValid)}`}
+                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer ${fieldClass(errors.year, yearValid)}`}
                     data-testid="select-r5-exp-year"
                   >
                     <option value="" className="bg-neutral-800 text-white">YYYY</option>
@@ -209,7 +209,7 @@ export function Rail5InteractiveCard({
                   value={cvv}
                   onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="•••"
-                  className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 ${fieldClass(errors.cvv, cvvValid)} ${isEncrypting ? "!text-transparent" : ""}`}
+                  className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none ${fieldClass(errors.cvv, cvvValid)} ${isEncrypting ? "!text-transparent" : ""}`}
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
@@ -226,7 +226,7 @@ export function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 uppercase tracking-wider ${fieldClass(errors.name, nameValid)} ${isEncrypting ? "!text-transparent" : ""}`}
+              className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none uppercase tracking-wider ${fieldClass(errors.name, nameValid)} ${isEncrypting ? "!text-transparent" : ""}`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
