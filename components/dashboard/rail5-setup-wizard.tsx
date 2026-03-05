@@ -783,7 +783,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="r5-per-checkout">Per-Checkout Limit ($)</Label>
+                <Label htmlFor="r5-per-checkout">Per-Transaction Limit ($)</Label>
                 <Input
                   id="r5-per-checkout"
                   type="number"
