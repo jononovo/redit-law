@@ -192,9 +192,20 @@ function Rail5InteractiveCard({
         data-testid="r5-interactive-card"
       >
         <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%)",
+            backgroundImage: [
+              "radial-gradient(circle at 15% 60%, rgba(255,255,255,0.06) 0%, transparent 45%)",
+              "radial-gradient(circle at 85% 25%, rgba(255,255,255,0.05) 0%, transparent 40%)",
+              "radial-gradient(ellipse at 50% 0%, rgba(100,140,255,0.07) 0%, transparent 60%)",
+              "linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 55%, transparent 70%)",
+            ].join(", "),
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{
+            backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 40px, rgba(255,255,255,0.5) 40px, rgba(255,255,255,0.5) 41px)",
           }}
         />
 
