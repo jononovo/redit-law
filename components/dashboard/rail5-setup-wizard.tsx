@@ -224,7 +224,8 @@ function Rail5InteractiveCard({
                 <div className="border-x border-amber-600/25" />
                 <div className="border-l border-amber-600/25" />
               </div>
-              <div className="absolute left-0 right-0 top-1/2 -translate-y-px h-px bg-amber-600/25" />
+              <div className="absolute left-0 right-0 top-1/3 h-px bg-amber-600/25" />
+              <div className="absolute left-0 right-0 top-2/3 h-px bg-amber-600/25" />
             </div>
             <div
               className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
