@@ -495,6 +495,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setCardErrors({});
     setCardEncrypting(true);
     setTimeout(() => {
+      setCardEncrypting(false);
       setCardEncrypted(true);
     }, 2000);
   }
@@ -974,7 +975,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               onHolderNameChange={setHolderName}
               detectedBrand={detectedBrand}
               errors={cardErrors}
-              isEncrypting={cardEncrypting}
+              isEncrypting={cardEncrypting || cardEncrypted}
             />
 
             <div className="flex gap-3">
