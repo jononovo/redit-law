@@ -219,12 +219,12 @@ function Rail5InteractiveCard({
 
           <div className="flex-1 flex flex-col items-start justify-center">
             <div className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 bottom-0 left-[25%] w-[1.5px] bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[50%] w-[1.5px] bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[72%] w-[1.5px] bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[88%] w-[1.5px] bg-amber-700/40" />
-              <div className="absolute left-0 right-0 top-[30%] h-[1.5px] bg-amber-700/40" />
-              <div className="absolute left-0 right-0 top-[65%] h-[1.5px] bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[25%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[50%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[72%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[88%] w-px bg-amber-700/40" />
+              <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-700/40" />
+              <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
             </div>
             <div
               className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
