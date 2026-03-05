@@ -885,7 +885,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 <CreditCard className="w-6 h-6 text-primary" />
               </div>
               <h2 className="text-xl font-bold text-neutral-900">Name Your Card</h2>
-              <p className="text-sm text-neutral-500 mt-1">Give this card a name so you can identify it later.</p>
             </div>
 
             <div className="space-y-4">
