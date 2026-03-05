@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -301,6 +302,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [spendingLimit, setSpendingLimit] = useState("50");
   const [dailyLimit, setDailyLimit] = useState("100");
   const [monthlyLimit, setMonthlyLimit] = useState("500");
+  const [approveAll, setApproveAll] = useState(true);
   const [approvalThreshold, setApprovalThreshold] = useState("25");
 
   const [bots, setBots] = useState<BotOption[]>([]);
@@ -334,6 +336,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setSpendingLimit("50");
     setDailyLimit("100");
     setMonthlyLimit("500");
+    setApproveAll(true);
     setApprovalThreshold("25");
     setBots([]);
     setSelectedBotId("");
@@ -469,7 +472,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     const s = Math.round(parseFloat(spendingLimit || "0") * 100);
     const d = Math.round(parseFloat(dailyLimit || "0") * 100);
     const m = Math.round(parseFloat(monthlyLimit || "0") * 100);
-    const a = Math.round(parseFloat(approvalThreshold || "0") * 100);
+    const a = approveAll ? 0 : Math.round(parseFloat(approvalThreshold || "0") * 100);
 
     if (s < 100 || d < 100 || m < 100) {
       toast({ title: "Invalid limits", description: "Limits must be at least $1.00.", variant: "destructive" });
@@ -822,19 +825,33 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 />
               </div>
 
-              <div>
-                <Label htmlFor="r5-approval">Human Approval Above ($)</Label>
-                <Input
-                  id="r5-approval"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={approvalThreshold}
-                  onChange={(e) => setApprovalThreshold(e.target.value)}
-                  data-testid="input-r5-approval-threshold"
+              <div className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-neutral-900">Approve every transaction</p>
+                  <p className="text-xs text-neutral-400">You'll be asked to authorize each purchase.</p>
+                </div>
+                <Switch
+                  checked={approveAll}
+                  onCheckedChange={setApproveAll}
+                  data-testid="switch-r5-approve-all"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Purchases above this amount require your approval.</p>
               </div>
+
+              {!approveAll && (
+                <div>
+                  <Label htmlFor="r5-approval">Human Approval Above ($)</Label>
+                  <Input
+                    id="r5-approval"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={approvalThreshold}
+                    onChange={(e) => setApprovalThreshold(e.target.value)}
+                    data-testid="input-r5-approval-threshold"
+                  />
+                  <p className="text-xs text-neutral-400 mt-1">Purchases above this amount require your approval.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
