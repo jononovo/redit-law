@@ -184,6 +184,26 @@ function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: str
   );
 }
 
+function useTemporaryValid(filled: boolean, delayMs = 3000): boolean {
+  const [showValid, setShowValid] = useState(false);
+  const prevFilled = useRef(false);
+
+  useEffect(() => {
+    if (filled && !prevFilled.current) {
+      setShowValid(true);
+      const timer = setTimeout(() => setShowValid(false), delayMs);
+      prevFilled.current = true;
+      return () => clearTimeout(timer);
+    }
+    if (!filled) {
+      prevFilled.current = false;
+      setShowValid(false);
+    }
+  }, [filled, delayMs]);
+
+  return showValid;
+}
+
 function Rail5InteractiveCard({
   cardNumber,
   onCardNumberChange,
@@ -241,24 +261,18 @@ function Rail5InteractiveCard({
   const nameFilled = !!holderName.trim();
   const numberFilled = cleanNumber.length === expectedDigits;
 
-  const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-sm px-2 py-1";
-  const defaultBorder = "border-white/20 hover:border-white/40";
-  const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
-  const numberBorder = errors.number
-    ? errCls
-    : numberFilled ? (numberFocused ? "!border border-green-300 ring-2 ring-green-400/40 rounded-sm px-2 py-1" : "!border border-green-400 ring-2 ring-green-400/40 rounded-sm px-2 py-1") : numberFocused ? "border-white/50" : defaultBorder;
-  const monthBorder = errors.month
-    ? errCls
-    : monthFilled ? "border-green-400" : defaultInputBorder;
-  const yearBorder = errors.year
-    ? errCls
-    : yearFilled ? "border-green-400" : defaultInputBorder;
-  const cvvBorder = errors.cvv
-    ? errCls
-    : cvvFilled ? "border-green-400" : defaultInputBorder;
-  const nameBorder = errors.name
-    ? errCls
-    : nameFilled ? "border-green-400" : defaultInputBorder;
+  const numberValid = useTemporaryValid(numberFilled);
+  const monthValid = useTemporaryValid(monthFilled);
+  const yearValid = useTemporaryValid(yearFilled);
+  const cvvValid = useTemporaryValid(cvvFilled);
+  const nameValid = useTemporaryValid(nameFilled);
+
+  function fieldClass(error?: boolean, valid?: boolean, focused?: boolean) {
+    if (error) return "card-field card-field-error";
+    if (valid) return "card-field card-field-valid";
+    if (focused) return "card-field card-field-focused";
+    return "card-field";
+  }
 
   return (
     <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
@@ -303,7 +317,7 @@ function Rail5InteractiveCard({
               <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
             </div>
             <div
-              className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
+              className={`relative w-4/5 ${fieldClass(errors.number, numberValid, numberFocused)} pb-1 cursor-text`}
               onClick={() => numberRef.current?.focus()}
             >
               <input
@@ -361,7 +375,7 @@ function Rail5InteractiveCard({
                     ref={monthRef}
                     value={expiryMonth}
                     onChange={(e) => onExpiryMonthChange(e.target.value)}
-                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${monthBorder}`}
+                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.month, monthValid)}`}
                     data-testid="select-r5-exp-month"
                   >
                     <option value="" className="bg-neutral-800 text-white">MM</option>
@@ -372,7 +386,7 @@ function Rail5InteractiveCard({
                     ref={yearRef}
                     value={expiryYear}
                     onChange={(e) => onExpiryYearChange(e.target.value)}
-                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${yearBorder}`}
+                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.year, yearValid)}`}
                     data-testid="select-r5-exp-year"
                   >
                     <option value="" className="bg-neutral-800 text-white">YYYY</option>
@@ -392,7 +406,7 @@ function Rail5InteractiveCard({
                   value={cvv}
                   onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="•••"
-                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all ${isEncrypting ? "!text-transparent" : ""}`}
+                  className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 ${fieldClass(errors.cvv, cvvValid)} ${isEncrypting ? "!text-transparent" : ""}`}
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
@@ -409,7 +423,7 @@ function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className={`w-3/4 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider ${isEncrypting ? "!text-transparent" : ""}`}
+              className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 uppercase tracking-wider ${fieldClass(errors.name, nameValid)} ${isEncrypting ? "!text-transparent" : ""}`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
