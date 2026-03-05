@@ -218,14 +218,19 @@ function Rail5InteractiveCard({
           </div>
 
           <div className="flex-1 flex flex-col items-start justify-center">
-            <div className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 bottom-0 left-[25%] w-px bg-amber-600/25" />
-              <div className="absolute top-0 bottom-0 left-[50%] w-px bg-amber-600/25" />
-              <div className="absolute top-0 bottom-0 left-[72%] w-px bg-amber-600/25" />
-              <div className="absolute top-0 bottom-0 left-[88%] w-px bg-amber-600/25" />
-              <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-600/25" />
-              <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-600/25" />
-            </div>
+            <div
+              className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm overflow-hidden"
+              style={{
+                backgroundImage: [
+                  "linear-gradient(to right, transparent 24%, rgba(160,120,40,0.35) 24%, rgba(160,120,40,0.35) 25%, transparent 25%)",
+                  "linear-gradient(to right, transparent 49%, rgba(160,120,40,0.35) 49%, rgba(160,120,40,0.35) 51%, transparent 51%)",
+                  "linear-gradient(to right, transparent 71%, rgba(160,120,40,0.35) 71%, rgba(160,120,40,0.35) 73%, transparent 73%)",
+                  "linear-gradient(to right, transparent 87%, rgba(160,120,40,0.35) 87%, rgba(160,120,40,0.35) 89%, transparent 89%)",
+                  "linear-gradient(to bottom, transparent 29%, rgba(160,120,40,0.35) 29%, rgba(160,120,40,0.35) 31%, transparent 31%)",
+                  "linear-gradient(to bottom, transparent 64%, rgba(160,120,40,0.35) 64%, rgba(160,120,40,0.35) 66%, transparent 66%)",
+                ].join(", "),
+              }}
+            />
             <div
               className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
               onClick={() => numberRef.current?.focus()}
