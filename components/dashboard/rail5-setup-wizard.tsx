@@ -959,7 +959,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 <Lock className="w-6 h-6 text-blue-600" />
               </div>
               <h2 className="text-xl font-bold text-neutral-900">Enter Card Details</h2>
-              <p className="text-xs text-neutral-400 mt-1">This data never leaves your browser. It's encrypted locally.</p>
             </div>
 
             <Rail5InteractiveCard
