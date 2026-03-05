@@ -164,20 +164,21 @@ function Rail5InteractiveCard({
   const nameFilled = !!holderName.trim();
   const numberFilled = cleanNumber.length === expectedDigits;
 
+  const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-md px-2 py-1";
   const numberBorder = errors.number
-    ? "border-red-400 ring-2 ring-red-400/40"
+    ? errCls
     : numberFilled ? "border-green-400" : "border-white/20";
   const monthBorder = errors.month
-    ? "border-red-400 ring-1 ring-red-400/40"
+    ? errCls
     : monthFilled ? "border-green-400" : "border-white/20";
   const yearBorder = errors.year
-    ? "border-red-400 ring-1 ring-red-400/40"
+    ? errCls
     : yearFilled ? "border-green-400" : "border-white/20";
   const cvvBorder = errors.cvv
-    ? "border-red-400 ring-2 ring-red-400/40"
+    ? errCls
     : cvvFilled ? "border-green-400" : "border-white/20";
   const nameBorder = errors.name
-    ? "border-red-400 ring-2 ring-red-400/40"
+    ? errCls
     : nameFilled ? "border-green-400" : "border-white/20";
 
   return (
