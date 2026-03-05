@@ -246,9 +246,7 @@ function Rail5InteractiveCard({
   const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
   const numberBorder = errors.number
     ? errCls
-    : numberFilled
-      ? (numberFocused ? "border-green-300 ring-1 ring-green-400/40" : "border-green-400")
-      : numberFocused ? "border-white/50" : defaultBorder;
+    : numberFilled ? "border-green-400" : numberFocused ? "border-white/50" : defaultBorder;
   const monthBorder = errors.month
     ? errCls
     : monthFilled ? "border-green-400" : defaultInputBorder;
@@ -335,7 +333,7 @@ function Rail5InteractiveCard({
                   while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
                   return placeholder.split("").map((ch, i) => {
                     if (ch === " ") return <span key={i} className="w-3" />;
-                    const showCursor = numberFocused && i === cursorPos;
+                    const showCursor = numberFocused && !numberFilled && i === cursorPos;
                     const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
                     return (
                       <span key={i} className="relative inline-block">
