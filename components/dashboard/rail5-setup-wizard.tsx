@@ -1032,7 +1032,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 <CreditCard className="w-6 h-6 text-indigo-600" />
               </div>
               <h2 className="text-xl font-bold text-neutral-900">Billing Address</h2>
-              <p className="text-sm text-neutral-500 mt-1">Enter the billing address associated with this card.</p>
             </div>
 
             <div className="space-y-4">
