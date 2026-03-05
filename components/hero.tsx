@@ -6,13 +6,42 @@ import { ArrowRight, Sparkles, Check, Clock, Rocket, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { TransactionLedger } from "@/components/transaction-ledger";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+
+const ROTATING_PHRASES = [
+  "a credit card.",
+  "a crypto wallet.",
+  "a product checkout.",
+  "a store front.",
+  "invoicing.",
+  "accounting tools.",
+  "a business machine.",
+];
 
 export function Hero() {
   const router = useRouter();
   const { toast } = useToast();
+
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIsAnimating(true);
+      timeoutRef.current = setTimeout(() => {
+        setPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
+        setIsAnimating(false);
+      }, 300);
+    }, 1800);
+    return () => {
+      clearInterval(timer);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDecision, setShowDecision] = useState(false);
@@ -82,7 +111,19 @@ export function Hero() {
               style={{ animationDelay: '0.1s' }}
               className="text-5xl md:text-7xl font-extrabold tracking-tight text-neutral-900 leading-[1.1] animate-fade-in-up"
             >
-              Give your <span className="text-primary">Claw Agent</span> a credit card.
+              Give your <span className="text-primary">Claw Agent</span>{" "}
+              <span className="inline-block overflow-hidden align-bottom" style={{ height: "1.15em" }}>
+                <span
+                  className="inline-block transition-all duration-300 ease-in-out"
+                  style={{
+                    transform: isAnimating ? "translateY(-100%)" : "translateY(0)",
+                    opacity: isAnimating ? 0 : 1,
+                  }}
+                  data-testid="text-rotating-phrase"
+                >
+                  {ROTATING_PHRASES[phraseIndex]}
+                </span>
+              </span>
             </h1>
 
             <p 

@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
 import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/rail5/encrypt";
+import { detectCardBrand, brandToApiValue, BRAND_DISPLAY_NAMES, getMaxDigits, formatCardNumber, getCardPlaceholder, type CardBrand } from "@/lib/card-brand";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -23,7 +24,7 @@ interface BotOption {
   bot_name: string;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
@@ -42,7 +43,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             {i < current ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={`w-8 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
+            <div className={`w-5 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
           )}
         </div>
       ))}
@@ -50,14 +51,314 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
+function BrandLogo({ brand }: { brand: CardBrand }) {
+  const size = "w-14 h-10";
+  const base = `${size} flex items-center justify-center rounded-md transition-all duration-300`;
+
+  switch (brand) {
+    case "visa":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#1A1F71] font-extrabold italic text-lg tracking-tight" style={{ fontFamily: "Arial, sans-serif" }}>VISA</span>
+        </div>
+      );
+    case "mastercard":
+      return (
+        <div className={`${base} bg-transparent`}>
+          <div className="relative w-10 h-7">
+            <div className="absolute left-0 top-0 w-7 h-7 rounded-full bg-[#EB001B] opacity-90" />
+            <div className="absolute right-0 top-0 w-7 h-7 rounded-full bg-[#F79E1B] opacity-90" />
+          </div>
+        </div>
+      );
+    case "amex":
+      return (
+        <div className={`${base} bg-[#006FCF]`}>
+          <span className="text-white font-bold text-[10px] tracking-wider">AMEX</span>
+        </div>
+      );
+    case "discover":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#FF6000] font-bold text-xs tracking-wide">DISCOVER</span>
+        </div>
+      );
+    case "jcb":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#0B4EA2] font-bold text-sm">JCB</span>
+        </div>
+      );
+    case "diners":
+      return (
+        <div className={`${base} bg-white`}>
+          <span className="text-[#004A97] font-bold text-[9px] tracking-tight">DINERS</span>
+        </div>
+      );
+    default:
+      return (
+        <div className={`${base} bg-white/10`}>
+          <CreditCard className="w-6 h-6 text-white/50" />
+        </div>
+      );
+  }
+}
+
+interface CardFieldErrors {
+  number?: boolean;
+  month?: boolean;
+  year?: boolean;
+  cvv?: boolean;
+  name?: boolean;
+}
+
+function Rail5InteractiveCard({
+  cardNumber,
+  onCardNumberChange,
+  expiryMonth,
+  expiryYear,
+  onExpiryMonthChange,
+  onExpiryYearChange,
+  cvv,
+  onCvvChange,
+  holderName,
+  onHolderNameChange,
+  detectedBrand,
+  errors = {},
+}: {
+  cardNumber: string;
+  onCardNumberChange: (val: string) => void;
+  expiryMonth: string;
+  expiryYear: string;
+  onExpiryMonthChange: (val: string) => void;
+  onExpiryYearChange: (val: string) => void;
+  cvv: string;
+  onCvvChange: (val: string) => void;
+  holderName: string;
+  onHolderNameChange: (val: string) => void;
+  detectedBrand: CardBrand;
+  errors?: CardFieldErrors;
+}) {
+  const numberRef = useRef<HTMLInputElement>(null);
+  const cvvRef = useRef<HTMLInputElement>(null);
+  const holderRef = useRef<HTMLInputElement>(null);
+  const monthRef = useRef<HTMLSelectElement>(null);
+  const yearRef = useRef<HTMLSelectElement>(null);
+  const [numberFocused, setNumberFocused] = useState(false);
+
+  useEffect(() => {
+    numberRef.current?.focus();
+  }, []);
+
+  const cleanNumber = cardNumber.replace(/\s/g, "");
+  const formatted = formatCardNumber(cleanNumber, detectedBrand);
+
+  const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+  const currentYear = new Date().getFullYear();
+  const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
+
+  const expectedDigits = getMaxDigits(detectedBrand);
+  const minCvv = detectedBrand === "amex" ? 4 : 3;
+  const monthFilled = !!expiryMonth;
+  const yearFilled = !!expiryYear;
+  const cvvFilled = cvv.length >= minCvv;
+  const nameFilled = !!holderName.trim();
+  const numberFilled = cleanNumber.length === expectedDigits;
+
+  const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-sm px-2 py-1";
+  const defaultBorder = "border-white/20 hover:border-white/40";
+  const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
+  const numberBorder = errors.number
+    ? errCls
+    : numberFilled ? "border-green-400" : numberFocused ? "border-white/50" : defaultBorder;
+  const monthBorder = errors.month
+    ? errCls
+    : monthFilled ? "border-green-400" : defaultInputBorder;
+  const yearBorder = errors.year
+    ? errCls
+    : yearFilled ? "border-green-400" : defaultInputBorder;
+  const cvvBorder = errors.cvv
+    ? errCls
+    : cvvFilled ? "border-green-400" : defaultInputBorder;
+  const nameBorder = errors.name
+    ? errCls
+    : nameFilled ? "border-green-400" : defaultInputBorder;
+
+  return (
+    <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
+      <div
+        className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+        style={{
+          aspectRatio: "1.586",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
+        }}
+        data-testid="r5-interactive-card"
+      >
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: [
+              "radial-gradient(circle at 15% 60%, rgba(255,255,255,0.06) 0%, transparent 45%)",
+              "radial-gradient(circle at 85% 25%, rgba(255,255,255,0.05) 0%, transparent 40%)",
+              "radial-gradient(ellipse at 50% 0%, rgba(100,140,255,0.07) 0%, transparent 60%)",
+              "linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 55%, transparent 70%)",
+            ].join(", "),
+          }}
+        />
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.03]"
+          style={{
+            backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 40px, rgba(255,255,255,0.5) 40px, rgba(255,255,255,0.5) 41px)",
+          }}
+        />
+
+        <div className="relative h-full flex flex-col p-6">
+          <div className="flex items-start justify-end">
+            <BrandLogo brand={detectedBrand} />
+          </div>
+
+          <div className="flex-1 flex flex-col items-start justify-center">
+            <div className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 bottom-0 left-[25%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[50%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[72%] w-px bg-amber-700/40" />
+              <div className="absolute top-0 bottom-0 left-[88%] w-px bg-amber-700/40" />
+              <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-700/40" />
+              <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
+            </div>
+            <div
+              className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
+              onClick={() => numberRef.current?.focus()}
+            >
+              <input
+                ref={numberRef}
+                type="text"
+                inputMode="numeric"
+                value={formatted}
+                onFocus={() => setNumberFocused(true)}
+                onBlur={() => setNumberFocused(false)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const brand = detectCardBrand(digits);
+                  onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
+                }}
+                className="absolute inset-0 opacity-0 w-full h-full z-10"
+                data-testid="input-r5-card-number"
+                autoComplete="off"
+              />
+              <div className="font-mono text-2xl tracking-[0.15em] flex items-center" aria-hidden="true">
+                {(() => {
+                  const placeholder = getCardPlaceholder(detectedBrand);
+                  let cursorPos = formatted.length;
+                  while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
+                  return placeholder.split("").map((ch, i) => {
+                    if (ch === " ") return <span key={i} className="w-3" />;
+                    const showCursor = numberFocused && !numberFilled && i === cursorPos;
+                    const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
+                    return (
+                      <span key={i} className="relative">
+                        {showCursor && (
+                          <span
+                            className="absolute -left-px top-0 w-[2px] h-full bg-white"
+                            style={{ animation: "blink 1s step-end infinite" }}
+                          />
+                        )}
+                        <span className={typed ? "text-white" : "text-white/25"}>
+                          {typed || "0"}
+                        </span>
+                      </span>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            <div className="flex items-end justify-end gap-3 mt-3 w-full">
+              <div>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
+                <div className="flex items-center gap-1">
+                  <select
+                    ref={monthRef}
+                    value={expiryMonth}
+                    onChange={(e) => onExpiryMonthChange(e.target.value)}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${monthBorder}`}
+                    data-testid="select-r5-exp-month"
+                  >
+                    <option value="" className="bg-neutral-800 text-white">MM</option>
+                    {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
+                  </select>
+                  <span className="text-white/40 text-sm">/</span>
+                  <select
+                    ref={yearRef}
+                    value={expiryYear}
+                    onChange={(e) => onExpiryYearChange(e.target.value)}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${yearBorder}`}
+                    data-testid="select-r5-exp-year"
+                  >
+                    <option value="" className="bg-neutral-800 text-white">YYYY</option>
+                    {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
+                <input
+                  ref={cvvRef}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={cvv}
+                  onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="•••"
+                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all`}
+                  data-testid="input-r5-cvv"
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-auto">
+            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
+            <input
+              ref={holderRef}
+              type="text"
+              value={holderName}
+              onChange={(e) => onHolderNameChange(e.target.value)}
+              placeholder="Full Name"
+              className={`w-3/4 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
+              data-testid="input-r5-holder"
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FUN_CARD_NAMES = [
+  "Titanium Claw",
+  "Robo Platinum",
+  "Agent Gold",
+  "The Money Paw",
+  "Claw Express",
+  "Bot's Black Card",
+  "Operation Checkout",
+  "Stealth Card Alpha",
+];
+
+function randomCardName() {
+  return FUN_CARD_NAMES[Math.floor(Math.random() * FUN_CARD_NAMES.length)];
+}
+
 export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const [cardName, setCardName] = useState("");
-  const [cardBrand, setCardBrand] = useState("visa");
-  const [cardLast4, setCardLast4] = useState("");
+  const [cardName, setCardName] = useState(randomCardName);
   const [cardId, setCardId] = useState("");
 
   const [cardNumber, setCardNumber] = useState("");
@@ -69,6 +370,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("US");
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   const [encryptionDone, setEncryptionDone] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
@@ -77,6 +380,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [spendingLimit, setSpendingLimit] = useState("50");
   const [dailyLimit, setDailyLimit] = useState("100");
   const [monthlyLimit, setMonthlyLimit] = useState("500");
+  const [approveAll, setApproveAll] = useState(true);
   const [approvalThreshold, setApprovalThreshold] = useState("25");
 
   const [bots, setBots] = useState<BotOption[]>([]);
@@ -91,9 +395,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const resetWizard = useCallback(() => {
     setStep(0);
     setLoading(false);
-    setCardName("");
-    setCardBrand("visa");
-    setCardLast4("");
+    setCardName(randomCardName());
     setCardId("");
     setCardNumber("");
     setCardCvv("");
@@ -104,12 +406,15 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setCity("");
     setState("");
     setZip("");
+    setCountry("US");
+    setShowCountryPicker(false);
     setEncryptionDone(false);
     setDownloadDone(false);
     setKeySent(false);
     setSpendingLimit("50");
     setDailyLimit("100");
     setMonthlyLimit("500");
+    setApproveAll(true);
     setApprovalThreshold("25");
     setBots([]);
     setSelectedBotId("");
@@ -117,16 +422,54 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDirectDeliverySucceeded(false);
     setDeliveryAttempted(false);
     setCopied(false);
+    setCardErrors({});
+    setShowExitConfirm(false);
   }, []);
 
+  const [cardErrors, setCardErrors] = useState<CardFieldErrors>({});
+  useEffect(() => {
+    if (Object.keys(cardErrors).length === 0) return;
+    const cleanNum = cardNumber.replace(/\s/g, "");
+    const brand = detectCardBrand(cardNumber);
+    const minCvvLen = brand === "amex" ? 4 : 3;
+    const resolved: CardFieldErrors = {};
+    if (cardErrors.number && cleanNum.length === getMaxDigits(brand)) resolved.number = false;
+    if (cardErrors.month && expMonth) resolved.month = false;
+    if (cardErrors.year && expYear) resolved.year = false;
+    if (cardErrors.cvv && cardCvv.length >= minCvvLen) resolved.cvv = false;
+    if (cardErrors.name && holderName.trim()) resolved.name = false;
+    if (Object.keys(resolved).length > 0) {
+      setCardErrors(prev => {
+        const next = { ...prev };
+        for (const k of Object.keys(resolved) as (keyof CardFieldErrors)[]) delete next[k];
+        return next;
+      });
+    }
+  }, [cardNumber, expMonth, expYear, cardCvv, holderName]);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   function handleClose(val: boolean) {
+    if (!val && step !== 7) {
+      setShowExitConfirm(true);
+      return;
+    }
     if (!val) resetWizard();
     onOpenChange(val);
   }
 
+  function confirmExit() {
+    setShowExitConfirm(false);
+    resetWizard();
+    onOpenChange(false);
+  }
+
+  const cardLast4 = cardNumber.replace(/\s/g, "").slice(-4);
+  const detectedBrand = detectCardBrand(cardNumber);
+  const cardBrand = brandToApiValue(detectedBrand);
+
   async function handleStep1Next() {
-    if (!cardName.trim() || !/^\d{4}$/.test(cardLast4)) {
-      toast({ title: "Missing info", description: "Enter a card name and 4-digit last4.", variant: "destructive" });
+    if (!cardName.trim()) {
+      toast({ title: "Missing info", description: "Enter a card name.", variant: "destructive" });
       return;
     }
     setLoading(true);
@@ -134,7 +477,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       const res = await authFetch("/api/v1/rail5/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card_name: cardName.trim(), card_brand: cardBrand, card_last4: cardLast4 }),
+        body: JSON.stringify({ card_name: cardName.trim(), card_brand: cardBrand, card_last4: "0000" }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -151,7 +494,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   async function handleEncryptAndDownload() {
-    if (!cardNumber.trim() || !cardCvv.trim() || !expMonth || !expYear || !holderName.trim()) {
+    const cleanNumber = cardNumber.replace(/\s/g, "");
+    if (!cleanNumber || cleanNumber.length < 13 || !cardCvv.trim() || !expMonth || !expYear || !holderName.trim()) {
       toast({ title: "Missing info", description: "Fill in all card details.", variant: "destructive" });
       return;
     }
@@ -167,6 +511,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         city: city,
         state: state,
         zip: zip,
+        country: country,
       });
       setEncryptionDone(true);
 
@@ -178,6 +523,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           key_hex: keyHex,
           iv_hex: ivHex,
           tag_hex: tagHex,
+          card_last4: cardNumber.replace(/\s/g, "").slice(-4),
+          card_brand: cardBrand,
         }),
       });
       if (!res.ok) {
@@ -222,8 +569,10 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       setCity("");
       setState("");
       setZip("");
+      setCountry("US");
+      setShowCountryPicker(false);
 
-      setStep(6);
+      setStep(7);
     } catch (e: unknown) {
       toast({ title: "Error", description: e instanceof Error ? e.message : "Encryption failed.", variant: "destructive" });
     } finally {
@@ -231,11 +580,50 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     }
   }
 
+  function handleCardDetailsNext() {
+    const cleanNumber = cardNumber.replace(/\s/g, "");
+    const expectedDigits = getMaxDigits(detectedBrand);
+    const minCvv = detectedBrand === "amex" ? 4 : 3;
+    const errs: CardFieldErrors = {
+      number: cleanNumber.length !== expectedDigits,
+      month: !expMonth,
+      year: !expYear,
+      cvv: !cardCvv || cardCvv.length < minCvv,
+      name: !holderName.trim(),
+    };
+    if (Object.values(errs).some(Boolean)) {
+      setCardErrors(errs);
+      return;
+    }
+    setCardErrors({});
+    setStep(3);
+  }
+
+  function handleAddressNext() {
+    if (!address.trim()) {
+      toast({ title: "Missing address", description: "Enter a street address.", variant: "destructive" });
+      return;
+    }
+    if (!city.trim()) {
+      toast({ title: "Missing city", description: "Enter a city.", variant: "destructive" });
+      return;
+    }
+    if (!state.trim()) {
+      toast({ title: "Missing state", description: "Enter a state.", variant: "destructive" });
+      return;
+    }
+    if (!zip.trim()) {
+      toast({ title: "Missing ZIP", description: "Enter a ZIP code.", variant: "destructive" });
+      return;
+    }
+    setStep(4);
+  }
+
   async function handleLimitsNext() {
     const s = Math.round(parseFloat(spendingLimit || "0") * 100);
     const d = Math.round(parseFloat(dailyLimit || "0") * 100);
     const m = Math.round(parseFloat(monthlyLimit || "0") * 100);
-    const a = Math.round(parseFloat(approvalThreshold || "0") * 100);
+    const a = approveAll ? 0 : Math.round(parseFloat(approvalThreshold || "0") * 100);
 
     if (s < 100 || d < 100 || m < 100) {
       toast({ title: "Invalid limits", description: "Limits must be at least $1.00.", variant: "destructive" });
@@ -255,7 +643,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         }),
       });
       if (!res.ok) throw new Error("Failed to update limits");
-      setStep(4);
+      setStep(5);
     } catch {
       toast({ title: "Error", description: "Failed to save spending limits.", variant: "destructive" });
     } finally {
@@ -286,14 +674,14 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   useEffect(() => {
-    if (step === 4 && !botsFetched && !botsLoading) {
+    if (step === 5 && !botsFetched && !botsLoading) {
       fetchBots();
     }
   }, [step, botsFetched, botsLoading]);
 
   async function handleBotLink() {
     if (!selectedBotId) {
-      setStep(5);
+      setStep(6);
       return;
     }
     setLoading(true);
@@ -304,7 +692,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         body: JSON.stringify({ bot_id: selectedBotId }),
       });
       if (!res.ok) throw new Error("Failed to link bot");
-      setStep(5);
+      setStep(6);
     } catch {
       toast({ title: "Error", description: "Failed to link bot.", variant: "destructive" });
     } finally {
@@ -317,16 +705,55 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     onComplete();
   }
 
-  const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-  const currentYear = new Date().getFullYear();
-  const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
+        onInteractOutside={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+        onEscapeKeyDown={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+      >
         <VisuallyHidden>
           <DialogTitle>Rail 5 Card Setup</DialogTitle>
         </VisuallyHidden>
+
+        <button
+          type="button"
+          onClick={() => step === 7 ? handleClose(false) : setShowExitConfirm(true)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          data-testid="button-r5-close"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
+
+        {showExitConfirm && (
+          <div className="absolute inset-0 z-50 bg-white/95 rounded-lg flex items-center justify-center p-8">
+            <div className="text-center space-y-4 max-w-sm">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+                <X className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-neutral-900">Exit Card Setup?</h3>
+              <p className="text-sm text-neutral-500">Your progress will be lost. Are you sure you want to exit?</p>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1"
+                  data-testid="button-r5-continue-setup"
+                >
+                  Continue Setup
+                </Button>
+                <Button
+                  onClick={confirmExit}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  data-testid="button-r5-confirm-exit"
+                >
+                  Exit
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <StepIndicator current={step} total={TOTAL_STEPS} />
 
@@ -342,7 +769,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="r5-card-name">Card Name</Label>
                 <Input
                   id="r5-card-name"
                   placeholder="e.g. Harry's Visa"
@@ -352,32 +778,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 />
               </div>
 
-              <div>
-                <Label>Card Brand</Label>
-                <Select value={cardBrand} onValueChange={setCardBrand}>
-                  <SelectTrigger data-testid="select-r5-card-brand">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="visa">Visa</SelectItem>
-                    <SelectItem value="mastercard">Mastercard</SelectItem>
-                    <SelectItem value="amex">American Express</SelectItem>
-                    <SelectItem value="discover">Discover</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="r5-last4">Last 4 Digits</Label>
-                <Input
-                  id="r5-last4"
-                  placeholder="1234"
-                  maxLength={4}
-                  value={cardLast4}
-                  onChange={(e) => setCardLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  data-testid="input-r5-last4"
-                />
-              </div>
             </div>
 
             <Button onClick={handleStep1Next} disabled={loading} className="w-full gap-2" data-testid="button-r5-step1-next">
@@ -441,66 +841,43 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <p className="text-xs text-neutral-400 mt-1">This data never leaves your browser. It's encrypted locally.</p>
             </div>
 
+            <Rail5InteractiveCard
+              cardNumber={cardNumber}
+              onCardNumberChange={setCardNumber}
+              expiryMonth={expMonth}
+              expiryYear={expYear}
+              onExpiryMonthChange={setExpMonth}
+              onExpiryYearChange={setExpYear}
+              cvv={cardCvv}
+              onCvvChange={setCardCvv}
+              holderName={holderName}
+              onHolderNameChange={setHolderName}
+              detectedBrand={detectedBrand}
+              errors={cardErrors}
+            />
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </Button>
+              <Button onClick={handleCardDetailsNext} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+                Next <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6" data-testid="r5-step-address">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
+                <CreditCard className="w-6 h-6 text-indigo-600" />
+              </div>
+              <h2 className="text-xl font-bold text-neutral-900">Billing Address</h2>
+              <p className="text-sm text-neutral-500 mt-1">Enter the billing address associated with this card.</p>
+            </div>
+
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="r5-number">Card Number</Label>
-                <Input
-                  id="r5-number"
-                  placeholder="4111 1111 1111 1111"
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value.replace(/[^\d\s]/g, "").slice(0, 23))}
-                  data-testid="input-r5-card-number"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Month</Label>
-                  <Select value={expMonth} onValueChange={setExpMonth}>
-                    <SelectTrigger data-testid="select-r5-exp-month">
-                      <SelectValue placeholder="MM" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTHS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Year</Label>
-                  <Select value={expYear} onValueChange={setExpYear}>
-                    <SelectTrigger data-testid="select-r5-exp-year">
-                      <SelectValue placeholder="YYYY" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="r5-cvv">CVV</Label>
-                  <Input
-                    id="r5-cvv"
-                    type="password"
-                    placeholder="123"
-                    maxLength={4}
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    data-testid="input-r5-cvv"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="r5-holder">Cardholder Name</Label>
-                <Input
-                  id="r5-holder"
-                  placeholder="Harry Smith"
-                  value={holderName}
-                  onChange={(e) => setHolderName(e.target.value)}
-                  data-testid="input-r5-holder"
-                />
-              </div>
-
               <div>
                 <Label htmlFor="r5-address">Street Address</Label>
                 <Input
@@ -526,20 +903,73 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                   <Input id="r5-zip" placeholder="10001" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 10))} data-testid="input-r5-zip" />
                 </div>
               </div>
+
+              <div className="flex flex-col items-center">
+                <button
+                  type="button"
+                  onClick={() => setShowCountryPicker(!showCountryPicker)}
+                  className="flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-600 transition-colors mt-1"
+                  data-testid="button-r5-country-toggle"
+                >
+                  Not United States?
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showCountryPicker ? "rotate-180" : ""}`} />
+                </button>
+                {showCountryPicker && (
+                  <div className="mt-2 w-full">
+                    <Label htmlFor="r5-country">Country</Label>
+                    <select
+                      id="r5-country"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      className="w-full h-10 rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      data-testid="select-r5-country"
+                    >
+                      <option value="US">United States</option>
+                      <option value="CA">Canada</option>
+                      <option value="GB">United Kingdom</option>
+                      <option value="AU">Australia</option>
+                      <option value="DE">Germany</option>
+                      <option value="FR">France</option>
+                      <option value="JP">Japan</option>
+                      <option value="BR">Brazil</option>
+                      <option value="IN">India</option>
+                      <option value="MX">Mexico</option>
+                      <option value="IT">Italy</option>
+                      <option value="ES">Spain</option>
+                      <option value="NL">Netherlands</option>
+                      <option value="SE">Sweden</option>
+                      <option value="CH">Switzerland</option>
+                      <option value="SG">Singapore</option>
+                      <option value="KR">South Korea</option>
+                      <option value="NZ">New Zealand</option>
+                      <option value="IE">Ireland</option>
+                      <option value="NO">Norway</option>
+                      <option value="DK">Denmark</option>
+                      <option value="FI">Finland</option>
+                      <option value="AT">Austria</option>
+                      <option value="BE">Belgium</option>
+                      <option value="PT">Portugal</option>
+                      <option value="PL">Poland</option>
+                      <option value="IL">Israel</option>
+                      <option value="AE">United Arab Emirates</option>
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+              <Button onClick={handleAddressNext} className="flex-1 gap-2" data-testid="button-r5-step4-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && /* Spending Limits */ (
           <div className="space-y-6" data-testid="r5-step-limits">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-3">
@@ -551,7 +981,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="r5-per-checkout">Per-Checkout Limit ($)</Label>
+                <Label htmlFor="r5-per-checkout">Per-Transaction Limit ($)</Label>
                 <Input
                   id="r5-per-checkout"
                   type="number"
@@ -590,26 +1020,40 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 />
               </div>
 
-              <div>
-                <Label htmlFor="r5-approval">Human Approval Above ($)</Label>
-                <Input
-                  id="r5-approval"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={approvalThreshold}
-                  onChange={(e) => setApprovalThreshold(e.target.value)}
-                  data-testid="input-r5-approval-threshold"
+              <div className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-neutral-900">Approve every transaction</p>
+                  <p className="text-xs text-neutral-400">You'll be asked to authorize each purchase.</p>
+                </div>
+                <Switch
+                  checked={approveAll}
+                  onCheckedChange={setApproveAll}
+                  data-testid="switch-r5-approve-all"
                 />
-                <p className="text-xs text-neutral-400 mt-1">Purchases above this amount require your approval.</p>
               </div>
+
+              {!approveAll && (
+                <div>
+                  <Label htmlFor="r5-approval">Human Approval Above ($)</Label>
+                  <Input
+                    id="r5-approval"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={approvalThreshold}
+                    onChange={(e) => setApprovalThreshold(e.target.value)}
+                    data-testid="input-r5-approval-threshold"
+                  />
+                  <p className="text-xs text-neutral-400 mt-1">Purchases above this amount require your approval.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step5-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step4-next">
+              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step5-next">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                 Next
               </Button>
@@ -617,7 +1061,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-6" data-testid="r5-step-bot">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
@@ -672,7 +1116,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             )}
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => { setSelectedBotId(""); setStep(5); }} className="flex-1" data-testid="button-r5-skip-bot">
+              <Button variant="outline" onClick={() => { setSelectedBotId(""); setStep(6); }} className="flex-1" data-testid="button-r5-skip-bot">
                 Skip for Now
               </Button>
               <Button
@@ -688,7 +1132,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-6" data-testid="r5-step-encrypt">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-3">
@@ -736,7 +1180,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(4)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step6-back">
+              <Button variant="outline" onClick={() => setStep(5)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step7-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               <Button onClick={handleEncryptAndDownload} disabled={loading || downloadDone} className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700" data-testid="button-r5-encrypt">
@@ -747,7 +1191,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <div className="space-y-6" data-testid="r5-step-success">
             <div className="text-center">
               <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">

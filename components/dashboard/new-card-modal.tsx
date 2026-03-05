@@ -39,8 +39,8 @@ const cardTypes: CardTypeOption[] = [
   {
     icon: Shield,
     label: "Self-Hosted",
-    description: "Bring your own card. Your bot holds partial data, CreditClaw holds the rest. Neither can pay alone.",
-    href: "/app/self-hosted",
+    description: "Bring your own card. Encrypted and split between you and CreditClaw.",
+    href: "/app/sub-agent-cards",
     color: "text-emerald-600",
     iconBg: "bg-emerald-50",
     borderColor: "border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50",

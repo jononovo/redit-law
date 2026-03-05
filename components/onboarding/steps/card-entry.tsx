@@ -20,14 +20,7 @@ interface CardEntryProps {
   botName?: string;
 }
 
-function detectCardBrand(number: string): string {
-  const n = number.replace(/\s/g, "");
-  if (n.startsWith("4")) return "visa";
-  if (n.startsWith("5")) return "mastercard";
-  if (n.startsWith("3")) return "amex";
-  if (n.startsWith("6")) return "discover";
-  return "visa";
-}
+import { detectCardBrand, brandToApiValue } from "@/lib/card-brand";
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 const currentYear = new Date().getFullYear();
@@ -56,7 +49,7 @@ export function CardEntry({ currentStep, totalSteps, onBack, onNext, botId }: Ca
 
     const cleanNumber = cardNumber.replace(/\s/g, "");
     const cardLast4 = cleanNumber.slice(-4);
-    const cardBrand = detectCardBrand(cleanNumber);
+    const cardBrand = brandToApiValue(detectCardBrand(cleanNumber));
 
     setLoading(true);
     try {

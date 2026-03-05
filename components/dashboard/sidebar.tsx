@@ -164,6 +164,29 @@ export function Sidebar() {
 
         <div className="pt-4 pb-1 px-4">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+            Sales
+          </p>
+        </div>
+
+        {visibleSalesNav.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link key={item.href} href={item.href}>
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
+                isActive 
+                  ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+              )}>
+                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
+                {item.label}
+              </div>
+            </Link>
+          );
+        })}
+
+        <div className="pt-4 pb-1 px-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
             Procurement
           </p>
         </div>
@@ -185,29 +208,6 @@ export function Sidebar() {
                 {isExternal && (
                   <ExternalLink className="w-3 h-3 ml-auto text-neutral-300" />
                 )}
-              </div>
-            </Link>
-          );
-        })}
-
-        <div className="pt-4 pb-1 px-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            Sales
-          </p>
-        </div>
-
-        {visibleSalesNav.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link key={item.href} href={item.href}>
-              <div className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
-                isActive 
-                  ? "bg-neutral-900 text-white shadow-md shadow-neutral-900/10" 
-                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
-              )}>
-                <item.icon className={cn("w-5 h-5", isActive ? "text-white" : "text-neutral-400")} />
-                {item.label}
               </div>
             </Link>
           );

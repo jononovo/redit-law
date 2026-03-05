@@ -8,6 +8,7 @@ export interface CardData {
   city?: string;
   state?: string;
   zip?: string;
+  country?: string;
 }
 
 export interface EncryptionResult {
