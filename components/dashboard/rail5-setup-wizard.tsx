@@ -246,7 +246,7 @@ function Rail5InteractiveCard({
   const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
   const numberBorder = errors.number
     ? errCls
-    : numberFilled ? (numberFocused ? "border-green-300 ring-1 ring-green-400/30" : "border-green-400") : numberFocused ? "border-white/50" : defaultBorder;
+    : numberFilled ? (numberFocused ? "!border border-green-300 ring-2 ring-green-400/40 rounded-sm px-2 py-1" : "!border border-green-400 ring-2 ring-green-400/40 rounded-sm px-2 py-1") : numberFocused ? "border-white/50" : defaultBorder;
   const monthBorder = errors.month
     ? errCls
     : monthFilled ? "border-green-400" : defaultInputBorder;
