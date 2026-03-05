@@ -112,6 +112,41 @@ interface CardFieldErrors {
   name?: boolean;
 }
 
+function useParticleParams(charCount: number, seed: string) {
+  return useRef(
+    Array.from({ length: Math.max(charCount, 40) }, (_, i) => ({
+      px: (Math.random() - 0.5) * 240,
+      py: -30 - Math.random() * 120,
+      delay: Math.random() * 0.5,
+      duration: 0.7 + Math.random() * 0.5,
+      rotation: (Math.random() - 0.5) * 360,
+    }))
+  ).current;
+}
+
+function ParticleOverlay({ text, active, className }: { text: string; active: boolean; className?: string }) {
+  const params = useParticleParams(text.length, text);
+  if (!active || !text) return null;
+  return (
+    <span className={`absolute inset-0 flex items-center pointer-events-none ${className || ""}`}>
+      {text.split("").map((ch, i) => (
+        <span
+          key={i}
+          className="inline-block"
+          style={{
+            "--px": `${params[i].px}px`,
+            "--py": `${params[i].py}px`,
+            "--rot": `${params[i].rotation}deg`,
+            animation: `r5ParticleDissolve ${params[i].duration}s cubic-bezier(0.22,1,0.36,1) ${params[i].delay}s forwards`,
+          } as React.CSSProperties}
+        >
+          {ch === " " ? "\u00A0" : ch}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function Rail5InteractiveCard({
   cardNumber,
   onCardNumberChange,
@@ -125,6 +160,7 @@ function Rail5InteractiveCard({
   onHolderNameChange,
   detectedBrand,
   errors = {},
+  isEncrypting = false,
 }: {
   cardNumber: string;
   onCardNumberChange: (val: string) => void;
@@ -138,6 +174,7 @@ function Rail5InteractiveCard({
   onHolderNameChange: (val: string) => void;
   detectedBrand: CardBrand;
   errors?: CardFieldErrors;
+  isEncrypting?: boolean;
 }) {
   const numberRef = useRef<HTMLInputElement>(null);
   const cvvRef = useRef<HTMLInputElement>(null);
@@ -145,6 +182,9 @@ function Rail5InteractiveCard({
   const monthRef = useRef<HTMLSelectElement>(null);
   const yearRef = useRef<HTMLSelectElement>(null);
   const [numberFocused, setNumberFocused] = useState(false);
+  const numberParticles = useParticleParams(30, "num");
+  const expiryText = `${expiryMonth}/${expiryYear}`;
+  const cvvDots = "•".repeat(cvv.length || 3);
 
   useEffect(() => {
     numberRef.current?.focus();
@@ -186,8 +226,15 @@ function Rail5InteractiveCard({
 
   return (
     <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
+      <style>{`
+        @keyframes r5ParticleDissolve {
+          0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
+          25% { opacity: 0.9; }
+          100% { transform: translate(var(--px), var(--py)) scale(0.15) rotate(var(--rot)); opacity: 0; filter: blur(2px); }
+        }
+      `}</style>
       <div
-        className="relative w-full rounded-2xl overflow-hidden shadow-2xl"
+        className={`relative w-full rounded-2xl overflow-visible shadow-2xl ${isEncrypting ? "pointer-events-none" : ""}`}
         style={{
           aspectRatio: "1.586",
           background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
@@ -251,13 +298,21 @@ function Rail5InteractiveCard({
                   const placeholder = getCardPlaceholder(detectedBrand);
                   let cursorPos = formatted.length;
                   while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
+                  let charIdx = 0;
                   return placeholder.split("").map((ch, i) => {
                     if (ch === " ") return <span key={i} className="w-3" />;
                     const showCursor = numberFocused && !numberFilled && i === cursorPos;
                     const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
+                    const pIdx = charIdx++;
+                    const particleStyle = isEncrypting && typed ? {
+                      "--px": `${numberParticles[pIdx].px}px`,
+                      "--py": `${numberParticles[pIdx].py}px`,
+                      "--rot": `${numberParticles[pIdx].rotation}deg`,
+                      animation: `r5ParticleDissolve ${numberParticles[pIdx].duration}s cubic-bezier(0.22,1,0.36,1) ${numberParticles[pIdx].delay}s forwards`,
+                    } as React.CSSProperties : undefined;
                     return (
-                      <span key={i} className="relative">
-                        {showCursor && (
+                      <span key={i} className="relative inline-block" style={particleStyle}>
+                        {showCursor && !isEncrypting && (
                           <span
                             className="absolute -left-px top-0 w-[2px] h-full bg-white"
                             style={{ animation: "blink 1s step-end infinite" }}
@@ -274,9 +329,9 @@ function Rail5InteractiveCard({
             </div>
 
             <div className="flex items-end justify-end gap-3 mt-3 w-full">
-              <div>
+              <div className="relative">
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
-                <div className="flex items-center gap-1">
+                <div className={`flex items-center gap-1 ${isEncrypting ? "invisible" : ""}`}>
                   <select
                     ref={monthRef}
                     value={expiryMonth}
@@ -299,9 +354,10 @@ function Rail5InteractiveCard({
                     {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
                   </select>
                 </div>
+                <ParticleOverlay text={expiryText} active={isEncrypting} className="text-white text-sm font-medium" />
               </div>
 
-              <div>
+              <div className="relative">
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
                 <input
                   ref={cvvRef}
@@ -311,15 +367,16 @@ function Rail5InteractiveCard({
                   value={cvv}
                   onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="•••"
-                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all`}
+                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all ${isEncrypting ? "!text-transparent" : ""}`}
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
+                <ParticleOverlay text={cvvDots} active={isEncrypting} className="text-white text-sm font-mono justify-center" />
               </div>
             </div>
           </div>
 
-          <div className="mt-auto">
+          <div className="mt-auto relative">
             <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
             <input
               ref={holderRef}
@@ -327,10 +384,11 @@ function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className={`w-3/4 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
+              className={`w-3/4 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider ${isEncrypting ? "!text-transparent" : ""}`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
+            <ParticleOverlay text={holderName.toUpperCase()} active={isEncrypting} className="text-white text-base font-medium tracking-wider" />
           </div>
         </div>
       </div>
@@ -391,6 +449,30 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [directDeliverySucceeded, setDirectDeliverySucceeded] = useState(false);
   const [deliveryAttempted, setDeliveryAttempted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [cardEncrypting, setCardEncrypting] = useState(false);
+
+  function handleEncryptCard() {
+    const cleanNumber = cardNumber.replace(/\s/g, "");
+    const expectedDigits = getMaxDigits(detectedBrand);
+    const minCvv = detectedBrand === "amex" ? 4 : 3;
+    const errs: CardFieldErrors = {
+      number: cleanNumber.length !== expectedDigits,
+      month: !expMonth,
+      year: !expYear,
+      cvv: !cardCvv || cardCvv.length < minCvv,
+      name: !holderName.trim(),
+    };
+    if (Object.values(errs).some(Boolean)) {
+      setCardErrors(errs);
+      return;
+    }
+    setCardErrors({});
+    setCardEncrypting(true);
+    setTimeout(() => {
+      setCardEncrypting(false);
+      setStep(3);
+    }, 1800);
+  }
 
   const resetWizard = useCallback(() => {
     setStep(0);
@@ -411,6 +493,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setEncryptionDone(false);
     setDownloadDone(false);
     setKeySent(false);
+    setCardEncrypting(false);
     setSpendingLimit("50");
     setDailyLimit("100");
     setMonthlyLimit("500");
@@ -854,13 +937,31 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               onHolderNameChange={setHolderName}
               detectedBrand={detectedBrand}
               errors={cardErrors}
+              isEncrypting={cardEncrypting}
             />
 
+            <Button
+              onClick={handleEncryptCard}
+              disabled={cardEncrypting}
+              className="w-full gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-600/25 transition-all"
+              data-testid="button-r5-encrypt-card"
+            >
+              {cardEncrypting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Encrypting...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" /> Encrypt
+                </>
+              )}
+            </Button>
+
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" disabled={cardEncrypting} data-testid="button-r5-step3-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={handleCardDetailsNext} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+              <Button onClick={handleCardDetailsNext} className="flex-1 gap-2" disabled={cardEncrypting} data-testid="button-r5-step3-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
