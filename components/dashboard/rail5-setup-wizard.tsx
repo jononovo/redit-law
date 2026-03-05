@@ -246,7 +246,7 @@ function Rail5InteractiveCard({
   const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
   const numberBorder = errors.number
     ? errCls
-    : numberFilled ? "border-green-400" : numberFocused ? "border-white/50" : defaultBorder;
+    : numberFilled ? (numberFocused ? "border-green-300 ring-1 ring-green-400/30" : "border-green-400") : numberFocused ? "border-white/50" : defaultBorder;
   const monthBorder = errors.month
     ? errCls
     : monthFilled ? "border-green-400" : defaultInputBorder;
@@ -322,7 +322,7 @@ function Rail5InteractiveCard({
                 data-testid="input-r5-card-number"
                 autoComplete="off"
               />
-              <div className="font-mono text-2xl tracking-[0.15em] flex items-center" aria-hidden="true">
+              <div className="font-mono text-2xl tracking-[0.15em] flex items-center pointer-events-none" aria-hidden="true">
                 {isEncrypting ? (
                   <span className="text-white" style={{ opacity: numberCipher.opacity }}>
                     {numberCipher.display}
