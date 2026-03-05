@@ -112,37 +112,76 @@ interface CardFieldErrors {
   name?: boolean;
 }
 
-function useParticleParams(charCount: number, seed: string) {
-  return useRef(
-    Array.from({ length: Math.max(charCount, 40) }, (_, i) => ({
-      px: (Math.random() - 0.5) * 240,
-      py: -30 - Math.random() * 120,
-      delay: Math.random() * 0.5,
-      duration: 0.7 + Math.random() * 0.5,
-      rotation: (Math.random() - 0.5) * 360,
-    }))
-  ).current;
+const CIPHER_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*!?∆§≈∂ƒ©˙≤≥÷×πøΩ√∫µ".split("");
+
+function useCipherScramble(text: string, active: boolean, delayOffset: number = 0) {
+  const [display, setDisplay] = useState(text);
+  const [opacity, setOpacity] = useState(1);
+  const scrambleDuration = 1200;
+  const fadeDuration = 400;
+
+  useEffect(() => {
+    if (!active) {
+      setDisplay(text);
+      setOpacity(1);
+      return;
+    }
+    if (!text || text.trim().length === 0) {
+      setDisplay("");
+      setOpacity(0);
+      return;
+    }
+    let frame: number;
+    let start: number | null = null;
+
+    const chars = text.split("");
+    const charStaggerEnd = chars.length > 1 ? 300 : 0;
+    const charDelays = chars.map((_, i) => delayOffset + (i / Math.max(chars.length - 1, 1)) * charStaggerEnd);
+    const maxDelay = Math.max(0, ...charDelays);
+    const totalDuration = maxDelay + scrambleDuration;
+
+    function tick(ts: number) {
+      if (!start) start = ts;
+      const elapsed = ts - start;
+
+      const result = chars.map((original, i) => {
+        if (original === " ") return " ";
+        const charElapsed = elapsed - charDelays[i];
+        if (charElapsed > scrambleDuration) return " ";
+        return CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)];
+      });
+
+      setDisplay(result.join(""));
+
+      const fadeElapsed = elapsed - (totalDuration - fadeDuration);
+      if (fadeElapsed > 0) {
+        setOpacity(Math.max(0, 1 - fadeElapsed / fadeDuration));
+      }
+
+      if (elapsed < totalDuration + 50) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setDisplay("");
+        setOpacity(0);
+      }
+    }
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [active, text, delayOffset]);
+
+  return { display, opacity };
 }
 
-function ParticleOverlay({ text, active, className }: { text: string; active: boolean; className?: string }) {
-  const params = useParticleParams(text.length, text);
+function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: string; active: boolean; className?: string; delayOffset?: number }) {
+  const { display, opacity } = useCipherScramble(text, active, delayOffset);
   if (!active || !text) return null;
   return (
-    <span className={`absolute inset-0 flex items-center pointer-events-none ${className || ""}`}>
-      {text.split("").map((ch, i) => (
-        <span
-          key={i}
-          className="inline-block"
-          style={{
-            "--px": `${params[i].px}px`,
-            "--py": `${params[i].py}px`,
-            "--rot": `${params[i].rotation}deg`,
-            animation: `r5ParticleDissolve ${params[i].duration}s cubic-bezier(0.22,1,0.36,1) ${params[i].delay}s forwards`,
-          } as React.CSSProperties}
-        >
-          {ch === " " ? "\u00A0" : ch}
-        </span>
-      ))}
+    <span
+      className={`absolute inset-0 flex items-center pointer-events-none ${className || ""}`}
+      style={{ opacity }}
+    >
+      {display}
     </span>
   );
 }
@@ -182,16 +221,15 @@ function Rail5InteractiveCard({
   const monthRef = useRef<HTMLSelectElement>(null);
   const yearRef = useRef<HTMLSelectElement>(null);
   const [numberFocused, setNumberFocused] = useState(false);
-  const numberParticles = useParticleParams(30, "num");
-  const expiryText = `${expiryMonth}/${expiryYear}`;
-  const cvvDots = "•".repeat(cvv.length || 3);
-
-  useEffect(() => {
-    numberRef.current?.focus();
-  }, []);
 
   const cleanNumber = cardNumber.replace(/\s/g, "");
   const formatted = formatCardNumber(cleanNumber, detectedBrand);
+
+  const numberCipher = useCipherScramble(formatted, isEncrypting, 0);
+
+  useEffect(() => {
+    if (!isEncrypting) numberRef.current?.focus();
+  }, [isEncrypting]);
 
   const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
   const currentYear = new Date().getFullYear();
@@ -226,15 +264,8 @@ function Rail5InteractiveCard({
 
   return (
     <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
-      <style>{`
-        @keyframes r5ParticleDissolve {
-          0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; filter: blur(0px); }
-          25% { opacity: 0.9; }
-          100% { transform: translate(var(--px), var(--py)) scale(0.15) rotate(var(--rot)); opacity: 0; filter: blur(2px); }
-        }
-      `}</style>
       <div
-        className={`relative w-full rounded-2xl overflow-visible shadow-2xl ${isEncrypting ? "pointer-events-none" : ""}`}
+        className={`relative w-full rounded-2xl overflow-hidden shadow-2xl ${isEncrypting ? "pointer-events-none" : ""}`}
         style={{
           aspectRatio: "1.586",
           background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
@@ -294,25 +325,21 @@ function Rail5InteractiveCard({
                 autoComplete="off"
               />
               <div className="font-mono text-2xl tracking-[0.15em] flex items-center" aria-hidden="true">
-                {(() => {
+                {isEncrypting ? (
+                  <span className="text-white" style={{ opacity: numberCipher.opacity }}>
+                    {numberCipher.display}
+                  </span>
+                ) : (() => {
                   const placeholder = getCardPlaceholder(detectedBrand);
                   let cursorPos = formatted.length;
                   while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
-                  let charIdx = 0;
                   return placeholder.split("").map((ch, i) => {
                     if (ch === " ") return <span key={i} className="w-3" />;
                     const showCursor = numberFocused && !numberFilled && i === cursorPos;
                     const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
-                    const pIdx = charIdx++;
-                    const particleStyle = isEncrypting && typed ? {
-                      "--px": `${numberParticles[pIdx].px}px`,
-                      "--py": `${numberParticles[pIdx].py}px`,
-                      "--rot": `${numberParticles[pIdx].rotation}deg`,
-                      animation: `r5ParticleDissolve ${numberParticles[pIdx].duration}s cubic-bezier(0.22,1,0.36,1) ${numberParticles[pIdx].delay}s forwards`,
-                    } as React.CSSProperties : undefined;
                     return (
-                      <span key={i} className="relative inline-block" style={particleStyle}>
-                        {showCursor && !isEncrypting && (
+                      <span key={i} className="relative inline-block">
+                        {showCursor && (
                           <span
                             className="absolute -left-px top-0 w-[2px] h-full bg-white"
                             style={{ animation: "blink 1s step-end infinite" }}
@@ -354,7 +381,7 @@ function Rail5InteractiveCard({
                     {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
                   </select>
                 </div>
-                <ParticleOverlay text={expiryText} active={isEncrypting} className="text-white text-sm font-medium" />
+                <CipherOverlay text={`${expiryMonth}/${expiryYear}`} active={isEncrypting} className="text-white text-sm font-medium" delayOffset={150} />
               </div>
 
               <div className="relative">
@@ -371,7 +398,7 @@ function Rail5InteractiveCard({
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
-                <ParticleOverlay text={cvvDots} active={isEncrypting} className="text-white text-sm font-mono justify-center" />
+                <CipherOverlay text={"•".repeat(cvv.length || 3)} active={isEncrypting} className="text-white text-sm font-mono justify-center" delayOffset={250} />
               </div>
             </div>
           </div>
@@ -388,7 +415,7 @@ function Rail5InteractiveCard({
               data-testid="input-r5-holder"
               autoComplete="off"
             />
-            <ParticleOverlay text={holderName.toUpperCase()} active={isEncrypting} className="text-white text-base font-medium tracking-wider" />
+            <CipherOverlay text={holderName.toUpperCase()} active={isEncrypting} className="text-white text-base font-medium tracking-wider" delayOffset={350} />
           </div>
         </div>
       </div>
@@ -471,7 +498,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setTimeout(() => {
       setCardEncrypting(false);
       setStep(3);
-    }, 1800);
+    }, 2000);
   }
 
   const resetWizard = useCallback(() => {
