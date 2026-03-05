@@ -46,7 +46,7 @@ export function Rail5InteractiveCard({
   const cleanNumber = cardNumber.replace(/\s/g, "");
   const formatted = formatCardNumber(cleanNumber, detectedBrand);
 
-  const numberCipher = useCipherScramble(formatted, isEncrypting, 0);
+  const numberCipher = useCipherScramble(formatted, isEncrypting, 0, 4);
   const expiryCipher = useCipherScramble(`${expiryMonth}/${expiryYear}`, isEncrypting, 150);
   const cvvCipher = useCipherScramble("•".repeat(cvv.length || 3), isEncrypting, 250);
   const holderCipher = useCipherScramble(holderName.toUpperCase(), isEncrypting, 350);

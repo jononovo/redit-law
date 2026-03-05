@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 
 export const CIPHER_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*!?∆§≈∂ƒ©˙≤≥÷×πøΩ√∫µ".split("");
 
-export function useCipherScramble(text: string, active: boolean, delayOffset: number = 0) {
+export function useCipherScramble(text: string, active: boolean, delayOffset: number = 0, preserveLastN: number = 0) {
   const [display, setDisplay] = useState(text);
   const [settled, setSettled] = useState(false);
   const scrambleDuration = 1200;
@@ -24,13 +24,25 @@ export function useCipherScramble(text: string, active: boolean, delayOffset: nu
     let start: number | null = null;
 
     const chars = text.split("");
+
+    const preserved = new Set<number>();
+    if (preserveLastN > 0) {
+      let count = 0;
+      for (let i = chars.length - 1; i >= 0 && count < preserveLastN; i--) {
+        if (chars[i] !== " ") {
+          preserved.add(i);
+          count++;
+        }
+      }
+    }
+
     const charStaggerEnd = chars.length > 1 ? 300 : 0;
     const charDelays = chars.map((_, i) => delayOffset + (i / Math.max(chars.length - 1, 1)) * charStaggerEnd);
     const maxDelay = Math.max(0, ...charDelays);
     const totalDuration = maxDelay + scrambleDuration;
 
-    const finalChars = chars.map(ch =>
-      ch === " " ? " " : CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)]
+    const finalChars = chars.map((ch, i) =>
+      ch === " " || preserved.has(i) ? ch : CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)]
     );
 
     function tick(ts: number) {
@@ -38,7 +50,7 @@ export function useCipherScramble(text: string, active: boolean, delayOffset: nu
       const elapsed = ts - start;
 
       const result = chars.map((original, i) => {
-        if (original === " ") return " ";
+        if (original === " " || preserved.has(i)) return original;
         const charElapsed = elapsed - charDelays[i];
         if (charElapsed > scrambleDuration) return finalChars[i];
         return CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)];
@@ -56,7 +68,7 @@ export function useCipherScramble(text: string, active: boolean, delayOffset: nu
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [active, text, delayOffset]);
+  }, [active, text, delayOffset, preserveLastN]);
 
   return { display, settled };
 }
