@@ -204,8 +204,12 @@ function Rail5InteractiveCard({
           </div>
 
           <div className="flex-1 flex flex-col items-start justify-center">
-            <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mb-3">
-              <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
+            <div className="w-11 h-8 rounded-[3px] bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mb-3 shadow-sm">
+              <div className="w-7 h-5 rounded-[2px] border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400 grid grid-cols-3 gap-px overflow-hidden">
+                <div className="border-r border-amber-600/20" />
+                <div className="border-x border-amber-600/20" />
+                <div className="border-l border-amber-600/20" />
+              </div>
             </div>
             <div
               className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
