@@ -207,21 +207,36 @@ function Rail5InteractiveCard({
             <div className="w-12 h-9 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center mb-3">
               <div className="w-8 h-5 rounded-sm border border-amber-600/30 bg-gradient-to-br from-amber-200 to-amber-400" />
             </div>
-            <input
-              ref={numberRef}
-              type="text"
-              inputMode="numeric"
-              value={formatted}
-              onChange={(e) => {
-                const digits = e.target.value.replace(/\D/g, "");
-                const brand = detectCardBrand(digits);
-                onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
-              }}
-              placeholder={getCardPlaceholder(detectedBrand)}
-              className={`w-4/5 bg-transparent border-b-2 ${numberBorder} text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-all`}
-              data-testid="input-r5-card-number"
-              autoComplete="off"
-            />
+            <div
+              className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
+              onClick={() => numberRef.current?.focus()}
+            >
+              <input
+                ref={numberRef}
+                type="text"
+                inputMode="numeric"
+                value={formatted}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  const brand = detectCardBrand(digits);
+                  onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
+                }}
+                className="absolute inset-0 opacity-0 w-full h-full z-10"
+                data-testid="input-r5-card-number"
+                autoComplete="off"
+              />
+              <div className="font-mono text-2xl tracking-[0.15em] flex" aria-hidden="true">
+                {getCardPlaceholder(detectedBrand).split("").map((ch, i) => {
+                  if (ch === " ") return <span key={i} className="w-3" />;
+                  const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
+                  return (
+                    <span key={i} className={typed ? "text-white" : "text-white/25"}>
+                      {typed || "0"}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="flex items-end justify-end gap-3 mt-3 w-full">
               <div>
