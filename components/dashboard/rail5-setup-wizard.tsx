@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -978,29 +978,38 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             />
 
             <div className="flex gap-3">
-              {(cardEncrypting || cardEncrypted) && (
+              {(cardEncrypting || cardEncrypted) ? (
                 <Button
                   variant="outline"
                   onClick={handleRestartCard}
                   className="flex-1 gap-2"
                   data-testid="button-r5-restart-card"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Restart
+                  <RotateCcw className="w-4 h-4" /> Clear Card
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => setStep(1)}
+                  className="flex-1 gap-2"
+                  data-testid="button-r5-step3-back"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
               )}
               <Button
-                onClick={handleEncryptCard}
-                disabled={cardEncrypting || cardEncrypted}
+                onClick={cardEncrypted ? handleCardDetailsNext : handleEncryptCard}
+                disabled={cardEncrypting}
                 className={`flex-1 gap-2 font-semibold py-3 rounded-xl shadow-lg transition-all ${
                   cardEncrypted
-                    ? "bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-green-600/25"
+                    ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-green-600/25"
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/25"
                 }`}
                 data-testid="button-r5-encrypt-card"
               >
                 {cardEncrypted ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4" /> Encrypted
+                    Encrypted <ArrowRight className="w-4 h-4" />
                   </>
                 ) : cardEncrypting ? (
                   <>
@@ -1011,15 +1020,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                     <Lock className="w-4 h-4" /> Encrypt
                   </>
                 )}
-              </Button>
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" disabled={cardEncrypting} data-testid="button-r5-step3-back">
-                <ArrowLeft className="w-4 h-4" /> Back
-              </Button>
-              <Button onClick={handleCardDetailsNext} className="flex-1 gap-2" disabled={cardEncrypting} data-testid="button-r5-step3-next">
-                Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
