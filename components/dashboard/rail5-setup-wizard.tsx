@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -344,11 +344,24 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDirectDeliverySucceeded(false);
     setDeliveryAttempted(false);
     setCopied(false);
+    setShowExitConfirm(false);
   }, []);
 
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+
   function handleClose(val: boolean) {
+    if (!val && step !== 7) {
+      setShowExitConfirm(true);
+      return;
+    }
     if (!val) resetWizard();
     onOpenChange(val);
+  }
+
+  function confirmExit() {
+    setShowExitConfirm(false);
+    resetWizard();
+    onOpenChange(false);
   }
 
   const cardLast4 = cardNumber.replace(/\s/g, "").slice(-4);
@@ -603,10 +616,53 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8">
+      <DialogContent
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
+        onInteractOutside={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+        onEscapeKeyDown={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+      >
         <VisuallyHidden>
           <DialogTitle>Rail 5 Card Setup</DialogTitle>
         </VisuallyHidden>
+
+        <button
+          type="button"
+          onClick={() => step === 7 ? handleClose(false) : setShowExitConfirm(true)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          data-testid="button-r5-close"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
+
+        {showExitConfirm && (
+          <div className="absolute inset-0 z-50 bg-white/95 rounded-lg flex items-center justify-center p-8">
+            <div className="text-center space-y-4 max-w-sm">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+                <X className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-neutral-900">Exit Card Setup?</h3>
+              <p className="text-sm text-neutral-500">Your progress will be lost. Are you sure you want to exit?</p>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1"
+                  data-testid="button-r5-continue-setup"
+                >
+                  Continue Setup
+                </Button>
+                <Button
+                  onClick={confirmExit}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                  data-testid="button-r5-confirm-exit"
+                >
+                  Exit
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <StepIndicator current={step} total={TOTAL_STEPS} />
 
