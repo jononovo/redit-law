@@ -468,6 +468,53 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     }
   }
 
+  function handleCardDetailsNext() {
+    const cleanNumber = cardNumber.replace(/\s/g, "");
+    const expectedDigits = getMaxDigits(detectedBrand);
+    if (cleanNumber.length !== expectedDigits) {
+      toast({ title: "Invalid card number", description: `Enter all ${expectedDigits} digits.`, variant: "destructive" });
+      return;
+    }
+    if (!expMonth) {
+      toast({ title: "Missing expiry", description: "Select an expiration month.", variant: "destructive" });
+      return;
+    }
+    if (!expYear) {
+      toast({ title: "Missing expiry", description: "Select an expiration year.", variant: "destructive" });
+      return;
+    }
+    const minCvv = detectedBrand === "amex" ? 4 : 3;
+    if (!cardCvv || cardCvv.length < minCvv) {
+      toast({ title: "Invalid CVV", description: `Enter a ${minCvv}-digit CVV.`, variant: "destructive" });
+      return;
+    }
+    if (!holderName.trim()) {
+      toast({ title: "Missing name", description: "Enter the cardholder name.", variant: "destructive" });
+      return;
+    }
+    setStep(3);
+  }
+
+  function handleAddressNext() {
+    if (!address.trim()) {
+      toast({ title: "Missing address", description: "Enter a street address.", variant: "destructive" });
+      return;
+    }
+    if (!city.trim()) {
+      toast({ title: "Missing city", description: "Enter a city.", variant: "destructive" });
+      return;
+    }
+    if (!state.trim()) {
+      toast({ title: "Missing state", description: "Enter a state.", variant: "destructive" });
+      return;
+    }
+    if (!zip.trim()) {
+      toast({ title: "Missing ZIP", description: "Enter a ZIP code.", variant: "destructive" });
+      return;
+    }
+    setStep(4);
+  }
+
   async function handleLimitsNext() {
     const s = Math.round(parseFloat(spendingLimit || "0") * 100);
     const d = Math.round(parseFloat(dailyLimit || "0") * 100);
@@ -665,7 +712,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+              <Button onClick={handleCardDetailsNext} className="flex-1 gap-2" data-testid="button-r5-step3-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -767,7 +814,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={() => setStep(4)} className="flex-1 gap-2" data-testid="button-r5-step4-next">
+              <Button onClick={handleAddressNext} className="flex-1 gap-2" data-testid="button-r5-step4-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
