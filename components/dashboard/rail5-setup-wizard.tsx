@@ -219,13 +219,12 @@ function Rail5InteractiveCard({
 
           <div className="flex-1 flex flex-col items-start justify-center">
             <div className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm relative overflow-hidden">
-              <div className="absolute inset-0 grid grid-cols-3">
-                <div className="border-r border-amber-600/25" />
-                <div className="border-x border-amber-600/25" />
-                <div className="border-l border-amber-600/25" />
-              </div>
-              <div className="absolute left-0 right-0 top-1/3 h-px bg-amber-600/25" />
-              <div className="absolute left-0 right-0 top-2/3 h-px bg-amber-600/25" />
+              <div className="absolute top-0 bottom-0 left-[25%] w-px bg-amber-600/25" />
+              <div className="absolute top-0 bottom-0 left-[50%] w-px bg-amber-600/25" />
+              <div className="absolute top-0 bottom-0 left-[72%] w-px bg-amber-600/25" />
+              <div className="absolute top-0 bottom-0 left-[88%] w-px bg-amber-600/25" />
+              <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-600/25" />
+              <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-600/25" />
             </div>
             <div
               className={`relative w-4/5 border-b-2 ${numberBorder} pb-1 transition-all cursor-text`}
