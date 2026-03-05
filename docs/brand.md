@@ -54,6 +54,22 @@ The palette is vibrant but soft, avoiding harsh neons. It uses a "Lobster Orange
   - *Secondary:* White with subtle borders.
   - *Icon Buttons:* Circular, often transparent until hovered.
 
+### Form Validation
+
+All form validation across the platform uses a consistent, branded style tied to the theme's `--destructive` color variable.
+
+| State | CSS Class | Visual |
+| :--- | :--- | :--- |
+| **Error** | `.form-field-error` | Red border + subtle red ring glow (`hsl(var(--destructive))`) |
+| **Valid** | `.form-field-valid` | Green border + subtle green ring glow (`hsl(142 71% 45%)`) |
+| **Error text** | `.form-field-error-text` | Small red text below the field, 0.75rem, destructive color |
+
+- Apply `.form-field-error` to any `<input>`, `<select>`, or `<textarea>` that fails validation.
+- Use `.form-field-error-text` for the inline error message directly below the field.
+- Use `.form-field-valid` sparingly for positive confirmation (e.g., completed card fields).
+- On dark backgrounds (e.g., on-card fields), use the separate `.card-field-error` / `.card-field-valid` classes from `lib/card/card.css` which are tuned for dark surfaces.
+- Prefer inline field highlighting over toast notifications for form validation errors.
+
 ## Brand Assets
 
 - **Hero Image:** A 3D clay-style lobster claw holding a black CreditClaw card.

@@ -3,6 +3,9 @@
 ## Overview
 CreditClaw is a prepaid spending controls platform designed for AI agents within the OpenClaw ecosystem. It enables owners to fund bot wallets using their credit cards and enforce strict spending limits (per-transaction, daily, monthly caps, category blocking, approval modes). The platform offers a consumer landing page for immediate sign-up, a waitlist for virtual card issuance, and a dashboard for managing wallets, transactions, and spending controls. Its core purpose is to provide a secure and controlled financial environment for AI agents, focusing on a prepaid model. It also supports bots receiving payments via links and features a "Split-Knowledge Card Model" for enhanced transaction privacy. The project aims to become the leading financial control and payment solution for AI agents.
 
+## Brand Guide
+See `docs/brand.md` for the full brand identity reference — covers color palette, typography, UI design system, and form validation patterns. All new UI work should align with the styles and CSS classes documented there.
+
 ## User Preferences
 - **Design theme:** "Fun Consumer" — 3D clay/claymation aesthetic, coral lobster mascot, bright pastels (orange/blue/purple)
 - **Font:** Plus Jakarta Sans

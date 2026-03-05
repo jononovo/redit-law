@@ -87,6 +87,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [zip, setZip] = useState("");
   const [country, setCountry] = useState("US");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [addressErrors, setAddressErrors] = useState<{ address?: boolean; city?: boolean; zip?: boolean }>({});
 
   const [encryptionDone, setEncryptionDone] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
@@ -176,6 +177,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDeliveryAttempted(false);
     setCopied(false);
     setCardErrors({});
+    setAddressErrors({});
     setShowExitConfirm(false);
   }, []);
 
@@ -353,22 +355,16 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   function handleAddressNext() {
-    if (!address.trim()) {
-      toast({ title: "Missing address", description: "Enter a street address.", variant: "destructive" });
+    const errs: { address?: boolean; city?: boolean; zip?: boolean } = {
+      address: !address.trim(),
+      city: !city.trim(),
+      zip: !zip.trim(),
+    };
+    if (Object.values(errs).some(Boolean)) {
+      setAddressErrors(errs);
       return;
     }
-    if (!city.trim()) {
-      toast({ title: "Missing city", description: "Enter a city.", variant: "destructive" });
-      return;
-    }
-    if (!state.trim()) {
-      toast({ title: "Missing state", description: "Enter a state.", variant: "destructive" });
-      return;
-    }
-    if (!zip.trim()) {
-      toast({ title: "Missing ZIP", description: "Enter a ZIP code.", variant: "destructive" });
-      return;
-    }
+    setAddressErrors({});
     setStep(4);
   }
 
@@ -672,7 +668,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                   id="r5-address"
                   placeholder="123 Main St"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => { setAddress(e.target.value); setAddressErrors((p) => ({ ...p, address: false })); }}
+                  className={addressErrors.address ? "form-field-error" : ""}
                   data-testid="input-r5-address"
                 />
               </div>
@@ -680,7 +677,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label htmlFor="r5-city">City</Label>
-                  <Input id="r5-city" placeholder="New York" value={city} onChange={(e) => setCity(e.target.value)} data-testid="input-r5-city" />
+                  <Input id="r5-city" placeholder="New York" value={city} onChange={(e) => { setCity(e.target.value); setAddressErrors((p) => ({ ...p, city: false })); }} className={addressErrors.city ? "form-field-error" : ""} data-testid="input-r5-city" />
                 </div>
                 <div>
                   <Label htmlFor="r5-state">State</Label>
@@ -688,7 +685,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 </div>
                 <div>
                   <Label htmlFor="r5-zip">ZIP</Label>
-                  <Input id="r5-zip" placeholder="10001" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 10))} data-testid="input-r5-zip" />
+                  <Input id="r5-zip" placeholder="10001" value={zip} onChange={(e) => { setZip(e.target.value.replace(/\D/g, "").slice(0, 10)); setAddressErrors((p) => ({ ...p, zip: false })); }} className={addressErrors.zip ? "form-field-error" : ""} data-testid="input-r5-zip" />
                 </div>
               </div>
 
