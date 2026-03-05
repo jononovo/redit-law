@@ -144,6 +144,7 @@ function Rail5InteractiveCard({
   const holderRef = useRef<HTMLInputElement>(null);
   const monthRef = useRef<HTMLSelectElement>(null);
   const yearRef = useRef<HTMLSelectElement>(null);
+  const [numberFocused, setNumberFocused] = useState(false);
 
   useEffect(() => {
     numberRef.current?.focus();
@@ -165,21 +166,23 @@ function Rail5InteractiveCard({
   const numberFilled = cleanNumber.length === expectedDigits;
 
   const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-sm px-2 py-1";
+  const defaultBorder = "border-white/20 hover:border-white/40";
+  const defaultInputBorder = "border-white/20 hover:border-white/40 focus:border-white/50";
   const numberBorder = errors.number
     ? errCls
-    : numberFilled ? "border-green-400" : "border-white/20";
+    : numberFilled ? "border-green-400" : numberFocused ? "border-white/50" : defaultBorder;
   const monthBorder = errors.month
     ? errCls
-    : monthFilled ? "border-green-400" : "border-white/20";
+    : monthFilled ? "border-green-400" : defaultInputBorder;
   const yearBorder = errors.year
     ? errCls
-    : yearFilled ? "border-green-400" : "border-white/20";
+    : yearFilled ? "border-green-400" : defaultInputBorder;
   const cvvBorder = errors.cvv
     ? errCls
-    : cvvFilled ? "border-green-400" : "border-white/20";
+    : cvvFilled ? "border-green-400" : defaultInputBorder;
   const nameBorder = errors.name
     ? errCls
-    : nameFilled ? "border-green-400" : "border-white/20";
+    : nameFilled ? "border-green-400" : defaultInputBorder;
 
   return (
     <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
@@ -231,6 +234,8 @@ function Rail5InteractiveCard({
                 type="text"
                 inputMode="numeric"
                 value={formatted}
+                onFocus={() => setNumberFocused(true)}
+                onBlur={() => setNumberFocused(false)}
                 onChange={(e) => {
                   const digits = e.target.value.replace(/\D/g, "");
                   const brand = detectCardBrand(digits);
@@ -240,16 +245,30 @@ function Rail5InteractiveCard({
                 data-testid="input-r5-card-number"
                 autoComplete="off"
               />
-              <div className="font-mono text-2xl tracking-[0.15em] flex" aria-hidden="true">
-                {getCardPlaceholder(detectedBrand).split("").map((ch, i) => {
-                  if (ch === " ") return <span key={i} className="w-3" />;
-                  const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
-                  return (
-                    <span key={i} className={typed ? "text-white" : "text-white/25"}>
-                      {typed || "0"}
-                    </span>
-                  );
-                })}
+              <div className="font-mono text-2xl tracking-[0.15em] flex items-center" aria-hidden="true">
+                {(() => {
+                  const placeholder = getCardPlaceholder(detectedBrand);
+                  let cursorPos = formatted.length;
+                  while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
+                  return placeholder.split("").map((ch, i) => {
+                    if (ch === " ") return <span key={i} className="w-3" />;
+                    const showCursor = numberFocused && !numberFilled && i === cursorPos;
+                    const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
+                    return (
+                      <span key={i} className="relative">
+                        {showCursor && (
+                          <span
+                            className="absolute -left-px top-0 w-[2px] h-full bg-white"
+                            style={{ animation: "blink 1s step-end infinite" }}
+                          />
+                        )}
+                        <span className={typed ? "text-white" : "text-white/25"}>
+                          {typed || "0"}
+                        </span>
+                      </span>
+                    );
+                  });
+                })()}
               </div>
             </div>
 
