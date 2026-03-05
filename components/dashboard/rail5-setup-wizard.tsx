@@ -565,7 +565,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="r5-card-name">Card Name</Label>
                 <Input
                   id="r5-card-name"
                   placeholder="e.g. Harry's Visa"
