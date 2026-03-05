@@ -396,6 +396,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         city: city,
         state: state,
         zip: zip,
+        country: country,
       });
       setEncryptionDone(true);
 
@@ -705,7 +706,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 </div>
               </div>
 
-              <div>
+              <div className="flex flex-col items-center">
                 <button
                   type="button"
                   onClick={() => setShowCountryPicker(!showCountryPicker)}
@@ -716,7 +717,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                   <ChevronDown className={`w-3 h-3 transition-transform ${showCountryPicker ? "rotate-180" : ""}`} />
                 </button>
                 {showCountryPicker && (
-                  <div className="mt-2">
+                  <div className="mt-2 w-full">
                     <Label htmlFor="r5-country">Country</Label>
                     <select
                       id="r5-country"
