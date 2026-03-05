@@ -164,7 +164,7 @@ function Rail5InteractiveCard({
   const nameFilled = !!holderName.trim();
   const numberFilled = cleanNumber.length === expectedDigits;
 
-  const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-md px-2 py-1";
+  const errCls = "!border border-red-400 ring-2 ring-red-400/40 rounded-sm px-2 py-1";
   const numberBorder = errors.number
     ? errCls
     : numberFilled ? "border-green-400" : "border-white/20";
