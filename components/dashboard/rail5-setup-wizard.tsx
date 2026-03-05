@@ -218,7 +218,7 @@ function Rail5InteractiveCard({
                 onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
               }}
               placeholder={getCardPlaceholder(detectedBrand)}
-              className={`w-full bg-transparent border-b-2 ${numberBorder} focus:border-amber-300 text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-all`}
+              className={`w-4/5 bg-transparent border-b-2 ${numberBorder} text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-all`}
               data-testid="input-r5-card-number"
               autoComplete="off"
             />
@@ -261,7 +261,7 @@ function Rail5InteractiveCard({
                   value={cvv}
                   onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="•••"
-                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all`}
+                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all`}
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
@@ -277,7 +277,7 @@ function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className={`w-full bg-transparent border-b-2 ${nameBorder} focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
+              className={`w-4/5 bg-transparent border-b-2 ${nameBorder} text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
