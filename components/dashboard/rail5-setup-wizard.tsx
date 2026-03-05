@@ -104,6 +104,14 @@ function BrandLogo({ brand }: { brand: CardBrand }) {
   }
 }
 
+interface CardFieldErrors {
+  number?: boolean;
+  month?: boolean;
+  year?: boolean;
+  cvv?: boolean;
+  name?: boolean;
+}
+
 function Rail5InteractiveCard({
   cardNumber,
   onCardNumberChange,
@@ -116,6 +124,7 @@ function Rail5InteractiveCard({
   holderName,
   onHolderNameChange,
   detectedBrand,
+  errors = {},
 }: {
   cardNumber: string;
   onCardNumberChange: (val: string) => void;
@@ -128,6 +137,7 @@ function Rail5InteractiveCard({
   holderName: string;
   onHolderNameChange: (val: string) => void;
   detectedBrand: CardBrand;
+  errors?: CardFieldErrors;
 }) {
   const numberRef = useRef<HTMLInputElement>(null);
   const cvvRef = useRef<HTMLInputElement>(null);
@@ -146,8 +156,29 @@ function Rail5InteractiveCard({
   const currentYear = new Date().getFullYear();
   const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
 
+  const expectedDigits = getMaxDigits(detectedBrand);
+  const minCvv = detectedBrand === "amex" ? 4 : 3;
   const monthFilled = !!expiryMonth;
   const yearFilled = !!expiryYear;
+  const cvvFilled = cvv.length >= minCvv;
+  const nameFilled = !!holderName.trim();
+  const numberFilled = cleanNumber.length === expectedDigits;
+
+  const numberBorder = errors.number
+    ? "border-red-400 ring-2 ring-red-400/40"
+    : numberFilled ? "border-green-400" : "border-white/20";
+  const monthBorder = errors.month
+    ? "border-red-400 ring-1 ring-red-400/40"
+    : monthFilled ? "border-green-400" : "border-white/20";
+  const yearBorder = errors.year
+    ? "border-red-400 ring-1 ring-red-400/40"
+    : yearFilled ? "border-green-400" : "border-white/20";
+  const cvvBorder = errors.cvv
+    ? "border-red-400 ring-2 ring-red-400/40"
+    : cvvFilled ? "border-green-400" : "border-white/20";
+  const nameBorder = errors.name
+    ? "border-red-400 ring-2 ring-red-400/40"
+    : nameFilled ? "border-green-400" : "border-white/20";
 
   return (
     <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
@@ -186,7 +217,7 @@ function Rail5InteractiveCard({
                 onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
               }}
               placeholder={getCardPlaceholder(detectedBrand)}
-              className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-colors"
+              className={`w-full bg-transparent border-b-2 ${numberBorder} focus:border-amber-300 text-white font-mono text-2xl tracking-[0.15em] placeholder:text-white/25 focus:outline-none pb-1 transition-all`}
               data-testid="input-r5-card-number"
               autoComplete="off"
             />
@@ -199,9 +230,7 @@ function Rail5InteractiveCard({
                     ref={monthRef}
                     value={expiryMonth}
                     onChange={(e) => onExpiryMonthChange(e.target.value)}
-                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
-                      monthFilled ? "border-green-400" : "border-white/20"
-                    }`}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${monthBorder}`}
                     data-testid="select-r5-exp-month"
                   >
                     <option value="" className="bg-neutral-800 text-white">MM</option>
@@ -212,9 +241,7 @@ function Rail5InteractiveCard({
                     ref={yearRef}
                     value={expiryYear}
                     onChange={(e) => onExpiryYearChange(e.target.value)}
-                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${
-                      yearFilled ? "border-green-400" : "border-white/20"
-                    }`}
+                    className={`bg-transparent border-b-2 text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 transition-all ${yearBorder}`}
                     data-testid="select-r5-exp-year"
                   >
                     <option value="" className="bg-neutral-800 text-white">YYYY</option>
@@ -233,7 +260,7 @@ function Rail5InteractiveCard({
                   value={cvv}
                   onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="•••"
-                  className="w-14 bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors"
+                  className={`w-14 bg-transparent border-b-2 ${cvvBorder} focus:border-amber-300 text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 transition-all`}
                   data-testid="input-r5-cvv"
                   autoComplete="off"
                 />
@@ -249,7 +276,7 @@ function Rail5InteractiveCard({
               value={holderName}
               onChange={(e) => onHolderNameChange(e.target.value)}
               placeholder="Full Name"
-              className="w-full bg-transparent border-b-2 border-white/20 focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-colors uppercase tracking-wider"
+              className={`w-full bg-transparent border-b-2 ${nameBorder} focus:border-amber-300 text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 transition-all uppercase tracking-wider`}
               data-testid="input-r5-holder"
               autoComplete="off"
             />
@@ -344,9 +371,30 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDirectDeliverySucceeded(false);
     setDeliveryAttempted(false);
     setCopied(false);
+    setCardErrors({});
     setShowExitConfirm(false);
   }, []);
 
+  const [cardErrors, setCardErrors] = useState<CardFieldErrors>({});
+  useEffect(() => {
+    if (Object.keys(cardErrors).length === 0) return;
+    const cleanNum = cardNumber.replace(/\s/g, "");
+    const brand = detectCardBrand(cardNumber);
+    const minCvvLen = brand === "amex" ? 4 : 3;
+    const resolved: CardFieldErrors = {};
+    if (cardErrors.number && cleanNum.length === getMaxDigits(brand)) resolved.number = false;
+    if (cardErrors.month && expMonth) resolved.month = false;
+    if (cardErrors.year && expYear) resolved.year = false;
+    if (cardErrors.cvv && cardCvv.length >= minCvvLen) resolved.cvv = false;
+    if (cardErrors.name && holderName.trim()) resolved.name = false;
+    if (Object.keys(resolved).length > 0) {
+      setCardErrors(prev => {
+        const next = { ...prev };
+        for (const k of Object.keys(resolved) as (keyof CardFieldErrors)[]) delete next[k];
+        return next;
+      });
+    }
+  }, [cardNumber, expMonth, expYear, cardCvv, holderName]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   function handleClose(val: boolean) {
@@ -484,27 +532,19 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   function handleCardDetailsNext() {
     const cleanNumber = cardNumber.replace(/\s/g, "");
     const expectedDigits = getMaxDigits(detectedBrand);
-    if (cleanNumber.length !== expectedDigits) {
-      toast({ title: "Invalid card number", description: `Enter all ${expectedDigits} digits.`, variant: "destructive" });
-      return;
-    }
-    if (!expMonth) {
-      toast({ title: "Missing expiry", description: "Select an expiration month.", variant: "destructive" });
-      return;
-    }
-    if (!expYear) {
-      toast({ title: "Missing expiry", description: "Select an expiration year.", variant: "destructive" });
-      return;
-    }
     const minCvv = detectedBrand === "amex" ? 4 : 3;
-    if (!cardCvv || cardCvv.length < minCvv) {
-      toast({ title: "Invalid CVV", description: `Enter a ${minCvv}-digit CVV.`, variant: "destructive" });
+    const errs: CardFieldErrors = {
+      number: cleanNumber.length !== expectedDigits,
+      month: !expMonth,
+      year: !expYear,
+      cvv: !cardCvv || cardCvv.length < minCvv,
+      name: !holderName.trim(),
+    };
+    if (Object.values(errs).some(Boolean)) {
+      setCardErrors(errs);
       return;
     }
-    if (!holderName.trim()) {
-      toast({ title: "Missing name", description: "Enter the cardholder name.", variant: "destructive" });
-      return;
-    }
+    setCardErrors({});
     setStep(3);
   }
 
@@ -762,6 +802,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               holderName={holderName}
               onHolderNameChange={setHolderName}
               detectedBrand={detectedBrand}
+              errors={cardErrors}
             />
 
             <div className="flex gap-3">
