@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { detectCardBrand, getMaxDigits, formatCardNumber, getCardPlaceholder, type CardBrand } from "@/lib/card/card-brand";
 import { useTemporaryValid, type CardFieldErrors } from "@/lib/card/hooks";
-import { useCipherScramble, CipherOverlay } from "@/lib/card/cipher-effects";
+import { useCipherScramble } from "@/lib/card/cipher-effects";
 import { BrandLogo } from "@/lib/card/brand-logo";
 import "@/lib/card/card.css";
 
@@ -47,6 +47,9 @@ export function Rail5InteractiveCard({
   const formatted = formatCardNumber(cleanNumber, detectedBrand);
 
   const numberCipher = useCipherScramble(formatted, isEncrypting, 0);
+  const expiryCipher = useCipherScramble(`${expiryMonth}/${expiryYear}`, isEncrypting, 150);
+  const cvvCipher = useCipherScramble("•".repeat(cvv.length || 3), isEncrypting, 250);
+  const holderCipher = useCipherScramble(holderName.toUpperCase(), isEncrypting, 350);
 
   useEffect(() => {
     if (!isEncrypting) numberRef.current?.focus();
@@ -119,8 +122,10 @@ export function Rail5InteractiveCard({
               <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-700/40" />
               <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
             </div>
+
+            {/* Card Number */}
             <div
-              className={`relative w-4/5 ${fieldClass(errors.number, numberValid, numberFocused)} cursor-text`}
+              className={`relative w-4/5 pb-1 cursor-text ${fieldClass(errors.number, numberValid, numberFocused)}`}
               onClick={() => numberRef.current?.focus()}
             >
               <input
@@ -141,9 +146,7 @@ export function Rail5InteractiveCard({
               />
               <div className="font-mono text-2xl tracking-[0.15em] flex items-center pointer-events-none" aria-hidden="true">
                 {isEncrypting ? (
-                  <span className="text-white">
-                    {numberCipher.display}
-                  </span>
+                  <span className="text-white">{numberCipher.display}</span>
                 ) : (() => {
                   const placeholder = getCardPlaceholder(detectedBrand);
                   let cursorPos = formatted.length;
@@ -170,67 +173,84 @@ export function Rail5InteractiveCard({
               </div>
             </div>
 
+            {/* Expires + CVV row */}
             <div className="flex items-end justify-end gap-3 mt-3 w-full">
-              <div className="relative">
+              <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
-                <div className={`flex items-center gap-1 ${isEncrypting ? "invisible" : ""}`}>
-                  <select
-                    ref={monthRef}
-                    value={expiryMonth}
-                    onChange={(e) => onExpiryMonthChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer ${fieldClass(errors.month, monthValid)}`}
-                    data-testid="select-r5-exp-month"
-                  >
-                    <option value="" className="bg-neutral-800 text-white">MM</option>
-                    {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
-                  </select>
-                  <span className="text-white/40 text-sm">/</span>
-                  <select
-                    ref={yearRef}
-                    value={expiryYear}
-                    onChange={(e) => onExpiryYearChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer ${fieldClass(errors.year, yearValid)}`}
-                    data-testid="select-r5-exp-year"
-                  >
-                    <option value="" className="bg-neutral-800 text-white">YYYY</option>
-                    {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
-                  </select>
-                </div>
-                <CipherOverlay text={`${expiryMonth}/${expiryYear}`} active={isEncrypting} className="text-white text-sm font-medium" delayOffset={150} />
+                {isEncrypting ? (
+                  <div className={`text-white text-sm font-medium pb-0.5 ${fieldClass()}`}>
+                    {expiryCipher.display}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <select
+                      ref={monthRef}
+                      value={expiryMonth}
+                      onChange={(e) => onExpiryMonthChange(e.target.value)}
+                      className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.month, monthValid)}`}
+                      data-testid="select-r5-exp-month"
+                    >
+                      <option value="" className="bg-neutral-800 text-white">MM</option>
+                      {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
+                    </select>
+                    <span className="text-white/40 text-sm">/</span>
+                    <select
+                      ref={yearRef}
+                      value={expiryYear}
+                      onChange={(e) => onExpiryYearChange(e.target.value)}
+                      className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.year, yearValid)}`}
+                      data-testid="select-r5-exp-year"
+                    >
+                      <option value="" className="bg-neutral-800 text-white">YYYY</option>
+                      {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="relative">
+              <div>
                 <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
-                <input
-                  ref={cvvRef}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={cvv}
-                  onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="•••"
-                  className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none ${fieldClass(errors.cvv, cvvValid)} ${isEncrypting ? "!text-transparent" : ""}`}
-                  data-testid="input-r5-cvv"
-                  autoComplete="off"
-                />
-                <CipherOverlay text={"•".repeat(cvv.length || 3)} active={isEncrypting} className="text-white text-sm font-mono justify-center" delayOffset={250} />
+                {isEncrypting ? (
+                  <div className={`w-14 text-white text-sm font-mono text-center pb-0.5 ${fieldClass()}`}>
+                    {cvvCipher.display}
+                  </div>
+                ) : (
+                  <input
+                    ref={cvvRef}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={cvv}
+                    onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="•••"
+                    className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 ${fieldClass(errors.cvv, cvvValid)}`}
+                    data-testid="input-r5-cvv"
+                    autoComplete="off"
+                  />
+                )}
               </div>
             </div>
           </div>
 
-          <div className="mt-auto relative">
+          {/* Cardholder */}
+          <div className="mt-auto">
             <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
-            <input
-              ref={holderRef}
-              type="text"
-              value={holderName}
-              onChange={(e) => onHolderNameChange(e.target.value)}
-              placeholder="Full Name"
-              className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none uppercase tracking-wider ${fieldClass(errors.name, nameValid)} ${isEncrypting ? "!text-transparent" : ""}`}
-              data-testid="input-r5-holder"
-              autoComplete="off"
-            />
-            <CipherOverlay text={holderName.toUpperCase()} active={isEncrypting} className="text-white text-base font-medium tracking-wider" delayOffset={350} />
+            {isEncrypting ? (
+              <div className={`w-3/4 text-white text-base font-medium uppercase tracking-wider pb-0.5 ${fieldClass()}`}>
+                {holderCipher.display}
+              </div>
+            ) : (
+              <input
+                ref={holderRef}
+                type="text"
+                value={holderName}
+                onChange={(e) => onHolderNameChange(e.target.value)}
+                placeholder="Full Name"
+                className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none uppercase tracking-wider pb-0.5 ${fieldClass(errors.name, nameValid)}`}
+                data-testid="input-r5-holder"
+                autoComplete="off"
+              />
+            )}
           </div>
         </div>
       </div>

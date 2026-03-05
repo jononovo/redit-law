@@ -60,15 +60,3 @@ export function useCipherScramble(text: string, active: boolean, delayOffset: nu
 
   return { display, settled };
 }
-
-export function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: string; active: boolean; className?: string; delayOffset?: number }) {
-  const { display } = useCipherScramble(text, active, delayOffset);
-  if (!active || !text) return null;
-  return (
-    <span
-      className={`absolute inset-0 flex items-center pointer-events-none ${className || ""}`}
-    >
-      {display}
-    </span>
-  );
-}

@@ -135,7 +135,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
 - **Card UI Module (`lib/card/`):** Shared card component library designed for consistent card visuals across the platform.
   - `card-brand.ts` — brand detection from BIN prefix, formatting, max digits, placeholders. Re-exported from `lib/card-brand.ts` for backward compatibility.
   - `brand-logo.tsx` — visual brand logo component (Visa/MC/Amex/Discover/JCB/Diners).
-  - `cipher-effects.tsx` — `useCipherScramble` hook and `CipherOverlay` component for encryption animations.
+  - `cipher-effects.tsx` — `useCipherScramble` hook for encryption scramble animations.
   - `hooks.ts` — `useTemporaryValid` hook (5-second green validation flash), `CardFieldErrors` interface.
   - `card.css` — shared CSS for card field states (`.card-field`, `.card-field-valid`, `.card-field-error`, `.card-field-focused`).
   - `index.ts` — barrel re-export for shared utilities.
