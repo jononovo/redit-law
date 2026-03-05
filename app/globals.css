@@ -64,7 +64,7 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --success: 142 71% 45%;
+  --success: 142 71% 45%; /* Currently matches Tailwind green-500 */
   --success-foreground: 0 0% 100%;
 
   --border: 214 32% 91%;
