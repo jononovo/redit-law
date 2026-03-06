@@ -764,7 +764,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <p className="text-sm text-neutral-500 mt-1">Set guardrails for how your bot can spend.</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="r5-per-checkout">Per-Transaction Limit ($)</Label>
                 <Input
