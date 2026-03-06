@@ -761,7 +761,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 <Shield className="w-6 h-6 text-orange-600" />
               </div>
               <h2 className="text-xl font-bold text-neutral-900">Spending Limits</h2>
-              <p className="text-sm text-neutral-500 mt-1">Set guardrails for how your bot can spend.</p>
+              <p className="text-sm text-neutral-500 mt-1">Set hardened guardrails for how your bot can spend.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
