@@ -351,7 +351,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       return;
     }
     setCardErrors({});
-    setStep(3);
+    setStep(4);
   }
 
   function handleAddressNext() {
@@ -365,7 +365,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       return;
     }
     setAddressErrors({});
-    setStep(4);
+    setStep(5);
   }
 
   async function handleLimitsNext() {
@@ -392,7 +392,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         }),
       });
       if (!res.ok) throw new Error("Failed to update limits");
-      setStep(5);
+      setStep(3);
     } catch {
       toast({ title: "Error", description: "Failed to save spending limits.", variant: "destructive" });
     } finally {
@@ -579,7 +579,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="space-y-6" data-testid="r5-step-card-entry">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
@@ -617,7 +617,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               ) : (
                 <Button
                   variant="outline"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   className="flex-1 gap-2"
                   data-testid="button-r5-step3-back"
                 >
@@ -652,7 +652,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-6" data-testid="r5-step-address">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
@@ -744,17 +744,17 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1 gap-2" data-testid="button-r5-step4-back">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step5-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={handleAddressNext} className="flex-1 gap-2" data-testid="button-r5-step4-next">
+              <Button onClick={handleAddressNext} className="flex-1 gap-2" data-testid="button-r5-step5-next">
                 Next <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {step === 4 && /* Spending Limits */ (
+        {step === 2 && /* Spending Limits */ (
           <div className="space-y-6" data-testid="r5-step-limits">
             <div className="text-center">
               <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-3">
@@ -836,10 +836,10 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(3)} className="flex-1 gap-2" data-testid="button-r5-step5-back">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1 gap-2" data-testid="button-r5-step3-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
-              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step5-next">
+              <Button onClick={handleLimitsNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step3-next">
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                 Next
               </Button>
