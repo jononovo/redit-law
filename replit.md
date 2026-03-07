@@ -52,14 +52,25 @@ New features should follow a feature-first folder structure. Each rail lives und
 - **Fully separated from guardrails**: Domain/merchant/category lists are exclusively managed by `procurement_controls`. The guardrails tables (`privy_guardrails`, `crossmint_guardrails`, `rail4_guardrails`, `rail5_guardrails`) no longer have `allowlisted_domains`, `blocklisted_domains`, `allowlisted_merchants`, or `blocklisted_merchants` columns. The guardrails GET APIs still return these fields in the response by reading from `procurement_controls`, maintaining backward compatibility. The card-wallet frontend saves merchant lists to `POST /api/v1/procurement-controls` separately from guardrail limit saves.
 
 **Bot Messaging System** (`lib/bot-messaging/`):
-- `index.ts` — `sendToBot(botId, eventType, payload, options?)`: single function for all bot communication. Tries webhook first (via `fireWebhook()`), falls back to staging a pending message in `bot_pending_messages` table.
+- `index.ts` — `sendToBot(botId, eventType, payload, options?)`: single function for all bot communication. Routes based on webhook health: tries webhook if status is `active` or `degraded`, skips webhook and goes straight to pending message if `unreachable` or `none`.
 - `expiry.ts` — per-event-type expiry config (`rail5.card.delivered` = 24h, general = 7 days).
+- **Webhook Health Tracking**: `webhookStatus` (text, default `none`) and `webhookFailCount` (integer, default 0) columns on the `bots` table.
+  - `active` — webhook configured and working, events delivered via webhook
+  - `degraded` — 1 consecutive failure, still tries webhook on next delivery
+  - `unreachable` — 2+ consecutive failures, skips webhook entirely, stages pending messages
+  - `none` — no webhook configured
+  - On success: resets to `active`, fail count to 0. On failure: increments count, transitions `active→degraded→unreachable`.
+  - Auto-initialized on bot registration: `active` if `callback_url` is provided, `none` otherwise.
+  - Health updates are fire-and-forget (don't block message staging).
+  - Recovery: owner updates webhook URL (resets to `active`), or bot re-registers.
 - DB table: `bot_pending_messages` (id, botId, eventType, payload JSONB, stagedAt, expiresAt, status).
 - Bot API: `GET /api/v1/bot/messages` (fetch pending, lazy purge), `POST /api/v1/bot/messages/ack` (acknowledge/delete).
 - Owner API: `POST /api/v1/bot-messages/send` (owner-authenticated, calls `sendToBot()`).
-- `GET /bot/status` includes `pending_messages` count.
+- `GET /bot/status` includes `pending_messages` count, `webhook_status`, `webhook_fail_count`.
+- `GET /bots/mine` includes `webhook_status` per bot.
 - Messages stay `pending` until explicit ack (not marked on GET). Expired messages are lazily purged.
 - Rail 5 `confirm-delivery` also deletes the pending message for the card.
+- **Note**: Direct `fireWebhook()` callers (~20 sites across the codebase) do not participate in health tracking — only `sendToBot()` does. Migration of those callers to `sendToBot()` is a future task.
 
 **Storage is modularized** under `server/storage/` with domain-grouped files:
 - `types.ts` — the `IStorage` interface (single source of truth for all method signatures)

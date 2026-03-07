@@ -16,6 +16,7 @@ import type { IStorage } from "./types";
 type CoreMethods = Pick<IStorage,
   | "createBot" | "getBotByClaimToken" | "getBotByBotId" | "getBotsByOwnerEmail"
   | "getBotsByOwnerUid" | "claimBot" | "updateBotDefaultRail" | "checkDuplicateRegistration"
+  | "updateBotWebhookHealth"
   | "createWallet" | "getWalletByBotId" | "getWalletByOwnerUid" | "creditWallet"
   | "createTransaction" | "getTransactionsByWalletId"
   | "getPaymentMethod" | "getPaymentMethods" | "getPaymentMethodById"
@@ -83,6 +84,25 @@ export const coreMethods: CoreMethods = {
       .where(and(eq(bots.botId, botId), eq(bots.ownerUid, ownerUid)))
       .returning();
     return updated || null;
+  },
+
+  async updateBotWebhookHealth(botId: string, status: string, failCount: number): Promise<void> {
+    if (status === "active") {
+      await db
+        .update(bots)
+        .set({ webhookStatus: "active", webhookFailCount: 0 })
+        .where(eq(bots.botId, botId));
+    } else {
+      await db.execute(sql`
+        UPDATE bots
+        SET webhook_fail_count = webhook_fail_count + 1,
+            webhook_status = CASE
+              WHEN webhook_fail_count + 1 >= 2 THEN 'unreachable'
+              ELSE 'degraded'
+            END
+        WHERE bot_id = ${botId}
+      `);
+    }
   },
 
   async checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean> {

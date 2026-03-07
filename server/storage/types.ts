@@ -66,6 +66,7 @@ export interface IStorage {
   getBotsByOwnerUid(ownerUid: string): Promise<Bot[]>;
   claimBot(claimToken: string, ownerUid: string): Promise<Bot | null>;
   updateBotDefaultRail(botId: string, ownerUid: string, defaultRail: string | null): Promise<Bot | null>;
+  updateBotWebhookHealth(botId: string, status: string, failCount: number): Promise<void>;
   checkDuplicateRegistration(botName: string, ownerEmail: string): Promise<boolean>;
 
   createWallet(data: InsertWallet): Promise<Wallet>;
