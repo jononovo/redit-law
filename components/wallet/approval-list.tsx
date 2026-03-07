@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 export interface ApprovalRow {
   id: number;
   approval_id?: string;
+  rail?: string;
   amount_display: string;
   status: string;
   expires_at: string;
@@ -17,14 +18,27 @@ export interface ApprovalRow {
   shipping_address?: Record<string, string> | null;
 }
 
+const RAIL_LABELS: Record<string, string> = {
+  rail1: "Stripe Wallet",
+  rail2: "Card Wallet",
+  rail4: "Split-Knowledge",
+  rail5: "Sub-Agent",
+};
+
+function isCommerceRow(row: ApprovalRow, listVariant?: "crypto" | "commerce"): boolean {
+  if (listVariant) return listVariant === "commerce";
+  return row.rail === "rail2" || row.rail === "rail4" || row.rail === "rail5";
+}
+
 interface ApprovalListProps {
   approvals: ApprovalRow[];
   onDecide: (id: number | string, decision: "approve" | "reject") => void;
   variant?: "crypto" | "commerce";
+  showRailBadge?: boolean;
   testIdPrefix?: string;
 }
 
-export function ApprovalList({ approvals, onDecide, variant = "crypto", testIdPrefix = "approval" }: ApprovalListProps) {
+export function ApprovalList({ approvals, onDecide, variant, showRailBadge = false, testIdPrefix = "approval" }: ApprovalListProps) {
   if (approvals.length === 0) {
     return (
       <div className="text-center py-16" data-testid={`text-no-${testIdPrefix}s`}>
@@ -43,12 +57,17 @@ export function ApprovalList({ approvals, onDecide, variant = "crypto", testIdPr
           data-testid={`card-${testIdPrefix}-${a.approval_id || a.id}`}
         >
           <div className="flex-1">
-            {variant === "commerce" ? (
+            {isCommerceRow(a, variant) ? (
               <>
                 <div className="flex items-center gap-2">
                   <Package className="w-4 h-4 text-neutral-500" />
                   <span className="font-semibold text-neutral-900">{a.amount_display}</span>
                   {a.bot_name && <span className="text-xs text-neutral-400">by {a.bot_name}</span>}
+                  {showRailBadge && a.rail && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500" data-testid={`badge-rail-${a.approval_id || a.id}`}>
+                      {RAIL_LABELS[a.rail] || a.rail}
+                    </span>
+                  )}
                 </div>
                 {(a.merchant_name || a.item_name) && (
                   <p className="text-sm text-neutral-500 mt-1">
@@ -66,7 +85,14 @@ export function ApprovalList({ approvals, onDecide, variant = "crypto", testIdPr
               </>
             ) : (
               <>
-                <p className="font-semibold text-neutral-900">{a.amount_display}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-neutral-900">{a.amount_display}</p>
+                  {showRailBadge && a.rail && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-500" data-testid={`badge-rail-${a.approval_id || a.id}`}>
+                      {RAIL_LABELS[a.rail] || a.rail}
+                    </span>
+                  )}
+                </div>
                 {a.resource_url && (
                   <p className="text-sm text-neutral-500 truncate max-w-[300px]">{a.resource_url}</p>
                 )}

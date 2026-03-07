@@ -404,7 +404,7 @@ Rail 1 (`stripe-wallet/page.tsx`, ~313 lines) and Rail 2 (`card-wallet/page.tsx`
 - `/card-wallet`: Rail 2 dashboard
 - `/self-hosted`: Self-hosted card management (Rail 4)
 - `/sub-agent-cards`: Sub-agent card management (Rail 5)
-- `/transactions`: Transaction history
+- `/transactions`: Transaction history, orders, and unified approvals (three tabs)
 - `/skill-builder/submit`: Community vendor skill submission
 - `/skill-builder/review/[id]/versions`: Version history with diff view and rollback
 - `/skill-builder/export`: Export delta report for ClawHub.ai and skills.sh
