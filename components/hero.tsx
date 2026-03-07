@@ -11,13 +11,13 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
 const ROTATING_PHRASES = [
-  "a credit card.",
-  "a crypto wallet.",
-  "a product checkout.",
-  "a store front.",
-  "invoicing.",
-  "accounting tools.",
-  "a business machine.",
+  "a Credit Card.",
+  "a Wallet.",
+  "Products.",
+  "a Store Front.",
+  "Invoicing.",
+  "Accounting.",
+  "a Business.",
 ];
 
 export function Hero() {
@@ -35,7 +35,7 @@ export function Hero() {
         setPhraseIndex((prev) => (prev + 1) % ROTATING_PHRASES.length);
         setIsAnimating(false);
       }, 300);
-    }, 1800);
+    }, 2500);
     return () => {
       clearInterval(timer);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);

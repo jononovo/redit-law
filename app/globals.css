@@ -28,6 +28,8 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -61,6 +63,9 @@
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
+
+  --success: 142 71% 45%; /* Currently matches Tailwind green-500 */
+  --success-foreground: 0 0% 100%;
 
   --border: 214 32% 91%;
   --input: 214 32% 91%;
@@ -148,14 +153,14 @@
 }
 
 .form-field-valid {
-  border-color: hsl(142 71% 45%);
-  box-shadow: 0 0 0 2px hsl(142 71% 45% / 0.25);
+  border-color: hsl(var(--success));
+  box-shadow: 0 0 0 2px hsl(var(--success) / 0.25);
 }
 
 .form-field-valid:focus,
 .form-field-valid:focus-visible {
-  border-color: hsl(142 71% 45%);
-  box-shadow: 0 0 0 2px hsl(142 71% 45% / 0.35);
+  border-color: hsl(var(--success));
+  box-shadow: 0 0 0 2px hsl(var(--success) / 0.35);
   outline: none;
 }
 

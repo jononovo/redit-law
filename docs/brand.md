@@ -41,6 +41,7 @@ The palette is vibrant but soft, avoiding harsh neons. It uses a "Lobster Orange
 | **Fun Purple** | `hsl(260 90% 65%)` | Accents, gradients, "magic" moments |
 | **Deep Navy** | `hsl(222 47% 11%)` | Primary text, strong contrast elements |
 | **Soft Cloud** | `hsl(210 40% 98%)` | Page backgrounds, subtle surfaces |
+| **Success Green** | `hsl(142 71% 45%)` | Validation success, positive confirmations, enabled states. Currently matches Tailwind `green-500`. |
 | **White** | `#FFFFFF` | Cards, input fields, popovers |
 
 ### UI Design System ("Fun Consumer")
@@ -61,7 +62,7 @@ All form validation across the platform uses a consistent, branded style tied to
 | State | CSS Class | Visual |
 | :--- | :--- | :--- |
 | **Error** | `.form-field-error` | Red border + subtle red ring glow (`hsl(var(--destructive))`) |
-| **Valid** | `.form-field-valid` | Green border + subtle green ring glow (`hsl(142 71% 45%)`) |
+| **Valid** | `.form-field-valid` | Green border + subtle green ring glow (`hsl(var(--success))`) |
 | **Error text** | `.form-field-error-text` | Small red text below the field, 0.75rem, destructive color |
 
 - Apply `.form-field-error` to any `<input>`, `<select>`, or `<textarea>` that fails validation.
