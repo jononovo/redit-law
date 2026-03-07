@@ -340,7 +340,7 @@ Fired when a Rail5 checkout fails (card declined, vendor error, etc.).
 
 ### `rail5.card.delivered`
 
-Fired when an encrypted card is securely delivered to the bot for use.
+Fired when an encrypted card is securely delivered to the bot for use. The payload includes the encrypted card file, a suggested save path, and instructions for confirming delivery.
 
 ```json
 {
@@ -348,12 +348,40 @@ Fired when an encrypted card is securely delivered to the bot for use.
   "timestamp": "2025-01-15T09:05:00.000Z",
   "bot_id": "bot_abc123",
   "data": {
-    "card_id": "card_jkl012",
-    "last_four": "4242",
-    "message": "Encrypted card details have been delivered to the bot."
+    "card_id": "r5card_abc123",
+    "card_name": "My Card",
+    "card_last4": "4242",
+    "file_content": "--- CREDITCLAW ENCRYPTED CARD FILE ---\n...",
+    "suggested_path": ".creditclaw/cards/Card-MyCard-4242.md",
+    "instructions": "Check for your encrypted card file: ..."
   }
 }
 ```
+
+**Expected bot behavior after receiving this event:**
+
+1. Save `file_content` to `.creditclaw/cards/` (or the path in `suggested_path`)
+2. Acknowledge the message via `POST /api/v1/bot/messages/ack` (if received via polling)
+3. Confirm delivery by calling:
+
+```
+POST /api/v1/bot/rail5/confirm-delivery
+Authorization: Bearer BOT_API_KEY
+```
+
+**Response:**
+
+```json
+{
+  "status": "confirmed",
+  "card_id": "r5card_abc123",
+  "card_name": "My Card",
+  "message": "Card confirmed. Run a test purchase to verify everything works.",
+  "test_checkout_url": "https://creditclaw.com/checkout/to-be-confirmed"
+}
+```
+
+This advances the card from `pending_delivery` → `confirmed` and returns a test checkout URL where the bot can verify the card works end-to-end.
 
 ---
 

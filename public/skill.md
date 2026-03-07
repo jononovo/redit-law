@@ -1164,16 +1164,7 @@ Look for messages with `event_type: "rail5.card.delivered"`. The payload contain
 
 **Save the file** to `.creditclaw/cards/` (or the path in `suggested_path`). The file is self-contained — it includes the decrypt script between `DECRYPT_SCRIPT_START/END` markers and the encrypted data between `ENCRYPTED_CARD_START/END` markers.
 
-Then confirm delivery:
-
-```
-POST /api/v1/bot/rail5/confirm-delivery
-Authorization: Bearer YOUR_API_KEY
-```
-
-**Response:** `{ "status": "confirmed", "card_id": "r5card_...", "message": "Delivery confirmed. Card is now ready for checkout." }`
-
-This moves your card from `pending_delivery` to `confirmed`. You can now initiate checkouts.
+Follow the `instructions` field in the message payload for next steps — it will guide you through confirming delivery and testing your card.
 
 **Recovery:** If you lose the file, your owner deletes the card and creates a new one through the setup wizard. The file is re-delivered automatically.
 
