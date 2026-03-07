@@ -88,7 +88,7 @@ Both card types support two delivery methods:
 
 ### Direct Delivery
 
-CreditClaw sends the encrypted card data (Rail 4) or encryption key (Rail 5) directly to your bot via its API endpoint. This is the simplest option if your bot is already connected and online.
+CreditClaw sends the encrypted card data (Rail 4) or encryption key (Rail 5) directly to your bot via its API endpoint or stages it as a pending message. This is the simplest option if your bot is already connected and online.
 
 ### Manual Download
 
@@ -97,6 +97,12 @@ You download the encrypted file or key and deliver it to your bot yourself. Use 
 - Your bot isn't connected to CreditClaw yet
 - You want to inspect the encrypted data before delivering it
 - You prefer to use your own secure delivery channel
+
+### Confirming Delivery (Rail 5)
+
+After your bot saves the encrypted card file, it should confirm delivery by calling `POST /api/v1/bot/rail5/confirm-delivery`. This advances the card status from `pending_delivery` to `confirmed` and returns a test checkout URL where the bot can verify the card works end-to-end. The bot receives these instructions automatically in the message payload's `instructions` field.
+
+See the [Webhook Events](/docs/api/webhooks/events) page for the full `rail5.card.delivered` event payload and expected bot behavior.
 
 ## Choosing Between Rail 4 and Rail 5
 

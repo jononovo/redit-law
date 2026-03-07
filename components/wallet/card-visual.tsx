@@ -67,7 +67,7 @@ export function CardVisual({
   const statusLabels: Record<string, string> = {
     active: "Active",
     pending_setup: "Pending Setup",
-    pending_delivery: "Awaiting Bot",
+    pending_delivery: "Ready to Test",
     confirmed: "Confirmed",
     awaiting_bot: "Awaiting Bot",
     frozen: "Frozen",

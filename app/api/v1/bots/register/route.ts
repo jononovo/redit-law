@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
           walletStatus: "active",
           callbackUrl: callback_url || null,
           webhookSecret,
+          webhookStatus: callback_url ? "active" : "none",
+          webhookFailCount: 0,
           ownerUid: pairingCodeRecord.ownerUid,
           claimedAt: new Date(),
         }).returning();
@@ -164,6 +166,8 @@ export async function POST(request: NextRequest) {
       walletStatus: "pending",
       callbackUrl: callback_url || null,
       webhookSecret,
+      webhookStatus: callback_url ? "active" : "none",
+      webhookFailCount: 0,
       ownerUid: null,
       claimedAt: null,
     });

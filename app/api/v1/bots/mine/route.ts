@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
         description: bot.description,
         wallet_status: bot.walletStatus,
         default_rail: bot.defaultRail || null,
+        webhook_status: bot.webhookStatus || "none",
+        webhook_fail_count: bot.webhookFailCount || 0,
         created_at: bot.createdAt,
         claimed_at: bot.claimedAt,
       })),

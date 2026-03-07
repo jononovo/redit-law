@@ -29,6 +29,8 @@ export const POST = withBotApi("/api/v1/bot/rail5/confirm-delivery", async (_req
   return NextResponse.json({
     status: "confirmed",
     card_id: card.cardId,
-    message: "Delivery confirmed. Card is now ready for checkout.",
+    card_name: card.cardName,
+    message: "Card confirmed. Run a test purchase to verify everything works.",
+    test_checkout_url: "https://creditclaw.com/checkout/to-be-confirmed",
   });
 });

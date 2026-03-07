@@ -124,7 +124,10 @@ Returns the bot's current status, active payment rails, spending limits, and mas
     "per_transaction_usd": 100,
     "daily_budget_usd": 200,
     "monthly_budget_usd": 1000
-  }
+  },
+  "pending_messages": 0,
+  "webhook_status": "active",
+  "webhook_fail_count": 0
 }
 ```
 
