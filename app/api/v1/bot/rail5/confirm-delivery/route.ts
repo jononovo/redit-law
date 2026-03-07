@@ -20,6 +20,12 @@ export const POST = withBotApi("/api/v1/bot/rail5/confirm-delivery", async (_req
 
   await storage.updateRail5Card(card.cardId, { status: "confirmed" });
 
+  try {
+    await storage.deletePendingMessagesByRef(bot.botId, "rail5.card.delivered", "card_id", card.cardId);
+  } catch (err) {
+    console.error("[confirm-delivery] Failed to clean up pending messages:", err);
+  }
+
   return NextResponse.json({
     status: "confirmed",
     card_id: card.cardId,

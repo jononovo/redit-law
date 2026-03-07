@@ -51,6 +51,16 @@ New features should follow a feature-first folder structure. Each rail lives und
 - DB table: `procurement_controls` with `scope` (master/rail1/rail2/rail4/rail5) and `scope_ref_id` for per-rail granularity. Owner-facing API: `GET/POST /api/v1/procurement-controls` and `GET /api/v1/procurement-controls/[scope]`.
 - **Fully separated from guardrails**: Domain/merchant/category lists are exclusively managed by `procurement_controls`. The guardrails tables (`privy_guardrails`, `crossmint_guardrails`, `rail4_guardrails`, `rail5_guardrails`) no longer have `allowlisted_domains`, `blocklisted_domains`, `allowlisted_merchants`, or `blocklisted_merchants` columns. The guardrails GET APIs still return these fields in the response by reading from `procurement_controls`, maintaining backward compatibility. The card-wallet frontend saves merchant lists to `POST /api/v1/procurement-controls` separately from guardrail limit saves.
 
+**Bot Messaging System** (`lib/bot-messaging/`):
+- `index.ts` — `sendToBot(botId, eventType, payload, options?)`: single function for all bot communication. Tries webhook first (via `fireWebhook()`), falls back to staging a pending message in `bot_pending_messages` table.
+- `expiry.ts` — per-event-type expiry config (`rail5.card.delivered` = 24h, general = 7 days).
+- DB table: `bot_pending_messages` (id, botId, eventType, payload JSONB, stagedAt, expiresAt, status).
+- Bot API: `GET /api/v1/bot/messages` (fetch pending, lazy purge), `POST /api/v1/bot/messages/ack` (acknowledge/delete).
+- Owner API: `POST /api/v1/bot-messages/send` (owner-authenticated, calls `sendToBot()`).
+- `GET /bot/status` includes `pending_messages` count.
+- Messages stay `pending` until explicit ack (not marked on GET). Expired messages are lazily purged.
+- Rail 5 `confirm-delivery` also deletes the pending message for the card.
+
 **Storage is modularized** under `server/storage/` with domain-grouped files:
 - `types.ts` — the `IStorage` interface (single source of truth for all method signatures)
 - `index.ts` — composes all domain fragments into the `storage` object and re-exports `IStorage`
@@ -65,6 +75,7 @@ New features should follow a feature-first folder structure. Each rail lives und
 - `rail2.ts` — all crossmint wallet, guardrail, transaction, and approval methods
 - `rail4.ts` — rail4 cards, obfuscation events/state, profile allowance, checkout confirmations
 - `rail5.ts` — rail5 cards + checkouts
+- `bot-messages.ts` — bot pending messages CRUD (create, get, count, ack, purge, delete by ref)
 - `owners.ts` — owner profiles (get/upsert)
 - `master-guardrails.ts` — master guardrails + cross-rail daily/monthly spend aggregation
 - `skills.ts` — skill drafts, evidence, submitter profiles, versioning, exports
@@ -128,10 +139,13 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `allowance.ts` — spending window helpers: `getWindowStart()`, `getNextWindowStart()` for day/week/month allowance periods.
 - **Rail 5 (Sub-Agent Cards):** Encrypted card files with optional ephemeral sub-agents. Owner encrypts card client-side (AES-256-GCM), CreditClaw stores only the decryption key. At checkout, the bot (or a spawned sub-agent) gets the key, decrypts, pays, and confirms. **Modularized under `lib/rail5/`:**
   - `index.ts` — core helpers (`generateRail5CardId`, `generateRail5CheckoutId`, `validateKeyMaterial`, `getDailySpendCents`, `getMonthlySpendCents`, `buildSpawnPayload`, `buildCheckoutSteps`).
-  - `decrypt-script.ts` — static `DECRYPT_SCRIPT` constant (~10-line AES-256-GCM Node.js script) included in every `rail5.card.delivered` webhook payload.
+  - `decrypt-script.ts` — static `DECRYPT_SCRIPT` constant (~10-line AES-256-GCM Node.js script) with marker-based regex (`ENCRYPTED_CARD_START/END`) for extracting data from combined files. Falls back to code-fence matching for old-format files.
   - **Card status progression:** `pending_setup` → `pending_delivery` (key submitted) → `confirmed` (bot confirmed file delivery via `POST /bot/rail5/confirm-delivery`) → `active` (first successful checkout completed). `frozen` can be set by owner on `confirmed` or `active` cards; unfreezing restores to `confirmed` or `active` based on checkout history.
   - **Dual execution modes:** Checkout endpoint returns both `checkout_steps` (array of instructions for direct mode) and `spawn_payload` (spawn wrapper for sub-agent mode). Bot chooses which to use.
-  - DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards,deliver-to-bot}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm,confirm-delivery}`. Dashboard: `/app/sub-agent-cards`. Setup wizard: 8-step (Name→HowItWorks→VisualCardEntry→BillingAddress→Limits→LinkBot→Encrypt→Success) with Web Crypto encryption. Card brand is auto-detected from BIN prefix via shared `lib/card/card-brand.ts` utility (Visa/MC/Amex/Discover/JCB/Diners); sent to server during submit-key. Direct delivery: if an OpenClaw bot is linked before encryption, the encrypted file + decrypt script are relayed directly to the bot via webhook (`rail5.card.delivered`); backup download always happens. Unified `rails.updated` webhook fires across ALL rails on bot link/unlink/freeze/unfreeze/wallet create with `action`, `rail`, `card_id`/`wallet_id`, `bot_id` in payload. Wired up in: Rail 1 (create, freeze), Rail 2 (create, freeze), Rail 4 (link-bot, freeze), Rail 5 (PATCH cards). Success screen shows adaptive copy message with `card_id` and API instructions; includes note that `GET /bot/status` always has latest.
+  - DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards,deliver-to-bot,cards/[cardId]/delivery-status}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm,confirm-delivery}`. Dashboard: `/app/sub-agent-cards`. Setup wizard: 8-step (Name→HowItWorks→VisualCardEntry→BillingAddress→Limits→LinkBot→Encrypt&Send→DeliveryResult) with Web Crypto encryption. Card brand is auto-detected from BIN prefix via shared `lib/card/card-brand.ts` utility (Visa/MC/Amex/Discover/JCB/Diners); sent to server during submit-key.
+  - **File delivery via `sendToBot()`**: Encryption step calls `POST /api/v1/bot-messages/send` which tries webhook first, falls back to staging a pending message. Combined self-contained markdown file format with `DECRYPT_SCRIPT_START/END` and `ENCRYPTED_CARD_START/END` markers. Backup download always happens.
+  - **Delivery result step**: Shows live status (webhook delivered / waiting for bot / confirmed). 1-minute polling every 5s via `GET /rail5/cards/[cardId]/delivery-status`. Share buttons (Copy, Telegram, Discord) for relay message. Collapsible "For AI Agents" section with re-download option.
+  - Unified `rails.updated` webhook fires across ALL rails on bot link/unlink/freeze/unfreeze/wallet create with `action`, `rail`, `card_id`/`wallet_id`, `bot_id` in payload. Wired up in: Rail 1 (create, freeze), Rail 2 (create, freeze), Rail 4 (link-bot, freeze), Rail 5 (PATCH cards).
 - **Card UI Module (`lib/card/`):** Shared card component library designed for consistent card visuals across the platform.
   - `card-brand.ts` — brand detection from BIN prefix, formatting, max digits, placeholders. Re-exported from `lib/card-brand.ts` for backward compatibility.
   - `brand-logo.tsx` — visual brand logo component (Visa/MC/Amex/Discover/JCB/Diners).
