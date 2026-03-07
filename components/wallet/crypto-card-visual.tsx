@@ -69,7 +69,7 @@ export function CryptoCardVisual({
   const statusLabels: Record<string, string> = {
     active: "active",
     pending_setup: "pending",
-    pending_delivery: "awaiting bot",
+    pending_delivery: "ready to test",
     confirmed: "confirmed",
     awaiting_bot: "awaiting bot",
     frozen: "frozen",
