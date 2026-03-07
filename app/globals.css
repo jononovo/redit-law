@@ -135,34 +135,33 @@
   50% { opacity: 0; }
 }
 
-.card-field {
-  border-style: solid;
-  border-color: rgba(255, 255, 255, 0.2);
-  border-width: 0 0 2px 0;
-  transition: all 0.3s ease;
+.form-field-error {
+  border-color: hsl(var(--destructive));
+  box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.25);
 }
 
-.card-field:hover {
-  border-color: rgba(255, 255, 255, 0.4);
+.form-field-error:focus,
+.form-field-error:focus-visible {
+  border-color: hsl(var(--destructive));
+  box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.35);
+  outline: none;
 }
 
-.card-field:focus,
-.card-field.card-field-focused {
-  border-color: rgba(255, 255, 255, 0.5);
+.form-field-valid {
+  border-color: hsl(142 71% 45%);
+  box-shadow: 0 0 0 2px hsl(142 71% 45% / 0.25);
 }
 
-.card-field.card-field-valid {
-  border-width: 1px;
-  border-color: #4ade80;
-  border-radius: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.4);
+.form-field-valid:focus,
+.form-field-valid:focus-visible {
+  border-color: hsl(142 71% 45%);
+  box-shadow: 0 0 0 2px hsl(142 71% 45% / 0.35);
+  outline: none;
 }
 
-.card-field.card-field-error {
-  border-width: 1px;
-  border-color: #f87171;
-  border-radius: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.4);
+.form-field-error-text {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: hsl(var(--destructive));
+  margin-top: 0.25rem;
 }

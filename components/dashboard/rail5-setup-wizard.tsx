@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { authFetch } from "@/lib/auth-fetch";
-import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/rail5/encrypt";
-import { detectCardBrand, brandToApiValue, BRAND_DISPLAY_NAMES, getMaxDigits, formatCardNumber, getCardPlaceholder, type CardBrand } from "@/lib/card-brand";
+import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } from "@/lib/card/onboarding-rail5/encrypt";
+import { detectCardBrand, brandToApiValue, getMaxDigits, type CardBrand } from "@/lib/card/card-brand";
+import { Rail5InteractiveCard } from "@/lib/card/onboarding-rail5/interactive-card";
+import { type CardFieldErrors } from "@/lib/card/hooks";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -51,390 +53,6 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
-function BrandLogo({ brand }: { brand: CardBrand }) {
-  const size = "w-14 h-10";
-  const base = `${size} flex items-center justify-center rounded-md transition-all duration-300`;
-
-  switch (brand) {
-    case "visa":
-      return (
-        <div className={`${base} bg-white`}>
-          <span className="text-[#1A1F71] font-extrabold italic text-lg tracking-tight" style={{ fontFamily: "Arial, sans-serif" }}>VISA</span>
-        </div>
-      );
-    case "mastercard":
-      return (
-        <div className={`${base} bg-transparent`}>
-          <div className="relative w-10 h-7">
-            <div className="absolute left-0 top-0 w-7 h-7 rounded-full bg-[#EB001B] opacity-90" />
-            <div className="absolute right-0 top-0 w-7 h-7 rounded-full bg-[#F79E1B] opacity-90" />
-          </div>
-        </div>
-      );
-    case "amex":
-      return (
-        <div className={`${base} bg-[#006FCF]`}>
-          <span className="text-white font-bold text-[10px] tracking-wider">AMEX</span>
-        </div>
-      );
-    case "discover":
-      return (
-        <div className={`${base} bg-white`}>
-          <span className="text-[#FF6000] font-bold text-xs tracking-wide">DISCOVER</span>
-        </div>
-      );
-    case "jcb":
-      return (
-        <div className={`${base} bg-white`}>
-          <span className="text-[#0B4EA2] font-bold text-sm">JCB</span>
-        </div>
-      );
-    case "diners":
-      return (
-        <div className={`${base} bg-white`}>
-          <span className="text-[#004A97] font-bold text-[9px] tracking-tight">DINERS</span>
-        </div>
-      );
-    default:
-      return (
-        <div className={`${base} bg-white/10`}>
-          <CreditCard className="w-6 h-6 text-white/50" />
-        </div>
-      );
-  }
-}
-
-interface CardFieldErrors {
-  number?: boolean;
-  month?: boolean;
-  year?: boolean;
-  cvv?: boolean;
-  name?: boolean;
-}
-
-const CIPHER_GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*!?∆§≈∂ƒ©˙≤≥÷×πøΩ√∫µ".split("");
-
-function useCipherScramble(text: string, active: boolean, delayOffset: number = 0) {
-  const [display, setDisplay] = useState(text);
-  const [settled, setSettled] = useState(false);
-  const scrambleDuration = 1200;
-
-  useEffect(() => {
-    if (!active) {
-      setDisplay(text);
-      setSettled(false);
-      return;
-    }
-    if (!text || text.trim().length === 0) {
-      setDisplay("");
-      setSettled(true);
-      return;
-    }
-    let frame: number;
-    let start: number | null = null;
-
-    const chars = text.split("");
-    const charStaggerEnd = chars.length > 1 ? 300 : 0;
-    const charDelays = chars.map((_, i) => delayOffset + (i / Math.max(chars.length - 1, 1)) * charStaggerEnd);
-    const maxDelay = Math.max(0, ...charDelays);
-    const totalDuration = maxDelay + scrambleDuration;
-
-    const finalChars = chars.map(ch =>
-      ch === " " ? " " : CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)]
-    );
-
-    function tick(ts: number) {
-      if (!start) start = ts;
-      const elapsed = ts - start;
-
-      const result = chars.map((original, i) => {
-        if (original === " ") return " ";
-        const charElapsed = elapsed - charDelays[i];
-        if (charElapsed > scrambleDuration) return finalChars[i];
-        return CIPHER_GLYPHS[Math.floor(Math.random() * CIPHER_GLYPHS.length)];
-      });
-
-      setDisplay(result.join(""));
-
-      if (elapsed < totalDuration + 50) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        setDisplay(finalChars.join(""));
-        setSettled(true);
-      }
-    }
-
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [active, text, delayOffset]);
-
-  return { display, settled };
-}
-
-function CipherOverlay({ text, active, className, delayOffset = 0 }: { text: string; active: boolean; className?: string; delayOffset?: number }) {
-  const { display, opacity } = useCipherScramble(text, active, delayOffset);
-  if (!active || !text) return null;
-  return (
-    <span
-      className={`absolute inset-0 flex items-center pointer-events-none ${className || ""}`}
-      style={{ opacity }}
-    >
-      {display}
-    </span>
-  );
-}
-
-function useTemporaryValid(filled: boolean, delayMs = 5000): boolean {
-  const [showValid, setShowValid] = useState(false);
-  const prevFilled = useRef(false);
-
-  useEffect(() => {
-    if (filled && !prevFilled.current) {
-      setShowValid(true);
-      const timer = setTimeout(() => setShowValid(false), delayMs);
-      prevFilled.current = true;
-      return () => clearTimeout(timer);
-    }
-    if (!filled) {
-      prevFilled.current = false;
-      setShowValid(false);
-    }
-  }, [filled, delayMs]);
-
-  return showValid;
-}
-
-function Rail5InteractiveCard({
-  cardNumber,
-  onCardNumberChange,
-  expiryMonth,
-  expiryYear,
-  onExpiryMonthChange,
-  onExpiryYearChange,
-  cvv,
-  onCvvChange,
-  holderName,
-  onHolderNameChange,
-  detectedBrand,
-  errors = {},
-  isEncrypting = false,
-}: {
-  cardNumber: string;
-  onCardNumberChange: (val: string) => void;
-  expiryMonth: string;
-  expiryYear: string;
-  onExpiryMonthChange: (val: string) => void;
-  onExpiryYearChange: (val: string) => void;
-  cvv: string;
-  onCvvChange: (val: string) => void;
-  holderName: string;
-  onHolderNameChange: (val: string) => void;
-  detectedBrand: CardBrand;
-  errors?: CardFieldErrors;
-  isEncrypting?: boolean;
-}) {
-  const numberRef = useRef<HTMLInputElement>(null);
-  const cvvRef = useRef<HTMLInputElement>(null);
-  const holderRef = useRef<HTMLInputElement>(null);
-  const monthRef = useRef<HTMLSelectElement>(null);
-  const yearRef = useRef<HTMLSelectElement>(null);
-  const [numberFocused, setNumberFocused] = useState(false);
-
-  const cleanNumber = cardNumber.replace(/\s/g, "");
-  const formatted = formatCardNumber(cleanNumber, detectedBrand);
-
-  const numberCipher = useCipherScramble(formatted, isEncrypting, 0);
-
-  useEffect(() => {
-    if (!isEncrypting) numberRef.current?.focus();
-  }, [isEncrypting]);
-
-  const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-  const currentYear = new Date().getFullYear();
-  const YEARS = Array.from({ length: 12 }, (_, i) => String(currentYear + i));
-
-  const expectedDigits = getMaxDigits(detectedBrand);
-  const minCvv = detectedBrand === "amex" ? 4 : 3;
-  const monthFilled = !!expiryMonth;
-  const yearFilled = !!expiryYear;
-  const cvvFilled = cvv.length >= minCvv;
-  const nameFilled = !!holderName.trim();
-  const numberFilled = cleanNumber.length === expectedDigits;
-
-  const numberValid = useTemporaryValid(numberFilled);
-  const monthValid = useTemporaryValid(monthFilled);
-  const yearValid = useTemporaryValid(yearFilled);
-  const cvvValid = useTemporaryValid(cvvFilled);
-  const nameValid = useTemporaryValid(nameFilled);
-
-  function fieldClass(error?: boolean, valid?: boolean, focused?: boolean) {
-    if (error) return "card-field card-field-error";
-    if (valid) return "card-field card-field-valid";
-    if (focused) return "card-field card-field-focused";
-    return "card-field";
-  }
-
-  return (
-    <div className="relative mx-auto w-full" style={{ maxWidth: 520 }}>
-      <div
-        className={`relative w-full rounded-2xl overflow-hidden shadow-2xl ${isEncrypting ? "pointer-events-none" : ""}`}
-        style={{
-          aspectRatio: "1.586",
-          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%)",
-        }}
-        data-testid="r5-interactive-card"
-      >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: [
-              "radial-gradient(circle at 15% 60%, rgba(255,255,255,0.06) 0%, transparent 45%)",
-              "radial-gradient(circle at 85% 25%, rgba(255,255,255,0.05) 0%, transparent 40%)",
-              "radial-gradient(ellipse at 50% 0%, rgba(100,140,255,0.07) 0%, transparent 60%)",
-              "linear-gradient(125deg, transparent 30%, rgba(255,255,255,0.04) 45%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 55%, transparent 70%)",
-            ].join(", "),
-          }}
-        />
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{
-            backgroundImage: "repeating-linear-gradient(135deg, transparent, transparent 40px, rgba(255,255,255,0.5) 40px, rgba(255,255,255,0.5) 41px)",
-          }}
-        />
-
-        <div className="relative h-full flex flex-col p-6">
-          <div className="flex items-start justify-end">
-            <BrandLogo brand={detectedBrand} />
-          </div>
-
-          <div className="flex-1 flex flex-col items-start justify-center">
-            <div className="w-12 h-9 rounded-[3px] bg-gradient-to-br from-amber-200 to-amber-400 mb-3 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 bottom-0 left-[25%] w-px bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[50%] w-px bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[72%] w-px bg-amber-700/40" />
-              <div className="absolute top-0 bottom-0 left-[88%] w-px bg-amber-700/40" />
-              <div className="absolute left-0 right-0 top-[30%] h-px bg-amber-700/40" />
-              <div className="absolute left-0 right-0 top-[65%] h-px bg-amber-700/40" />
-            </div>
-            <div
-              className={`relative w-4/5 ${fieldClass(errors.number, numberValid, numberFocused)} pb-1 cursor-text`}
-              onClick={() => numberRef.current?.focus()}
-            >
-              <input
-                ref={numberRef}
-                type="text"
-                inputMode="numeric"
-                value={formatted}
-                onFocus={() => setNumberFocused(true)}
-                onBlur={() => setNumberFocused(false)}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "");
-                  const brand = detectCardBrand(digits);
-                  onCardNumberChange(digits.slice(0, getMaxDigits(brand)));
-                }}
-                className="absolute inset-0 opacity-0 w-full h-full z-10"
-                data-testid="input-r5-card-number"
-                autoComplete="off"
-              />
-              <div className="font-mono text-2xl tracking-[0.15em] flex items-center pointer-events-none" aria-hidden="true">
-                {isEncrypting ? (
-                  <span className="text-white" style={{ opacity: numberCipher.opacity }}>
-                    {numberCipher.display}
-                  </span>
-                ) : (() => {
-                  const placeholder = getCardPlaceholder(detectedBrand);
-                  let cursorPos = formatted.length;
-                  while (cursorPos < placeholder.length && placeholder[cursorPos] === " ") cursorPos++;
-                  return placeholder.split("").map((ch, i) => {
-                    if (ch === " ") return <span key={i} className="w-3" />;
-                    const showCursor = numberFocused && !numberFilled && i === cursorPos;
-                    const typed = i < formatted.length && formatted[i] !== " " ? formatted[i] : null;
-                    return (
-                      <span key={i} className="relative inline-block">
-                        {showCursor && (
-                          <span
-                            className="absolute -left-px top-0 w-[2px] h-full bg-white"
-                            style={{ animation: "blink 1s step-end infinite" }}
-                          />
-                        )}
-                        <span className={typed ? "text-white" : "text-white/25"}>
-                          {typed || "0"}
-                        </span>
-                      </span>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-
-            <div className="flex items-end justify-end gap-3 mt-3 w-full">
-              <div className="relative">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Expires</p>
-                <div className={`flex items-center gap-1 ${isEncrypting ? "invisible" : ""}`}>
-                  <select
-                    ref={monthRef}
-                    value={expiryMonth}
-                    onChange={(e) => onExpiryMonthChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.month, monthValid)}`}
-                    data-testid="select-r5-exp-month"
-                  >
-                    <option value="" className="bg-neutral-800 text-white">MM</option>
-                    {MONTHS.map(m => <option key={m} value={m} className="bg-neutral-800 text-white">{m}</option>)}
-                  </select>
-                  <span className="text-white/40 text-sm">/</span>
-                  <select
-                    ref={yearRef}
-                    value={expiryYear}
-                    onChange={(e) => onExpiryYearChange(e.target.value)}
-                    className={`bg-transparent text-white text-sm font-medium text-center focus:outline-none appearance-none cursor-pointer px-1 pb-0.5 ${fieldClass(errors.year, yearValid)}`}
-                    data-testid="select-r5-exp-year"
-                  >
-                    <option value="" className="bg-neutral-800 text-white">YYYY</option>
-                    {YEARS.map(y => <option key={y} value={y} className="bg-neutral-800 text-white">{y}</option>)}
-                  </select>
-                </div>
-                <CipherOverlay text={`${expiryMonth}/${expiryYear}`} active={isEncrypting} className="text-white text-sm font-medium" delayOffset={150} />
-              </div>
-
-              <div className="relative">
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">CVV</p>
-                <input
-                  ref={cvvRef}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={cvv}
-                  onChange={(e) => onCvvChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="•••"
-                  className={`w-14 bg-transparent text-white text-sm font-mono text-center placeholder:text-white/25 focus:outline-none pb-0.5 ${fieldClass(errors.cvv, cvvValid)} ${isEncrypting ? "!text-transparent" : ""}`}
-                  data-testid="input-r5-cvv"
-                  autoComplete="off"
-                />
-                <CipherOverlay text={"•".repeat(cvv.length || 3)} active={isEncrypting} className="text-white text-sm font-mono justify-center" delayOffset={250} />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-auto relative">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Cardholder</p>
-            <input
-              ref={holderRef}
-              type="text"
-              value={holderName}
-              onChange={(e) => onHolderNameChange(e.target.value)}
-              placeholder="Full Name"
-              className={`w-3/4 bg-transparent text-white text-base font-medium placeholder:text-white/25 focus:outline-none pb-0.5 uppercase tracking-wider ${fieldClass(errors.name, nameValid)} ${isEncrypting ? "!text-transparent" : ""}`}
-              data-testid="input-r5-holder"
-              autoComplete="off"
-            />
-            <CipherOverlay text={holderName.toUpperCase()} active={isEncrypting} className="text-white text-base font-medium tracking-wider" delayOffset={350} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const FUN_CARD_NAMES = [
   "Titanium Claw",
   "Robo Platinum",
@@ -469,6 +87,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [zip, setZip] = useState("");
   const [country, setCountry] = useState("US");
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [addressErrors, setAddressErrors] = useState<{ address?: boolean; city?: boolean; zip?: boolean }>({});
 
   const [encryptionDone, setEncryptionDone] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
@@ -558,6 +177,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setDeliveryAttempted(false);
     setCopied(false);
     setCardErrors({});
+    setAddressErrors({});
     setShowExitConfirm(false);
   }, []);
 
@@ -735,22 +355,16 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   function handleAddressNext() {
-    if (!address.trim()) {
-      toast({ title: "Missing address", description: "Enter a street address.", variant: "destructive" });
+    const errs: { address?: boolean; city?: boolean; zip?: boolean } = {
+      address: !address.trim(),
+      city: !city.trim(),
+      zip: !zip.trim(),
+    };
+    if (Object.values(errs).some(Boolean)) {
+      setAddressErrors(errs);
       return;
     }
-    if (!city.trim()) {
-      toast({ title: "Missing city", description: "Enter a city.", variant: "destructive" });
-      return;
-    }
-    if (!state.trim()) {
-      toast({ title: "Missing state", description: "Enter a state.", variant: "destructive" });
-      return;
-    }
-    if (!zip.trim()) {
-      toast({ title: "Missing ZIP", description: "Enter a ZIP code.", variant: "destructive" });
-      return;
-    }
+    setAddressErrors({});
     setStep(4);
   }
 
@@ -1054,7 +668,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                   id="r5-address"
                   placeholder="123 Main St"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => { setAddress(e.target.value); setAddressErrors((p) => ({ ...p, address: false })); }}
+                  className={addressErrors.address ? "form-field-error" : ""}
                   data-testid="input-r5-address"
                 />
               </div>
@@ -1062,7 +677,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label htmlFor="r5-city">City</Label>
-                  <Input id="r5-city" placeholder="New York" value={city} onChange={(e) => setCity(e.target.value)} data-testid="input-r5-city" />
+                  <Input id="r5-city" placeholder="New York" value={city} onChange={(e) => { setCity(e.target.value); setAddressErrors((p) => ({ ...p, city: false })); }} className={addressErrors.city ? "form-field-error" : ""} data-testid="input-r5-city" />
                 </div>
                 <div>
                   <Label htmlFor="r5-state">State</Label>
@@ -1070,7 +685,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 </div>
                 <div>
                   <Label htmlFor="r5-zip">ZIP</Label>
-                  <Input id="r5-zip" placeholder="10001" value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, "").slice(0, 10))} data-testid="input-r5-zip" />
+                  <Input id="r5-zip" placeholder="10001" value={zip} onChange={(e) => { setZip(e.target.value.replace(/\D/g, "").slice(0, 10)); setAddressErrors((p) => ({ ...p, zip: false })); }} className={addressErrors.zip ? "form-field-error" : ""} data-testid="input-r5-zip" />
                 </div>
               </div>
 
