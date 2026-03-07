@@ -44,27 +44,27 @@ interface NavItem {
 }
 
 const mainNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Overview", href: "/app" },
-  { icon: Wallet, label: "Stripe Wallet", subtitle: "USDC for x402", href: "/app/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
-  { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/app/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify.", requiredAccess: "admin" },
-  { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/app/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
-  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/app/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge.", requiredAccess: "admin" },
-  { icon: Package, label: "Orders", href: "/app/orders" },
-  { icon: Activity, label: "Transactions", href: "/app/transactions" },
-  { icon: CreditCard, label: "Virtual Cards", href: "/app/cards", inactive: true, requiredAccess: "admin" },
+  { icon: LayoutDashboard, label: "Overview", href: "/overview" },
+  { icon: Wallet, label: "Stripe Wallet", subtitle: "USDC for x402", href: "/stripe-wallet", tag: "beta", tooltip: "USDC wallet x402 purchases. Fund with Stripe/Link." },
+  { icon: ShoppingCart, label: "Shop Wallet", subtitle: "USDC for Shopping API", href: "/card-wallet", tag: "coming soon", tooltip: "USDC wallet for Shopping at Amazon/Shopify.", requiredAccess: "admin" },
+  { icon: Lock, label: "My Card", subtitle: "Encrypted", href: "/sub-agent-cards", tag: "beta", tooltip: "Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." },
+  { icon: Shield, label: "My Card", subtitle: "Split-Knowledge", href: "/self-hosted", tag: "legacy", tooltip: "Self-hosted: Agent uses your card. Secured with: Obfuscation & Split-Knowledge.", requiredAccess: "admin" },
+  { icon: Package, label: "Orders", href: "/orders" },
+  { icon: Activity, label: "Transactions", href: "/transactions" },
+  { icon: CreditCard, label: "Virtual Cards", href: "/cards", inactive: true, requiredAccess: "admin" },
 ];
 
 const procurementNavItems: NavItem[] = [
-  { icon: Send, label: "Submit Supplier", href: "/app/skills/submit" },
-  { icon: Sparkles, label: "Skill Builder", href: "/app/skills/review" },
+  { icon: Send, label: "Submit Supplier", href: "/skill-builder/submit" },
+  { icon: Sparkles, label: "Skill Builder", href: "/skill-builder/review" },
   { icon: Store, label: "Supplier Hub", href: "/skills", external: true },
 ];
 
 const salesNavItems: NavItem[] = [
-  { icon: PlusCircle, label: "Create Checkout", href: "/app/checkout/create" },
-  { icon: ShoppingBag, label: "Shop", href: "/app/shop" },
-  { icon: DollarSign, label: "My Sales", href: "/app/sales" },
-  { icon: FileText, label: "Invoices", href: "/app/invoices" },
+  { icon: PlusCircle, label: "Create Checkout", href: "/checkout/create" },
+  { icon: ShoppingBag, label: "Shop", href: "/shop" },
+  { icon: DollarSign, label: "My Sales", href: "/sales" },
+  { icon: FileText, label: "Invoices", href: "/invoices" },
 ];
 
 export function Sidebar() {

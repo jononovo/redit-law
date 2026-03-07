@@ -48,7 +48,7 @@ export default function CardWalletLanding() {
             <span className="font-bold text-lg tracking-tight">CreditClaw</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/app/card-wallet">
+            <Link href="/card-wallet">
               <Button variant="outline" className="rounded-full" data-testid="button-dashboard-cta">
                 Dashboard
               </Button>
@@ -72,7 +72,7 @@ export default function CardWalletLanding() {
             you approve, CrossMint handles fulfillment. Full spending controls, full visibility.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/app/card-wallet">
+            <Link href="/card-wallet">
               <Button size="lg" className="rounded-full bg-violet-600 hover:bg-violet-700 text-white px-8 gap-2 shadow-lg shadow-violet-600/20" data-testid="button-get-started">
                 Get Started
                 <ArrowRight className="w-4 h-4" />
@@ -140,7 +140,7 @@ export default function CardWalletLanding() {
           <p className="text-neutral-400 max-w-xl mx-auto mb-8">
             Create a Card Wallet, set your guardrails, and let your bots purchase products with your approval.
           </p>
-          <Link href="/app/card-wallet">
+          <Link href="/card-wallet">
             <Button size="lg" className="rounded-full bg-violet-600 hover:bg-violet-700 px-8 gap-2" data-testid="button-cta-bottom">
               Open Dashboard
               <ArrowRight className="w-4 h-4" />
@@ -154,7 +154,7 @@ export default function CardWalletLanding() {
           <span>CreditClaw — Multi-rail payments for AI bots</span>
           <div className="flex gap-6">
             <Link href="/" className="hover:text-neutral-600">Home</Link>
-            <Link href="/app" className="hover:text-neutral-600">Dashboard</Link>
+            <Link href="/overview" className="hover:text-neutral-600">Dashboard</Link>
           </div>
         </div>
       </footer>

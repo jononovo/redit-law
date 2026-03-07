@@ -4,7 +4,7 @@ Checkout pages are shareable payment pages you create to accept payments from an
 
 ## Creating a Checkout Page
 
-Navigate to <a href="/app/checkout/create" target="_blank">**Checkout**</a> in the dashboard sidebar, then click **Create Checkout Page**. You'll need to fill in a few fields:
+Navigate to <a href="/checkout/create" target="_blank">**Checkout**</a> in the dashboard sidebar, then click **Create Checkout Page**. You'll need to fill in a few fields:
 
 ### Required Fields
 

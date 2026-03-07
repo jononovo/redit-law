@@ -4,7 +4,7 @@ CreditClaw supports several wallet types — called **rails** — that give your
 
 ## Stripe / USDC Wallet (Rail 1)
 
-The <a href="/app/stripe-wallet" target="_blank">**Stripe Wallet**</a> is a custodial USDC wallet powered by Privy and Stripe. It's the fastest way to get started.
+The <a href="/stripe-wallet" target="_blank">**Stripe Wallet**</a> is a custodial USDC wallet powered by Privy and Stripe. It's the fastest way to get started.
 
 - **Currency**: USDC (on Base network)
 - **Funding**: Card/Bank via Stripe, Base Pay, or direct crypto transfer
@@ -17,7 +17,7 @@ The <a href="/app/stripe-wallet" target="_blank">**Stripe Wallet**</a> is a cust
 
 ## Card Wallet (Rail 2)
 
-The <a href="/app/card-wallet" target="_blank">**Card Wallet**</a> is a custodial wallet powered by Crossmint, designed for purchasing physical goods through the Crossmint WorldStore.
+The <a href="/card-wallet" target="_blank">**Card Wallet**</a> is a custodial wallet powered by Crossmint, designed for purchasing physical goods through the Crossmint WorldStore.
 
 - **Currency**: USDC (on Base network)
 - **Funding**: Card/Bank via Stripe, Base Pay, or direct crypto transfer
@@ -30,7 +30,7 @@ The <a href="/app/card-wallet" target="_blank">**Card Wallet**</a> is a custodia
 
 ## Sub-Agent Cards (Rail 4)
 
-<a href="/app/sub-agent-cards" target="_blank">**Sub-Agent Cards**</a> are self-hosted encrypted credit cards that you bring to CreditClaw. You provide your own card details, and CreditClaw encrypts them using split-knowledge encryption so your bot can use the card without ever seeing the full number.
+<a href="/sub-agent-cards" target="_blank">**Sub-Agent Cards**</a> are self-hosted encrypted credit cards that you bring to CreditClaw. You provide your own card details, and CreditClaw encrypts them using split-knowledge encryption so your bot can use the card without ever seeing the full number.
 
 - **Currency**: Your card's native currency (USD, EUR, etc.)
 - **Funding**: Your existing credit/debit card — no separate funding step
@@ -43,7 +43,7 @@ The <a href="/app/card-wallet" target="_blank">**Card Wallet**</a> is a custodia
 
 ## Self-Hosted Encrypted Cards (Rail 5)
 
-<a href="/app/self-hosted" target="_blank">**Self-Hosted Encrypted Cards**</a> are similar to Sub-Agent Cards but use end-to-end encryption with a key that only you and your bot share. CreditClaw never has access to the decrypted card details.
+<a href="/self-hosted" target="_blank">**Self-Hosted Encrypted Cards**</a> are similar to Sub-Agent Cards but use end-to-end encryption with a key that only you and your bot share. CreditClaw never has access to the decrypted card details.
 
 - **Currency**: Your card's native currency
 - **Funding**: Your existing credit/debit card

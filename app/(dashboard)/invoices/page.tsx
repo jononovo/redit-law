@@ -88,7 +88,7 @@ export default function InvoicesPage() {
           <h1 className="text-2xl font-bold text-neutral-900" data-testid="text-invoices-title">Invoices</h1>
           <p className="text-sm text-neutral-500 mt-1">Create and manage invoices for your checkout pages</p>
         </div>
-        <Link href="/app/invoices/create">
+        <Link href="/invoices/create">
           <Button className="gap-2" data-testid="button-create-invoice">
             <Plus className="w-4 h-4" />
             Create Invoice
@@ -148,7 +148,7 @@ export default function InvoicesPage() {
           <p className="text-sm text-neutral-500 mt-1 max-w-sm mx-auto">
             Create your first invoice to start billing customers through your checkout pages.
           </p>
-          <Link href="/app/invoices/create">
+          <Link href="/invoices/create">
             <Button className="mt-4 gap-2" variant="outline" data-testid="button-create-first-invoice">
               <Plus className="w-4 h-4" />
               Create Invoice

@@ -293,7 +293,7 @@ export default function SkillDraftDetailPage({ params }: { params: Promise<{ id:
     return (
       <div className="text-center py-12">
         <p className="text-neutral-500">Draft not found</p>
-        <Link href="/app/skills/review" className="text-primary text-sm mt-2 inline-block">Back to drafts</Link>
+        <Link href="/skill-builder/review" className="text-primary text-sm mt-2 inline-block">Back to drafts</Link>
       </div>
     );
   }
@@ -306,7 +306,7 @@ export default function SkillDraftDetailPage({ params }: { params: Promise<{ id:
     <div className="space-y-6" data-testid="draft-detail-page">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/app/skills/review" className="p-2 hover:bg-neutral-100 rounded-lg transition-colors" data-testid="link-back">
+          <Link href="/skill-builder/review" className="p-2 hover:bg-neutral-100 rounded-lg transition-colors" data-testid="link-back">
             <ArrowLeft className="w-5 h-5 text-neutral-500" />
           </Link>
           <div>

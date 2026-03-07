@@ -152,7 +152,7 @@ export default function CreateInvoicePage() {
   return (
     <div className="space-y-6 max-w-3xl" data-testid="create-invoice-page">
       <div className="flex items-center gap-3">
-        <Link href="/app/invoices">
+        <Link href="/invoices">
           <Button variant="ghost" size="icon" data-testid="button-back-invoices">
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -327,7 +327,7 @@ export default function CreateInvoicePage() {
       </div>
 
       <div className="flex justify-end gap-3">
-        <Link href="/app/invoices">
+        <Link href="/invoices">
           <Button variant="outline" data-testid="button-cancel-invoice">Cancel</Button>
         </Link>
         <Button onClick={handleSubmit} disabled={submitting} className="gap-2" data-testid="button-submit-invoice">

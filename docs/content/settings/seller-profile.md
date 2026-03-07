@@ -4,7 +4,7 @@ Your seller identity controls how your business appears to buyers on checkout pa
 
 ## Where to Find It
 
-Your seller profile fields have moved to the <a href="/app/shop" target="_blank">**Shop**</a> page in the dashboard sidebar. Look for the **Your Details** section between Shop Settings and Products.
+Your seller profile fields have moved to the <a href="/shop" target="_blank">**Shop**</a> page in the dashboard sidebar. Look for the **Your Details** section between Shop Settings and Products.
 
 ## Fields You Can Configure
 

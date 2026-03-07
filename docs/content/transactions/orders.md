@@ -37,7 +37,7 @@ If an order fails at any point — due to payment failure, delivery issues, or c
 
 ## Order Details
 
-Clicking an order card takes you to a detail page at `/app/orders/{id}` where you can see:
+Clicking an order card takes you to a detail page at `/orders/{id}` where you can see:
 
 - **Full product information** — Name, image, product URL
 - **Pricing breakdown** — Item price, taxes, shipping cost

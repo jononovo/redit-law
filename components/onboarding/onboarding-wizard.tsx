@@ -291,7 +291,7 @@ export function OnboardingWizard() {
       `}</style>
       <div className="relative">
         <button
-          onClick={() => router.push("/app")}
+          onClick={() => router.push("/overview")}
           className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/80 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors shadow-sm border border-neutral-200"
           aria-label="Close wizard"
           data-testid="button-close-wizard"

@@ -142,7 +142,7 @@ export default function InvoiceDetailPage() {
   if (error && !invoice) {
     return (
       <div className="space-y-4">
-        <Link href="/app/invoices">
+        <Link href="/invoices">
           <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back-invoices">
             <ArrowLeft className="w-4 h-4" /> Back to Invoices
           </Button>
@@ -171,7 +171,7 @@ export default function InvoiceDetailPage() {
   return (
     <div className="space-y-6" data-testid="invoice-detail-page">
       <div className="flex items-center gap-3">
-        <Link href="/app/invoices">
+        <Link href="/invoices">
           <Button variant="ghost" size="icon" data-testid="button-back-invoices">
             <ArrowLeft className="w-4 h-4" />
           </Button>

@@ -56,7 +56,7 @@ export function Header({ title }: { title: string }) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem
-              onClick={() => router.push("/app/settings")}
+              onClick={() => router.push("/settings")}
               className="cursor-pointer"
               data-testid="menu-item-settings"
             >

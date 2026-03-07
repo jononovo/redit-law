@@ -13,8 +13,8 @@ const config: CreditCardListPageConfig = {
   emptySubtitle: "Click \"Add New Card\" above to get started.",
   apiEndpoint: "/api/v1/rail5/cards",
   railPrefix: "rail5",
-  basePath: "/app/sub-agent-cards",
-  normalizeCards: (data: any) => (data.cards || []).map((c: any) => normalizeRail5Card(c, "/app/sub-agent-cards")),
+  basePath: "/sub-agent-cards",
+  normalizeCards: (data: any) => (data.cards || []).map((c: any) => normalizeRail5Card(c, "/sub-agent-cards")),
   explainer: (
     <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl border border-purple-100 p-6" data-testid="card-rail5-explainer">
       <div className="flex items-start gap-4">

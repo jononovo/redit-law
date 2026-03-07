@@ -127,7 +127,7 @@ export default function ExportPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/app/skills/review">
+        <Link href="/skill-builder/review">
           <Button variant="ghost" size="sm" data-testid="link-back-to-review">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Review
           </Button>
