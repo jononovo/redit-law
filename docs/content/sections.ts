@@ -31,6 +31,7 @@ export const sections: DocSection[] = [
       { title: "Onboarding Wizard", slug: "onboarding-wizard" },
       { title: "Claiming a Bot", slug: "claiming-a-bot" },
       { title: "Managing Your Bots", slug: "managing-bots" },
+      { title: "Webhook Health", slug: "webhook-health" },
     ],
   },
   {
@@ -125,6 +126,7 @@ export const sections: DocSection[] = [
     pages: [
       { title: "Setup & Signing", slug: "setup" },
       { title: "Event Types", slug: "events" },
+      { title: "Health & Reliability", slug: "health" },
     ],
   },
   {

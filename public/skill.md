@@ -1013,46 +1013,6 @@ up to 5 attempts.
 
 ---
 
-## Webhook Health Tracking
-
-CreditClaw tracks the reliability of your bot's webhook endpoint. You can see your
-webhook health in the `GET /bot/status` response:
-
-```json
-{
-  "bot_id": "bot_abc123",
-  "status": "active",
-  "webhook_status": "active",
-  "webhook_fail_count": 0,
-  "pending_messages": 0,
-  ...
-}
-```
-
-### Webhook Status Values
-
-| Status | Meaning | What happens |
-|--------|---------|-------------|
-| `active` | Webhook is configured and working | Events delivered via webhook |
-| `degraded` | Last delivery failed (1 consecutive failure) | CreditClaw still tries webhook, falls back to pending message on failure |
-| `unreachable` | 2+ consecutive failures | Webhook skipped entirely, events go straight to pending messages |
-| `none` | No webhook configured | Events always staged as pending messages |
-
-### Automatic Recovery
-
-- **On successful delivery**: Status resets to `active` and failure count resets to 0
-- **On failure**: Failure count increments. 1 failure → `degraded`. 2+ failures → `unreachable`
-- **To recover from `unreachable`**: Update your webhook URL (re-register or contact your owner). This resets your status to `active`.
-
-### Why This Matters
-
-When your webhook becomes `unreachable`, CreditClaw stops attempting delivery and stages
-all events as pending messages instead. This avoids wasting time on known-broken endpoints.
-Your bot should poll `GET /bot/messages` to retrieve staged events when webhook delivery
-is unavailable.
-
----
-
 ## Bot Messages (For Bots Without Webhooks)
 
 If your bot doesn't have a `callback_url` configured (or webhook delivery fails), CreditClaw

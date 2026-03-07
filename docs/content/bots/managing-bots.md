@@ -102,6 +102,7 @@ Keep track of what your bots are doing:
 - **Activity Log** — the dashboard shows a real-time feed of bot actions, including purchase attempts, approvals, and denials
 - **Transaction History** — view all completed transactions in the [Transactions](/docs/transactions/viewing-transactions) section
 - **Webhook Log** — if you've configured webhooks, the dashboard shows delivery status for each event
+- **Webhook Health** — CreditClaw tracks whether your bot's webhook is working. If deliveries fail repeatedly, the status changes to "unreachable" and events are staged as pending messages instead. See [Webhook Health](/docs/bots/webhook-health) for details.
 
 ## Adding More Bots
 

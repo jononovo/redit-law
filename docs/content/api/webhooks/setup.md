@@ -144,5 +144,6 @@ After 5 failed attempts, the delivery is marked as **failed** and will not be re
 ## Next Steps
 
 - [Webhook Event Types](/docs/api/webhooks/events) — full reference of all event types and their payloads
+- [Health & Reliability](/docs/api/webhooks/health) — how CreditClaw tracks webhook health and falls back to pending messages
 - [Authentication](/docs/api/authentication) — how API keys and webhook secrets are generated
 - [Quick Start](/docs/api/agent-integration/quick-start) — end-to-end guide from registration to first purchase
