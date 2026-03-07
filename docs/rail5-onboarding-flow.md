@@ -164,7 +164,7 @@ Logic:
 After the bot confirms delivery (Phase 1), Step 7 enters Phase 2:
 
 1. **Card details preserved** — Before clearing the card input fields after encryption, the wizard saves the original values (card number, expiry, CVV, holder name, billing address) into `savedCardDetails` state.
-2. **Polling starts** — Once delivery is confirmed (`botConfirmed` or `directDeliverySucceeded`), the wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds, passing the saved card details as query params.
+2. **Polling starts** — Once delivery is confirmed (`botConfirmed` or `directDeliverySucceeded`), the wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds. The server returns the bot's submitted details; comparison against `savedCardDetails` happens entirely client-side.
 3. **UI states**:
    - **Polling**: Blue banner with spinner — "Verifying card — waiting for test purchase..."
    - **Success**: Green banner with field-by-field checkmarks — "Card Verified — encryption and decryption working correctly"
