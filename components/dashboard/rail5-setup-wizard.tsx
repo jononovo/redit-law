@@ -27,7 +27,7 @@ interface BotOption {
   bot_name: string;
 }
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
@@ -118,6 +118,14 @@ interface Step7Props {
   directDeliverySucceeded: boolean;
   deliveryResult: { delivered: boolean; method: string; messageId?: number; expiresAt?: string } | null;
   storedFileContent: string;
+  onNext: () => void;
+  onDone: () => void;
+}
+
+interface Step8Props {
+  cardId: string;
+  cardName: string;
+  cardLast4: string;
   savedCardDetails: SavedCardDetails | null;
   onDone: () => void;
 }
@@ -135,7 +143,7 @@ const FIELD_LABELS: Record<string, string> = {
 
 function Step7DeliveryResult({
   cardId, cardName, cardLast4, spendingLimit, dailyLimit, monthlyLimit,
-  selectedBotId, bots, directDeliverySucceeded, deliveryResult, storedFileContent, savedCardDetails, onDone,
+  selectedBotId, bots, directDeliverySucceeded, deliveryResult, storedFileContent, onNext, onDone,
 }: Step7Props) {
   const { toast } = useToast();
   const [botConfirmed, setBotConfirmed] = useState(false);
@@ -146,15 +154,11 @@ function Step7DeliveryResult({
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(Date.now());
 
-  const [testPurchaseResult, setTestPurchaseResult] = useState<TestPurchaseResult | null>(null);
-  const [testPollingActive, setTestPollingActive] = useState(false);
-  const [testPollingTimedOut, setTestPollingTimedOut] = useState(false);
-  const testPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const testStartRef = useRef(0);
-
   const isWaiting = selectedBotId && !directDeliverySucceeded && !botConfirmed;
 
   const relayMessage = RAIL5_CARD_DELIVERED;
+
+  const deliveryConfirmed = directDeliverySucceeded || botConfirmed;
 
   useEffect(() => {
     if (!selectedBotId || !cardId || directDeliverySucceeded) return;
@@ -185,66 +189,6 @@ function Step7DeliveryResult({
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [selectedBotId, cardId, directDeliverySucceeded]);
-
-  const deliveryConfirmed = directDeliverySucceeded || botConfirmed;
-
-  useEffect(() => {
-    if (!deliveryConfirmed || !savedCardDetails || !cardId) return;
-    if (testPurchaseResult?.status === "completed") return;
-
-    setTestPollingActive(true);
-    testStartRef.current = Date.now();
-
-    const normalize = (v: string | undefined | null) => (v || "").trim().toLowerCase();
-
-    const compareFields = (submitted: TestPurchaseApiResponse["submitted_details"]): TestPurchaseResult => {
-      if (!submitted) return { status: "completed", verified: false, fields: {} };
-      const fields: Record<string, TestVerificationField> = {
-        card_number: { match: normalize(submitted.cardNumber) === normalize(savedCardDetails.cardNumber) },
-        card_expiry: { match: normalize(submitted.cardExpiry) === normalize(savedCardDetails.cardExpiry) },
-        card_cvv: { match: normalize(submitted.cardCvv) === normalize(savedCardDetails.cardCvv) },
-        cardholder_name: { match: normalize(submitted.cardholderName) === normalize(savedCardDetails.cardholderName) },
-        billing_address: { match: normalize(submitted.billingAddress) === normalize(savedCardDetails.billingAddress) },
-        billing_city: { match: normalize(submitted.billingCity) === normalize(savedCardDetails.billingCity) },
-        billing_state: { match: normalize(submitted.billingState) === normalize(savedCardDetails.billingState) },
-        billing_zip: { match: normalize(submitted.billingZip) === normalize(savedCardDetails.billingZip) },
-      };
-      return {
-        status: "completed",
-        verified: Object.values(fields).every((f) => f.match),
-        fields,
-      };
-    };
-
-    const pollTest = async () => {
-      try {
-        const res = await authFetch(`/api/v1/rail5/cards/${cardId}/test-purchase-status`);
-        if (res.ok) {
-          const data: TestPurchaseApiResponse = await res.json();
-          if (data.status === "completed" && data.submitted_details) {
-            const result = compareFields(data.submitted_details);
-            result.sale_id = data.sale_id;
-            setTestPurchaseResult(result);
-            setTestPollingActive(false);
-            if (testPollingRef.current) clearInterval(testPollingRef.current);
-          }
-        }
-      } catch {}
-
-      if (Date.now() - testStartRef.current >= 180_000) {
-        setTestPollingTimedOut(true);
-        setTestPollingActive(false);
-        if (testPollingRef.current) clearInterval(testPollingRef.current);
-      }
-    };
-
-    testPollingRef.current = setInterval(pollTest, 5000);
-    pollTest();
-
-    return () => {
-      if (testPollingRef.current) clearInterval(testPollingRef.current);
-    };
-  }, [deliveryConfirmed, savedCardDetails, cardId, testPurchaseResult?.status]);
 
   function handleCopy() {
     navigator.clipboard.writeText(relayMessage).then(() => {
@@ -364,66 +308,11 @@ function Step7DeliveryResult({
         </div>
       )}
 
-      {deliveryConfirmed && savedCardDetails && (
-        <div className="space-y-3" data-testid="r5-test-verification">
-          {testPurchaseResult?.status === "completed" ? (
-            <div className={`rounded-xl p-4 border ${testPurchaseResult.verified ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-              <div className="flex items-center gap-2 mb-3">
-                {testPurchaseResult.verified ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                ) : (
-                  <Shield className="w-5 h-5 text-red-600" />
-                )}
-                <span className={`font-semibold text-sm ${testPurchaseResult.verified ? "text-green-800" : "text-red-800"}`} data-testid="text-verification-result">
-                  {testPurchaseResult.verified
-                    ? "Card Verified — encryption and decryption working correctly"
-                    : "Verification Failed — some fields did not match"}
-                </span>
-              </div>
-              {testPurchaseResult.fields && (
-                <div className="grid grid-cols-2 gap-1.5">
-                  {Object.entries(testPurchaseResult.fields).map(([field, result]) => (
-                    <div key={field} className="flex items-center gap-1.5 text-xs" data-testid={`verification-field-${field}`}>
-                      {result.match ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
-                      ) : (
-                        <X className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
-                      )}
-                      <span className={result.match ? "text-green-700" : "text-red-700"}>
-                        {FIELD_LABELS[field] || field}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : testPollingTimedOut ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-amber-600" />
-                <span className="font-medium text-sm text-amber-800" data-testid="text-verification-timeout">
-                  Test purchase not completed yet
-                </span>
-              </div>
-              <p className="text-xs text-amber-600 mt-1">
-                The bot hasn't completed the test checkout within 3 minutes. It may still complete it later — you can check the card's dashboard for results.
-              </p>
-            </div>
-          ) : testPollingActive ? (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                <span className="font-medium text-sm text-blue-800" data-testid="text-verification-pending">
-                  Verifying card — waiting for test purchase...
-                </span>
-              </div>
-              <p className="text-xs text-blue-600 mt-1">
-                Your bot is completing a test checkout to verify the card decrypts correctly. This may take a few minutes.
-              </p>
-            </div>
-          ) : null}
-        </div>
-      )}
+      {deliveryConfirmed ? (
+        <Button onClick={onNext} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-next-test">
+          <ArrowRight className="w-4 h-4" /> Continue to Test Verification
+        </Button>
+      ) : null}
 
       <div className="bg-neutral-50 rounded-xl p-5 space-y-3 text-sm">
         <div className="flex justify-between">
@@ -511,6 +400,162 @@ function Step7DeliveryResult({
             )}
           </div>
         )}
+      </div>
+
+      {!deliveryConfirmed && (
+        <button
+          onClick={onDone}
+          className="w-full text-center text-xs text-neutral-400 hover:text-neutral-600 transition-colors py-2"
+          data-testid="button-r5-skip-test"
+        >
+          Skip — I'll check later
+        </button>
+      )}
+    </div>
+  );
+}
+
+function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, onDone }: Step8Props) {
+  const [testPurchaseResult, setTestPurchaseResult] = useState<TestPurchaseResult | null>(null);
+  const [testPollingActive, setTestPollingActive] = useState(false);
+  const [testPollingTimedOut, setTestPollingTimedOut] = useState(false);
+  const testPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const testStartRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!savedCardDetails || !cardId) return;
+    if (testPurchaseResult?.status === "completed") return;
+
+    setTestPollingActive(true);
+    testStartRef.current = Date.now();
+
+    const normalize = (v: string | undefined | null) => (v || "").trim().toLowerCase();
+
+    const compareFields = (submitted: TestPurchaseApiResponse["submitted_details"]): TestPurchaseResult => {
+      if (!submitted) return { status: "completed", verified: false, fields: {} };
+      const fields: Record<string, TestVerificationField> = {
+        card_number: { match: normalize(submitted.cardNumber) === normalize(savedCardDetails.cardNumber) },
+        card_expiry: { match: normalize(submitted.cardExpiry) === normalize(savedCardDetails.cardExpiry) },
+        card_cvv: { match: normalize(submitted.cardCvv) === normalize(savedCardDetails.cardCvv) },
+        cardholder_name: { match: normalize(submitted.cardholderName) === normalize(savedCardDetails.cardholderName) },
+        billing_address: { match: normalize(submitted.billingAddress) === normalize(savedCardDetails.billingAddress) },
+        billing_city: { match: normalize(submitted.billingCity) === normalize(savedCardDetails.billingCity) },
+        billing_state: { match: normalize(submitted.billingState) === normalize(savedCardDetails.billingState) },
+        billing_zip: { match: normalize(submitted.billingZip) === normalize(savedCardDetails.billingZip) },
+      };
+      return {
+        status: "completed",
+        verified: Object.values(fields).every((f) => f.match),
+        fields,
+      };
+    };
+
+    const pollTest = async () => {
+      try {
+        const res = await authFetch(`/api/v1/rail5/cards/${cardId}/test-purchase-status`);
+        if (res.ok) {
+          const data: TestPurchaseApiResponse = await res.json();
+          if (data.status === "completed" && data.submitted_details) {
+            const result = compareFields(data.submitted_details);
+            result.sale_id = data.sale_id;
+            setTestPurchaseResult(result);
+            setTestPollingActive(false);
+            if (testPollingRef.current) clearInterval(testPollingRef.current);
+          }
+        }
+      } catch {}
+
+      if (Date.now() - testStartRef.current >= 180_000) {
+        setTestPollingTimedOut(true);
+        setTestPollingActive(false);
+        if (testPollingRef.current) clearInterval(testPollingRef.current);
+      }
+    };
+
+    testPollingRef.current = setInterval(pollTest, 5000);
+    pollTest();
+
+    return () => {
+      if (testPollingRef.current) clearInterval(testPollingRef.current);
+    };
+  }, [savedCardDetails, cardId, testPurchaseResult?.status]);
+
+  return (
+    <div className="space-y-6" data-testid="r5-step-test-verification">
+      <div className="text-center">
+        <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+          <Shield className="w-8 h-8 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-test-title">Test Verification</h2>
+        <p className="text-sm text-neutral-500 mt-2">
+          Your bot is completing a sandbox test purchase to verify the card file decrypts correctly.
+        </p>
+      </div>
+
+      <div className="space-y-3" data-testid="r5-test-verification">
+        {testPurchaseResult?.status === "completed" ? (
+          <div className={`rounded-xl p-4 border ${testPurchaseResult.verified ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+            <div className="flex items-center gap-2 mb-3">
+              {testPurchaseResult.verified ? (
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+              ) : (
+                <Shield className="w-5 h-5 text-red-600" />
+              )}
+              <span className={`font-semibold text-sm ${testPurchaseResult.verified ? "text-green-800" : "text-red-800"}`} data-testid="text-verification-result">
+                {testPurchaseResult.verified
+                  ? "Card Verified — encryption and decryption working correctly"
+                  : "Verification Failed — some fields did not match"}
+              </span>
+            </div>
+            {testPurchaseResult.fields && (
+              <div className="grid grid-cols-2 gap-1.5">
+                {Object.entries(testPurchaseResult.fields).map(([field, result]) => (
+                  <div key={field} className="flex items-center gap-1.5 text-xs" data-testid={`verification-field-${field}`}>
+                    {result.match ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                    ) : (
+                      <X className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                    )}
+                    <span className={result.match ? "text-green-700" : "text-red-700"}>
+                      {FIELD_LABELS[field] || field}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : testPollingTimedOut ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-amber-600" />
+              <span className="font-medium text-sm text-amber-800" data-testid="text-verification-timeout">
+                Test purchase not completed yet
+              </span>
+            </div>
+            <p className="text-xs text-amber-600 mt-1">
+              The bot hasn't completed the test checkout within 3 minutes. It may still complete it later — you can check the card's dashboard for results.
+            </p>
+          </div>
+        ) : testPollingActive ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+              <span className="font-medium text-sm text-blue-800" data-testid="text-verification-pending">
+                Verifying card — waiting for test purchase...
+              </span>
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              Your bot is completing a test checkout to verify the card decrypts correctly. This may take a few minutes.
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="bg-neutral-50 rounded-xl p-4 space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-neutral-500">Card</span>
+          <span className="font-medium text-neutral-900">{cardName} (••••{cardLast4})</span>
+        </div>
       </div>
 
       <Button onClick={onDone} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-done">
@@ -940,8 +985,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
-        onInteractOutside={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
-        onEscapeKeyDown={(e) => { if (step !== 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+        onInteractOutside={(e) => { if (step < 7) { e.preventDefault(); setShowExitConfirm(true); } }}
+        onEscapeKeyDown={(e) => { if (step < 7) { e.preventDefault(); setShowExitConfirm(true); } }}
       >
         <VisuallyHidden>
           <DialogTitle>Rail 5 Card Setup</DialogTitle>
@@ -949,7 +994,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
         <button
           type="button"
-          onClick={() => step === 7 ? handleClose(false) : setShowExitConfirm(true)}
+          onClick={() => step >= 7 ? handleClose(false) : setShowExitConfirm(true)}
           className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           data-testid="button-r5-close"
         >
@@ -1476,6 +1521,16 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             directDeliverySucceeded={directDeliverySucceeded}
             deliveryResult={deliveryResult}
             storedFileContent={storedFileContent}
+            onNext={() => savedCardDetails ? setStep(8) : handleDone()}
+            onDone={handleDone}
+          />
+        )}
+
+        {step === 8 && (
+          <Step8TestVerification
+            cardId={cardId}
+            cardName={cardName}
+            cardLast4={cardLast4}
             savedCardDetails={savedCardDetails}
             onDone={handleDone}
           />

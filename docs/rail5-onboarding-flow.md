@@ -6,7 +6,7 @@ Rail 5 onboarding provisions an end-to-end encrypted credit card to an AI bot. T
 
 ## Entry Point
 
-`components/dashboard/rail5-setup-wizard.tsx` — 8-step modal wizard (`TOTAL_STEPS = 8`, index 0–7).
+`components/dashboard/rail5-setup-wizard.tsx` — 9-step modal wizard (`TOTAL_STEPS = 9`, index 0–8).
 
 ---
 
@@ -79,7 +79,13 @@ Displays one of two states:
 - **Copy button** — copies relay message to clipboard via `navigator.clipboard.writeText()`.
 - **Telegram button** — opens `t.me/share/url?text=` with the relay message pre-filled.
 - **Discord button** — copies to clipboard + shows toast "Paste this in Discord to send to your bot."
-- Polls `GET /api/v1/rail5/cards/[cardId]/delivery-status` every 5 seconds checking for bot confirmation.
+- Polls `GET /api/v1/rail5/cards/[cardId]/delivery-status` every 5 seconds checking for bot confirmation (continues indefinitely until confirmed or wizard closed).
+- **"Continue to Test Verification"** button appears once delivery is confirmed → advances to Step 8.
+- **"Skip — I'll check later"** link allows closing the wizard before confirmation.
+
+### Step 8: Test Verification (`Step8TestVerification`)
+
+Dedicated step for verifying the card decrypts correctly via a sandbox test purchase.
 
 ---
 
@@ -159,18 +165,19 @@ Logic:
 
 ---
 
-## Wizard Step 7 — Test Purchase Verification
+## Wizard Step 8 — Test Purchase Verification
 
-After the bot confirms delivery (Phase 1), Step 7 enters Phase 2:
+Step 8 (`Step8TestVerification`) is a dedicated step for verifying the card decrypts correctly:
 
-1. **Card details preserved** — Before clearing the card input fields after encryption, the wizard saves the original values (card number, expiry, CVV, holder name, billing address) into `savedCardDetails` state.
-2. **Polling starts** — Once delivery is confirmed (`botConfirmed` or `directDeliverySucceeded`), the wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds. The server returns the bot's submitted details; comparison against `savedCardDetails` happens entirely client-side.
+1. **Card details preserved** — Before clearing the card input fields after encryption (in Step 6), the wizard saves the original values (card number, expiry, CVV, holder name, billing address) into `savedCardDetails` state.
+2. **Polling starts immediately** on mount — polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds. The server returns the bot's submitted details; comparison against `savedCardDetails` happens entirely client-side.
 3. **UI states**:
    - **Polling**: Blue banner with spinner — "Verifying card — waiting for test purchase..."
    - **Success**: Green banner with field-by-field checkmarks — "Card Verified — encryption and decryption working correctly"
    - **Failure**: Red banner with field-by-field results — "Verification Failed — some fields did not match"
    - **Timeout (3 min)**: Amber warning — "Test purchase not completed yet" with suggestion to check dashboard later
 4. **Timeout**: 3 minutes (180 seconds). The bot needs time to spawn a sub-agent, decrypt, navigate, and fill the form.
+5. **"Done" button** closes the wizard.
 
 **Key constant:** `RAIL5_TEST_CHECKOUT_PAGE_ID` and `RAIL5_TEST_CHECKOUT_URL` in `lib/rail5/index.ts`.
 
@@ -214,7 +221,7 @@ This constant is imported by:
 
 | File | Purpose |
 |------|---------|
-| `components/dashboard/rail5-setup-wizard.tsx` | 8-step onboarding wizard |
+| `components/dashboard/rail5-setup-wizard.tsx` | 9-step onboarding wizard (steps 0–8) |
 | `lib/card/onboarding-rail5/encrypt.ts` | Client-side AES-256-GCM encryption, file builder, download |
 | `lib/card/onboarding-rail5/interactive-card.tsx` | Card input UI component |
 | `lib/agent-management/bot-messaging/index.ts` | `sendToBot()` — routes via webhook or pending message |

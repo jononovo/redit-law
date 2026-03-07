@@ -93,7 +93,7 @@ app/
     [cardId]/page.tsx                        # Card detail page
 
 components/dashboard/
-  rail5-setup-wizard.tsx                     # 8-step onboarding wizard with delivery + relay
+  rail5-setup-wizard.tsx                     # 9-step onboarding wizard with delivery + test verification
 
 shared/schema.ts                             # rail5_cards, rail5_checkouts, rail5_guardrails tables
 server/storage.ts                            # rail5 storage methods
@@ -161,7 +161,7 @@ Spending controls per card. Separate from the card record.
 
 ## Onboarding Flow (Setup Wizard)
 
-8-step wizard at `components/dashboard/rail5-setup-wizard.tsx` (`TOTAL_STEPS = 8`, index 0–7).
+9-step wizard at `components/dashboard/rail5-setup-wizard.tsx` (`TOTAL_STEPS = 9`, index 0–8).
 
 ### Step 0: Card Name + Brand
 User enters a name, selects brand, enters last 4 digits. Calls `POST /api/v1/rail5/initialize` → creates `rail5_cards` row, returns `cardId`. Status: `pending_setup`.
@@ -536,6 +536,7 @@ Stable since Node 10+. Built-in, no dependencies.
 | 2026-02-26 | Exported `signPayload` and `attemptDelivery` from `lib/webhooks.ts` for transient relay use |
 | 2026-02-26 | Removed all `webhook_deliveries` writes from deliver-to-bot |
 | 2026-03-06 | Wizard expanded to 8 steps (added billing address + delivery result with relay message sharing) |
+| 2026-03-07 | Wizard expanded to 9 steps (split delivery result and test verification into separate steps) |
 | 2026-03-06 | `sendToBot()` replaced direct `fireWebhook()` for card delivery — adds pending message fallback |
 | 2026-03-06 | Moved `lib/bot-messaging/` → `lib/agent-management/bot-messaging/` |
 | 2026-03-06 | Added centralized message templates (`lib/agent-management/bot-messaging/templates/`) |
