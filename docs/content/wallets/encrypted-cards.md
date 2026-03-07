@@ -104,6 +104,18 @@ After your bot saves the encrypted card file, it should confirm delivery by call
 
 See the [Webhook Events](/docs/api/webhooks/events) page for the full `rail5.card.delivered` event payload and expected bot behavior.
 
+### Test Verification (Rail 5)
+
+After confirming delivery, the setup wizard advances to a **test verification** step. Here's what happens:
+
+1. Your bot receives a sandbox test checkout URL in the confirm-delivery response
+2. The bot decrypts the card file and completes the test checkout (no real charge is processed)
+3. While this is happening, the wizard automatically checks for the test result
+4. Once the bot submits, the wizard compares what the bot entered against the original card details you typed in — field by field (card number, expiry, CVV, name, billing address)
+5. You'll see green checkmarks for each field that matches, or a red indicator if something didn't decrypt correctly
+
+This proves the entire encryption-to-decryption pipeline works before your bot makes any real purchases. If all fields match, your card is verified and ready for use.
+
 ## Choosing Between Rail 4 and Rail 5
 
 | Feature | Sub-Agent Card (Rail 4) | Self-Hosted Card (Rail 5) |

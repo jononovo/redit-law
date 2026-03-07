@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
 import { storage } from "@/server/storage";
+import { RAIL5_TEST_CHECKOUT_URL } from "@/lib/rail5";
 
 export const POST = withBotApi("/api/v1/bot/rail5/confirm-delivery", async (_request, { bot }) => {
   const card = await storage.getRail5CardByBotId(bot.botId);
@@ -30,7 +31,15 @@ export const POST = withBotApi("/api/v1/bot/rail5/confirm-delivery", async (_req
     status: "confirmed",
     card_id: card.cardId,
     card_name: card.cardName,
-    message: "Card confirmed. Run a test purchase to verify everything works.",
-    test_checkout_url: "https://creditclaw.com/checkout/to-be-confirmed",
+    message: "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
+    test_checkout_url: RAIL5_TEST_CHECKOUT_URL,
+    test_instructions: [
+      `Navigate to ${RAIL5_TEST_CHECKOUT_URL} to complete a test purchase.`,
+      "This is a sandbox checkout — no real payment will be processed.",
+      "Use the encrypted card file you just saved to decrypt and enter the card details.",
+      "Fill in all fields: card number, expiry, CVV, cardholder name, and billing address.",
+      "Submit the payment. The system will verify that the card details were decrypted correctly.",
+      "This proves your card file works end-to-end before any real purchase.",
+    ].join("\n"),
   });
 });
