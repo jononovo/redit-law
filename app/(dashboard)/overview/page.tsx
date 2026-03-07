@@ -258,9 +258,6 @@ export default function DashboardOverview() {
               <BotIcon className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-bold text-neutral-900 text-lg mb-2">Set up your first bot</h3>
-            <p className="text-sm text-neutral-500 mb-6 max-w-sm mx-auto">
-              Get started with our guided setup wizard, or claim a bot if you already have a token.
-            </p>
             <div className="flex items-center justify-center gap-3">
               <Link href="/onboarding">
                 <Button className="rounded-xl gap-2" data-testid="button-start-onboarding">
