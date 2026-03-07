@@ -173,9 +173,8 @@ function Step7DeliveryResult({
         }
       } catch {}
 
-      if (Date.now() - startTimeRef.current >= 60_000) {
+      if (!pollingDone && Date.now() - startTimeRef.current >= 60_000) {
         setPollingDone(true);
-        if (pollingRef.current) clearInterval(pollingRef.current);
       }
     };
 
