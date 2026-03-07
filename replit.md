@@ -83,8 +83,8 @@ New features should follow a feature-first folder structure. Each rail lives und
 - `webhooks.ts` — webhook deliveries, retries, failed count
 - `notifications.ts` — notification preferences + messages
 - `payment-links.ts` — payment links, pairing codes, waitlist
-- `rail1.ts` — all privy/x402 wallet, guardrail, transaction, and approval methods
-- `rail2.ts` — all crossmint wallet, guardrail, transaction, and approval methods
+- `rail1.ts` — all privy/x402 wallet, guardrail, and transaction methods
+- `rail2.ts` — all crossmint wallet, guardrail, and transaction methods
 - `rail4.ts` — rail4 cards, obfuscation events/state, profile allowance, checkout confirmations
 - `rail5.ts` — rail5 cards + checkouts
 - `bot-messages.ts` — bot pending messages CRUD (create, get, count, ack, purge, delete by ref)
@@ -201,23 +201,34 @@ Registered users can submit vendor websites for analysis, contributing to the pr
 - **Submission UI:** `/skill-builder/submit` provides a form to submit vendor URLs, view submission history, and track acceptance rates.
 
 ### Unified Approval System
-All four rails route approval emails through a single system under `lib/approvals/`:
+`unified_approvals` is the **sole source of truth** for all approval state across all rails. The old `privy_approvals` and `crossmint_approvals` tables have been dropped. All approval reads, writes, and decisions go through this single table.
+
+**Architecture:**
 - **Service** (`lib/approvals/service.ts`): `createApproval()` generates HMAC-signed approval links, stores in `unified_approvals` table, sends branded email. `resolveApproval()` verifies HMAC, checks expiry, updates status, dispatches rail-specific callbacks.
 - **Email** (`lib/approvals/email.ts`): Single `sendApprovalEmail()` with CreditClaw-branded HTML template, rail badge, and magic-link button.
 - **Callbacks** (`lib/approvals/callbacks.ts`): Thin loader that imports the four rail-specific fulfillment modules below.
-- **Rail 1 Fulfillment** (`lib/approvals/rail1-fulfillment.ts`): Approval/denial handlers for Privy approvals + self-registers via `registerRailCallbacks("rail1", ...)`.
-- **Rail 2 Fulfillment** (`lib/approvals/rail2-fulfillment.ts`): Approval/denial handlers for CrossMint purchases (creates purchase orders, fires webhooks) + self-registers.
+- **Rail 1 Fulfillment** (`lib/approvals/rail1-fulfillment.ts`): `railRef` = privy_transaction ID. On approve: updates tx status, creates order. On deny: marks tx failed.
+- **Rail 2 Fulfillment** (`lib/approvals/rail2-fulfillment.ts`): `railRef` = crossmint_transaction ID. On approve: looks up tx, creates purchase order via CrossMint, records order, fires webhook. On deny: marks tx failed, fires webhook.
 - **Rail 4 Fulfillment** (`lib/approvals/rail4-fulfillment.ts`): Approval/denial handlers for self-hosted card checkouts (wallet debit, allowance tracking, obfuscation events) + self-registers.
 - **Rail 5 Fulfillment** (`lib/approvals/rail5-fulfillment.ts`): Approval/denial handlers for sub-agent checkouts (status updates, webhook firing) + self-registers.
 - **Lifecycle** (`lib/approvals/lifecycle.ts`): TTL constants per rail (Rail 1 polling: 5min, Rail 1 email: 10min, Rails 2/4/5: 15min).
-- **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`. This is the single entry point for email-based approvals across all rails.
-- **Centralized Dashboard API**: `GET /api/v1/approvals?rail=<rail>` returns pending unified approvals for the authenticated owner, filtered by rail and excluding expired entries. `POST /api/v1/approvals/decide` accepts `{ approval_id, decision }` (approval_id is the `ua_...` string), verifies ownership, and calls `resolveApproval()` with the stored HMAC token. Used by Sub-Agent Cards page; can be adopted by other rail pages.
-- **Legacy Dashboard Integration**: Dashboard decide endpoints (`stripe-wallet/approvals/decide`, `card-wallet/approvals/decide`) delegate to `resolveApproval()` when a unified approval exists, with fallback to direct logic for pre-unified approvals. Rail 4 dashboard "Review" button links to unified page via `getUnifiedApprovalByRailRef()` lookup.
-- **Storage**: `getUnifiedApprovalByRailRef(rail, railRef)` looks up pending unified approval by rail-specific ID. `closeUnifiedApprovalByRailRef()` for bidirectional sync. `decideUnifiedApproval()` with atomic `WHERE status = 'pending'` guard.
+- **Landing Page** (`app/api/v1/approvals/confirm/[approvalId]/route.ts`): GET renders branded approval page with approve/deny buttons; POST processes the decision via `resolveApproval()`. Single entry point for email-based approvals across all rails.
+
+**Centralized Dashboard API** (used by ALL rail dashboard pages):
+- `GET /api/v1/approvals?rail=<rail>` — returns pending unified approvals for the authenticated owner, filtered by rail. Extracts rail-specific display fields from `metadata` JSONB (Rail 1: `resource_url`; Rail 2: `product_name`, `shipping_address`).
+- `POST /api/v1/approvals/decide` — accepts `{ approval_id, decision }` (approval_id is the `ua_...` string), verifies ownership, calls `resolveApproval()` with stored HMAC token.
+- All four rail dashboard pages (Stripe Wallet, Card Wallet, Split-Knowledge Cards, Sub-Agent Cards) use these centralized endpoints. No rail-specific approval endpoints remain.
+
+**Metadata JSONB**: Rail-specific display data is stored in the `metadata` column of `unified_approvals` when checkout routes call `createApproval()`:
+- Rail 1: `{ recipient_address, resource_url }`
+- Rail 2: `{ productLocator, product_name, quantity, shipping_address }`
+- Rail 4: checkout confirmation details
+- Rail 5: checkout details
+
+**Storage**: `server/storage/approvals.ts` — `createUnifiedApproval`, `getUnifiedApprovalById`, `getUnifiedApprovalByRailRef`, `decideUnifiedApproval`, `closeUnifiedApprovalByRailRef`, `getUnifiedApprovalsByOwnerUid`.
 - **DB Table**: `unified_approvals` with columns: id, approvalId, rail, ownerUid, ownerEmail, botName, amountDisplay, amountRaw, merchantName, itemName, hmacToken, status, expiresAt, decidedAt, railRef, metadata, createdAt.
 - **Env Vars**: `UNIFIED_APPROVAL_HMAC_SECRET` (falls back to `HMAC_SECRET` or default).
-- **Wiring**: Rail 1 sign route, Rail 2 purchase route, Rail 4 checkout route, and Rail 5 checkout route all call `createApproval()` alongside their rail-specific approval records.
-- **Removed Legacy**: Old Rail 4 confirm page (`/api/v1/rail4/confirm`), old Rail 5 approve page (`/api/v1/rail5/approve`), dead email functions (`sendCheckoutApprovalEmail`, `sendRail5ApprovalEmail`), and dead Rail 5 HMAC helpers have been removed.
+- **Dropped Tables**: `privy_approvals` and `crossmint_approvals` have been removed from schema and dropped from the database. `checkout_confirmations` (Rail 4) remains separate because it doubles as a spend-tracking ledger for daily/monthly budget aggregations.
 
 ### Central Orders (`lib/orders/`, `server/storage/orders.ts`)
 Unified cross-rail order tracking for all vendor purchases. Every confirmed purchase across all 4 rails creates a row in the `orders` table.
@@ -226,7 +237,7 @@ Unified cross-rail order tracking for all vendor purchases. Every confirmed purc
 - **Order creation module**: `lib/orders/create.ts` exports `recordOrder()` — single entry point all rails call after a confirmed purchase. `lib/orders/types.ts` defines `OrderInput` interface.
 - **Rail wiring** (order creation fires ONLY after confirmed execution, never on pending requests):
   - Rail 1: `lib/approvals/rail1-fulfillment.ts` (approved) + `app/api/v1/stripe-wallet/bot/sign/route.ts` (auto-approved)
-  - Rail 2: `lib/approvals/rail2-fulfillment.ts` (approved) + `app/api/v1/card-wallet/bot/purchase/route.ts` (auto-approved) + `app/api/v1/card-wallet/approvals/decide/route.ts` (legacy decide). Webhooks update order via `storage.getOrderByExternalId()` + `storage.updateOrder()`.
+  - Rail 2: `lib/approvals/rail2-fulfillment.ts` (approved) + `app/api/v1/card-wallet/bot/purchase/route.ts` (auto-approved). Webhooks update order via `storage.getOrderByExternalId()` + `storage.updateOrder()`.
   - Rail 4: `lib/approvals/rail4-fulfillment.ts` (approved) + `app/api/v1/bot/merchant/checkout/route.ts` (auto-approved)
   - Rail 5: `lib/approvals/rail5-fulfillment.ts` (approved) + `app/api/v1/bot/rail5/checkout/route.ts` (auto-approved)
 - **API**: `GET /api/v1/orders` (list with query filters), `GET /api/v1/orders/[order_id]` (single order detail). Owner-authenticated.

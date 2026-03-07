@@ -99,21 +99,8 @@ Four tables prefixed `crossmint_` for rail segmentation, plus the shared `master
 | metadata | jsonb | Webhook event logs, misc data |
 | created_at / updated_at | timestamp | |
 
-### crossmint_approvals
-| Column | Type | Description |
-|--------|------|-------------|
-| id | serial PK | |
-| wallet_id | integer | FK → crossmint_wallets |
-| transaction_id | integer | FK → crossmint_transactions |
-| amount_usdc | bigint | Estimated purchase amount |
-| product_locator | text | Full merchant:productId locator |
-| product_name | text | |
-| shipping_address | jsonb | Stored on approval for use at order-creation time |
-| status | text | `pending` / `approved` / `rejected` / `expired` |
-| expires_at | timestamp | 15-minute TTL from creation |
-| decided_by | text | Firebase UID of the approver |
-| decided_at | timestamp | |
-| created_at | timestamp | |
+### Approvals
+Rail 2 approvals are managed through the centralized `unified_approvals` table. The `railRef` column stores the crossmint_transaction ID. Rail-specific metadata (productLocator, product_name, shipping_address) is stored in the `metadata` JSONB column. See the Unified Approval System section in replit.md for details.
 
 ### master_guardrails (shared across rails)
 | Column | Type | Description |

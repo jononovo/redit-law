@@ -88,17 +88,8 @@ Four tables, all prefixed `privy_` for rail segmentation.
 | stripe_session_id | text | For deposits via onramp |
 | metadata | jsonb | |
 
-### privy_approvals
-| Column | Type | Description |
-|--------|------|-------------|
-| id | serial PK | |
-| wallet_id | integer | FK → privy_wallets |
-| transaction_id | integer | FK → privy_transactions |
-| amount_usdc | bigint | |
-| resource_url | text | |
-| status | text | `pending` / `approved` / `rejected` / `expired` |
-| expires_at | timestamp | Auto-expire after 5 minutes |
-| decided_by | text | Firebase UID of decider |
+### Approvals
+Rail 1 approvals are managed through the centralized `unified_approvals` table. The `railRef` column stores the privy_transaction ID. Rail-specific metadata (resource_url, recipient_address) is stored in the `metadata` JSONB column. See the Unified Approval System section in replit.md for details.
 
 ---
 
