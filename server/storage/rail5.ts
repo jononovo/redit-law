@@ -29,7 +29,7 @@ export const rail5Methods: Rail5Methods = {
   },
 
   async getRail5CardByBotId(botId: string): Promise<Rail5Card | null> {
-    const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.botId, botId)).limit(1);
+    const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.botId, botId)).orderBy(desc(rail5Cards.createdAt)).limit(1);
     return card || null;
   },
 

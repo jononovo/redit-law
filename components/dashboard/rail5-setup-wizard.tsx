@@ -163,7 +163,7 @@ function Step7DeliveryResult({
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/v1/rail5/cards/${cardId}/delivery-status`);
+        const res = await authFetch(`/api/v1/rail5/cards/${cardId}/delivery-status`);
         if (res.ok) {
           const data = await res.json();
           if (data.status === "confirmed" || data.status === "active") {
@@ -219,7 +219,7 @@ function Step7DeliveryResult({
 
     const pollTest = async () => {
       try {
-        const res = await fetch(`/api/v1/rail5/cards/${cardId}/test-purchase-status`);
+        const res = await authFetch(`/api/v1/rail5/cards/${cardId}/test-purchase-status`);
         if (res.ok) {
           const data: TestPurchaseApiResponse = await res.json();
           if (data.status === "completed" && data.submitted_details) {
