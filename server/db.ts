@@ -8,12 +8,7 @@ const pool = new pg.Pool({
 
 export const db = drizzle(pool, { schema });
 
-const pendingMigrations: string[] = [
-  `ALTER TABLE sales ADD COLUMN IF NOT EXISTS x402_nonce text`,
-  `CREATE INDEX IF NOT EXISTS sales_x402_nonce_idx ON sales (x402_nonce)`,
-  `DROP TABLE IF EXISTS privy_approvals`,
-  `DROP TABLE IF EXISTS crossmint_approvals`,
-];
+const pendingMigrations: string[] = [];
 
 let _migrationPromise: Promise<void> | null = null;
 

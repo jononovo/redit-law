@@ -1,0 +1,62 @@
+~/workspace$ npx drizzle-kit generate --name drop_legacy_approvals
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/home/runner/workspace/drizzle.config.ts'
++ bot_pending_messages table will be created
+--- all table conflicts resolved ---
+
+
++ digital_product_url column will be created
+--- all columns conflicts in checkout_pages table resolved ---
+
+48 tables
+api_access_logs 10 columns 0 indexes 0 fks
+base_pay_payments 12 columns 3 indexes 0 fks
+bot_pending_messages 7 columns 3 indexes 0 fks
+bots 17 columns 0 indexes 0 fks
+checkout_confirmations 15 columns 3 indexes 0 fks
+checkout_pages 26 columns 4 indexes 0 fks
+crossmint_guardrails 12 columns 1 indexes 0 fks
+crossmint_transactions 16 columns 4 indexes 0 fks
+crossmint_wallets 11 columns 3 indexes 0 fks
+invoices 27 columns 5 indexes 0 fks
+master_guardrails 8 columns 1 indexes 0 fks
+merchant_accounts 11 columns 2 indexes 0 fks
+notification_preferences 10 columns 0 indexes 0 fks
+notifications 8 columns 1 indexes 0 fks
+obfuscation_events 12 columns 2 indexes 0 fks
+obfuscation_state 12 columns 0 indexes 0 fks
+orders 30 columns 9 indexes 0 fks
+owners 9 columns 1 indexes 0 fks
+pairing_codes 8 columns 2 indexes 0 fks
+payment_links 12 columns 2 indexes 0 fks
+payment_methods 9 columns 0 indexes 0 fks
+privy_guardrails 12 columns 1 indexes 0 fks
+privy_transactions 13 columns 3 indexes 0 fks
+privy_wallets 10 columns 3 indexes 0 fks
+procurement_controls 15 columns 2 indexes 0 fks
+profile_allowance_usage 8 columns 1 indexes 0 fks
+qr_payments 12 columns 3 indexes 0 fks
+rail4_cards 20 columns 4 indexes 0 fks
+rail4_guardrails 12 columns 1 indexes 0 fks
+rail5_cards 13 columns 4 indexes 0 fks
+rail5_checkouts 16 columns 4 indexes 0 fks
+rail5_guardrails 12 columns 1 indexes 0 fks
+reconciliation_logs 8 columns 0 indexes 0 fks
+sales 23 columns 8 indexes 0 fks
+seller_profiles 12 columns 0 indexes 0 fks
+shipping_addresses 15 columns 2 indexes 0 fks
+skill_drafts 17 columns 3 indexes 0 fks
+skill_evidence 7 columns 1 indexes 0 fks
+skill_exports 6 columns 1 indexes 0 fks
+skill_submitter_profiles 8 columns 0 indexes 0 fks
+skill_versions 19 columns 2 indexes 0 fks
+topup_requests 6 columns 0 indexes 0 fks
+transactions 8 columns 0 indexes 0 fks
+unified_approvals 17 columns 4 indexes 0 fks
+vendors 11 columns 1 indexes 0 fks
+waitlist_entries 4 columns 0 indexes 0 fks
+wallets 8 columns 0 indexes 0 fks
+webhook_deliveries 13 columns 2 indexes 0 fks
+
+[✓] Your SQL migration file ➜ drizzle/0001_drop_legacy_approvals.sql 🚀
+~/workspace$ 
