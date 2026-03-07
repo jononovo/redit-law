@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { signPayload, attemptDelivery } from "@/lib/webhooks";
 import { z } from "zod";
+import { RAIL5_CARD_DELIVERED } from "@/lib/agent-management/bot-messaging/templates";
 
 const deliverSchema = z.object({
   card_id: z.string().min(1),
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
         card_last4: card.cardLast4,
         file_content,
         suggested_path: `.creditclaw/cards/Card-${card.cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${card.cardLast4}.md`,
-        instructions: "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data. Your bot will receive the decryption key at checkout time via CreditClaw API.",
+        instructions: RAIL5_CARD_DELIVERED,
       },
     };
 

@@ -14,6 +14,7 @@ import { encryptCardDetails, buildEncryptedCardFile, downloadEncryptedFile } fro
 import { detectCardBrand, brandToApiValue, getMaxDigits, type CardBrand } from "@/lib/card/card-brand";
 import { Rail5InteractiveCard } from "@/lib/card/onboarding-rail5/interactive-card";
 import { type CardFieldErrors } from "@/lib/card/hooks";
+import { RAIL5_CARD_DELIVERED } from "@/lib/agent-management/bot-messaging/templates";
 
 interface Rail5SetupWizardProps {
   open: boolean;
@@ -98,7 +99,7 @@ function Step7DeliveryResult({
 
   const isWaiting = selectedBotId && !directDeliverySucceeded && !botConfirmed;
 
-  const relayMessage = `Check for your encrypted card file:\nGET https://creditclaw.com/api/v1/bot/messages\nwith your CreditClaw API key.\nSave the card file to .creditclaw/cards/\n\nOnce saved, confirm delivery:\nPOST https://creditclaw.com/api/v1/bot/rail5/confirm-delivery\nwith your CreditClaw API key.`;
+  const relayMessage = RAIL5_CARD_DELIVERED;
 
   useEffect(() => {
     if (!selectedBotId || !cardId || directDeliverySucceeded) return;
@@ -586,7 +587,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
                 card_last4: cardLast4,
                 file_content: md,
                 suggested_path: `.creditclaw/cards/${cardId}.md`,
-                instructions: "Save this file and run the embedded decrypt script with your key material to access card details.",
+                instructions: RAIL5_CARD_DELIVERED,
               },
             }),
           });
