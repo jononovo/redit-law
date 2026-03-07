@@ -18,8 +18,8 @@ async function handler(request: NextRequest, botId: string) {
     }
 
     if (approvalId) {
-      const approval = await storage.crossmintGetApproval(Number(approvalId));
-      if (!approval || approval.walletId !== wallet.id) {
+      const approval = await storage.getUnifiedApprovalById(approvalId);
+      if (!approval || approval.ownerUid !== wallet.ownerUid) {
         return NextResponse.json({ error: "Approval not found" }, { status: 404 });
       }
 
@@ -30,21 +30,24 @@ async function handler(request: NextRequest, botId: string) {
         });
       }
 
-      if (approval.status === "rejected" || approval.status === "expired") {
+      if (approval.status === "denied" || approval.status === "expired") {
         return NextResponse.json({
           status: "failed",
           reason: `approval_${approval.status}`,
         });
       }
 
-      const tx = await storage.crossmintGetTransactionById(approval.transactionId);
-      if (tx) {
-        return NextResponse.json({
-          status: tx.status,
-          order_status: tx.orderStatus,
-          crossmint_order_id: tx.crossmintOrderId,
-          tracking: tx.trackingInfo,
-        });
+      const txId = Number(approval.railRef);
+      if (!isNaN(txId)) {
+        const tx = await storage.crossmintGetTransactionById(txId);
+        if (tx) {
+          return NextResponse.json({
+            status: tx.status,
+            order_status: tx.orderStatus,
+            crossmint_order_id: tx.crossmintOrderId,
+            tracking: tx.trackingInfo,
+          });
+        }
       }
     }
 

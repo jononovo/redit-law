@@ -1,10 +1,9 @@
 import { db } from "@/server/db";
 import {
-  privyWallets, privyGuardrails, privyTransactions, privyApprovals,
+  privyWallets, privyGuardrails, privyTransactions,
   type PrivyWallet, type InsertPrivyWallet,
   type PrivyGuardrail, type InsertPrivyGuardrail,
   type PrivyTransaction, type InsertPrivyTransaction,
-  type PrivyApproval, type InsertPrivyApproval,
 } from "@/shared/schema";
 import { eq, and, desc, sql, gte, inArray } from "drizzle-orm";
 import type { IStorage } from "./types";
@@ -18,8 +17,6 @@ type Rail1Methods = Pick<IStorage,
   | "privyGetGuardrails" | "privyUpsertGuardrails"
   | "privyCreateTransaction" | "privyGetTransactionsByWalletId" | "privyUpdateTransactionStatus"
   | "privyGetDailySpend" | "privyGetMonthlySpend"
-  | "privyCreateApproval" | "privyGetApproval" | "privyGetPendingApprovals"
-  | "privyGetPendingApprovalsByOwnerUid" | "privyDecideApproval"
 >;
 
 export const rail1Methods: Rail1Methods = {
@@ -180,44 +177,4 @@ export const rail1Methods: Rail1Methods = {
     return Number(result[0]?.total || 0);
   },
 
-  async privyCreateApproval(data: InsertPrivyApproval): Promise<PrivyApproval> {
-    const [approval] = await db.insert(privyApprovals).values(data).returning();
-    return approval;
-  },
-
-  async privyGetApproval(id: number): Promise<PrivyApproval | null> {
-    const [approval] = await db.select().from(privyApprovals).where(eq(privyApprovals.id, id)).limit(1);
-    return approval || null;
-  },
-
-  async privyGetPendingApprovals(walletId: number): Promise<PrivyApproval[]> {
-    return db
-      .select()
-      .from(privyApprovals)
-      .where(and(eq(privyApprovals.walletId, walletId), eq(privyApprovals.status, "pending")))
-      .orderBy(desc(privyApprovals.createdAt));
-  },
-
-  async privyGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<PrivyApproval[]> {
-    const wallets = await this.privyGetWalletsByOwnerUid(ownerUid);
-    if (wallets.length === 0) return [];
-    const walletIds = wallets.map(w => w.id);
-    return db
-      .select()
-      .from(privyApprovals)
-      .where(and(
-        inArray(privyApprovals.walletId, walletIds),
-        eq(privyApprovals.status, "pending"),
-      ))
-      .orderBy(desc(privyApprovals.createdAt));
-  },
-
-  async privyDecideApproval(id: number, decision: string, decidedBy: string): Promise<PrivyApproval | null> {
-    const [updated] = await db
-      .update(privyApprovals)
-      .set({ status: decision, decidedAt: new Date(), decidedBy })
-      .where(and(eq(privyApprovals.id, id), eq(privyApprovals.status, "pending")))
-      .returning();
-    return updated || null;
-  },
 };

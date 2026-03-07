@@ -21,11 +21,9 @@ import {
   type PrivyWallet, type InsertPrivyWallet,
   type PrivyGuardrail, type InsertPrivyGuardrail,
   type PrivyTransaction, type InsertPrivyTransaction,
-  type PrivyApproval, type InsertPrivyApproval,
   type CrossmintWallet, type InsertCrossmintWallet,
   type CrossmintGuardrail, type InsertCrossmintGuardrail,
   type CrossmintTransaction, type InsertCrossmintTransaction,
-  type CrossmintApproval, type InsertCrossmintApproval,
   type MasterGuardrail, type InsertMasterGuardrail,
   type Rail4Guardrail, type InsertRail4Guardrail,
   type Rail5Guardrail, type InsertRail5Guardrail,
@@ -156,11 +154,6 @@ export interface IStorage {
   crossmintGetDailySpend(walletId: number): Promise<number>;
   crossmintGetMonthlySpend(walletId: number): Promise<number>;
 
-  crossmintCreateApproval(data: InsertCrossmintApproval): Promise<CrossmintApproval>;
-  crossmintGetApproval(id: number): Promise<CrossmintApproval | null>;
-  crossmintGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<CrossmintApproval[]>;
-  crossmintDecideApproval(id: number, decision: string, decidedBy: string): Promise<CrossmintApproval | null>;
-
   privyCreateWallet(data: InsertPrivyWallet): Promise<PrivyWallet>;
   privyGetWalletById(id: number): Promise<PrivyWallet | null>;
   privyGetWalletByBotId(botId: string): Promise<PrivyWallet | null>;
@@ -181,12 +174,6 @@ export interface IStorage {
   privyUpdateTransactionStatus(id: number, status: string, txHash?: string): Promise<PrivyTransaction | null>;
   privyGetDailySpend(walletId: number): Promise<number>;
   privyGetMonthlySpend(walletId: number): Promise<number>;
-
-  privyCreateApproval(data: InsertPrivyApproval): Promise<PrivyApproval>;
-  privyGetApproval(id: number): Promise<PrivyApproval | null>;
-  privyGetPendingApprovals(walletId: number): Promise<PrivyApproval[]>;
-  privyGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<PrivyApproval[]>;
-  privyDecideApproval(id: number, decision: string, decidedBy: string): Promise<PrivyApproval | null>;
 
   createRail4Card(data: InsertRail4Card): Promise<Rail4Card>;
   getRail4CardByCardId(cardId: string): Promise<Rail4Card | null>;

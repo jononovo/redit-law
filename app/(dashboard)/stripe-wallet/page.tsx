@@ -95,7 +95,7 @@ export default function StripeWalletPage() {
 
   const fetchApprovals = useCallback(async () => {
     try {
-      const res = await authFetch("/api/v1/stripe-wallet/approvals");
+      const res = await authFetch("/api/v1/approvals?rail=rail1");
       if (res.ok) {
         const data = await res.json();
         setApprovals(data.approvals || []);
@@ -106,6 +106,7 @@ export default function StripeWalletPage() {
   const walletActions = useWalletActions({
     railPrefix: "stripe-wallet",
     entityType: "wallet",
+    approvalsDecideEndpoint: "/api/v1/approvals/decide",
     entityIdField: "wallet_id",
     onUpdate: fetchWallets,
     onTransactionsRefresh: (entityId) => {

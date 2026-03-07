@@ -5,12 +5,13 @@ export async function buildRail1Detail(botId: string) {
   const wallet = await storage.privyGetWalletByBotId(botId);
   if (!wallet) return { status: "inactive" as const };
 
-  const [guardrails, dailySpend, monthlySpend, pendingApprovals] = await Promise.all([
+  const [guardrails, dailySpend, monthlySpend, allPendingApprovals] = await Promise.all([
     storage.privyGetGuardrails(wallet.id),
     storage.privyGetDailySpend(wallet.id),
     storage.privyGetMonthlySpend(wallet.id),
-    storage.privyGetPendingApprovals(wallet.id),
+    storage.getUnifiedApprovalsByOwnerUid(wallet.ownerUid, "pending"),
   ]);
+  const pendingApprovals = allPendingApprovals.filter(a => a.rail === "rail1");
 
   const maxPerTx = guardrails?.maxPerTxUsdc ?? GUARDRAIL_DEFAULTS.rail1.maxPerTxUsdc;
   const dailyBudget = guardrails?.dailyBudgetUsdc ?? GUARDRAIL_DEFAULTS.rail1.dailyBudgetUsdc;

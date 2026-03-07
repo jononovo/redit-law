@@ -5,39 +5,31 @@ import { fireWebhook } from "@/lib/webhooks";
 import { recordOrder } from "@/lib/orders/create";
 import { toShippingAddressFields } from "@/lib/orders/address-utils";
 import type { UnifiedApproval } from "@/shared/schema";
-import type { ShippingAddress } from "@/lib/procurement/types";
 
 async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
-  const approvalId = Number(approval.railRef);
-  if (isNaN(approvalId)) return;
+  const transactionId = Number(approval.railRef);
+  if (isNaN(transactionId)) return;
 
-  const cmApproval = await storage.crossmintGetApproval(approvalId);
-  if (!cmApproval) {
-    console.error(`[Rail2] Fulfill approve: crossmint_approval ${approvalId} not found`);
-    return;
-  }
-
-  await storage.crossmintDecideApproval(approvalId, "approved", approval.ownerUid);
-
-  const transaction = await storage.crossmintGetTransactionById(cmApproval.transactionId);
+  const transaction = await storage.crossmintGetTransactionById(transactionId);
   if (!transaction) {
-    console.error(`[Rail2] Fulfill approve: transaction ${cmApproval.transactionId} not found`);
+    console.error(`[Rail2] Fulfill approve: transaction ${transactionId} not found`);
     return;
   }
 
-  const wallet = await storage.crossmintGetWalletById(cmApproval.walletId);
+  const wallet = await storage.crossmintGetWalletById(transaction.walletId);
   if (!wallet) {
-    await storage.crossmintUpdateTransaction(cmApproval.transactionId, { status: "failed" });
-    console.error(`[Rail2] Fulfill approve: wallet ${cmApproval.walletId} not found`);
+    await storage.crossmintUpdateTransaction(transactionId, { status: "failed" });
+    console.error(`[Rail2] Fulfill approve: wallet ${transaction.walletId} not found`);
     return;
   }
 
+  const metadata = (approval.metadata as Record<string, any>) || {};
   const [merchant, productId] = (transaction.productLocator || "").split(":");
-  const shippingAddr = transaction.shippingAddress || cmApproval.shippingAddress;
+  const shippingAddr = transaction.shippingAddress || metadata.shipping_address;
 
   if (!merchant || !productId || !shippingAddr) {
-    await storage.crossmintUpdateTransaction(cmApproval.transactionId, { status: "failed" });
-    console.error(`[Rail2] Fulfill approve: missing purchase details for approval ${approvalId}`);
+    await storage.crossmintUpdateTransaction(transactionId, { status: "failed" });
+    console.error(`[Rail2] Fulfill approve: missing purchase details for tx ${transactionId}`);
     return;
   }
 
@@ -62,7 +54,7 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
       quantity: transaction.quantity,
     });
 
-    await storage.crossmintUpdateTransaction(cmApproval.transactionId, {
+    await storage.crossmintUpdateTransaction(transactionId, {
       crossmintOrderId: result.orderId,
       status: "confirmed",
       orderStatus: "processing",
@@ -91,7 +83,7 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
         shippingPriceCents: result.pricing?.shippingCents ?? null,
         shippingType: "standard",
         shippingAddress: convertedAddr,
-        metadata: { source: "rail2-fulfillment", approvalId },
+        metadata: { source: "rail2-fulfillment", unified_approval_id: approval.approvalId },
       });
     } catch (orderErr) {
       console.error("[Rail2] Order record creation failed (non-fatal):", orderErr);
@@ -99,7 +91,7 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
 
     if (bot) {
       fireWebhook(bot, "purchase.approved", {
-        approval_id: approvalId,
+        approval_id: approval.approvalId,
         transaction_id: transaction.id,
         order_id: result.orderId,
         product_name: transaction.productName,
@@ -109,39 +101,39 @@ async function fulfillRail2Approval(approval: UnifiedApproval): Promise<void> {
     }
   } catch (purchaseError) {
     console.error("[Rail2] Purchase order creation failed:", purchaseError);
-    await storage.crossmintUpdateTransaction(cmApproval.transactionId, { status: "failed" });
+    await storage.crossmintUpdateTransaction(transactionId, { status: "failed" });
     throw purchaseError;
   }
 
-  console.log(`[Rail2] Approved: crossmint_approval ${approval.railRef}`);
+  console.log(`[Rail2] Approved: unified_approval ${approval.approvalId}, tx ${transactionId}`);
 }
 
 async function fulfillRail2Denial(approval: UnifiedApproval): Promise<void> {
-  const approvalId = Number(approval.railRef);
-  if (isNaN(approvalId)) return;
+  const transactionId = Number(approval.railRef);
+  if (isNaN(transactionId)) return;
 
-  const cmApproval = await storage.crossmintGetApproval(approvalId);
-  if (!cmApproval) {
-    console.error(`[Rail2] Fulfill deny: crossmint_approval ${approvalId} not found`);
+  const transaction = await storage.crossmintGetTransactionById(transactionId);
+  if (!transaction) {
+    console.error(`[Rail2] Fulfill deny: transaction ${transactionId} not found`);
     return;
   }
 
-  await storage.crossmintDecideApproval(approvalId, "denied", approval.ownerUid);
-  await storage.crossmintUpdateTransaction(cmApproval.transactionId, { status: "failed" });
+  await storage.crossmintUpdateTransaction(transactionId, { status: "failed" });
 
-  const wallet = await storage.crossmintGetWalletById(cmApproval.walletId);
+  const wallet = await storage.crossmintGetWalletById(transaction.walletId);
   if (wallet) {
     const bot = await storage.getBotByBotId(wallet.botId);
     if (bot) {
+      const metadata = (approval.metadata as Record<string, any>) || {};
       fireWebhook(bot, "purchase.rejected", {
-        approval_id: approvalId,
-        product_name: cmApproval.productName,
-        product_locator: cmApproval.productLocator,
+        approval_id: approval.approvalId,
+        product_name: metadata.product_name || transaction.productName,
+        product_locator: transaction.productLocator,
       }).catch(() => {});
     }
   }
 
-  console.log(`[Rail2] Denied: crossmint_approval ${approval.railRef}`);
+  console.log(`[Rail2] Denied: unified_approval ${approval.approvalId}, tx ${transactionId}`);
 }
 
 registerRailCallbacks("rail2", {
