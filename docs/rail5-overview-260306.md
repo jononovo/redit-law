@@ -258,10 +258,14 @@ Bot calls `POST /api/v1/bot/rail5/confirm-delivery` (no body needed).
   "status": "confirmed",
   "card_id": "r5card_...",
   "card_name": "...",
-  "message": "Card confirmed. Run a test purchase to verify everything works.",
-  "test_checkout_url": "https://creditclaw.com/checkout/to-be-confirmed"
+  "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
+  "test_checkout_url": "https://creditclaw.com/pay/cp_dd5f6ff666dcb31fce0f251a",
+  "test_instructions": "Navigate to ... to complete a test purchase.\nThis is a sandbox checkout — no real payment will be processed.\n..."
 }
 ```
+
+### 5. Test purchase (verification)
+Bot follows the `test_instructions` from confirm-delivery: navigates to the test checkout URL, decrypts the card file, fills in card details, and submits. The "testing" payment method records the entered details in the sale metadata without processing a real charge. The owner's wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` to compare the submitted details against the originals field-by-field.
 
 ### Card Status Progression
 
@@ -467,6 +471,7 @@ Session deleted. Key, decrypted card, all context — gone.
 | GET | `/api/v1/rail5/cards` | List owner's Rail 5 cards |
 | GET | `/api/v1/rail5/cards/[cardId]` | Get card detail + checkout history |
 | PATCH | `/api/v1/rail5/cards/[cardId]` | Update card settings, link/unlink bot, freeze/unfreeze |
+| GET | `/api/v1/rail5/cards/[cardId]/test-purchase-status` | Poll test purchase result + field-by-field card verification |
 | POST | `/api/v1/rail5/deliver-to-bot` | Transient relay of encrypted file to bot (legacy) |
 | POST | `/api/v1/bot-messages/send` | Universal message delivery via `sendToBot()` |
 
@@ -477,7 +482,7 @@ Session deleted. Key, decrypted card, all context — gone.
 | POST | `/api/v1/bot/rail5/checkout` | 30/hr | Validate spend + return spawn payload |
 | POST | `/api/v1/bot/rail5/key` | 30/hr | Return decryption key (single-use) |
 | POST | `/api/v1/bot/rail5/confirm` | 30/hr | Sub-agent reports checkout result |
-| POST | `/api/v1/bot/rail5/confirm-delivery` | — | Bot confirms encrypted card file received |
+| POST | `/api/v1/bot/rail5/confirm-delivery` | — | Bot confirms card file received + gets test checkout instructions |
 | GET | `/api/v1/bot/messages` | — | Poll pending messages |
 | POST | `/api/v1/bot/messages/ack` | — | Acknowledge (remove) pending messages |
 
@@ -541,3 +546,7 @@ Stable since Node 10+. Built-in, no dependencies.
 | 2026-03-06 | Webhook health tracking: `webhookStatus`/`webhookFailCount` on bots table, smart routing in `sendToBot()` |
 | 2026-03-06 | Spending controls moved to `rail5_guardrails` table (separate from `rail5_cards`) |
 | 2026-03-06 | Removed confirm-delivery docs from `skill.md` — bot receives instructions via message payload |
+| 2026-03-07 | Confirm-delivery response updated with real `test_checkout_url` and `test_instructions` for sandbox verification |
+| 2026-03-07 | Added `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` — field-by-field card detail verification against test sale |
+| 2026-03-07 | Step 7 Phase 2: test purchase verification with 3-minute polling, field-by-field match display |
+| 2026-03-07 | Card details saved into `savedCardDetails` state before clearing inputs — persists through Step 7 for comparison |

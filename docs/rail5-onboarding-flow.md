@@ -116,10 +116,63 @@ Logic:
     "status": "confirmed",
     "card_id": "r5card_...",
     "card_name": "...",
-    "message": "Card confirmed. Run a test purchase to verify everything works.",
-    "test_checkout_url": "https://creditclaw.com/checkout/to-be-confirmed"
+    "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
+    "test_checkout_url": "https://creditclaw.com/pay/cp_dd5f6ff666dcb31fce0f251a",
+    "test_instructions": "Navigate to https://creditclaw.com/pay/cp_dd5f6ff666dcb31fce0f251a to complete a test purchase.\nThis is a sandbox checkout — no real payment will be processed.\n..."
   }
   ```
+
+### 5. Test purchase (verification)
+After confirming delivery, the bot follows the `test_instructions` from the confirm-delivery response:
+- Navigates to the test checkout URL (a checkout page with only the "testing" payment method enabled).
+- Decrypts the card file using `POST /api/v1/bot/rail5/key` and the embedded decrypt script.
+- Enters the decrypted card details into the test checkout form and submits.
+- The test checkout records card details in the sale's metadata (no real charge).
+- The wizard (still open) polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` and compares each field against the original card data still in browser memory.
+- If all fields match: card is verified end-to-end. If any mismatch: verification fails.
+
+**Route:** `app/api/v1/rail5/cards/[cardId]/test-purchase-status/route.ts`
+
+Logic:
+- Session-authenticated (owner only), validates card ownership.
+- Queries recent test sales for the Rail5 test checkout page (within 5 minutes).
+- Returns the submitted card details from the test sale (no comparison on server).
+- Response when completed:
+  ```json
+  {
+    "status": "completed",
+    "sale_id": "sale_...",
+    "submitted_details": {
+      "cardNumber": "4111111111111111",
+      "cardExpiry": "12/26",
+      "cardCvv": "123",
+      "cardholderName": "John Doe",
+      "billingAddress": "123 Main St",
+      "billingCity": "New York",
+      "billingState": "NY",
+      "billingZip": "10001"
+    }
+  }
+  ```
+- If no test sale found yet: returns `{ "status": "pending" }`.
+- **Comparison happens client-side**: The wizard compares `submitted_details` against `savedCardDetails` (still in browser memory) field-by-field. Raw card data never leaves the browser for comparison purposes — the server only returns what the bot entered at the checkout.
+
+---
+
+## Wizard Step 7 — Test Purchase Verification
+
+After the bot confirms delivery (Phase 1), Step 7 enters Phase 2:
+
+1. **Card details preserved** — Before clearing the card input fields after encryption, the wizard saves the original values (card number, expiry, CVV, holder name, billing address) into `savedCardDetails` state.
+2. **Polling starts** — Once delivery is confirmed (`botConfirmed` or `directDeliverySucceeded`), the wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds, passing the saved card details as query params.
+3. **UI states**:
+   - **Polling**: Blue banner with spinner — "Verifying card — waiting for test purchase..."
+   - **Success**: Green banner with field-by-field checkmarks — "Card Verified — encryption and decryption working correctly"
+   - **Failure**: Red banner with field-by-field results — "Verification Failed — some fields did not match"
+   - **Timeout (3 min)**: Amber warning — "Test purchase not completed yet" with suggestion to check dashboard later
+4. **Timeout**: 3 minutes (180 seconds). The bot needs time to spawn a sub-agent, decrypt, navigate, and fill the form.
+
+**Key constant:** `RAIL5_TEST_CHECKOUT_PAGE_ID` and `RAIL5_TEST_CHECKOUT_URL` in `lib/rail5/index.ts`.
 
 ---
 
@@ -172,6 +225,8 @@ This constant is imported by:
 | `app/api/v1/bot-messages/send/route.ts` | Universal `sendToBot()` API (used by wizard) |
 | `app/api/v1/bot/messages/route.ts` | Bot polls for pending messages |
 | `app/api/v1/bot/messages/ack/route.ts` | Bot acknowledges messages |
-| `app/api/v1/bot/rail5/confirm-delivery/route.ts` | Bot confirms card file saved |
+| `app/api/v1/bot/rail5/confirm-delivery/route.ts` | Bot confirms card file saved, returns test checkout instructions |
+| `app/api/v1/rail5/cards/[cardId]/test-purchase-status/route.ts` | Polls test purchase result + field-by-field verification |
 | `app/api/v1/rail5/cards/[cardId]/route.ts` | Card CRUD (PATCH for limits, bot linking) |
+| `lib/rail5/index.ts` | Constants (`RAIL5_TEST_CHECKOUT_PAGE_ID`, `RAIL5_TEST_CHECKOUT_URL`) |
 | `components/wallet/card-visual.tsx` | Card status labels and badge colors |
