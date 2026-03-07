@@ -4,7 +4,7 @@ The Shop feature lets you create a public storefront where buyers can browse all
 
 ## Setting Up Your Shop
 
-Navigate to <a href="/app/shop" target="_blank">**Shop**</a> in the dashboard sidebar to access the shop admin page.
+Navigate to <a href="/shop" target="_blank">**Shop**</a> in the dashboard sidebar to access the shop admin page.
 
 ### Shop URL
 

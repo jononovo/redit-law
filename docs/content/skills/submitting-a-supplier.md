@@ -4,7 +4,7 @@ If you've found a vendor you'd like your bot to shop at but it's not in the Supp
 
 ## How to Submit
 
-1. Navigate to **Skills → Submit** in the dashboard (or go to `/app/skills/submit`)
+1. Navigate to **Skills → Submit** in the dashboard (or go to `/skill-builder/submit`)
 2. Enter the vendor's website URL in the submission field
 3. Click **Submit**
 

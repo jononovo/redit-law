@@ -123,7 +123,7 @@ function ClaimPageContent() {
               Its wallet is now active. Head to your dashboard to manage it.
             </p>
             <Button
-              onClick={() => router.push("/app")}
+              onClick={() => router.push("/overview")}
               className="w-full rounded-xl bg-neutral-900 hover:bg-neutral-800 text-white gap-2"
               data-testid="button-go-to-dashboard"
             >

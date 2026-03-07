@@ -102,7 +102,7 @@ export function Complete({ currentStep, totalSteps, state }: CompleteProps) {
         </div>
       </div>
 
-      <Link href="/app">
+      <Link href="/overview">
         <Button className="w-full rounded-xl h-12 text-base" data-testid="button-go-to-dashboard">
           Go to Dashboard
         </Button>

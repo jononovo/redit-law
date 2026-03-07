@@ -30,10 +30,10 @@ export function Footer() {
           <div>
             <h4 className="font-bold text-sm uppercase tracking-wider text-neutral-300 mb-4">Dashboard</h4>
             <ul className="space-y-3">
-              <li><Link href="/app" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-overview">Overview</Link></li>
-              <li><Link href="/app/cards" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-cards">Cards</Link></li>
-              <li><Link href="/app/transactions" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-transactions">Transactions</Link></li>
-              <li><Link href="/app/settings" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-settings">Settings</Link></li>
+              <li><Link href="/overview" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-overview">Overview</Link></li>
+              <li><Link href="/cards" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-cards">Cards</Link></li>
+              <li><Link href="/transactions" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-transactions">Transactions</Link></li>
+              <li><Link href="/settings" className="text-sm text-neutral-400 hover:text-white transition-colors font-medium" data-testid="footer-link-settings">Settings</Link></li>
             </ul>
           </div>
 

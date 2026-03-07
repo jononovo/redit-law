@@ -82,7 +82,7 @@ export default function SelfHostedCardDetailPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push("/app/self-hosted")}
+          onClick={() => router.push("/self-hosted")}
           className="rounded-xl gap-2"
           data-testid="button-back-to-cards"
         >

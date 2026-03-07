@@ -18,13 +18,13 @@ The left sidebar organizes the dashboard into three main groups:
 
 | Section | Description |
 |---------|-------------|
-| **<a href="/app" target="_blank">Overview</a>** | The main dashboard with stats, bot cards, activity, and health |
-| **<a href="/app/stripe-wallet" target="_blank">Stripe Wallet</a>** | Manage your USDC wallet for x402 purchases. Fund with Stripe or Link |
-| **<a href="/app/card-wallet" target="_blank">Shop Wallet</a>** | USDC wallet for shopping at Amazon, Shopify, and other merchants |
-| **<a href="/app/sub-agent-cards" target="_blank">My Card (Encrypted)</a>** | Self-hosted card setup with encryption and ephemeral sub-agents |
-| **<a href="/app/self-hosted" target="_blank">My Card (Split-Knowledge)</a>** | Legacy self-hosted card with obfuscation and split-knowledge security |
-| **<a href="/app/orders" target="_blank">Orders</a>** | Track physical goods orders and shipping status |
-| **<a href="/app/transactions" target="_blank">Transactions</a>** | Unified transaction ledger across all wallets |
+| **<a href="/overview" target="_blank">Overview</a>** | The main dashboard with stats, bot cards, activity, and health |
+| **<a href="/stripe-wallet" target="_blank">Stripe Wallet</a>** | Manage your USDC wallet for x402 purchases. Fund with Stripe or Link |
+| **<a href="/card-wallet" target="_blank">Shop Wallet</a>** | USDC wallet for shopping at Amazon, Shopify, and other merchants |
+| **<a href="/sub-agent-cards" target="_blank">My Card (Encrypted)</a>** | Self-hosted card setup with encryption and ephemeral sub-agents |
+| **<a href="/self-hosted" target="_blank">My Card (Split-Knowledge)</a>** | Legacy self-hosted card with obfuscation and split-knowledge security |
+| **<a href="/orders" target="_blank">Orders</a>** | Track physical goods orders and shipping status |
+| **<a href="/transactions" target="_blank">Transactions</a>** | Unified transaction ledger across all wallets |
 
 ### Procurement
 
@@ -38,10 +38,10 @@ The left sidebar organizes the dashboard into three main groups:
 
 | Section | Description |
 |---------|-------------|
-| **<a href="/app/checkout/create" target="_blank">Create Checkout</a>** | Build checkout pages to accept payments |
-| **<a href="/app/shop" target="_blank">Shop</a>** | Manage your public storefront and seller identity |
-| **<a href="/app/sales" target="_blank">My Sales</a>** | View completed sales and revenue |
-| **<a href="/app/invoices" target="_blank">Invoices</a>** | Create, send, and track invoices |
+| **<a href="/checkout/create" target="_blank">Create Checkout</a>** | Build checkout pages to accept payments |
+| **<a href="/shop" target="_blank">Shop</a>** | Manage your public storefront and seller identity |
+| **<a href="/sales" target="_blank">My Sales</a>** | View completed sales and revenue |
+| **<a href="/invoices" target="_blank">Invoices</a>** | Create, send, and track invoices |
 
 ## Bot Cards
 
@@ -69,8 +69,8 @@ From the dashboard, you can also view and manage your active payment links — s
 
 Access account settings from the sidebar to configure:
 
-- **<a href="/app/shop" target="_blank">Shop</a>** — Business name, logo, contact details, and storefront settings
-- **<a href="/app/settings" target="_blank">Account Settings</a>** — Display name, notifications, shipping addresses
+- **<a href="/shop" target="_blank">Shop</a>** — Business name, logo, contact details, and storefront settings
+- **<a href="/settings" target="_blank">Account Settings</a>** — Display name, notifications, shipping addresses
 
 ## Next Steps
 

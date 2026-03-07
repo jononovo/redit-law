@@ -6,7 +6,7 @@ Stripe Wallets (Rail 1) and Card Wallets (Rail 2) need to be funded before your 
 
 ## Opening the Fund Wallet Sheet
 
-1. Go to your wallet page (<a href="/app/stripe-wallet" target="_blank">**Stripe Wallets**</a> or <a href="/app/card-wallet" target="_blank">**Card Wallets**</a>)
+1. Go to your wallet page (<a href="/stripe-wallet" target="_blank">**Stripe Wallets**</a> or <a href="/card-wallet" target="_blank">**Card Wallets**</a>)
 2. Select the wallet you want to fund
 3. Click the **Fund** button in the wallet action bar
 4. The funding sheet opens on the right side of the screen

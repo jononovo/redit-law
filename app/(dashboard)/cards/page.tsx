@@ -178,7 +178,7 @@ export default function CardsPage() {
           <p className="font-bold text-neutral-900" data-testid="text-wallets-banner-title">Wallet-funded cards are coming soon</p>
           <p className="text-sm text-neutral-500 font-medium" data-testid="text-wallets-banner-desc">This is where wallet-funded cards will live. For now, head to Self-Hosted Cards to get started.</p>
         </div>
-        <Link href="/app/self-hosted">
+        <Link href="/self-hosted">
           <Button className="rounded-full gap-2 shrink-0" data-testid="button-go-self-hosted">
             Self-Hosted Cards
             <ArrowRight className="w-4 h-4" />
@@ -260,7 +260,7 @@ export default function CardsPage() {
                   {
                     icon: Eye,
                     label: "View Transactions",
-                    onClick: () => window.location.href = "/app/transactions",
+                    onClick: () => window.location.href = "/transactions",
                     "data-testid": `menu-transactions-${card.id}`,
                   },
                   {

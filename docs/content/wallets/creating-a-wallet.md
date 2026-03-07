@@ -4,7 +4,7 @@ Each wallet type has its own creation flow. You'll need at least one registered 
 
 ## Creating a Stripe Wallet (Rail 1)
 
-1. Navigate to <a href="/app/stripe-wallet" target="_blank">**Stripe Wallets**</a> from the dashboard sidebar
+1. Navigate to <a href="/stripe-wallet" target="_blank">**Stripe Wallets**</a> from the dashboard sidebar
 2. Click **Create Wallet**
 3. Select the bot you want to link the wallet to
 4. Click **Create**
@@ -13,7 +13,7 @@ Your wallet is created instantly with a USDC address on the Base network. You ca
 
 ## Creating a Card Wallet (Rail 2)
 
-1. Navigate to <a href="/app/card-wallet" target="_blank">**Card Wallets**</a> from the dashboard sidebar
+1. Navigate to <a href="/card-wallet" target="_blank">**Card Wallets**</a> from the dashboard sidebar
 2. Click **Create Wallet**
 3. Select the bot to link
 4. Click **Create**
@@ -24,7 +24,7 @@ Like Stripe Wallets, Card Wallets are created instantly. The wallet gets its own
 
 Sub-Agent Cards use a multi-step setup wizard:
 
-1. **Navigate** to <a href="/app/sub-agent-cards" target="_blank">**Sub-Agent Cards**</a> from the sidebar and click **Add Card**
+1. **Navigate** to <a href="/sub-agent-cards" target="_blank">**Sub-Agent Cards**</a> from the sidebar and click **Add Card**
 2. **Name your card** — give it a descriptive name (e.g., "AWS Credits Card")
 3. **Choose a use case** — select what the card will be used for (personal requests, business ordering, autonomous building, etc.)
 4. **Set an allowance** — define a spending limit and duration:
@@ -46,7 +46,7 @@ Once setup is complete, your bot can use the card within the allowance you confi
 
 Self-Hosted Cards also use a guided wizard:
 
-1. **Navigate** to <a href="/app/self-hosted" target="_blank">**Self-Hosted Cards**</a> from the sidebar and click **Add Card**
+1. **Navigate** to <a href="/self-hosted" target="_blank">**Self-Hosted Cards**</a> from the sidebar and click **Add Card**
 2. **Name your card** — give it a recognizable name
 3. **Enter card details** — provide the card number, expiry, CVV, and billing info
    - All details are encrypted in your browser before being sent to CreditClaw

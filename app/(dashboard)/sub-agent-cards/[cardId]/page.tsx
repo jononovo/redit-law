@@ -116,7 +116,7 @@ export default function Rail5CardDetailPage() {
       <div className="text-center py-24">
         <CreditCard className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
         <p className="text-lg text-neutral-400 font-medium">Card not found.</p>
-        <Button variant="outline" onClick={() => router.push("/app/sub-agent-cards")} className="mt-4">
+        <Button variant="outline" onClick={() => router.push("/sub-agent-cards")} className="mt-4">
           Back to Cards
         </Button>
       </div>
@@ -127,7 +127,7 @@ export default function Rail5CardDetailPage() {
     <div className="flex flex-col gap-8 animate-fade-in-up max-w-2xl">
       <Button
         variant="ghost"
-        onClick={() => router.push("/app/sub-agent-cards")}
+        onClick={() => router.push("/sub-agent-cards")}
         className="self-start gap-2 text-neutral-500"
         data-testid="button-r5-back"
       >

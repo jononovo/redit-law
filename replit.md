@@ -154,7 +154,7 @@ CreditClaw employs a multi-rail architecture, segmenting payment rails with inde
   - `decrypt-script.ts` — static `DECRYPT_SCRIPT` constant (~10-line AES-256-GCM Node.js script) with marker-based regex (`ENCRYPTED_CARD_START/END`) for extracting data from combined files. Falls back to code-fence matching for old-format files.
   - **Card status progression:** `pending_setup` → `pending_delivery` (key submitted) → `confirmed` (bot confirmed file delivery via `POST /bot/rail5/confirm-delivery`) → `active` (first successful checkout completed). `frozen` can be set by owner on `confirmed` or `active` cards; unfreezing restores to `confirmed` or `active` based on checkout history.
   - **Dual execution modes:** Checkout endpoint returns both `checkout_steps` (array of instructions for direct mode) and `spawn_payload` (spawn wrapper for sub-agent mode). Bot chooses which to use.
-  - DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards,deliver-to-bot,cards/[cardId]/delivery-status}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm,confirm-delivery}`. Dashboard: `/app/sub-agent-cards`. Setup wizard: 9-step (Name→HowItWorks→VisualCardEntry→BillingAddress→Limits→LinkBot→Encrypt&Send→DeliveryResult→TestVerification) with Web Crypto encryption. Card brand is auto-detected from BIN prefix via shared `lib/card/card-brand.ts` utility (Visa/MC/Amex/Discover/JCB/Diners); sent to server during submit-key.
+  - DB tables: `rail5_cards`, `rail5_checkouts`. Owner API: `/api/v1/rail5/{initialize,submit-key,cards,deliver-to-bot,cards/[cardId]/delivery-status}`. Bot API: `/api/v1/bot/rail5/{checkout,key,confirm,confirm-delivery}`. Dashboard: `/sub-agent-cards`. Setup wizard: 9-step (Name→HowItWorks→VisualCardEntry→BillingAddress→Limits→LinkBot→Encrypt&Send→DeliveryResult→TestVerification) with Web Crypto encryption. Card brand is auto-detected from BIN prefix via shared `lib/card/card-brand.ts` utility (Visa/MC/Amex/Discover/JCB/Diners); sent to server during submit-key.
   - **File delivery via `sendToBot()`**: Encryption step calls `POST /api/v1/bot-messages/send` which tries webhook first, falls back to staging a pending message. Combined self-contained markdown file format with `DECRYPT_SCRIPT_START/END` and `ENCRYPTED_CARD_START/END` markers. Backup download always happens.
   - **Delivery result step**: Shows live status (webhook delivered / waiting for bot / confirmed). 1-minute polling every 5s via `GET /rail5/cards/[cardId]/delivery-status`. Share buttons (Copy, Telegram, Discord) for relay message. Collapsible "For AI Agents" section with re-download option. **Phase 2: Test purchase verification** — after bot confirms delivery, polls `GET /rail5/cards/[cardId]/test-purchase-status` for 3 minutes. Server returns submitted card details from the test sale; client compares field-by-field against `savedCardDetails` (preserved in browser memory before input clearing). Shows green checkmarks (match) or red X (mismatch) per field. Confirm-delivery endpoint returns real `test_checkout_url` and `test_instructions` directing bot to sandbox checkout with "testing" payment method.
   - Unified `rails.updated` webhook fires across ALL rails on bot link/unlink/freeze/unfreeze/wallet create with `action`, `rail`, `card_id`/`wallet_id`, `bot_id` in payload. Wired up in: Rail 1 (create, freeze), Rail 2 (create, freeze), Rail 4 (link-bot, freeze), Rail 5 (PATCH cards).
@@ -197,8 +197,8 @@ Registered users can submit vendor websites for analysis, contributing to the pr
 - **Submission API:** `POST /api/v1/skills/submissions` (authenticated, triggers 4-pass analysis), `GET /api/v1/skills/submissions/mine` (list user's own submissions with profile stats).
 - **Submitter Profiles:** `skill_submitter_profiles` table tracks per-user submission counts (submitted, published, rejected).
 - **Trust Badges:** Submissions are tagged as "official" (email domain matches vendor domain) or "community" (all others).
-- **Review Integration:** Community submissions feed into the existing review queue at `/app/skills/review` with source filtering (Admin/Community) and submitter attribution badges.
-- **Submission UI:** `/app/skills/submit` provides a form to submit vendor URLs, view submission history, and track acceptance rates.
+- **Review Integration:** Community submissions feed into the existing review queue at `/skill-builder/review` with source filtering (Admin/Community) and submitter attribution badges.
+- **Submission UI:** `/skill-builder/submit` provides a form to submit vendor URLs, view submission history, and track acceptance rates.
 
 ### Unified Approval System
 All four rails route approval emails through a single system under `lib/approvals/`:
@@ -229,8 +229,8 @@ Unified cross-rail order tracking for all vendor purchases. Every confirmed purc
   - Rail 4: `lib/approvals/rail4-fulfillment.ts` (approved) + `app/api/v1/bot/merchant/checkout/route.ts` (auto-approved)
   - Rail 5: `lib/approvals/rail5-fulfillment.ts` (approved) + `app/api/v1/bot/rail5/checkout/route.ts` (auto-approved)
 - **API**: `GET /api/v1/orders` (list with query filters), `GET /api/v1/orders/[order_id]` (single order detail). Owner-authenticated.
-- **Pages**: `/app/orders` (main orders list with cross-rail filters: rail, bot, status, date range), `/app/orders/[order_id]` (order detail page with product image, timeline, price breakdown, shipping/tracking).
-- **Rail tabs**: All 4 rail pages' Orders tabs now query the central `GET /api/v1/orders?rail=X` endpoint. Clicking an order navigates to `/app/orders/[order_id]`.
+- **Pages**: `/orders` (main orders list with cross-rail filters: rail, bot, status, date range), `/orders/[order_id]` (order detail page with product image, timeline, price breakdown, shipping/tracking).
+- **Rail tabs**: All 4 rail pages' Orders tabs now query the central `GET /api/v1/orders?rail=X` endpoint. Clicking an order navigates to `/orders/[order_id]`.
 - **Sidebar**: Orders link added to dashboard sidebar.
 
 ### Sales & Checkout (`server/storage/sales.ts`, `app/pay/`)
@@ -245,7 +245,7 @@ Turns every CreditClaw wallet holder into a seller. Checkout pages are public UR
   - `checkout.ts` — `creditWalletFromX402()` (wallet balance increment + transaction record), `recordX402Sale()` (sale creation with `x402Nonce` for idempotent retries, amount mismatch detection, invoice linking, `wallet.sale.completed` webhook).
   - This makes CreditClaw both an x402 **payer** (via `/bot/sign`) and x402 **receiver** (via checkout pages). Enables bot-to-bot commerce where one CreditClaw bot creates a checkout page and another pays it programmatically.
 - **Checkout Page**: `/pay/[id]` — split-panel layout (dark left panel with seller info / white right panel with embedded Stripe widget). Supports `?ref=INV-XXXX` query param for invoice payments — fetches invoice data, shows line items and totals on left panel, locks amount server-side.
-- **Pages**: `/app/checkout/create` (create + manage checkout pages), `/app/sales` (sales ledger with clickable rows), `/app/sales/[sale_id]` (sale detail page), `/pay/[id]` (public checkout page), `/pay/[id]/success` (post-payment confirmation).
+- **Pages**: `/checkout/create` (create + manage checkout pages), `/sales` (sales ledger with clickable rows), `/sales/[sale_id]` (sale detail page), `/pay/[id]` (public checkout page), `/pay/[id]/success` (post-payment confirmation).
 - **Webhook**: `wallet.sale.completed` event fired to seller's bot after confirmed sale via `fireWebhook()`. Includes `invoice_id` and `invoice_ref` when payment was for an invoice.
 - **Invoice linking**: Webhook handler checks for `metadata.invoice_ref`, looks up invoice, verifies checkout page match and payable status, links sale to invoice and marks invoice as paid.
 - **Skill file**: `public/checkout.md` — bot-readable instructions for creating checkout pages, viewing sales, and managing invoices.
@@ -258,9 +258,9 @@ Per-owner seller identity used across all checkout pages, invoices, and the publ
 - **Owner API**: `GET/PUT /api/v1/seller-profile` — get or upsert seller profile (including slug, shop_published, shop_banner_url, business_name, logo_url, contact_email, website_url, description). Slug uniqueness enforced at API level.
 - **Bot API**: `GET/PATCH /api/v1/bot/seller-profile` — bots can read and update their seller profile (business_name, slug, description, logo_url, shop_banner_url, shop_published). Enables bots to self-service shop setup without owner dashboard.
 - **Public checkout fallback chain**: seller profile → bot name/owner email (no per-page overrides).
-- **Page**: Seller identity fields are consolidated into the **Shop** page (`/app/shop`) under "Your Details". The old `/app/settings/seller` route redirects to `/app/shop`.
+- **Page**: Seller identity fields are consolidated into the **Shop** page (`/shop`) under "Your Details". The old `/settings/seller` route redirects to `/shop`.
 
-### Shop (`app/s/[slug]`, `app/app/shop`)
+### Shop (`app/s/[slug]`, `app/(dashboard)/shop`)
 Public storefront for sellers, built on top of existing checkout pages.
 - **Schema extensions**: `checkout_pages` gains `pageType` (product/event), `shopVisible`, `shopOrder`, `imageUrl`, `collectBuyerName`. `sales` gains `buyerName`.
 - **Storage**: `getShopPagesByOwnerUid` (active + shopVisible pages sorted by shopOrder), `getBuyerCountForCheckoutPage` (confirmed sales count), `getBuyerNamesForCheckoutPage` (buyer names from confirmed sales).
@@ -268,8 +268,8 @@ Public storefront for sellers, built on top of existing checkout pages.
 - **Public API**: `GET /api/v1/checkout/[id]/buyers` — returns buyer count + names for event pages only.
 - **Public page**: `/s/[slug]` — storefront with seller info, product grid (image, title, description, price, buyer count for events), links to `/pay/[id]`.
 - **Checkout page updates**: `/pay/[id]` shows buyer name input when `collectBuyerName` is true, shows "X people bought this" for event pages. Buyer name passed to Stripe metadata and stored on sale record.
-- **Admin page**: `/app/shop` — configure shop slug, publish toggle, banner URL, toggle which checkout pages appear in shop.
-- **Create checkout form**: `/app/checkout/create` now includes page type (product/event), image URL, and collect buyer name toggle.
+- **Admin page**: `/shop` — configure shop slug, publish toggle, banner URL, toggle which checkout pages appear in shop.
+- **Create checkout form**: `/checkout/create` now includes page type (product/event), image URL, and collect buyer name toggle.
 - **Bot API**: `GET /api/v1/bot/shop` — returns shop config + all checkout pages. `POST /api/v1/bot/checkout-pages/create` accepts `page_type`, `image_url`, `collect_buyer_name`, `shop_visible`, `shop_order`. `PATCH /api/v1/bot/checkout-pages/[id]` supports all update fields. `GET/PATCH /api/v1/bot/seller-profile` enables full self-service shop setup.
 - **Sidebar**: "Shop" link added to Sales section.
 
@@ -281,7 +281,7 @@ Full invoicing system — create, send, track, and collect payment on invoices t
 - **Public API**: `GET /api/v1/invoices/by-ref/[ref]` — returns display-safe fields only (no internal IDs or owner data).
 - **Bot API**: `POST /api/v1/bot/invoices/create` (10/hr), `GET /api/v1/bot/invoices` (12/hr), `POST /api/v1/bot/invoices/[id]/send` (5/hr).
 - **Email & PDF**: `lib/invoice-email.ts` (HTML email with SendGrid + PDF attachment), `lib/invoice-pdf.ts` (server-side PDF generation via `pdf-lib`).
-- **Pages**: `/app/invoices` (list with filters), `/app/invoices/create` (create form with line items repeater), `/app/invoices/[invoice_id]` (detail with status timeline, actions).
+- **Pages**: `/invoices` (list with filters), `/invoices/create` (create form with line items repeater), `/invoices/[invoice_id]` (detail with status timeline, actions).
 
 ### Crypto Onramp (`lib/crypto-onramp/`) — Server-Side Only
 Server-side Stripe Crypto Onramp logic. Client-side UI is now in `lib/payments/`. Legacy client components retained with `-legacy` suffix for reference.
@@ -384,17 +384,19 @@ Rail 1 (`stripe-wallet/page.tsx`, ~313 lines) and Rail 2 (`card-wallet/page.tsx`
 ### Key Routes
 - `/`: Consumer landing page
 - `/claim`: Bot claim page
-- `/skills`: Vendor procurement skills catalog
-- `/app`: Dashboard overview
-- `/app/stripe-wallet`: Rail 1 dashboard
-- `/app/card-wallet`: Rail 2 dashboard
-- `/app/self-hosted`: Self-hosted card management (Rail 4)
-- `/app/sub-agent-cards`: Sub-agent card management (Rail 5)
-- `/app/transactions`: Transaction history
-- `/app/skills/submit`: Community vendor skill submission
-- `/app/skills/review/[id]/versions`: Version history with diff view and rollback
-- `/app/skills/export`: Export delta report for ClawHub.ai and skills.sh
-- `/app/settings`: Account settings
+- `/skills`: Vendor procurement skills catalog (public)
+- `/solutions/card-wallet`: Card Wallet landing page (public)
+- `/solutions/stripe-wallet`: Stripe Wallet landing page (public)
+- `/overview`: Dashboard overview
+- `/stripe-wallet`: Rail 1 dashboard
+- `/card-wallet`: Rail 2 dashboard
+- `/self-hosted`: Self-hosted card management (Rail 4)
+- `/sub-agent-cards`: Sub-agent card management (Rail 5)
+- `/transactions`: Transaction history
+- `/skill-builder/submit`: Community vendor skill submission
+- `/skill-builder/review/[id]/versions`: Version history with diff view and rollback
+- `/skill-builder/export`: Export delta report for ClawHub.ai and skills.sh
+- `/settings`: Account settings
 - `/onboarding`: Guided setup wizard
 
 ### Skill Builder Module
@@ -404,7 +406,7 @@ An LLM-powered tool that analyzes vendor websites and generates procurement skil
 - **API Routes:** `POST /api/v1/skills/analyze` (trigger analysis), `GET /api/v1/skills/drafts` (list), `GET/PATCH/DELETE /api/v1/skills/drafts/[id]` (CRUD), `POST /api/v1/skills/drafts/[id]/publish` (approve and create versioned record with all 4 files).
 - **Version API:** `GET /api/v1/skills/versions?vendor=slug` (list), `GET /api/v1/skills/versions/[id]` (detail), `GET /api/v1/skills/versions/[id]/diff` (semantic diff), `POST /api/v1/skills/versions/[id]/rollback` (rollback), `GET /api/v1/skills/versions/[id]/files` (4-file bundle download).
 - **Export API:** `GET /api/v1/skills/export?destination=clawhub|skills_sh` (delta report), `POST /api/v1/skills/export/mark` (mark as exported, supports batch), `GET /api/v1/skills/export/download/[vendorSlug]` (download active version package).
-- **Review UI:** `/app/skills/review` (draft queue with analyze form) and `/app/skills/review/[id]` (detail editor with confidence badges, evidence snippets, field overrides, publish/reject buttons).
+- **Review UI:** `/skill-builder/review` (draft queue with analyze form) and `/skill-builder/review/[id]` (detail editor with confidence badges, evidence snippets, field overrides, publish/reject buttons).
 - **Security:** SSRF-safe fetching with DNS resolution validation, private IP blocking (IPv4/IPv6), redirect validation, HTTPS-only.
 - **Tests:** 41 API endpoint tests covering full draft lifecycle, 52 versioning unit tests.
 

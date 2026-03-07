@@ -31,7 +31,7 @@ export function Nav() {
           {loading ? (
             <div className="w-20 h-10" />
           ) : user ? (
-            <Link href="/app" className="flex items-center gap-3">
+            <Link href="/overview" className="flex items-center gap-3">
               <Avatar className="w-9 h-9" data-testid="avatar-user">
                 <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
