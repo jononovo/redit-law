@@ -1,0 +1,31 @@
+The Concept
+You're essentially saying: bot-messaging shouldn't just be the fallback — it should be the primary routing layer. When the platform needs to tell a bot something, the flow is:
+1. Does the bot have a working webhook? → Try webhook first
+2. Webhook succeeded? → Done
+3. Webhook failed? → Fall back to staging a message in bot_pending_messages
+4. Track webhook reliability on the bot's profile so the platform learns over time
+That's cleaner than having fireWebhook() and stageMessage() as two separate systems that features call independently. The feature just says "send this to the bot" and the messaging system handles the routing.
+Webhook Health Tracking
+The idea of a webhookStatus on the bot profile makes sense. Something like:
+Status	Meaning
+active	Webhook is configured and working
+degraded	Last delivery failed, will still try but with lower confidence
+unreachable	Multiple consecutive failures, skip webhook and go straight to messages
+none	No webhook configured
+The criteria could be simple: two consecutive failures moves it to unreachable. A successful delivery at any point moves it back to active. The bot or owner can also manually re-enable it.
+Should This Be Part of This Feature?
+I'd split the difference. Here's what I'd include now and what I'd defer:
+Include now (it's small and directly useful):
+* A webhookStatus field on the bots table (active / unreachable / none)
+* The routing logic inside stageMessage() (or a wrapper like sendToBot()): try webhook if status is active, fall back to pending message if it fails, update status on failure
+* This replaces the direct attemptDelivery() call in the Rail 5 deliver-to-bot route
+Defer (it's a separate product concern):
+* Encouraging users to create a webhook (onboarding prompts, dashboard suggestions)
+* A dedicated webhook management page or settings UI
+* The POST /bot/webhook/setup deferred webhook registration endpoint with challenge-response
+* Sophisticated health tracking (degraded state, automatic recovery probes)
+The reason: the routing logic ("try webhook, fall back to message") is just a few lines of code and makes the messaging system complete. Without it, every feature that stages a message would also need to separately try the webhook, which defeats the point of having a unified system. But the management UI and encouragement prompts are user-facing product work that can come later without blocking anything.
+So the feature would be called something like bot-messaging and it handles both sides — webhook delivery when available, pending messages when not. One function to call: sendToBot(botId, eventType, payload). It figures out the rest.
+Want me to update the full plan with all of this?
+
+

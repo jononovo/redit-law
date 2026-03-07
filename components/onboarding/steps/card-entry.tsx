@@ -30,6 +30,7 @@ export function CardEntry({ currentStep, totalSteps, onBack, onNext, botId }: Ca
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [deliveryResult, setDeliveryResult] = useState<{ delivered: boolean; method: string } | null>(null);
 
   const [cardNumber, setCardNumber] = useState("");
   const [cardCvv, setCardCvv] = useState("");
@@ -96,15 +97,31 @@ export function CardEntry({ currentStep, totalSteps, onBack, onNext, botId }: Ca
         throw new Error(err.error || "Failed to submit key");
       }
 
-      const md = buildEncryptedCardFile(ciphertextBytes);
+      const cardName = "My Card";
+      const md = buildEncryptedCardFile(ciphertextBytes, cardName, cardLast4, cardId);
 
       if (botId) {
         try {
-          await authFetch("/api/v1/rail5/deliver-to-bot", {
+          const sendRes = await authFetch("/api/v1/bot-messages/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ card_id: cardId, bot_id: botId, encrypted_file_content: md }),
+            body: JSON.stringify({
+              bot_id: botId,
+              event_type: "rail5.card.delivered",
+              payload: {
+                card_id: cardId,
+                card_name: cardName,
+                card_last4: cardLast4,
+                file_content: md,
+                suggested_path: `.creditclaw/cards/Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md`,
+                instructions: "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data. Your bot will receive the decryption key at checkout time via CreditClaw API.",
+              },
+            }),
           });
+          if (sendRes.ok) {
+            const result = await sendRes.json();
+            setDeliveryResult({ delivered: result.delivered, method: result.method });
+          }
         } catch {}
       }
 
@@ -142,9 +159,19 @@ export function CardEntry({ currentStep, totalSteps, onBack, onNext, botId }: Ca
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
-          <p className="text-sm text-neutral-500">
-            Your encrypted card file has been downloaded as a backup.
-          </p>
+          {deliveryResult?.delivered ? (
+            <p className="text-sm text-neutral-500" data-testid="text-delivery-webhook">
+              Your bot received the encrypted card file via webhook. A backup copy has been downloaded.
+            </p>
+          ) : deliveryResult?.method === "pending_message" ? (
+            <p className="text-sm text-neutral-500" data-testid="text-delivery-pending">
+              Your encrypted card file has been staged for your bot to pick up. A backup copy has been downloaded. Your bot can retrieve it via <code className="text-xs bg-neutral-100 px-1 py-0.5 rounded">GET /api/v1/bot/messages</code>.
+            </p>
+          ) : (
+            <p className="text-sm text-neutral-500" data-testid="text-delivery-download">
+              Your encrypted card file has been downloaded as a backup.
+            </p>
+          )}
           <Button onClick={onNext} className="w-full gap-2" data-testid="button-card-entry-continue">
             Continue
           </Button>

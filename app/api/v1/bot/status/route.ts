@@ -22,12 +22,14 @@ export const GET = withBotApi("/api/v1/bot/status", async (_request, { bot }) =>
     crossmintWallet,
     rail4Cards,
     rail5Card,
+    pendingMessageCount,
   ] = await Promise.all([
     storage.getWalletByBotId(bot.botId),
     storage.privyGetWalletByBotId(bot.botId),
     storage.crossmintGetWalletByBotId(bot.botId),
     storage.getRail4CardsByBotId(bot.botId),
     storage.getRail5CardByBotId(bot.botId),
+    storage.getPendingMessageCount(bot.botId),
   ]);
 
   const rails: Record<string, any> = {};
@@ -121,5 +123,6 @@ export const GET = withBotApi("/api/v1/bot/status", async (_request, { bot }) =>
     active_rails: Object.keys(rails),
     rails,
     master_guardrails: masterGuardrails,
+    pending_messages: pendingMessageCount,
   });
 });

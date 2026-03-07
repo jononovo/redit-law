@@ -1,0 +1,294 @@
+# Rail 5 File Delivery — Minimal Implementation Note
+
+**March 6, 2026 • For implementing agent**
+
+---
+
+## What We're Solving
+
+When an owner sets up a Rail 5 encrypted card, the bot needs the encrypted card file to perform checkouts. Currently this only works via webhook delivery (`rail5.card.delivered`), and most bots don't have a webhook. We need a way for bots without webhooks to get their card files.
+
+## Approach: Two Changes, No New Infrastructure
+
+### Change 1: Combined Self-Contained File Format
+
+Update `buildEncryptedCardFile()` so the downloaded/delivered file contains **everything the bot needs in one file**: usage instructions, the embedded decrypt script, and the encrypted card data. Currently the file is just the encrypted blob with no context.
+
+**Files to change:**
+
+1. **`lib/rail5/encrypt.ts`** — Update `buildEncryptedCardFile()` to generate the new format. The function currently takes `ciphertextBytes: Uint8Array` and returns a minimal markdown string with just the base64 blob. Change it to also accept `cardName: string`, `cardLast4: string`, `cardId: string` and return the full combined format below.
+
+2. **`lib/rail5/decrypt-script.ts`** — Update the `DECRYPT_SCRIPT` constant. The current script uses a regex that matches the first code fence: `/\`\`\`([\s\S]+?)\`\`\`/`. The new file has multiple code fences (instructions, decrypt script, encrypted data), so the decrypt script must target the specific `ENCRYPTED_CARD_START/END` markers instead.
+
+**New file format:**
+
+```markdown
+# CreditClaw — Encrypted Card: {cardName} ending {cardLast4}
+# Card ID: {cardId}
+
+## How To Use This File
+
+Save this file to your workspace (e.g., `.creditclaw/cards/`). Do not edit it.
+
+### Quick Start
+
+1. Save this entire file to `.creditclaw/cards/Card-{cardName}-{cardLast4}.md`
+2. Confirm delivery: `POST /api/v1/bot/rail5/confirm-delivery` with your API key
+3. When ready to buy, call `POST /api/v1/bot/rail5/checkout` with merchant details
+4. Use the `checkout_id` to get the decryption key from `POST /api/v1/bot/rail5/key`
+5. Extract and run the decrypt script below with the key
+6. Complete checkout at the merchant
+7. Confirm result: `POST /api/v1/bot/rail5/confirm` with success or failure
+
+### Running the Decrypt Script
+
+Extract the JavaScript between the `DECRYPT_SCRIPT_START` and `DECRYPT_SCRIPT_END`
+markers below. Save it as `decrypt.js`, then run:
+
+    node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-{cardName}-{cardLast4}.md
+
+The key, IV, and tag come from the `/api/v1/bot/rail5/key` endpoint during checkout.
+
+Full documentation: https://creditclaw.com/skill.md#rail-5
+
+---
+
+## Decrypt Script
+
+<!-- DECRYPT_SCRIPT_START -->
+```js
+const crypto = require("crypto");
+const fs = require("fs");
+const [,, keyHex, ivHex, tagHex, filePath] = process.argv;
+
+const raw = fs.readFileSync(filePath, "utf8");
+const b64 = raw.match(/<!-- ENCRYPTED_CARD_START -->\n```\n([\s\S]+?)\n```\n<!-- ENCRYPTED_CARD_END -->/)[1].trim();
+const data = Buffer.from(b64, "base64");
+
+const decipher = crypto.createDecipheriv(
+  "aes-256-gcm",
+  Buffer.from(keyHex, "hex"),
+  Buffer.from(ivHex, "hex")
+);
+decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+const plain = decipher.update(data.slice(0, -16)) + decipher.final("utf8");
+process.stdout.write(plain);
+```
+<!-- DECRYPT_SCRIPT_END -->
+
+## Encrypted Card Data
+
+<!-- ENCRYPTED_CARD_START -->
+```
+{base64 ciphertext here}
+```
+<!-- ENCRYPTED_CARD_END -->
+```
+
+**Update all call sites of `buildEncryptedCardFile()`:**
+
+- `components/dashboard/rail5-setup-wizard.tsx` — passes `ciphertextBytes` to build the file then calls `downloadEncryptedFile()`. Update to also pass `cardName`, `cardLast4`, `cardId`.
+- `components/onboarding/steps/card-entry.tsx` — same pattern, update the call.
+
+**Update the webhook delivery payload** in `app/api/v1/rail5/deliver-to-bot/route.ts`:
+
+Currently sends separate `encrypted_file_content` and `decrypt_script` fields. Change to send a single `file_content` field containing the full combined file, plus `suggested_path` and `instructions`:
+
+```typescript
+const payload = {
+  event: "rail5.card.delivered" as const,
+  timestamp: new Date().toISOString(),
+  bot_id: bot.botId,
+  data: {
+    card_id,
+    card_name: card.cardName,
+    card_last4: card.cardLast4,
+    file_content: combinedFileContent,  // the full combined markdown
+    suggested_path: `.creditclaw/cards/Card-${card.cardName}-${card.cardLast4}.md`,
+    instructions: "Save file_content to your workspace at the suggested_path. Then confirm delivery at POST /api/v1/bot/rail5/confirm-delivery.",
+  },
+};
+```
+
+**Backward compatibility:** Existing old-format encrypted files continue to work with the current decrypt script (single code fence regex still matches). Only new cards get the new format. The updated decrypt script in `DECRYPT_SCRIPT` uses marker-based regex, which is what gets embedded in new files.
+
+---
+
+### Change 2: Pending Deliveries Endpoint + Status Flag
+
+Add a `pending_deliveries` count to the `GET /bot/status` response so bots know something is waiting, and a dedicated `GET /bot/rail5/pending-deliveries` endpoint to fetch the actual files.
+
+**How it works:**
+
+1. When an owner finishes the Rail 5 setup wizard for a bot **without a webhook** (or when webhook delivery fails), the encrypted file content is stored in a new `rail5_pending_deliveries` table.
+2. The `GET /bot/status` response includes a new field: `"pending_deliveries": 1` (or 0). This is cheap — just a count query. The bot sees this during normal heartbeat polling.
+3. If the count is > 0, the bot calls `GET /bot/rail5/pending-deliveries` to get the actual file content.
+4. After the bot saves the file and calls `POST /bot/rail5/confirm-delivery`, the pending delivery row is deleted.
+5. Pending deliveries expire after 24 hours (cleanup via existing middleware pattern or cron).
+
+**New table — `rail5_pending_deliveries`:**
+
+Add to `shared/schema.ts`:
+
+```typescript
+export const rail5PendingDeliveries = pgTable("rail5_pending_deliveries", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  cardId: text("card_id").notNull(),
+  fileContent: text("file_content").notNull(),
+  stagedAt: timestamp("staged_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  status: text("status").default("pending").notNull(), // pending | retrieved | expired
+});
+```
+
+**Storage methods** — add to `server/storage.ts` (or a new `server/storage/rail5-pending.ts`):
+
+```typescript
+async stagePendingDelivery(botId: string, cardId: string, fileContent: string): Promise<...>
+async getPendingDeliveriesForBot(botId: string): Promise<...[]>
+async getPendingDeliveryCount(botId: string): Promise<number>
+async markDeliveryRetrieved(id: number): Promise<void>
+async purgeExpiredDeliveries(): Promise<number>
+async deletePendingDeliveryByCardId(cardId: string): Promise<void>
+```
+
+**New endpoint — `app/api/v1/bot/rail5/pending-deliveries/route.ts`:**
+
+```typescript
+import { NextResponse } from "next/server";
+import { withBotApi } from "@/lib/agent-management/agent-api/middleware";
+import { storage } from "@/server/storage";
+
+export const GET = withBotApi("/api/v1/bot/rail5/pending-deliveries", async (_request, { bot }) => {
+  const deliveries = await storage.getPendingDeliveriesForBot(bot.botId);
+
+  if (deliveries.length === 0) {
+    return NextResponse.json({ deliveries: [] });
+  }
+
+  const result = deliveries.map(d => ({
+    card_id: d.cardId,
+    file_content: d.fileContent,
+    suggested_path: `.creditclaw/cards/Card-${d.cardId}.md`,
+    staged_at: d.stagedAt.toISOString(),
+    expires_at: d.expiresAt.toISOString(),
+  }));
+
+  // Mark as retrieved
+  for (const d of deliveries) {
+    await storage.markDeliveryRetrieved(d.id);
+  }
+
+  return NextResponse.json({
+    deliveries: result,
+    instructions: "Save each file_content to your workspace at the suggested_path. Then confirm delivery at POST /api/v1/bot/rail5/confirm-delivery.",
+  });
+});
+```
+
+**Update `GET /bot/status`** — in the status route (or the status builder), add the pending delivery count:
+
+```typescript
+const pendingCount = await storage.getPendingDeliveryCount(bot.botId);
+// ... add to response:
+// pending_deliveries: pendingCount,
+```
+
+This is one extra query (a simple `COUNT WHERE botId = ? AND status = 'pending'`). Cheap enough for a status endpoint that's called every 30 minutes.
+
+**Update the `confirm-delivery` route** — `app/api/v1/bot/rail5/confirm-delivery/route.ts`:
+
+After confirming delivery (setting card status to `confirmed`), also delete any pending delivery row for that card:
+
+```typescript
+await storage.deletePendingDeliveryByCardId(card.cardId);
+```
+
+**Staging: when to create a pending delivery:**
+
+In the Rail 5 setup wizard (`components/dashboard/rail5-setup-wizard.tsx`), after encryption and download:
+
+- If the bot has a webhook → attempt direct delivery (existing behavior). If delivery fails, **also** stage for pending pickup.
+- If the bot has no webhook → stage for pending pickup.
+
+This means calling a new API route from the dashboard:
+
+**New endpoint — `app/api/v1/rail5/stage-for-pickup/route.ts`:**
+
+```typescript
+// Owner-authenticated (session user, not bot API key)
+// Accepts: { card_id, bot_id, file_content }
+// Validates ownership of both card and bot
+// Inserts into rail5_pending_deliveries with 24h expiry
+// Returns: { staged: true, expires_at: "..." }
+```
+
+The setup wizard calls this after encryption completes, alongside the existing download.
+
+**Expiry cleanup:**
+
+Add a purge call to an existing middleware or cron pattern. If you don't have a cron, a simple approach: run `purgeExpiredDeliveries()` at the top of `GET /bot/rail5/pending-deliveries` (clean up before querying). This is lazy cleanup — expired rows get purged whenever any bot checks for deliveries.
+
+---
+
+## Dashboard UX Change (Minimal)
+
+The setup wizard's success step (`step === 7` in `rail5-setup-wizard.tsx`) currently shows either "Your encrypted card has been delivered" (webhook success) or "Place the downloaded file in your bot's workspace" (no webhook / webhook failed).
+
+**Add one line for the no-webhook case:**
+
+After the existing "Place the downloaded file..." message, add:
+
+> "Or, tell your bot to check for pending deliveries: `GET /api/v1/bot/rail5/pending-deliveries`"
+
+That's it. No radio buttons, no delivery option picker. The file downloads automatically (existing behavior), and now the bot can also pull it via API. Both paths work.
+
+---
+
+## Update skill.md
+
+Add a short section under the existing Rail 5 documentation:
+
+```markdown
+### Pending Deliveries (If You Don't Have a Webhook)
+
+If your owner set up a Rail 5 card and you don't have a webhook, the encrypted
+card file is staged for you to pick up. Check `GET /bot/status` — if
+`pending_deliveries` is greater than 0, call:
+
+    GET /api/v1/bot/rail5/pending-deliveries
+    Authorization: Bearer YOUR_API_KEY
+
+Save each `file_content` to your workspace. Then confirm:
+
+    POST /api/v1/bot/rail5/confirm-delivery
+    Authorization: Bearer YOUR_API_KEY
+
+The file is self-contained — it includes instructions, the decrypt script,
+and the encrypted card data. Read the top of the file for a quick start guide.
+
+Pending deliveries expire after 24 hours. If you miss the window,
+your owner can re-stage the file from their dashboard.
+```
+
+---
+
+## Summary of All Files Touched
+
+**Modified:**
+- `lib/rail5/encrypt.ts` — new `buildEncryptedCardFile()` signature and output
+- `lib/rail5/decrypt-script.ts` — updated `DECRYPT_SCRIPT` with marker-based regex
+- `app/api/v1/rail5/deliver-to-bot/route.ts` — single `file_content` field in webhook payload
+- `app/api/v1/bot/rail5/confirm-delivery/route.ts` — also delete pending delivery row
+- `app/api/v1/bot/status/route.ts` (or status builder) — add `pending_deliveries` count
+- `components/dashboard/rail5-setup-wizard.tsx` — pass extra args to `buildEncryptedCardFile()`, call stage-for-pickup, update success message
+- `components/onboarding/steps/card-entry.tsx` — pass extra args to `buildEncryptedCardFile()`
+- `public/skill.md` — add pending deliveries section
+- `shared/schema.ts` — add `rail5PendingDeliveries` table
+
+**New:**
+- `app/api/v1/bot/rail5/pending-deliveries/route.ts`
+- `app/api/v1/rail5/stage-for-pickup/route.ts`
+
+**Not touched:** No changes to bot types, communication modes, onboarding flow, or the general webhook system. The existing `fireWebhook()` and all 30 call sites stay exactly as they are.

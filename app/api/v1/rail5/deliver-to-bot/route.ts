@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth/session";
 import { storage } from "@/server/storage";
 import { signPayload, attemptDelivery } from "@/lib/webhooks";
-import { DECRYPT_SCRIPT } from "@/lib/rail5/decrypt-script";
 import { z } from "zod";
 
 const deliverSchema = z.object({
   card_id: z.string().min(1),
   bot_id: z.string().min(1),
-  encrypted_file_content: z.string().min(1),
+  file_content: z.string().min(1).optional(),
+  encrypted_file_content: z.string().min(1).optional(),
+}).refine(data => data.file_content || data.encrypted_file_content, {
+  message: "Either file_content or encrypted_file_content is required",
 });
 
 export async function POST(request: NextRequest) {
@@ -32,7 +34,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { card_id, bot_id, encrypted_file_content } = parsed.data;
+  const { card_id, bot_id } = parsed.data;
+  const file_content = parsed.data.file_content || parsed.data.encrypted_file_content!;
 
   const card = await storage.getRail5CardByCardId(card_id);
   if (!card) {
@@ -73,8 +76,9 @@ export async function POST(request: NextRequest) {
         card_id,
         card_name: card.cardName,
         card_last4: card.cardLast4,
-        encrypted_file_content,
-        decrypt_script: DECRYPT_SCRIPT,
+        file_content,
+        suggested_path: `.creditclaw/cards/Card-${card.cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${card.cardLast4}.md`,
+        instructions: "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data. Your bot will receive the decryption key at checkout time via CreditClaw API.",
       },
     };
 

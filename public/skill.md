@@ -949,6 +949,8 @@ Base URL: `https://creditclaw.com/api/v1`
 | POST | `/bot/payments/create-link` | Generate a Stripe payment link to charge anyone. | 10/hr |
 | GET | `/bot/payments/links` | List your payment links. Supports `?status=` and `?limit=N`. | 12/hr |
 | GET | `/bot/wallet/transactions` | List transaction history. Supports `?limit=N` (default 50, max 100). | 12/hr |
+| GET | `/bot/messages` | Fetch pending messages (for bots without webhooks). | 12/hr |
+| POST | `/bot/messages/ack` | Acknowledge (delete) processed messages. | 30/hr |
 
 ### Per-Rail Detail Endpoints
 
@@ -1011,6 +1013,104 @@ up to 5 attempts.
 
 ---
 
+## Bot Messages (For Bots Without Webhooks)
+
+If your bot doesn't have a `callback_url` configured (or webhook delivery fails), CreditClaw
+stages messages for you to poll. This is the fallback delivery mechanism — webhooks are
+preferred when available, but bot messages ensure you never miss an event.
+
+### Check for Pending Messages
+
+Your `GET /bot/status` response includes a `pending_messages` count. If this is greater
+than zero, you have messages waiting:
+
+```json
+{
+  "bot_id": "bot_abc123",
+  "status": "active",
+  "pending_messages": 2,
+  ...
+}
+```
+
+### Fetch Pending Messages
+
+```bash
+curl https://creditclaw.com/api/v1/bot/messages \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response:
+```json
+{
+  "bot_id": "bot_abc123",
+  "messages": [
+    {
+      "id": 1,
+      "event_type": "rail5.card.delivered",
+      "payload": {
+        "card_id": "r5card_...",
+        "card_name": "ChaseD",
+        "card_last4": "9547",
+        "file_content": "<self-contained markdown file>",
+        "suggested_path": ".creditclaw/cards/Card-ChaseD-9547.md",
+        "instructions": "Save this file to .creditclaw/cards/ ..."
+      },
+      "staged_at": "2026-03-06T12:00:00.000Z",
+      "expires_at": "2026-03-07T12:00:00.000Z"
+    }
+  ],
+  "count": 1,
+  "instructions": "Process each message based on its event_type. After processing, acknowledge messages via POST /api/v1/bot/messages/ack with { message_ids: [id1, id2, ...] } to remove them from the queue."
+}
+```
+
+Messages remain in `pending` state until you explicitly acknowledge them. They are not
+removed on read — you can fetch them multiple times.
+
+### Acknowledge Messages
+
+After processing a message, acknowledge it to remove it from the queue:
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/messages/ack \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "message_ids": [1, 2] }'
+```
+
+You can also acknowledge a single message:
+```json
+{ "message_id": 1 }
+```
+
+Response:
+```json
+{
+  "acknowledged": [1, 2],
+  "not_found": [],
+  "message": "2 message(s) acknowledged."
+}
+```
+
+### Message Expiry
+
+Messages expire automatically based on event type:
+- `rail5.card.delivered` — 24 hours
+- Most other events (wallet, checkout, orders) — 7 days
+
+Expired messages are cleaned up automatically. If a card delivery message expires before
+you retrieve it, your owner can re-stage the delivery from their dashboard.
+
+### Recommended Polling Pattern
+
+1. Check `pending_messages` count in `GET /bot/status` (every 30 minutes or on startup)
+2. If count > 0, call `GET /bot/messages` to fetch all pending messages
+3. Process each message based on `event_type`
+4. Acknowledge processed messages via `POST /bot/messages/ack`
+
+---
+
 ## Important Rules
 
 - **Save your API key on registration.** It cannot be retrieved again. Store it in your platform's secure secrets manager or as an environment variable (`CREDITCLAW_API_KEY`).
@@ -1031,12 +1131,9 @@ Rail 5 lets you purchase from any merchant using an encrypted card file. You can
 
 ### File Delivery
 
-When your owner sets up a Rail 5 card, CreditClaw delivers two files via the `rail5.card.delivered` webhook:
+When your owner sets up a Rail 5 card, CreditClaw delivers a single self-contained file via the `rail5.card.delivered` event. The file includes a header with card info, an embedded decrypt script, and the encrypted card data — all in one markdown file.
 
-1. **Encrypted card file** (e.g. `Card-Harry-26-Visa.md`) — contains the AES-256-GCM encrypted card data in a markdown code fence
-2. **`decrypt.js`** — a deterministic Node.js script that decrypts the card file using key material you retrieve at checkout time
-
-Both files arrive in the same webhook payload:
+**Primary delivery: Webhook.** If your bot has a `callback_url` configured, the file is delivered via webhook:
 
 ```json
 {
@@ -1046,13 +1143,27 @@ Both files arrive in the same webhook payload:
     "card_id": "r5card_...",
     "card_name": "ChaseD",
     "card_last4": "9547",
-    "encrypted_file_content": "<markdown file content>",
-    "decrypt_script": "<decrypt.js source code>"
+    "file_content": "<self-contained markdown file with decrypt script and encrypted data>",
+    "suggested_path": ".creditclaw/cards/Card-ChaseD-9547.md",
+    "instructions": "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data."
   }
 }
 ```
 
-Save both files to your workspace. Then confirm delivery:
+**Fallback delivery: Bot Messages.** If your bot doesn't have a webhook (or webhook delivery fails), the file is staged as a pending message. Check `GET /bot/messages` to retrieve it:
+
+```bash
+curl https://creditclaw.com/api/v1/bot/messages \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Look for messages with `event_type: "rail5.card.delivered"`. The payload contains the same `file_content`, `suggested_path`, and `instructions` fields. After saving the file, acknowledge the message via `POST /bot/messages/ack`. See the [Bot Messages](#bot-messages-for-bots-without-webhooks) section for full details.
+
+**Pending messages for card deliveries expire after 24 hours.** If the message expires before you retrieve it, your owner can re-stage the delivery from their dashboard.
+
+**Save the file** to `.creditclaw/cards/` (or the path in `suggested_path`). The file is self-contained — it includes the decrypt script between `DECRYPT_SCRIPT_START/END` markers and the encrypted data between `ENCRYPTED_CARD_START/END` markers.
+
+Then confirm delivery:
 
 ```
 POST /api/v1/bot/rail5/confirm-delivery
@@ -1063,7 +1174,7 @@ Authorization: Bearer YOUR_API_KEY
 
 This moves your card from `pending_delivery` to `confirmed`. You can now initiate checkouts.
 
-**Recovery:** If you lose either file, your owner deletes the card and creates a new one through the setup wizard. Both files are re-delivered together.
+**Recovery:** If you lose the file, your owner deletes the card and creates a new one through the setup wizard. The file is re-delivered automatically.
 
 ### Card Status Progression
 
@@ -1172,6 +1283,6 @@ Use `"status": "failed"` if checkout didn't work. On success, your wallet is deb
 
 | Event | When |
 |-------|------|
-| `rail5.card.delivered` | Owner set up card — encrypted file and decrypt script delivered |
+| `rail5.card.delivered` | Owner set up card — self-contained encrypted card file delivered (via webhook or pending message) |
 | `rail5.checkout.completed` | Checkout confirmed successful |
 | `rail5.checkout.failed` | Checkout reported failure |

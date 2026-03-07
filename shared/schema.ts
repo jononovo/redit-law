@@ -1491,6 +1491,34 @@ export const qrPayments = pgTable("qr_payments", {
 export type QrPayment = typeof qrPayments.$inferSelect;
 export type InsertQrPayment = typeof qrPayments.$inferInsert;
 
+// ─── Bot Pending Messages ────────────────────────────────────────────────────
+
+export const botPendingMessages = pgTable("bot_pending_messages", {
+  id: serial("id").primaryKey(),
+  botId: text("bot_id").notNull(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  stagedAt: timestamp("staged_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  status: text("status").notNull().default("pending"),
+}, (table) => [
+  index("bot_pending_messages_bot_id_idx").on(table.botId),
+  index("bot_pending_messages_status_idx").on(table.status),
+  index("bot_pending_messages_expires_at_idx").on(table.expiresAt),
+]);
+
+export type BotPendingMessage = typeof botPendingMessages.$inferSelect;
+export type InsertBotPendingMessage = typeof botPendingMessages.$inferInsert;
+
+export const insertBotPendingMessageSchema = z.object({
+  botId: z.string().min(1),
+  eventType: z.string().min(1),
+  payload: z.record(z.unknown()),
+  expiresAt: z.date(),
+});
+
+export type InsertBotPendingMessageInput = z.infer<typeof insertBotPendingMessageSchema>;
+
 export const createInvoiceSchema = z.object({
   checkout_page_id: z.string().min(1),
   recipient_name: z.string().max(200).optional().nullable(),

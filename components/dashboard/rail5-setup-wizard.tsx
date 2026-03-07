@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw, Copy, Send, MessageCircle, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -68,6 +68,282 @@ function randomCardName() {
   return FUN_CARD_NAMES[Math.floor(Math.random() * FUN_CARD_NAMES.length)];
 }
 
+interface Step7Props {
+  cardId: string;
+  cardName: string;
+  cardLast4: string;
+  spendingLimit: string;
+  dailyLimit: string;
+  monthlyLimit: string;
+  selectedBotId: string;
+  bots: BotOption[];
+  directDeliverySucceeded: boolean;
+  deliveryResult: { delivered: boolean; method: string; messageId?: number; expiresAt?: string } | null;
+  storedFileContent: string;
+  onDone: () => void;
+}
+
+function Step7DeliveryResult({
+  cardId, cardName, cardLast4, spendingLimit, dailyLimit, monthlyLimit,
+  selectedBotId, bots, directDeliverySucceeded, deliveryResult, storedFileContent, onDone,
+}: Step7Props) {
+  const { toast } = useToast();
+  const [botConfirmed, setBotConfirmed] = useState(false);
+  const [pollingDone, setPollingDone] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [discordCopied, setDiscordCopied] = useState(false);
+  const [showAgentSection, setShowAgentSection] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef(Date.now());
+
+  const isWaiting = selectedBotId && !directDeliverySucceeded && !botConfirmed;
+
+  const relayMessage = `Check for your encrypted card file:\nGET https://creditclaw.com/api/v1/bot/messages\nwith your CreditClaw API key.\nSave the card file to .creditclaw/cards/`;
+
+  useEffect(() => {
+    if (!selectedBotId || !cardId || directDeliverySucceeded) return;
+
+    startTimeRef.current = Date.now();
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/v1/rail5/cards/${cardId}/delivery-status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "confirmed" || data.status === "active") {
+            setBotConfirmed(true);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+          }
+        }
+      } catch {}
+
+      if (Date.now() - startTimeRef.current >= 60_000) {
+        setPollingDone(true);
+        if (pollingRef.current) clearInterval(pollingRef.current);
+      }
+    };
+
+    pollingRef.current = setInterval(poll, 5000);
+    poll();
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [selectedBotId, cardId, directDeliverySucceeded]);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(relayMessage).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function handleTelegram() {
+    const url = `https://t.me/share/url?text=${encodeURIComponent(relayMessage)}`;
+    window.open(url, "_blank");
+  }
+
+  function handleDiscord() {
+    navigator.clipboard.writeText(relayMessage).then(() => {
+      setDiscordCopied(true);
+      toast({ title: "Copied!", description: "Paste this in Discord to send to your bot." });
+      setTimeout(() => setDiscordCopied(false), 2000);
+    });
+  }
+
+  function handleRedownload() {
+    if (!storedFileContent) return;
+    downloadEncryptedFile(storedFileContent, `Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md`);
+  }
+
+  const botDisplayName = bots.find(b => b.bot_id === selectedBotId)?.bot_name || selectedBotId;
+
+  return (
+    <div className="space-y-6" data-testid="r5-step-success">
+      <div className="text-center">
+        {directDeliverySucceeded ? (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Bot Received the Card</h2>
+            <p className="text-sm text-neutral-500 mt-2">Your encrypted card file was delivered to {botDisplayName} via webhook.</p>
+          </>
+        ) : botConfirmed ? (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Bot Confirmed!</h2>
+            <p className="text-sm text-neutral-500 mt-2">{botDisplayName} picked up and confirmed the card file.</p>
+          </>
+        ) : isWaiting ? (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+              {pollingDone ? (
+                <Send className="w-8 h-8 text-amber-600" />
+              ) : (
+                <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
+              )}
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">
+              {pollingDone ? "File Staged for Your Bot" : "Waiting for Your Bot..."}
+            </h2>
+            <p className="text-sm text-neutral-500 mt-2">
+              {pollingDone
+                ? "Your encrypted card file is staged for 24 hours. Your bot can pick it up anytime."
+                : "Your encrypted card file is ready for pickup. Tell your bot to check for messages."}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Card Ready!</h2>
+            <p className="text-sm text-neutral-500 mt-2">Your encrypted card has been set up successfully.</p>
+          </>
+        )}
+      </div>
+
+      {isWaiting && (
+        <div className="space-y-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <p className="text-xs text-amber-700 font-medium mb-2">Send this to your bot:</p>
+            <pre className="text-xs text-amber-900 whitespace-pre-wrap font-mono bg-amber-100/50 rounded-lg p-3" data-testid="text-relay-message">
+              {relayMessage}
+            </pre>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-1.5 text-xs h-9"
+              onClick={handleCopy}
+              data-testid="button-share-copy"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-1.5 text-xs h-9"
+              onClick={handleTelegram}
+              data-testid="button-share-telegram"
+            >
+              <Send className="w-3.5 h-3.5" />
+              Telegram
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 gap-1.5 text-xs h-9"
+              onClick={handleDiscord}
+              data-testid="button-share-discord"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              {discordCopied ? "Copied!" : "Discord"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-neutral-50 rounded-xl p-5 space-y-3 text-sm">
+        <div className="flex justify-between">
+          <span className="text-neutral-500">Card</span>
+          <span className="font-medium text-neutral-900">{cardName} (••••{cardLast4})</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-neutral-500">Per-Checkout Limit</span>
+          <span className="font-medium text-neutral-900">${spendingLimit}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-neutral-500">Daily / Monthly</span>
+          <span className="font-medium text-neutral-900">${dailyLimit} / ${monthlyLimit}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-neutral-500">Bot</span>
+          <span className="font-medium text-neutral-900">
+            {selectedBotId
+              ? `${botDisplayName}${directDeliverySucceeded || botConfirmed ? " — Card delivered" : ""}`
+              : "Not linked yet"}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative">
+        <div className="bg-neutral-900 rounded-xl p-4 text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed" data-testid="text-card-info">
+          {`Card ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\ncard_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute top-2 right-2 text-xs h-7 bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700 hover:text-white"
+          data-testid="button-r5-copy-info"
+          onClick={() => {
+            navigator.clipboard.writeText(
+              `Card ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\ncard_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
+            ).then(() => {
+              toast({ title: "Copied to clipboard" });
+            });
+          }}
+        >
+          <Copy className="w-3 h-3 mr-1" /> Copy
+        </Button>
+      </div>
+
+      <div>
+        <button
+          className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors flex items-center gap-1"
+          onClick={() => setShowAgentSection(!showAgentSection)}
+          data-testid="button-r5-agent-section-toggle"
+        >
+          <ChevronDown className={`w-3 h-3 transition-transform ${showAgentSection ? "rotate-180" : ""}`} />
+          For AI Agents or manual file placement
+        </button>
+        {showAgentSection && (
+          <div className="mt-3 space-y-3 bg-neutral-50 rounded-xl p-4 text-sm">
+            <div>
+              <p className="font-medium text-neutral-700 text-xs mb-1">For OpenClaw Bots</p>
+              <p className="text-xs text-neutral-500">
+                Place the downloaded file in your bot's <code className="bg-neutral-200 px-1 py-0.5 rounded text-[10px]">.creditclaw/cards/</code> folder.
+                The file is self-contained — your bot can read the instructions at the top.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-neutral-700 text-xs mb-1">For Applications with API</p>
+              <p className="text-xs text-neutral-500">
+                See the full Rail 5 integration guide:{" "}
+                <a href="https://creditclaw.com/skill.md#rail-5" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                  creditclaw.com/skill.md <ExternalLink className="w-2.5 h-2.5" />
+                </a>.
+                Use <code className="bg-neutral-200 px-1 py-0.5 rounded text-[10px]">GET /bot/messages</code> to fetch card files programmatically.
+              </p>
+            </div>
+            {storedFileContent && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={handleRedownload}
+                data-testid="button-r5-redownload"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Re-download file
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <Button onClick={onDone} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-done">
+        <CheckCircle2 className="w-4 h-4" /> Done
+      </Button>
+    </div>
+  );
+}
+
 export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
@@ -106,6 +382,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
 
   const [directDeliverySucceeded, setDirectDeliverySucceeded] = useState(false);
   const [deliveryAttempted, setDeliveryAttempted] = useState(false);
+  const [deliveryResult, setDeliveryResult] = useState<{ delivered: boolean; method: string; messageId?: number; expiresAt?: string } | null>(null);
+  const [storedFileContent, setStoredFileContent] = useState("");
   const [copied, setCopied] = useState(false);
   const [cardEncrypting, setCardEncrypting] = useState(false);
   const [cardEncrypted, setCardEncrypted] = useState(false);
@@ -175,6 +453,8 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setBotsFetched(false);
     setDirectDeliverySucceeded(false);
     setDeliveryAttempted(false);
+    setDeliveryResult(null);
+    setStoredFileContent("");
     setCopied(false);
     setCardErrors({});
     setAddressErrors({});
@@ -288,22 +568,31 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       }
       setKeySent(true);
 
-      const md = buildEncryptedCardFile(ciphertextBytes);
+      const md = buildEncryptedCardFile(ciphertextBytes, cardName, cardLast4, cardId);
+      setStoredFileContent(md);
 
       if (selectedBotId) {
         setDeliveryAttempted(true);
         try {
-          const deliverRes = await authFetch("/api/v1/rail5/deliver-to-bot", {
+          const deliverRes = await authFetch("/api/v1/bot-messages/send", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              card_id: cardId,
               bot_id: selectedBotId,
-              encrypted_file_content: md,
+              event_type: "rail5.card.delivered",
+              payload: {
+                card_id: cardId,
+                card_name: cardName,
+                card_last4: cardLast4,
+                file_content: md,
+                suggested_path: `.creditclaw/cards/${cardId}.md`,
+                instructions: "Save this file and run the embedded decrypt script with your key material to access card details.",
+              },
             }),
           });
           if (deliverRes.ok) {
             const deliverData = await deliverRes.json();
+            setDeliveryResult(deliverData);
             if (deliverData.delivered) {
               setDirectDeliverySucceeded(true);
             }
@@ -950,10 +1239,14 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
               {selectedBotId && (
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center ${directDeliverySucceeded ? "bg-green-500" : deliveryAttempted && !directDeliverySucceeded ? "bg-amber-500" : "bg-neutral-200"}`}>
-                    {directDeliverySucceeded ? <CheckCircle2 className="w-4 h-4 text-white" /> : deliveryAttempted ? <span className="text-xs text-white">!</span> : <span className="text-xs text-neutral-500">3</span>}
+                    {directDeliverySucceeded ? <CheckCircle2 className="w-4 h-4 text-white" /> : deliveryAttempted ? <CheckCircle2 className="w-4 h-4 text-white" /> : <span className="text-xs text-neutral-500">3</span>}
                   </div>
                   <span className="text-sm text-neutral-700">
-                    {directDeliverySucceeded ? "Delivered to bot" : deliveryAttempted ? "Delivery failed — downloading backup" : "Deliver encrypted file to bot"}
+                    {directDeliverySucceeded
+                      ? "Delivered to bot via webhook"
+                      : deliveryAttempted
+                        ? "File staged for bot pickup"
+                        : "Send encrypted file to bot"}
                   </span>
                 </div>
               )}
@@ -978,79 +1271,20 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
         )}
 
         {step === 7 && (
-          <div className="space-y-6" data-testid="r5-step-success">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-green-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-neutral-900">Card Ready!</h2>
-              <p className="text-sm text-neutral-500 mt-2">
-                {directDeliverySucceeded
-                  ? "Your encrypted card has been delivered to your bot and is ready for checkout."
-                  : "Your encrypted card has been set up successfully."}
-              </p>
-            </div>
-
-            <div className="bg-neutral-50 rounded-xl p-5 space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Card</span>
-                <span className="font-medium text-neutral-900">{cardName} (••••{cardLast4})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Per-Checkout Limit</span>
-                <span className="font-medium text-neutral-900">${spendingLimit}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Daily / Monthly</span>
-                <span className="font-medium text-neutral-900">${dailyLimit} / ${monthlyLimit}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-500">Bot</span>
-                <span className="font-medium text-neutral-900">
-                  {selectedBotId
-                    ? `${bots.find(b => b.bot_id === selectedBotId)?.bot_name || selectedBotId}${directDeliverySucceeded ? " — Card delivered" : ""}`
-                    : "Not linked yet"}
-                </span>
-              </div>
-            </div>
-
-            {!directDeliverySucceeded && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-sm text-amber-800 font-medium">
-                  Place the downloaded <code className="bg-amber-100 px-1 py-0.5 rounded text-xs">Card-{cardName.replace(/[^a-zA-Z0-9-]/g, "")}-{cardLast4}.md</code> file in your bot's OpenClaw workspace.
-                </p>
-              </div>
-            )}
-
-            <div className="relative">
-              <div className="bg-neutral-900 rounded-xl p-4 text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed">
-                {directDeliverySucceeded
-                  ? `Your encrypted card has been delivered and ready for checkout.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
-                  : `Place the downloaded Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md file in your bot's OpenClaw workspace.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="absolute top-2 right-2 text-xs h-7 bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700 hover:text-white"
-                data-testid="button-r5-copy-message"
-                onClick={() => {
-                  const msg = directDeliverySucceeded
-                    ? `Your encrypted card has been delivered and ready for checkout.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
-                    : `Place the downloaded Card-${cardName.replace(/[^a-zA-Z0-9-]/g, "")}-${cardLast4}.md file in your bot's OpenClaw workspace.\n\nCard ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\nYour card_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`;
-                  navigator.clipboard.writeText(msg).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  });
-                }}
-              >
-                {copied ? "Copied!" : "Copy"}
-              </Button>
-            </div>
-
-            <Button onClick={handleDone} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-done">
-              <CheckCircle2 className="w-4 h-4" /> Done
-            </Button>
-          </div>
+          <Step7DeliveryResult
+            cardId={cardId}
+            cardName={cardName}
+            cardLast4={cardLast4}
+            spendingLimit={spendingLimit}
+            dailyLimit={dailyLimit}
+            monthlyLimit={monthlyLimit}
+            selectedBotId={selectedBotId}
+            bots={bots}
+            directDeliverySucceeded={directDeliverySucceeded}
+            deliveryResult={deliveryResult}
+            storedFileContent={storedFileContent}
+            onDone={handleDone}
+          />
         )}
       </DialogContent>
     </Dialog>

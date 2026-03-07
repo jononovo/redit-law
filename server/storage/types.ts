@@ -48,6 +48,7 @@ import {
   type Invoice, type InsertInvoice,
   type BasePayPayment, type InsertBasePayPayment,
   type QrPayment, type InsertQrPayment,
+  type BotPendingMessage,
 } from "@/shared/schema";
 
 import type { OrderFilters } from "./orders";
@@ -348,4 +349,11 @@ export interface IStorage {
   confirmQrPayment(paymentId: string, creditedUsdc: number, confirmedAt: Date): Promise<QrPayment | null>;
   expireQrPayment(paymentId: string): Promise<QrPayment | null>;
   expireWaitingQrPaymentsForWallet(walletAddress: string): Promise<number>;
+
+  createPendingMessage(botId: string, eventType: string, payload: Record<string, unknown>, expiresAt: Date): Promise<BotPendingMessage>;
+  getPendingMessagesForBot(botId: string): Promise<BotPendingMessage[]>;
+  getPendingMessageCount(botId: string): Promise<number>;
+  ackMessage(id: number, botId: string): Promise<boolean>;
+  purgeExpiredMessages(): Promise<number>;
+  deletePendingMessagesByRef(botId: string, eventType: string, refKey: string, refValue: string): Promise<number>;
 }
