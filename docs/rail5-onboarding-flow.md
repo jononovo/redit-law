@@ -87,6 +87,15 @@ Displays one of two states:
 
 Dedicated step for verifying the card decrypts correctly via a sandbox test purchase.
 
+- Starts polling `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` immediately on mount (every 5 seconds, 3-minute timeout).
+- Server returns the card details the bot submitted at the test checkout; the wizard compares them field-by-field against `savedCardDetails` still in browser memory (client-side only — raw card data never sent to server for comparison).
+- **UI states**:
+  - **Polling**: Blue banner with spinner — "Verifying card — waiting for test purchase..."
+  - **Success**: Green banner with field-by-field checkmarks — "Card Verified — encryption and decryption working correctly"
+  - **Failure**: Red banner with per-field match/mismatch — "Verification Failed — some fields did not match"
+  - **Timeout (3 min)**: Amber warning — "Test purchase not completed yet" with suggestion to check the card dashboard later
+- **"Done" button** closes the wizard.
+
 ---
 
 ## Bot-Side Flow
