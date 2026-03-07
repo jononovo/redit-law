@@ -98,7 +98,7 @@ function Step7DeliveryResult({
 
   const isWaiting = selectedBotId && !directDeliverySucceeded && !botConfirmed;
 
-  const relayMessage = `Check for your encrypted card file:\nGET https://creditclaw.com/api/v1/bot/messages\nwith your CreditClaw API key.\nSave the card file to .creditclaw/cards/`;
+  const relayMessage = `Check for your encrypted card file:\nGET https://creditclaw.com/api/v1/bot/messages\nwith your CreditClaw API key.\nSave the card file to .creditclaw/cards/\n\nOnce saved, confirm delivery:\nPOST https://creditclaw.com/api/v1/bot/rail5/confirm-delivery\nwith your CreditClaw API key.`;
 
   useEffect(() => {
     if (!selectedBotId || !cardId || directDeliverySucceeded) return;
