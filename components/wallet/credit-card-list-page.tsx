@@ -32,6 +32,7 @@ export interface CreditCardListPageConfig {
   supportsBotLinking?: boolean;
   transactionsEndpoint?: string;
   approvalsEndpoint?: string;
+  approvalsDecideEndpoint?: string;
 }
 
 export function CreditCardListPage({ config }: { config: CreditCardListPageConfig }) {
@@ -113,6 +114,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
     railPrefix: config.railPrefix,
     entityType: "card",
     entityIdField: "card_id",
+    approvalsDecideEndpoint: config.approvalsDecideEndpoint,
     onUpdate: fetchCards,
   });
 
@@ -231,7 +233,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
       content: (
         <ApprovalList
           approvals={approvals}
-          variant="crypto"
+          variant={config.approvalsDecideEndpoint ? "commerce" : "crypto"}
           onDecide={(id, decision) => walletActions.handleApprovalDecision(id, decision, { onSuccess: fetchApprovals })}
         />
       ),

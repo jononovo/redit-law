@@ -10,6 +10,7 @@ export interface UseWalletActionsConfig {
   entityIdField: "wallet_id" | "card_id";
   freezeEndpoint?: string;
   syncEndpoint?: string;
+  approvalsDecideEndpoint?: string;
   onUpdate?: () => void;
   onTransactionsRefresh?: (entityId: number | string) => void;
 }
@@ -150,12 +151,13 @@ export function useWalletActions(config: UseWalletActionsConfig) {
   }, [toast]);
 
   const handleApprovalDecision = useCallback(async (
-    approvalId: number,
+    approvalId: number | string,
     decision: "approve" | "reject",
     opts?: { onSuccess?: () => void },
   ) => {
     try {
-      const res = await authFetch(`/api/v1/${config.railPrefix}/approvals/decide`, {
+      const endpoint = config.approvalsDecideEndpoint || `/api/v1/${config.railPrefix}/approvals/decide`;
+      const res = await authFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ approval_id: approvalId, decision }),
@@ -170,7 +172,7 @@ export function useWalletActions(config: UseWalletActionsConfig) {
     } catch {
       toast({ title: "Error", variant: "destructive" });
     }
-  }, [config.railPrefix, toast]);
+  }, [config.approvalsDecideEndpoint, config.railPrefix, toast]);
 
   const handleSyncAndPatch = useCallback(async <W extends { id: number; balance_usdc: number; balance_display: string }>(
     walletId: number,
