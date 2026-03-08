@@ -9,7 +9,7 @@ import { WebhookLog } from "@/components/dashboard/webhook-log";
 import { OpsHealth } from "@/components/dashboard/ops-health";
 import { PaymentLinksPanel } from "@/components/dashboard/payment-links";
 import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
-import { Bot as BotIcon, Plus, Loader2, Wallet, CreditCard, Info, ExternalLink } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, Wallet, CreditCard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -29,7 +29,7 @@ import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import { FundWalletSheet } from "@/lib/payments/components/fund-wallet-sheet";
 import { FreezeDialog } from "@/components/wallet/dialogs/freeze-dialog";
 import { ApprovalList, type ApprovalRow } from "@/components/wallet/approval-list";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import type { Rail1WalletInfo, NormalizedCard } from "@/components/wallet/types";
 import { normalizeRail5Card } from "@/components/wallet/types";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
@@ -348,19 +348,10 @@ export default function DashboardOverview() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div data-testid="card-privy-wallet">
-              <TooltipProvider>
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-sm font-semibold text-neutral-700">Agent Wallet</h3>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p className="text-xs">USDC wallet x402 purchases. Fund with Stripe/Link.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TooltipProvider>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-sm font-semibold text-neutral-700">Agent Wallet</h3>
+                <InfoTooltip text="USDC wallet x402 purchases. Fund with Stripe/Link." />
+              </div>
               {firstWallet ? (
                 <CryptoWalletItem
                   wallet={firstWallet}
@@ -389,19 +380,10 @@ export default function DashboardOverview() {
             </div>
 
             <div data-testid="card-rail5">
-              <TooltipProvider>
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-sm font-semibold text-neutral-700">My Card</h3>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      <p className="text-xs">Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </TooltipProvider>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="text-sm font-semibold text-neutral-700">My Card</h3>
+                <InfoTooltip text="Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent." />
+              </div>
               {firstCard ? (
                 <CreditCardItem
                   card={firstCard}
