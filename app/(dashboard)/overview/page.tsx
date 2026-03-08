@@ -9,7 +9,7 @@ import { WebhookLog } from "@/components/dashboard/webhook-log";
 import { OpsHealth } from "@/components/dashboard/ops-health";
 import { PaymentLinksPanel } from "@/components/dashboard/payment-links";
 import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
-import { Bot as BotIcon, Plus, Loader2, Wallet, CreditCard } from "lucide-react";
+import { Bot as BotIcon, Plus, Loader2, Wallet, CreditCard, Info, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -28,6 +28,8 @@ import { UnlinkBotDialog } from "@/components/wallet/dialogs/unlink-bot-dialog";
 import { TransferDialog } from "@/components/wallet/dialogs/transfer-dialog";
 import { FundWalletSheet } from "@/lib/payments/components/fund-wallet-sheet";
 import { FreezeDialog } from "@/components/wallet/dialogs/freeze-dialog";
+import { ApprovalList, type ApprovalRow } from "@/components/wallet/approval-list";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Rail1WalletInfo, NormalizedCard } from "@/components/wallet/types";
 import { normalizeRail5Card } from "@/components/wallet/types";
 import type { CryptoGuardrailForm } from "@/components/wallet/dialogs/guardrail-dialog";
@@ -59,6 +61,8 @@ export default function DashboardOverview() {
   const [privyWallets, setPrivyWallets] = useState<Rail1WalletInfo[]>([]);
   const [rail5Cards, setRail5Cards] = useState<NormalizedCard[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
+
+  const [overviewApprovals, setOverviewApprovals] = useState<ApprovalRow[]>([]);
 
   const [rail5WizardOpen, setRail5WizardOpen] = useState(false);
   const [rail5FreezeTarget, setRail5FreezeTarget] = useState<NormalizedCard | null>(null);
@@ -95,6 +99,35 @@ export default function DashboardOverview() {
       }
     } catch {}
   }, []);
+
+  const fetchApprovals = useCallback(async () => {
+    try {
+      const res = await authFetch("/api/v1/approvals");
+      if (res.ok) {
+        const data = await res.json();
+        setOverviewApprovals(data.approvals || []);
+      }
+    } catch {}
+  }, []);
+
+  const handleApprovalDecide = useCallback(async (id: number | string, decision: "approve" | "reject") => {
+    try {
+      const res = await authFetch("/api/v1/approvals/decide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ approval_id: id, decision }),
+      });
+      if (res.ok) {
+        toast({ title: decision === "approve" ? "Approved" : "Rejected" });
+        fetchApprovals();
+      } else {
+        const data = await res.json();
+        toast({ title: "Error", description: data.error || "Failed to process decision", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", variant: "destructive" });
+    }
+  }, [fetchApprovals, toast]);
 
   const fetchRail5Cards = useCallback(async () => {
     try {
@@ -190,12 +223,13 @@ export default function DashboardOverview() {
     if (user) {
       fetchPrivyWallets();
       fetchRail5Cards();
+      fetchApprovals();
       rail1BotLinking.fetchBots();
       rail5BotLinking.fetchBots();
     } else {
       setCardsLoading(false);
     }
-  }, [user, fetchPrivyWallets, fetchRail5Cards, rail1BotLinking.fetchBots, rail5BotLinking.fetchBots]);
+  }, [user, fetchPrivyWallets, fetchRail5Cards, fetchApprovals, rail1BotLinking.fetchBots, rail5BotLinking.fetchBots]);
 
   const activeBots = bots.filter((b) => b.wallet_status === "active");
   const pendingBots = bots.filter((b) => b.wallet_status === "pending");
@@ -289,11 +323,24 @@ export default function DashboardOverview() {
         )}
       </div>
 
-      <div data-testid="section-cards-wallets">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-neutral-900">Cards & Wallets</h2>
+      {overviewApprovals.length > 0 && (
+        <div data-testid="section-approvals">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-neutral-900">Approvals</h2>
+            <Link href="/transactions" className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 transition-colors" data-testid="link-see-all-approvals">
+              See all <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <ApprovalList
+            approvals={overviewApprovals.slice(0, 5)}
+            onDecide={handleApprovalDecide}
+            showRailBadge
+            testIdPrefix="overview-approval"
+          />
         </div>
+      )}
 
+      <div data-testid="section-cards-wallets">
         {cardsLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
@@ -301,6 +348,19 @@ export default function DashboardOverview() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div data-testid="card-privy-wallet">
+              <TooltipProvider>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-sm font-semibold text-neutral-700">Agent Wallet</h3>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p className="text-xs">USDC wallet x402 purchases. Fund with Stripe/Link.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
               {firstWallet ? (
                 <CryptoWalletItem
                   wallet={firstWallet}
@@ -329,6 +389,19 @@ export default function DashboardOverview() {
             </div>
 
             <div data-testid="card-rail5">
+              <TooltipProvider>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-sm font-semibold text-neutral-700">My Card</h3>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 text-neutral-400 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p className="text-xs">Self-hosted: Agent uses your card. Secured with: Encryption & Ephemeral Sub-Agent.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
               {firstCard ? (
                 <CreditCardItem
                   card={firstCard}
