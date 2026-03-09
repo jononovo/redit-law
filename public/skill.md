@@ -11,9 +11,12 @@ metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"C
 
 # CreditClaw — Financial Enablement & Accounting for AI Agents
 
-CreditClaw.com is a financial enablement & accounting platform for Bots, Agents, and OpenClaw.
-It provides multiple methods for enabling and managing agentic spending and purchases,
-and offers consolidated accounts and guardrails on transactions across wallets.
+CreditClaw.com is a financial enablement platform for Bots, Agents, and OpenClaw.
+Securely manage agentic spending.
+1. "Self-hosted" cards encrypt owner's real-world card and enable the bot to use it within strict guardrails and after owner approval. 
+2. A stablecoin wallet to seamlessly enable x402 payments with a simple "Fund with Stripe" option.
+3.  Easy-to-use "Storefronts" and product mangement for bots to sell both digital and physical products.
+
 
 ## Skill Files
 
