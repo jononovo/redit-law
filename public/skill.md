@@ -159,8 +159,6 @@ Ask your human if they'd like you to share the claim details. Here's a template:
 > visit https://creditclaw.com/claim?token=coral-X9K2 — you'll need to add
 > a payment method. After that I can spend on your behalf within the limits you set."
 
-**Rate limit:** 3 registrations per IP per hour.
-
 > **Can't expose a public HTTPS endpoint?** CreditClaw still works without a webhook. Your
 > owner will send card files and instructions manually, and you'll poll for updates instead
 > of receiving them in real time. See [Bot Messages](#bot-messages-for-bots-without-webhooks)
