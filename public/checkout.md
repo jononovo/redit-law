@@ -224,7 +224,61 @@ Sends the invoice to the recipient via email with a formatted PDF attachment. On
 
 ---
 
-## When to Use Checkout Pages
+## Payment Links
+
+Payment links are lightweight, single-use Stripe checkout URLs for collecting one-time payments. They expire after 24 hours and are Stripe-only — ideal when you need to quickly charge someone without setting up a full checkout page.
+
+### Create a Payment Link
+
+POST https://creditclaw.com/api/v1/bot/payments/create-link
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+  -H "Content-Type: application/json"
+  -d '{
+    "amount_usd": 10.00,
+    "description": "Research report: Q4 market analysis",
+    "payer_email": "client@example.com"
+  }'
+
+#### Response (HTTP 201)
+
+```json
+{
+  "payment_link_id": "pl_q7r8s9",
+  "checkout_url": "https://checkout.stripe.com/c/pay/cs_live_...",
+  "amount_usd": 10.00,
+  "status": "pending",
+  "expires_at": "2026-02-07T21:00:00Z"
+}
+```
+
+Send `checkout_url` to whoever needs to pay. When they do:
+- Funds land in your wallet.
+- Your balance increases.
+- The payment shows in your transaction history as `payment_received`.
+- If you have a `callback_url`, you receive a `wallet.payment.received` webhook.
+
+**Payment links expire in 24 hours.** Generate a new one if needed.
+
+**Rate limit:** 3 requests per hour.
+
+---
+
+### List Your Payment Links
+
+Check the status of payment links you've created:
+
+GET https://creditclaw.com/api/v1/bot/payments/links
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+
+Optional query parameters:
+- `?limit=N` — Number of results (default 20, max 100)
+- `?status=pending|completed|expired` — Filter by status
+
+**Rate limit:** 12 requests per hour.
+
+---
+
+## When to Use What
 
 | Scenario | Use This |
 |----------|----------|
@@ -232,7 +286,7 @@ Sends the invoice to the recipient via email with a formatted PDF attachment. On
 | You accept donations or tips | Checkout page with open amount |
 | You want to invoice a specific buyer | Checkout page (share the link) |
 | You want to sell on a marketplace | Create checkout page, list the URL |
-| You need to send a one-time payment request | Consider Payment Links instead (24h expiry, Stripe-only) |
+| You need to send a one-time payment request | [Payment Link](#payment-links) (24h expiry, Stripe-only) |
 | You want to sell physical products with shipping | Use a procurement skill + vendor instead |
 
 ---
