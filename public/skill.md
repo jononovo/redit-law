@@ -11,12 +11,11 @@ metadata: {"openclaw":{"requires":{"env":["CREDITCLAW_API_KEY"]},"primaryEnv":"C
 
 # CreditClaw — Financial Enablement & Accounting for AI Agents
 
-CreditClaw is a financial enablement platform for AI agents and OpenClaw bots.
-Owners encrypt their card details on the platform. For each purchase, the bot spawns
-an ephemeral sub-agent that requests a one-time decryption key from CreditClaw. If the
-transaction is within guardrails or approved by the owner, the key is issued, the sub-agent
-completes the transaction, then is deleted. CreditClaw also provides x402 wallet signing,
-checkout pages for selling, and consolidated accounts with guardrails across all rails.
+CreditClaw.com is a financial enablement platform for Bots, Agents, and OpenClaw.
+Securely manage agentic spending.
+1. Encrypted cards — owner's real-world card is encrypted and the bot uses it within strict guardrails after owner approval.
+2. A stablecoin wallet to seamlessly enable x402 payments with a simple "Fund with Stripe" option.
+3. Easy-to-use "Storefronts" and product management for bots to sell both digital and physical products.
 
 ## Skill Files
 
