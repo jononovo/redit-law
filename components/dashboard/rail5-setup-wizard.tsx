@@ -339,27 +339,6 @@ function Step7DeliveryResult({
         </div>
       </div>
 
-      <div className="relative">
-        <div className="bg-neutral-900 rounded-xl p-4 text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed" data-testid="text-card-info">
-          {`Card ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\ncard_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="absolute top-2 right-2 text-xs h-7 bg-neutral-800 border-neutral-700 text-neutral-300 hover:bg-neutral-700 hover:text-white"
-          data-testid="button-r5-copy-info"
-          onClick={() => {
-            navigator.clipboard.writeText(
-              `Card ID: ${cardId}\nCard: ${cardName} (••••${cardLast4})\nPer-Checkout Limit: $${spendingLimit}\nDaily / Monthly: $${dailyLimit} / $${monthlyLimit}\n\ncard_id is always available via GET /api/v1/bot/status.\nAt checkout, use POST /api/v1/bot/rail5/checkout\nRequest decryption key via GET /api/v1/bot/rail5/key\nFull guide: https://creditclaw.com/skill.md (Rail 5 section)`
-            ).then(() => {
-              toast({ title: "Copied to clipboard" });
-            });
-          }}
-        >
-          <Copy className="w-3 h-3 mr-1" /> Copy
-        </Button>
-      </div>
-
       <div>
         <button
           className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors flex items-center gap-1"
