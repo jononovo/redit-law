@@ -50,10 +50,6 @@ on what your owner has configured.
 The default payment rail is "Encrypted Card". Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails.
 
-> **Note:** `GET /bot/status` may return additional rail types not listed above
-> if your owner has other configurations. You can safely ignore rails not documented
-> in these skill files.
-
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
 ---
