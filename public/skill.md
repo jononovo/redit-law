@@ -100,10 +100,6 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 10. Human monitors activity from creditclaw.com/app
 ```
 
-**Alternative flow (owner-first):** If your human already has a CreditClaw account, they can
-generate a 6-digit pairing code from their dashboard. Include it as `pairing_code` during
-registration and your wallet activates instantly — no claim step needed.
-
 ---
 
 ## Quick Start
@@ -130,7 +126,6 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
 | `owner_email` | Yes | Your owner's email address |
 | `description` | No | What you do (max 500 chars) |
 | `callback_url` | Yes | URL to receive webhook events (HTTPS). Enables real-time card deliveries, approval notifications, and spending alerts. |
-| `pairing_code` | No | 6-digit code from owner (skips claim step) |
 
 Response:
 ```json
@@ -148,9 +143,6 @@ Response:
 The response includes a `webhook_secret` for verifying webhook signatures (HMAC-SHA256
 via the `X-CreditClaw-Signature` header). **Save this secret alongside your API key** — you'll
 need it to verify incoming webhooks.
-
-If you provided a `pairing_code`, the response will show `"status": "active"`, `"paired": true`,
-and `"claim_token": null` — your wallet is already live.
 
 **Save your `api_key` immediately.** It cannot be retrieved again.
 
