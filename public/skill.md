@@ -41,7 +41,7 @@ on what your owner has configured.
 
 | Rail | Method | Status | Spending Mechanism |
 |------|--------|--------|-------------------|
-| **Wallet** | Prepaid wallet funded by owner | Live | `GET /bot/wallet/check` (balance & limits) |
+| **Wallet** | Prepaid wallet funded by owner | Live | Balance, top-ups, payment links, and transaction history |
 | **Encrypted Card (Rail 5)** | Owner's card, encrypted file + sub-agent checkout | Live | `POST /bot/rail5/checkout` (guardrail-enforced, sub-agent) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
 
@@ -214,6 +214,8 @@ header that you can verify using the `webhook_secret` returned at registration.
 | `wallet.spend.authorized` | A purchase was approved |
 | `wallet.spend.declined` | A purchase was declined (includes reason) |
 | `wallet.balance.low` | Balance dropped below $5.00 |
+| `wallet.sale.completed` | A sale completed through your checkout page |
+| `rails.updated` | Payment methods or spending config changed — call `GET /bot/status` to refresh |
 | `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
 | `rail5.checkout.completed` | Checkout confirmed successful |
 | `rail5.checkout.failed` | Checkout reported failure |
@@ -582,9 +584,15 @@ Response:
   "status": "confirmed",
   "card_id": "r5card_...",
   "card_name": "ChaseD",
-  "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end."
+  "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
+  "test_checkout_url": "https://creditclaw.com/pay/test_...",
+  "test_instructions": "Navigate to the test checkout URL to complete a sandbox purchase.\nThis is a sandbox checkout — no real payment will be processed.\nUse the encrypted card file you just saved to decrypt and enter the card details.\nFill in all fields: card number, expiry, CVV, cardholder name, and billing address.\nSubmit the payment. The system will verify that the card details were decrypted correctly.\nThis proves your card file works end-to-end before any real purchase."
 }
 ```
+
+**Complete the test purchase** at the `test_checkout_url` to advance your card from `confirmed`
+to `active`. This is a sandbox checkout — no real payment is processed. It verifies that your
+card file decrypts correctly end-to-end before any real purchase.
 
 **Pending messages for card deliveries expire after 24 hours.** If the message expires before
 you retrieve it, your owner can re-stage the delivery from their dashboard.
@@ -600,6 +608,9 @@ through the setup wizard. The file is re-delivered automatically.
 | `confirmed` | Bot confirmed file saved — ready for checkout |
 | `active` | First successful checkout completed — proven working |
 | `frozen` | Owner manually paused the card |
+
+> Cards begin in `pending_setup` during owner configuration. Your bot first sees the card
+> at `pending_delivery` when the encrypted file is delivered.
 
 ### Per-Rail Detail Check (Rail 5)
 
@@ -836,8 +847,8 @@ curl https://api.example.com/v1/data \
 }
 ```
 
-When you receive a 202, your owner has been notified. Poll the approvals endpoint
-or wait approximately 5 minutes before retrying.
+When you receive a 202, your owner has been notified. Wait approximately 5 minutes
+before retrying your request.
 
 **Response (declined — HTTP 403):**
 ```json
@@ -961,10 +972,10 @@ Base URL: `https://creditclaw.com/api/v1`
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|------------|
 | POST | `/bot/rail5/checkout` | Request checkout approval. Returns checkout_steps and spawn_payload. | 30/hr |
-| GET | `/bot/rail5/checkout/status` | Poll for checkout approval result. `?checkout_id=` required. | 30/hr |
+| GET | `/bot/rail5/checkout/status` | Poll for checkout approval result. `?checkout_id=` required. | 60/hr |
 | POST | `/bot/rail5/key` | Get one-time decryption key for an approved checkout. | 30/hr |
 | POST | `/bot/rail5/confirm` | Confirm checkout success or failure. | 30/hr |
-| POST | `/bot/rail5/confirm-delivery` | Confirm card file saved. Advances status to `confirmed`. | 30/hr |
+| POST | `/bot/rail5/confirm-delivery` | Confirm card file saved. Advances status to `confirmed`. | — |
 | GET | `/bot/check/rail5` | Sub-Agent Card detail: limits, approval threshold. | 6/hr |
 
 ### Stripe Wallet Endpoints (Private Beta)
