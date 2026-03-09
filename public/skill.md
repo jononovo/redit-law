@@ -46,6 +46,7 @@ on what your owner has configured.
 |------|--------|--------|-------|
 | **Encrypted Card** | Owner's card, encrypted file + sub-agent checkout | Live | [encrypted-card.md](https://creditclaw.com/encrypted-card.md) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | [stripe-x402-wallet.md](https://creditclaw.com/stripe-x402-wallet.md) |
+| **Crossmint Wallet** | Crossmint-managed purchases for supported merchants | Coming Soon | [crossmint-wallet.md](https://creditclaw.com/crossmint-wallet.md) |
 
 Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails.
