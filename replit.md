@@ -488,6 +488,15 @@ Two layers of testing:
   - `tests/guardrails/evaluate.test.ts` — guardrail evaluation for both USDC rails (`evaluateGuardrails`) and card rails (`evaluateCardGuardrails`), covering per-tx limits, daily/monthly budgets, approval thresholds (18 tests)
 - **Manual integration tests** (`docs/testing.md`): curl-based test suite covering bot registration, wallet ops, purchases, guardrails, checkout pages, x402 endpoints. Sections 1-12 cover core API, Section 13 covers checkout & x402, Section 14 references the automated tests.
 
+### Database Schema Workflow
+Schema changes flow through Drizzle ORM and are auto-synced to production on deploy:
+1. Edit `shared/schema.ts` — add/modify tables, columns, indexes, constraints
+2. Run `npx drizzle-kit push --force` locally to sync dev database
+3. Deploy — Replit's deployment platform runs `drizzle-kit push` automatically against production
+4. **Never make manual SQL changes** to the database without updating `shared/schema.ts` to match. Manual DDL causes naming drift (PostgreSQL uses `_key` for unique constraints, Drizzle expects `_unique`) which blocks non-interactive deployments.
+5. Config: `drizzle.config.ts` points at `DATABASE_URL` with `pg` driver
+6. The `spending_permissions` table exists in both databases but is not tracked in the schema (legacy table)
+
 ### Documentation System (`docs/content/`, `app/docs/`)
 Self-hosted documentation at `/docs` with sidebar navigation, audience toggle (User Guide / Developers), and markdown rendering.
 - **Config**: `docs/content/sections.ts` — typed section/page registry with audience tagging.

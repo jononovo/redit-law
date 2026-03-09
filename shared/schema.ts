@@ -77,7 +77,11 @@ export const apiAccessLogs = pgTable("api_access_logs", {
   responseTimeMs: integer("response_time_ms"),
   errorCode: text("error_code"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => [
+  index("idx_access_logs_bot_created").on(table.botId, table.createdAt),
+  index("idx_access_logs_bot_id").on(table.botId),
+  index("idx_access_logs_created_at").on(table.createdAt),
+]);
 
 export const webhookDeliveries = pgTable("webhook_deliveries", {
   id: serial("id").primaryKey(),
@@ -229,7 +233,7 @@ export const rail4Cards = pgTable("rail4_cards", {
   ownerUid: text("owner_uid").notNull(),
   cardName: text("card_name").notNull().default("Untitled Card"),
   useCase: text("use_case"),
-  botId: text("bot_id"),
+  botId: text("bot_id").unique(),
   decoyFilename: text("decoy_filename").notNull(),
   realProfileIndex: integer("real_profile_index").notNull(),
   missingDigitPositions: integer("missing_digit_positions").array().notNull(),
@@ -267,12 +271,15 @@ export const obfuscationEvents = pgTable("obfuscation_events", {
 }, (table) => [
   index("obfuscation_events_card_id_idx").on(table.cardId),
   index("obfuscation_events_card_status_idx").on(table.cardId, table.status),
+  index("obfuscation_events_bot_id_idx").on(table.botId),
+  index("obfuscation_events_bot_status_idx").on(table.botId, table.status),
+  index("obfuscation_events_status_idx").on(table.status),
 ]);
 
 export const obfuscationState = pgTable("obfuscation_state", {
   id: serial("id").primaryKey(),
   cardId: text("card_id").notNull().unique(),
-  botId: text("bot_id"),
+  botId: text("bot_id").unique(),
   phase: text("phase").notNull().default("warmup"),
   active: boolean("active").notNull().default(true),
   activatedAt: timestamp("activated_at").notNull().defaultNow(),
@@ -295,6 +302,7 @@ export const profileAllowanceUsage = pgTable("profile_allowance_usage", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   index("profile_allowance_card_profile_idx").on(table.cardId, table.profileIndex),
+  index("profile_allowance_bot_profile_idx").on(table.botId, table.profileIndex),
 ]);
 
 export const checkoutConfirmations = pgTable("checkout_confirmations", {

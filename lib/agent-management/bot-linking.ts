@@ -71,7 +71,7 @@ const RAIL_CONFIGS: Record<string, () => BotLinkingConfig> = {
       return storage.getRail4CardByCardId(String(id));
     },
     unlinkBot: async (id) => {
-      await storage.updateRail4CardByCardId(String(id), { botId: "" } as any);
+      await storage.updateRail4CardByCardId(String(id), { botId: null } as any);
       return storage.getRail4CardByCardId(String(id));
     },
     countEntitiesByBotId: (botId) => storage.countCardsByBotId(botId),
