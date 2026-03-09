@@ -1,7 +1,7 @@
 ---
 name: creditclaw
-version: 2.3.0
-updated: 2026-02-23
+version: 2.4.0
+updated: 2026-03-09
 description: "Give your agent spending power. Financial management for Agents and OpenClaw bots."
 homepage: https://creditclaw.com
 api_base: https://creditclaw.com/api/v1
@@ -38,12 +38,15 @@ on what your owner has configured.
 
 | Rail | Method | Status | Spending Mechanism |
 |------|--------|--------|-------------------|
-| **Wallet** | Prepaid wallet funded by owner | Live | `POST /bot/wallet/purchase` (direct debit) |
-| **Self-Hosted Cards** | Owner's own cards with split-knowledge privacy | Live | `POST /bot/merchant/checkout` (human approval) |
+| **Wallet** | Prepaid wallet funded by owner | Live | `GET /bot/wallet/check` (balance & limits) |
+| **Encrypted Card (Rail 5)** | Owner's card, encrypted file + sub-agent checkout | Live | `POST /bot/rail5/checkout` (guardrail-enforced, sub-agent) |
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | `POST /stripe-wallet/bot/sign` (guardrail-enforced signing) |
 
 Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails, or use the rail-specific endpoints below.
+
+> **Note:** `GET /bot/status` may return additional rail types beyond those listed here
+> if your owner has legacy configurations. You can safely ignore rails not documented in this file.
 
 **Default safety:** New accounts require human approval for every purchase (`approval_mode: ask_for_everything`). Your owner can adjust this from their dashboard once they're comfortable with your spending patterns.
 
@@ -67,6 +70,9 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 - **Wallets can be frozen.** Your owner can freeze your wallet at any time from their dashboard. While frozen, all purchase and signing attempts are rejected.
 - **Claim tokens are single-use.** The token linking you to your owner is invalidated immediately after use and cannot be replayed.
 - **Your owner's payment details never touch CreditClaw.** All owner payment collection is handled by Stripe. CreditClaw references only Stripe Customer IDs — never raw card numbers.
+- **Encrypted card data is protected by split-knowledge encryption.** When using Rail 5, your owner's card details are encrypted with AES-256-GCM. The decryption key is held server-side and issued only once per approved checkout. The encrypted card file never contains the key. Decrypted card data must never be stored, logged, or persisted — it exists only in the ephemeral sub-agent's memory for the duration of a single transaction.
+- **Sub-agents are ephemeral and disposable.** When using Rail 5, the sub-agent that handles checkout is created for a single transaction and deleted immediately after. This ensures decrypted card data cannot leak across sessions or persist in context.
+- **Decryption keys are single-use and server-issued.** Each checkout gets a unique key that is invalidated after retrieval. There is no way to re-request a key for the same checkout.
 - **Per-endpoint rate limiting.** All bot API endpoints are rate-limited to prevent abuse.
 - **Access logging.** Every API call you make is logged with endpoint, method, status code, IP, and response time — visible to your owner.
 - **All guardrails are enforced server-side on every transaction.** Your owner's `approval_mode`, spending limits, category blocks, and domain restrictions are checked by CreditClaw's servers before any funds move — regardless of what happens on the client side. There is no way to bypass these controls.
@@ -77,13 +83,13 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 
 ```
 1. You fetch this skill file from creditclaw.com/skill.md
-2. You call POST /bots/register → get apiKey + claimToken
+2. You call POST /bots/register → get apiKey + claimToken (include your callback_url for webhooks)
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
-5. Your wallet activates
+5. Your wallet activates — you receive a webhook notification (or poll GET /bot/status)
 6. You poll GET /bot/status periodically to monitor balance across all rails
 7. You check GET /bot/wallet/spending for your owner's permission rules
-8. You spend via the rail your owner has enabled for you
+8. When you need to make a purchase, spawn a sub-agent for the transaction
 9. When balance is low, you request a top-up or generate a payment link
 10. Human monitors activity from creditclaw.com/app
 ```
@@ -99,6 +105,10 @@ registration and your wallet activates instantly — no claim step needed.
 ### 1. Register
 
 You can register before your human does. You'll get an API key immediately.
+
+**Strongly recommended:** Include a `callback_url` during registration. Webhooks are how you
+receive real-time notifications — card file deliveries, approval results, spending alerts, and
+balance changes. Without a webhook, you'll need to poll the bot messages endpoint instead.
 
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \
@@ -117,7 +127,7 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
 | `bot_name` | Yes | Your bot's name (1-100 chars) |
 | `owner_email` | Yes | Your owner's email address |
 | `description` | No | What you do (max 500 chars) |
-| `callback_url` | No | URL to receive webhook events (HTTPS) |
+| `callback_url` | Strongly recommended | URL to receive webhook events (HTTPS). Required for real-time card deliveries and approval notifications. |
 | `pairing_code` | No | 6-digit code from owner (skips claim step) |
 
 Response:
@@ -128,12 +138,14 @@ Response:
   "claim_token": "coral-X9K2",
   "status": "pending_owner_verification",
   "owner_verification_url": "https://creditclaw.com/claim?token=coral-X9K2",
+  "webhook_secret": "whsec_abc123...",
   "important": "Save your api_key now — it cannot be retrieved later. Give the claim_token to your human so they can activate your wallet."
 }
 ```
 
-If you provided a `callback_url`, the response also includes a `webhook_secret` for verifying
-webhook signatures (HMAC-SHA256 via the `X-CreditClaw-Signature` header).
+If you provided a `callback_url`, the response includes a `webhook_secret` for verifying
+webhook signatures (HMAC-SHA256 via the `X-CreditClaw-Signature` header). **Save this secret
+alongside your API key** — you'll need it to verify incoming webhooks.
 
 If you provided a `pairing_code`, the response will show `"status": "active"`, `"paired": true`,
 and `"claim_token": null` — your wallet is already live.
@@ -185,7 +197,32 @@ Once your human claims you with the token, they unlock:
 
 Your human can log in anytime to monitor your spending, adjust limits, or fund your wallet.
 
-### 3. Check Full Status (Recommended)
+### 3. Webhooks & Notifications
+
+If you provided a `callback_url` during registration, CreditClaw sends real-time POST events
+to your endpoint. Each webhook includes an HMAC-SHA256 signature in the `X-CreditClaw-Signature`
+header that you can verify using the `webhook_secret` returned at registration.
+
+| Event | When |
+|-------|------|
+| `wallet.activated` | Owner claimed bot and wallet is live |
+| `wallet.topup.completed` | Funds added to your wallet |
+| `wallet.payment.received` | Someone paid your payment link |
+| `wallet.spend.authorized` | A purchase was approved |
+| `wallet.spend.declined` | A purchase was declined (includes reason) |
+| `wallet.balance.low` | Balance dropped below $5.00 |
+| `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
+| `rail5.checkout.completed` | Checkout confirmed successful |
+| `rail5.checkout.failed` | Checkout reported failure |
+
+Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h, 6h)
+up to 5 attempts.
+
+**If you can't provide a webhook URL** (e.g., your environment doesn't expose a public
+HTTPS endpoint), use the [Bot Messages](#bot-messages-for-bots-without-webhooks) polling
+fallback instead. You won't miss any events — they'll be staged for you to fetch.
+
+### 4. Check Full Status
 
 Use this endpoint to see your complete status across all payment rails.
 Recommended interval: every 30 minutes, or before any purchase.
@@ -195,14 +232,14 @@ curl https://creditclaw.com/api/v1/bot/status \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY"
 ```
 
-Response (active bot with multiple rails):
+Response (active bot with Rail 5 and Stripe Wallet):
 ```json
 {
   "bot_id": "bot_abc123",
   "bot_name": "ShopperBot",
   "status": "active",
-  "default_rail": "card_wallet",
-  "active_rails": ["card_wallet", "stripe_wallet", "self_hosted_cards"],
+  "default_rail": "sub_agent_cards",
+  "active_rails": ["card_wallet", "stripe_wallet", "sub_agent_cards"],
   "rails": {
     "card_wallet": {
       "status": "active",
@@ -219,19 +256,27 @@ Response (active bot with multiple rails):
       "balance_usd": 100.00,
       "address": "0x..."
     },
-    "self_hosted_cards": {
+    "sub_agent_cards": {
       "status": "active",
-      "card_count": 2,
-      "cards": [
-        { "card_id": "card_xyz", "card_name": "Amazon Card", "use_case": "amazon" }
-      ]
+      "card_id": "r5_abc123",
+      "card_name": "Shopping Card",
+      "card_brand": "visa",
+      "last4": "4532",
+      "limits": {
+        "per_transaction_usd": 50.00,
+        "daily_usd": 100.00,
+        "monthly_usd": 500.00,
+        "human_approval_above_usd": 25.00
+      }
     }
   },
   "master_guardrails": {
     "per_transaction_usd": 500,
     "daily_budget_usd": 2000,
     "monthly_budget_usd": 10000
-  }
+  },
+  "webhook_status": "active",
+  "pending_messages": 0
 }
 ```
 
@@ -256,224 +301,12 @@ Response (before claiming):
 | `frozen` | Owner has frozen this bot — no transactions allowed |
 | `inactive` | Claimed but no rails connected yet |
 
-**Rail keys:**
-| Key | Rail | Spending Mechanism |
-|-----|------|-------------------|
-| `card_wallet` | Prepaid wallet | `POST /bot/wallet/purchase` |
-| `stripe_wallet` | Stripe/x402 wallet | `POST /stripe-wallet/bot/sign` |
-| `shopping_wallet` | Shopping wallet | `POST /card-wallet/bot/purchase` |
-| `self_hosted_cards` | Self-hosted cards | `POST /bot/merchant/checkout` |
-| `sub_agent_cards` | Sub-agent cards | `POST /bot/rail5/checkout` |
-
 If `default_rail` is set, prefer that rail for purchases when multiple are available.
 If `status` is `pending`, remind your human about the claim link.
 
 **Rate limit:** 6 requests per hour.
 
-### Per-Rail Detail Checks
-
-When you need deeper operational info about a specific rail — like remaining allowances,
-guardrail budgets, approval modes, or domain restrictions — use the per-rail check endpoints.
-
-#### Rail 1: Stripe Wallet Detail
-
-```bash
-curl https://creditclaw.com/api/v1/bot/check/rail1 \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Response (active):
-```json
-{
-  "status": "active",
-  "balance_usd": 100.00,
-  "address": "0x...",
-  "guardrails": {
-    "max_per_tx_usd": 100,
-    "daily_budget_usd": 1000,
-    "monthly_budget_usd": 10000,
-    "daily_spent_usd": 23.50,
-    "daily_remaining_usd": 976.50,
-    "monthly_spent_usd": 147.00,
-    "monthly_remaining_usd": 9853.00,
-    "require_approval_above_usd": 50
-  },
-  "domain_rules": {
-    "allowlisted": ["api.openai.com"],
-    "blocklisted": []
-  },
-  "pending_approvals": 0
-}
-```
-
-Response (not connected): `{ "status": "inactive" }`
-
-**Rate limit:** 6 requests per hour.
-
-#### Rail 2: Shopping Wallet Detail
-
-```bash
-curl https://creditclaw.com/api/v1/bot/check/rail2 \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Response (active):
-```json
-{
-  "status": "active",
-  "balance_usd": 250.00,
-  "address": "0x...",
-  "guardrails": {
-    "max_per_tx_usd": 100,
-    "daily_budget_usd": 500,
-    "monthly_budget_usd": 2000,
-    "daily_spent_usd": 45.00,
-    "daily_remaining_usd": 455.00,
-    "monthly_spent_usd": 320.00,
-    "monthly_remaining_usd": 1680.00,
-    "require_approval_above_usd": 0
-  },
-  "merchant_rules": {
-    "allowlisted": ["amazon.com"],
-    "blocklisted": ["gambling.com"]
-  }
-}
-```
-
-Response (not connected): `{ "status": "inactive" }`
-
-**Rate limit:** 6 requests per hour.
-
-#### Rail 4: Self-Hosted Card Detail
-
-```bash
-curl https://creditclaw.com/api/v1/bot/check/rail4 \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Response (active):
-```json
-{
-  "status": "active",
-  "card_count": 1,
-  "cards": [
-    {
-      "card_id": "card_xyz",
-      "card_name": "Business Visa",
-      "use_case": "general",
-      "status": "active",
-      "profiles": [
-        {
-          "profile_index": 1,
-          "allowance_usd": 50,
-          "spent_usd": 12,
-          "remaining_usd": 38,
-          "resets_at": "2026-03-01T00:00:00.000Z"
-        }
-      ],
-      "approval_mode": "above_exempt",
-      "approval_threshold_usd": 25
-    }
-  ]
-}
-```
-
-**Key fields:**
-- `profiles[].remaining_usd` — how much you can still spend this period without approval
-- `approval_mode` — `all` (always needs approval), `above_exempt` (auto-approve under threshold), `none` (never needs approval)
-- `approval_threshold_usd` — transactions below this amount are auto-approved when mode is `above_exempt`
-
-Response (not connected): `{ "status": "inactive" }`
-
-**Rate limit:** 6 requests per hour.
-
-#### Rail 5: Sub-Agent Card Detail
-
-```bash
-curl https://creditclaw.com/api/v1/bot/check/rail5 \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Response (active):
-```json
-{
-  "status": "active",
-  "card_id": "r5_abc123",
-  "card_name": "Shopping Card",
-  "card_brand": "visa",
-  "last4": "4532",
-  "limits": {
-    "per_transaction_usd": 50.00,
-    "daily_usd": 100.00,
-    "monthly_usd": 500.00,
-    "human_approval_above_usd": 25.00
-  }
-}
-```
-
-Response (not connected): `{ "status": "inactive" }`
-
-**Rate limit:** 6 requests per hour.
-
-### Dry-Run / Preflight Check (Rail 4)
-
-Before committing to a purchase, test whether it would be allowed — with no side effects.
-This checks profile allowances, master guardrails, and approval requirements.
-
-```bash
-curl -X POST https://creditclaw.com/api/v1/bot/check/rail4/test \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "merchant_name": "Amazon",
-    "amount_cents": 2500,
-    "profile_index": 1
-  }'
-```
-
-**Request fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `merchant_name` | Yes | Merchant name (1-200 chars) |
-| `amount_cents` | Yes | Amount in cents (integer) |
-| `profile_index` | Yes | Payment profile index (1-6) |
-| `card_id` | No | Specify card if you have multiple |
-
-Response (allowed):
-```json
-{
-  "allowed": true,
-  "requires_approval": false,
-  "reason": null,
-  "limits_snapshot": {
-    "allowance_remaining_usd": 38,
-    "master_daily_remaining_usd": 976.50,
-    "master_monthly_remaining_usd": 9853.00
-  }
-}
-```
-
-Response (blocked):
-```json
-{
-  "allowed": false,
-  "requires_approval": true,
-  "reason": ["exceeds_profile_allowance", "exceeds_master_daily_budget"],
-  "limits_snapshot": {
-    "allowance_remaining_usd": 5.00,
-    "master_daily_remaining_usd": 10.00,
-    "master_monthly_remaining_usd": 500.00
-  }
-}
-```
-
-**Use this before expensive purchases** to avoid surprise declines.
-
-**Rate limit:** 12 requests per hour.
-
----
-
-### 4. Check Spending Permissions (Before Every Purchase)
+### 5. Check Spending Permissions (Before Every Purchase)
 
 Before any purchase, fetch your spending rules. Your owner controls these
 and can update them anytime from their dashboard.
@@ -522,62 +355,284 @@ Your owner can update these permissions anytime from `https://creditclaw.com/app
 
 **Rate limit:** 6 requests per hour.
 
-### 5. Make a Purchase (Wallet Debit)
+---
 
-When you need to spend money, call the purchase endpoint. CreditClaw checks your
-owner's spending rules, debits your wallet, and logs the transaction.
+## Making a Purchase
+
+This is the core transaction flow. When you need to buy something, you should **spawn an
+ephemeral sub-agent** to handle the checkout. This keeps decrypted payment details isolated
+from your main context and ensures sensitive data is automatically cleaned up after the
+transaction completes.
+
+### How It Works
+
+```
+1. You decide a purchase is needed (and it's within your spending rules)
+2. You call POST /bot/rail5/checkout with the merchant and amount details
+3. CreditClaw checks guardrails — if within limits, it approves immediately
+   If above threshold, your owner gets an approval request (via dashboard or email)
+4. Once approved, you spawn a sub-agent with the checkout_steps
+5. The sub-agent calls POST /bot/rail5/key to get the one-time decryption key
+6. The sub-agent decrypts the card file and completes checkout at the merchant
+7. The sub-agent calls POST /bot/rail5/confirm with success or failure
+8. The sub-agent is deleted — decrypted card data never persists
+9. You announce the result to your human
+```
+
+**Why sub-agents?** The sub-agent pattern ensures that:
+- Your main agent **never sees** the decrypted card details
+- Card data exists only in the sub-agent's memory for the duration of one transaction
+- The sub-agent is deleted after checkout — no data leaks across sessions
+- If the sub-agent crashes, the decryption key is already consumed and cannot be reused
+
+> **Alternative:** If your environment doesn't support spawning sub-agents, you can execute
+> the `checkout_steps` directly as the main agent. The guardrails and encryption still protect
+> your owner's card — but the main agent will see the decrypted card details in its context.
+
+### Step 1: Request Checkout
 
 ```bash
-curl -X POST https://creditclaw.com/api/v1/bot/wallet/purchase \
+curl -X POST https://creditclaw.com/api/v1/bot/rail5/checkout \
   -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
-    "amount_cents": 599,
-    "merchant": "OpenAI API",
-    "description": "GPT-4 API credits",
-    "category": "api_services"
+    "merchant_name": "DigitalOcean",
+    "merchant_url": "https://cloud.digitalocean.com/billing",
+    "item_name": "Droplet hosting - 1 month",
+    "amount_cents": 1200,
+    "category": "cloud_compute"
   }'
 ```
 
 **Request fields:**
 | Field | Required | Description |
 |-------|----------|-------------|
-| `amount_cents` | Yes | Amount in cents (integer, min 1) |
-| `merchant` | Yes | Merchant name (1-200 chars) |
-| `description` | No | What you're buying (max 500 chars) |
-| `category` | No | Spending category (checked against blocked/approved lists) |
+| `merchant_name` | Yes | Merchant name (1-200 chars) |
+| `merchant_url` | Yes | Merchant website URL |
+| `item_name` | Yes | What you're buying |
+| `amount_cents` | Yes | Amount in cents (integer) |
+| `category` | No | Spending category |
 
-Response (approved):
+**Response (approved):**
 ```json
 {
-  "status": "approved",
-  "transaction_id": 42,
-  "amount_usd": 5.99,
-  "merchant": "OpenAI API",
-  "description": "OpenAI API: GPT-4 API credits",
-  "new_balance_usd": 44.01,
-  "message": "Purchase approved. Wallet debited."
+  "approved": true,
+  "checkout_id": "r5chk_abc123",
+  "checkout_steps": [
+    "Call POST /api/v1/bot/rail5/key with { \"checkout_id\": \"r5chk_abc123\" } to get the decryption key.",
+    "Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md",
+    "Use the decrypted card details to complete checkout at DigitalOcean.",
+    "Call POST /api/v1/bot/rail5/confirm with { \"checkout_id\": \"r5chk_abc123\", \"status\": \"success\" } when done.",
+    "If checkout fails, call confirm with { \"status\": \"failed\" } instead.",
+    "Announce the result."
+  ],
+  "spawn_payload": {
+    "task": "You are a checkout agent...",
+    "cleanup": "delete",
+    "runTimeoutSeconds": 300,
+    "label": "checkout-digitalocean"
+  }
 }
 ```
 
-**Possible decline reasons (HTTP 402 or 403):**
-| Error | Status | Meaning |
-|-------|--------|---------|
-| `insufficient_funds` | 402 | Not enough balance. Request a top-up. |
-| `wallet_frozen` | 403 | Owner froze your wallet. |
-| `wallet_not_active` | 403 | Wallet not yet claimed by owner. |
-| `category_blocked` | 403 | Category is on the blocked list. |
-| `exceeds_per_transaction_limit` | 403 | Amount exceeds per-transaction cap. |
-| `exceeds_daily_limit` | 403 | Would exceed daily spending limit. |
-| `exceeds_monthly_limit` | 403 | Would exceed monthly spending limit. |
-| `requires_owner_approval` | 403 | Amount above auto-approve threshold. |
+**Response (requires owner approval):**
+```json
+{
+  "approved": false,
+  "status": "pending_approval",
+  "checkout_id": "r5chk_abc123",
+  "message": "Amount exceeds auto-approve threshold. Your owner has been notified.",
+  "expires_in_minutes": 15
+}
+```
 
-When a purchase is declined, the response includes the relevant limits and your current
-spending so you can understand why. Your owner is also notified of all declined attempts.
+If you receive `pending_approval`, poll for the result:
 
-**Rate limit:** 30 requests per hour.
+```bash
+curl "https://creditclaw.com/api/v1/bot/rail5/checkout/status?checkout_id=r5chk_abc123" \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
 
-### 6. Request a Top-Up From Your Owner
+Response:
+```json
+{
+  "checkout_id": "r5chk_abc123",
+  "status": "pending_approval",
+  "merchant_name": "DigitalOcean",
+  "item_name": "Droplet hosting - 1 month",
+  "amount_cents": 1200,
+  "key_delivered": false,
+  "confirmed_at": null,
+  "created_at": "2026-03-09T12:00:00.000Z"
+}
+```
+
+**Status values:**
+| Status | Meaning |
+|--------|---------|
+| `pending_approval` | Owner hasn't responded yet — poll again in 30 seconds |
+| `approved` | Owner approved — proceed with spawning a sub-agent |
+| `rejected` | Owner declined — do not proceed |
+| `expired` | 15-minute approval window passed — try again if needed |
+| `completed` | Checkout confirmed successful |
+| `failed` | Checkout reported failure |
+
+Your owner receives the approval request via their dashboard and email. Approvals expire after 15 minutes.
+
+### Step 2: Spawn a Sub-Agent
+
+Once the checkout is approved, spawn an ephemeral sub-agent using the `spawn_payload` from the response:
+
+```
+sessions_spawn({ task: spawn_payload.task, cleanup: "delete", runTimeoutSeconds: 300 })
+```
+
+The sub-agent executes the `checkout_steps` in sequence. You (the main agent) wait for
+the sub-agent to complete and then announce the result.
+
+### Step 3: Get Key (Sub-Agent Does This)
+
+The sub-agent calls this endpoint to retrieve the one-time decryption key:
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/rail5/key \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "checkout_id": "r5chk_abc123" }'
+```
+
+**Response:** `{ "key_hex": "...", "iv_hex": "...", "tag_hex": "..." }`
+
+**This key is single-use.** It cannot be retrieved again for this checkout. If the sub-agent
+fails after retrieving the key, the checkout must be re-initiated.
+
+### Step 4: Decrypt (Sub-Agent Does This)
+
+The sub-agent runs the deterministic decrypt script that was delivered with the card file:
+
+```
+node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md
+```
+
+This outputs the card JSON (number, CVV, expiry, name, billing address).
+
+**Critical:** The sub-agent must **never** store, log, or persist the decrypted card data.
+It exists only in memory for this single transaction. After checkout, the sub-agent is deleted.
+
+### Step 5: Confirm (Sub-Agent Does This)
+
+After completing (or failing) checkout at the merchant:
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/rail5/confirm \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "checkout_id": "r5chk_abc123", "status": "success" }'
+```
+
+Use `"status": "failed"` if checkout didn't work. On success, the transaction is recorded
+in your owner's dashboard. After your first successful checkout, your card status moves
+from `confirmed` to `active`.
+
+### Encrypted Card File Delivery
+
+When your owner sets up an encrypted card for you, CreditClaw delivers a single self-contained
+file via the `rail5.card.delivered` event.
+
+**Via webhook:** If you have a `callback_url`, the file is delivered automatically:
+```json
+{
+  "event": "rail5.card.delivered",
+  "bot_id": "bot_abc123",
+  "data": {
+    "card_id": "r5card_...",
+    "card_name": "ChaseD",
+    "card_last4": "9547",
+    "file_content": "<self-contained markdown file with decrypt script and encrypted data>",
+    "suggested_path": ".creditclaw/cards/Card-ChaseD-9547.md",
+    "instructions": "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data."
+  }
+}
+```
+
+**Via bot messages (fallback):** If you don't have a webhook, check `GET /bot/messages` for
+messages with `event_type: "rail5.card.delivered"`. The payload is identical. After saving the
+file, acknowledge the message via `POST /bot/messages/ack`.
+
+**Save the file** to `.creditclaw/cards/` (or the path in `suggested_path`). The file is
+self-contained — it includes the decrypt script between `DECRYPT_SCRIPT_START/END` markers
+and the encrypted data between `ENCRYPTED_CARD_START/END` markers.
+
+Follow the `instructions` field in the message payload for next steps.
+
+**After saving the file**, confirm delivery so your card status advances from `pending_delivery`
+to `confirmed`:
+
+```bash
+curl -X POST https://creditclaw.com/api/v1/bot/rail5/confirm-delivery \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response:
+```json
+{
+  "status": "confirmed",
+  "card_id": "r5card_...",
+  "card_name": "ChaseD",
+  "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end."
+}
+```
+
+**Pending messages for card deliveries expire after 24 hours.** If the message expires before
+you retrieve it, your owner can re-stage the delivery from their dashboard.
+
+**Recovery:** If you lose the file, your owner deletes the card and creates a new one
+through the setup wizard. The file is re-delivered automatically.
+
+### Card Status Progression
+
+| Status | Meaning |
+|--------|---------|
+| `pending_delivery` | Key submitted, waiting for bot to confirm file delivery |
+| `confirmed` | Bot confirmed file saved — ready for checkout |
+| `active` | First successful checkout completed — proven working |
+| `frozen` | Owner manually paused the card |
+
+### Per-Rail Detail Check (Rail 5)
+
+For deeper operational info about your encrypted card — limits, approval threshold, and status:
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail5 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response:
+```json
+{
+  "status": "active",
+  "card_id": "r5_abc123",
+  "card_name": "Shopping Card",
+  "card_brand": "visa",
+  "last4": "4532",
+  "limits": {
+    "per_transaction_usd": 50.00,
+    "daily_usd": 100.00,
+    "monthly_usd": 500.00,
+    "human_approval_above_usd": 25.00
+  }
+}
+```
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
+---
+
+## Wallet Operations
+
+### Request a Top-Up From Your Owner
 
 When your balance is low, ask your human if they'd like you to request a top-up:
 
@@ -611,7 +666,7 @@ Poll `GET /bot/status` to see when the balance increases across any rail.
 
 **Rate limit:** 3 requests per hour.
 
-### 7. Generate a Payment Link (Charge Anyone)
+### Generate a Payment Link (Charge Anyone)
 
 You performed a service and want to get paid:
 
@@ -649,7 +704,7 @@ Send `checkout_url` to whoever needs to pay. When they do:
 
 You can also accept payments from other bots and humans by creating checkout pages. Sell digital products (API keys, download links, access tokens) and deliver them automatically via x402 — the buyer pays and receives the product URL in the same response. You can also send invoices, track sales, and run a public storefront. Read **[CHECKOUT.md](https://creditclaw.com/checkout.md)** for full details.
 
-### 8. View Transaction History
+### View Transaction History
 
 ```bash
 curl "https://creditclaw.com/api/v1/bot/wallet/transactions?limit=10" \
@@ -696,7 +751,7 @@ Default limit is 50, max is 100.
 
 **Rate limit:** 12 requests per hour.
 
-### 9. List Your Payment Links
+### List Your Payment Links
 
 Check the status of payment links you've created:
 
@@ -710,94 +765,6 @@ Optional query parameters:
 - `?status=pending|completed|expired` — Filter by status
 
 **Rate limit:** 12 requests per hour.
-
----
-
-## Self-Hosted Cards (Rail 4)
-
-If your owner has set up self-hosted cards, you can make purchases at online merchants
-using a checkout flow with human approval. This rail uses a split-knowledge privacy model —
-your owner provides card details through CreditClaw's secure setup, and you never see
-the actual card numbers.
-
-### How Self-Hosted Card Checkout Works
-
-1. You submit a checkout request with merchant and amount details
-2. CreditClaw evaluates the request against your card's permissions
-3. If the amount is within your auto-approved allowance, it processes immediately
-4. If the amount exceeds the threshold, your owner receives an approval request (email with secure link)
-5. You poll for the result
-6. Once approved, the transaction is recorded
-
-### Make a Self-Hosted Card Checkout
-
-```bash
-curl -X POST https://creditclaw.com/api/v1/bot/merchant/checkout \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "profile_index": 1,
-    "merchant_name": "DigitalOcean",
-    "merchant_url": "https://cloud.digitalocean.com",
-    "item_name": "Droplet hosting - 1 month",
-    "amount_cents": 1200,
-    "category": "cloud_compute"
-  }'
-```
-
-**Request fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `profile_index` | Yes | The payment profile index assigned to you |
-| `merchant_name` | Yes | Merchant name (1-200 chars) |
-| `merchant_url` | Yes | Merchant website URL |
-| `item_name` | Yes | What you're buying |
-| `amount_cents` | Yes | Amount in cents (integer) |
-| `card_id` | No | Required if you have multiple cards; auto-selects if only one |
-| `category` | No | Spending category |
-| `task_id` | No | Your internal task reference |
-
-**Response (auto-approved — within allowance):**
-```json
-{
-  "status": "approved",
-  "transaction_id": "txn_abc123",
-  "amount_usd": 12.00,
-  "message": "Transaction approved within allowance."
-}
-```
-
-**Response (requires human approval):**
-```json
-{
-  "status": "pending_approval",
-  "confirmation_id": "conf_xyz789",
-  "message": "Your owner has been sent an approval request. Poll /bot/merchant/checkout/status to check the result.",
-  "expires_in_minutes": 15
-}
-```
-
-### Poll for Approval Result
-
-If you received `pending_approval`, poll for the result:
-
-```bash
-curl "https://creditclaw.com/api/v1/bot/merchant/checkout/status?confirmation_id=conf_xyz789" \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-**Response values:**
-| Status | Meaning |
-|--------|---------|
-| `pending` | Owner hasn't responded yet — poll again in 30 seconds |
-| `approved` | Owner approved — proceed with your task |
-| `rejected` | Owner declined — do not proceed |
-| `expired` | 15-minute approval window passed — try again if needed |
-
-**Multi-card note:** If your owner has linked you to multiple self-hosted cards, you must include `card_id` in
-your checkout request. If you only have one active card, `card_id` is optional and will auto-select.
-
-**Rate limit:** 30 requests per hour (checkout), 30 requests per hour (status polling).
 
 ---
 
@@ -929,6 +896,41 @@ curl "https://creditclaw.com/api/v1/stripe-wallet/transactions?wallet_id=1&limit
 
 **Rate limit:** 30 requests per hour (signing), 12 requests per hour (balance/transactions).
 
+### Per-Rail Detail Check (Stripe Wallet)
+
+```bash
+curl https://creditclaw.com/api/v1/bot/check/rail1 \
+  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
+```
+
+Response (active):
+```json
+{
+  "status": "active",
+  "balance_usd": 100.00,
+  "address": "0x...",
+  "guardrails": {
+    "max_per_tx_usd": 100,
+    "daily_budget_usd": 1000,
+    "monthly_budget_usd": 10000,
+    "daily_spent_usd": 23.50,
+    "daily_remaining_usd": 976.50,
+    "monthly_spent_usd": 147.00,
+    "monthly_remaining_usd": 9853.00,
+    "require_approval_above_usd": 50
+  },
+  "domain_rules": {
+    "allowlisted": ["api.openai.com"],
+    "blocklisted": []
+  },
+  "pending_approvals": 0
+}
+```
+
+Response (not connected): `{ "status": "inactive" }`
+
+**Rate limit:** 6 requests per hour.
+
 ---
 
 ## API Reference
@@ -944,7 +946,6 @@ Base URL: `https://creditclaw.com/api/v1`
 | POST | `/bots/register` | Register a new bot. Returns API key + claim token. | 3/hr per IP |
 | GET | `/bot/status` | Full cross-rail status: balances, limits, master guardrails. | 6/hr |
 | GET | `/bot/wallet/spending` | Get spending permissions and rules set by owner. | 6/hr |
-| POST | `/bot/wallet/purchase` | Make a purchase (wallet debit). | 30/hr |
 | POST | `/bot/wallet/topup-request` | Ask owner to add funds. Sends email notification. | 3/hr |
 | POST | `/bot/payments/create-link` | Generate a Stripe payment link to charge anyone. | 10/hr |
 | GET | `/bot/payments/links` | List your payment links. Supports `?status=` and `?limit=N`. | 12/hr |
@@ -952,22 +953,16 @@ Base URL: `https://creditclaw.com/api/v1`
 | GET | `/bot/messages` | Fetch pending messages (for bots without webhooks). | 12/hr |
 | POST | `/bot/messages/ack` | Acknowledge (delete) processed messages. | 30/hr |
 
-### Per-Rail Detail Endpoints
+### Encrypted Card Endpoints (Rail 5)
 
 | Method | Endpoint | Description | Rate Limit |
 |--------|----------|-------------|------------|
-| GET | `/bot/check/rail1` | Stripe Wallet detail: balance, guardrails, domain rules, pending approvals. | 6/hr |
-| GET | `/bot/check/rail2` | Shopping Wallet detail: balance, guardrails, merchant rules. | 6/hr |
-| GET | `/bot/check/rail4` | Self-Hosted Card detail: profiles, allowances, approval mode. | 6/hr |
+| POST | `/bot/rail5/checkout` | Request checkout approval. Returns checkout_steps and spawn_payload. | 30/hr |
+| GET | `/bot/rail5/checkout/status` | Poll for checkout approval result. `?checkout_id=` required. | 30/hr |
+| POST | `/bot/rail5/key` | Get one-time decryption key for an approved checkout. | 30/hr |
+| POST | `/bot/rail5/confirm` | Confirm checkout success or failure. | 30/hr |
+| POST | `/bot/rail5/confirm-delivery` | Confirm card file saved. Advances status to `confirmed`. | 30/hr |
 | GET | `/bot/check/rail5` | Sub-Agent Card detail: limits, approval threshold. | 6/hr |
-| POST | `/bot/check/rail4/test` | Dry-run preflight: test if a purchase would be allowed (no side effects). | 12/hr |
-
-### Self-Hosted Card Endpoints (Rail 4)
-
-| Method | Endpoint | Description | Rate Limit |
-|--------|----------|-------------|------------|
-| POST | `/bot/merchant/checkout` | Submit a purchase for approval/processing. | 30/hr |
-| GET | `/bot/merchant/checkout/status` | Poll for human approval result. | 30/hr |
 
 ### Stripe Wallet Endpoints (Private Beta)
 
@@ -976,6 +971,7 @@ Base URL: `https://creditclaw.com/api/v1`
 | POST | `/stripe-wallet/bot/sign` | Request x402 payment signature. Enforces guardrails. | 30/hr |
 | GET | `/stripe-wallet/balance` | Get USDC balance for a wallet. | 12/hr |
 | GET | `/stripe-wallet/transactions` | List x402 transactions for a wallet. | 12/hr |
+| GET | `/bot/check/rail1` | Stripe Wallet detail: balance, guardrails, domain rules, pending approvals. | 6/hr |
 
 ---
 
@@ -990,26 +986,6 @@ Base URL: `https://creditclaw.com/api/v1`
 | `404` | Endpoint not found or rail not enabled | `{"error": "not_found", "message": "This rail is not enabled for your account."}` |
 | `409` | Duplicate registration or race condition | `{"error": "duplicate_registration", "message": "A bot with this name already exists."}` |
 | `429` | Rate limit exceeded | `{"error": "rate_limited", "retry_after_seconds": 3600}` |
-
----
-
-## Webhooks (Optional)
-
-Provide a `callback_url` during registration to receive POST events. Each webhook
-includes an HMAC-SHA256 signature in the `X-CreditClaw-Signature` header that you
-can verify using the `webhook_secret` returned at registration.
-
-| Event | When |
-|-------|------|
-| `wallet.activated` | Owner claimed bot and wallet is live |
-| `wallet.topup.completed` | Funds added to your wallet |
-| `wallet.payment.received` | Someone paid your payment link |
-| `wallet.spend.authorized` | A purchase was approved |
-| `wallet.spend.declined` | A purchase was declined (includes reason) |
-| `wallet.balance.low` | Balance dropped below $5.00 |
-
-Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h, 6h)
-up to 5 attempts.
 
 ---
 
@@ -1120,161 +1096,7 @@ you retrieve it, your owner can re-stage the delivery from their dashboard.
 - **Payment links expire in 24 hours.** Generate a new one if needed.
 - **One bot = one wallet per rail.** Your wallet is unique to you and linked to your owner's account. You may have wallets on multiple rails.
 - **Poll responsibly.** Use `GET /bot/status` no more than every 10 minutes unless you are actively waiting for a top-up.
-- **Self-hosted card approvals expire in 15 minutes.** If your owner doesn't respond, re-submit the checkout request.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
-- **Rail 5 sub-agents are optional.** If you use them, they are ephemeral and deleted after checkout. Never store decrypted card data.
-
----
-
-## Rail 5: Encrypted Card Checkout
-
-Rail 5 lets you purchase from any merchant using an encrypted card file. You can execute the checkout directly (direct mode) or delegate to an ephemeral sub-agent (sub-agent mode). CreditClaw doesn't enforce either pattern — choose whichever works for your environment.
-
-### File Delivery
-
-When your owner sets up a Rail 5 card, CreditClaw delivers a single self-contained file via the `rail5.card.delivered` event. The file includes a header with card info, an embedded decrypt script, and the encrypted card data — all in one markdown file.
-
-**Primary delivery: Webhook.** If your bot has a `callback_url` configured, the file is delivered via webhook:
-
-```json
-{
-  "event": "rail5.card.delivered",
-  "bot_id": "bot_abc123",
-  "data": {
-    "card_id": "r5card_...",
-    "card_name": "ChaseD",
-    "card_last4": "9547",
-    "file_content": "<self-contained markdown file with decrypt script and encrypted data>",
-    "suggested_path": ".creditclaw/cards/Card-ChaseD-9547.md",
-    "instructions": "Save this file to .creditclaw/cards/ — it is self-contained with decrypt script and encrypted data."
-  }
-}
-```
-
-**Fallback delivery: Bot Messages.** If your bot doesn't have a webhook (or webhook delivery fails), the file is staged as a pending message. Check `GET /bot/messages` to retrieve it:
-
-```bash
-curl https://creditclaw.com/api/v1/bot/messages \
-  -H "Authorization: Bearer $CREDITCLAW_API_KEY"
-```
-
-Look for messages with `event_type: "rail5.card.delivered"`. The payload contains the same `file_content`, `suggested_path`, and `instructions` fields. After saving the file, acknowledge the message via `POST /bot/messages/ack`. See the [Bot Messages](#bot-messages-for-bots-without-webhooks) section for full details.
-
-**Pending messages for card deliveries expire after 24 hours.** If the message expires before you retrieve it, your owner can re-stage the delivery from their dashboard.
-
-**Save the file** to `.creditclaw/cards/` (or the path in `suggested_path`). The file is self-contained — it includes the decrypt script between `DECRYPT_SCRIPT_START/END` markers and the encrypted data between `ENCRYPTED_CARD_START/END` markers.
-
-Follow the `instructions` field in the message payload for next steps — it will guide you through confirming delivery and testing your card.
-
-**Recovery:** If you lose the file, your owner deletes the card and creates a new one through the setup wizard. The file is re-delivered automatically.
-
-### Card Status Progression
-
-| Status | Meaning |
-|--------|---------|
-| `pending_delivery` | Key submitted, waiting for bot to confirm file delivery |
-| `confirmed` | Bot confirmed both files saved — ready for checkout |
-| `active` | First successful checkout completed — proven working |
-| `frozen` | Owner manually paused the card |
-
-### Step 1: Request Checkout
-
-```
-POST /api/v1/bot/rail5/checkout
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
-
-{
-  "merchant_name": "DigitalOcean",
-  "merchant_url": "https://cloud.digitalocean.com/billing",
-  "item_name": "Droplet hosting - 1 month",
-  "amount_cents": 1200,
-  "category": "cloud_compute"
-}
-```
-
-**Response (approved):**
-```json
-{
-  "approved": true,
-  "checkout_id": "r5chk_abc123",
-  "checkout_steps": [
-    "Call POST /api/v1/bot/rail5/key with { \"checkout_id\": \"r5chk_abc123\" } to get the decryption key.",
-    "Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md",
-    "Use the decrypted card details to complete checkout at DigitalOcean.",
-    "Call POST /api/v1/bot/rail5/confirm with { \"checkout_id\": \"r5chk_abc123\", \"status\": \"success\" } when done.",
-    "If checkout fails, call confirm with { \"status\": \"failed\" } instead.",
-    "Announce the result."
-  ],
-  "spawn_payload": {
-    "task": "You are a checkout agent...",
-    "cleanup": "delete",
-    "runTimeoutSeconds": 300,
-    "label": "checkout-digitalocean"
-  }
-}
-```
-
-If the amount exceeds the owner's approval threshold, you'll get `"status": "pending_approval"` instead. Wait and retry.
-
-### Step 2: Execute Checkout (Choose Your Mode)
-
-**Direct mode** — execute the `checkout_steps` yourself as the main agent:
-
-Follow the steps in `checkout_steps` sequentially. Simpler, works on all environments. The trade-off is that the main agent sees the decrypted card details in its context.
-
-**Sub-agent mode** — delegate to an ephemeral sub-agent for enhanced security:
-
-```
-sessions_spawn({ task: spawn_payload.task, cleanup: "delete", runTimeoutSeconds: 300 })
-```
-
-The sub-agent executes the checkout steps and is deleted afterward. The main agent never sees the card details. Wait for the sub-agent's announcement.
-
-### Step 3: Get Key
-
-Whichever agent is doing the checkout calls:
-
-```
-POST /api/v1/bot/rail5/key
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
-
-{ "checkout_id": "r5chk_abc123" }
-```
-
-**Response:** `{ "key_hex": "...", "iv_hex": "...", "tag_hex": "..." }`
-
-This is single-use. The key cannot be retrieved again for this checkout.
-
-### Step 4: Decrypt
-
-Run the deterministic decrypt script:
-
-```
-node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md
-```
-
-This outputs the card JSON (number, CVV, expiry, name, address).
-
-### Step 5: Confirm
-
-After completing (or failing) checkout at the merchant:
-
-```
-POST /api/v1/bot/rail5/confirm
-Authorization: Bearer YOUR_API_KEY
-Content-Type: application/json
-
-{ "checkout_id": "r5chk_abc123", "status": "success" }
-```
-
-Use `"status": "failed"` if checkout didn't work. On success, your wallet is debited. After your first successful checkout, your card status moves from `confirmed` to `active`.
-
-### Rail 5 Webhook Events
-
-| Event | When |
-|-------|------|
-| `rail5.card.delivered` | Owner set up card — self-contained encrypted card file delivered (via webhook or pending message) |
-| `rail5.checkout.completed` | Checkout confirmed successful |
-| `rail5.checkout.failed` | Checkout reported failure |
+- **Spawn a sub-agent for every transaction.** When using Rail 5 encrypted cards, always spawn an ephemeral sub-agent for checkout. The sub-agent handles decryption, completes the purchase, and is deleted afterward. Never store or log decrypted card data.
+- **Decryption keys are single-use.** Each checkout gets a unique key from `POST /bot/rail5/key` that is invalidated after retrieval. There is no way to re-request a key for the same checkout.
+- **Set up webhooks for the best experience.** A `callback_url` enables real-time card deliveries, approval notifications, and spending alerts. Without it, you'll need to poll `GET /bot/messages` manually.
