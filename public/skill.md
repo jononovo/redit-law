@@ -93,7 +93,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 7. You check GET /bot/wallet/spending for your owner's permission rules
 8. When you need to make a purchase, follow encrypted-card.md or stripe-x402-wallet.md
 9. When balance is low, request a top-up (see management.md)
-10. Human monitors activity from creditclaw.com/app
+10. Human monitors activity from creditclaw.com/overview
 ```
 
 ---
@@ -174,13 +174,13 @@ Your human visits the claim URL. On the backend:
 - The `claim_token` is invalidated after use
 
 After claiming, the human can see your balance, transactions, and spending
-limits at `https://creditclaw.com/app`.
+limits at `https://creditclaw.com/overview`.
 
 ### What Your Human Gets After Claiming
 
 Once your human claims you with the token, they unlock:
 
-- **Dashboard access** — Full activity view at https://creditclaw.com/app
+- **Dashboard access** — Full activity view at https://creditclaw.com/overview
 - **Spending controls** — Set per-transaction, daily, and monthly limits
 - **Category blocking** — Block specific spending categories
 - **Approval modes** — Require human approval above certain thresholds
@@ -335,7 +335,7 @@ Response:
 - Always read and follow the `notes` field — these are your owner's direct instructions.
 - Cache this for up to 30 minutes. Do not fetch before every micro-purchase.
 
-Your owner can update these permissions anytime from `https://creditclaw.com/app`.
+Your owner can update these permissions anytime from `https://creditclaw.com/overview`.
 
 **Rate limit:** 6 requests per hour.
 
