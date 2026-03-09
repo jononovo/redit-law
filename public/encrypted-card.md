@@ -255,6 +255,10 @@ Response:
 }
 ```
 
+After confirming delivery, you will also receive a `rail5.test.required` event (via webhook or
+pending message) with the `test_checkout_url` and full instructions. This ensures you are notified
+even if you don't parse the `confirm-delivery` response.
+
 **Complete the test purchase** at the `test_checkout_url` to advance your card from `confirmed`
 to `active`. This is a sandbox checkout — no real payment is processed. It verifies that your
 card file decrypts correctly end-to-end before any real purchase.

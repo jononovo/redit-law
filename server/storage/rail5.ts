@@ -10,6 +10,7 @@ import type { IStorage } from "./types";
 type Rail5Methods = Pick<IStorage,
   | "createRail5Card" | "getRail5CardByCardId" | "getRail5CardsByOwnerUid"
   | "getRail5CardByBotId" | "countRail5CardsByBotId" | "updateRail5Card" | "deleteRail5Card"
+  | "getRail5CardByTestToken"
   | "createRail5Checkout" | "getRail5CheckoutById" | "updateRail5Checkout" | "getRail5CheckoutsByCardId"
 >;
 
@@ -49,6 +50,11 @@ export const rail5Methods: Rail5Methods = {
 
   async deleteRail5Card(cardId: string): Promise<void> {
     await db.delete(rail5Cards).where(eq(rail5Cards.cardId, cardId));
+  },
+
+  async getRail5CardByTestToken(token: string): Promise<Rail5Card | null> {
+    const [card] = await db.select().from(rail5Cards).where(eq(rail5Cards.testToken, token)).limit(1);
+    return card || null;
   },
 
   async createRail5Checkout(data: InsertRail5Checkout): Promise<Rail5Checkout> {

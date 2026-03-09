@@ -885,6 +885,8 @@ export const rail5Cards = pgTable("rail5_cards", {
   cardLast4: text("card_last4").notNull().default(""),
   cardBrand: text("card_brand").notNull().default("visa"),
   status: text("status").notNull().default("pending_setup"),
+  testToken: text("test_token"),
+  testStartedAt: timestamp("test_started_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => [

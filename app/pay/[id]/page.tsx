@@ -52,6 +52,7 @@ export default function PublicCheckoutPage() {
   const { toast } = useToast();
 
   const invoiceRef = searchParams.get("ref");
+  const testToken = searchParams.get("t");
 
   const [pageState, setPageState] = useState<PageState>("loading");
   const [checkout, setCheckout] = useState<CheckoutPageData | null>(null);
@@ -63,7 +64,10 @@ export default function PublicCheckoutPage() {
 
     const loadData = async () => {
       try {
-        const res = await fetch(`/api/v1/checkout/${id}/public`);
+        const publicUrl = testToken
+          ? `/api/v1/checkout/${id}/public?t=${encodeURIComponent(testToken)}`
+          : `/api/v1/checkout/${id}/public`;
+        const res = await fetch(publicUrl);
         if (res.status === 404) { setPageState("not_found"); return; }
         if (res.status === 410) { setPageState("expired"); return; }
         if (!res.ok) { setPageState("error"); return; }
@@ -337,6 +341,7 @@ export default function PublicCheckoutPage() {
           allowedMethods={checkout.allowed_methods}
           pageType={checkout.page_type}
           buyerCount={buyerCount}
+          testToken={testToken || undefined}
           onSuccess={handlePaymentSuccess}
         />
       </div>

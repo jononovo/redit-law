@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { storage } from "@/server/storage";
+import { RAIL5_TEST_CHECKOUT_PAGE_ID } from "@/lib/rail5";
 
 export async function GET(
   request: NextRequest,
@@ -18,6 +19,21 @@ export async function GET(
     }
 
     storage.incrementCheckoutPageViewCount(id).catch(() => {});
+
+    if (id === RAIL5_TEST_CHECKOUT_PAGE_ID) {
+      const testToken = request.nextUrl.searchParams.get("t");
+      if (testToken) {
+        storage.getRail5CardByTestToken(testToken).then((card) => {
+          if (card && !card.testStartedAt) {
+            storage.updateRail5Card(card.cardId, { testStartedAt: new Date() }).catch((err) =>
+              console.error("[checkout/public] Failed to set testStartedAt:", err)
+            );
+          }
+        }).catch((err) => {
+          console.error("[checkout/public] Failed to look up test token:", err);
+        });
+      }
+    }
 
     let sellerName: string | null = null;
     let sellerLogoUrl: string | null = null;

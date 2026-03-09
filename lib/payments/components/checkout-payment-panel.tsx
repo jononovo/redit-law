@@ -23,6 +23,7 @@ interface CheckoutPaymentPanelProps {
   allowedMethods: string[];
   pageType: "product" | "event" | "digital_product";
   buyerCount: number | null;
+  testToken?: string;
   onSuccess: (result: PaymentResult) => void;
 }
 
@@ -36,6 +37,7 @@ export function CheckoutPaymentPanel({
   allowedMethods,
   pageType,
   buyerCount,
+  testToken,
   onSuccess,
 }: CheckoutPaymentPanelProps) {
   const [panelState, setPanelState] = useState<PanelState>("select");
@@ -87,7 +89,8 @@ export function CheckoutPaymentPanel({
     checkoutPageId,
     invoiceRef,
     buyerName: buyerName.trim() || undefined,
-  }), [resolvedAmount, walletAddress, checkoutPageId, invoiceRef, buyerName]);
+    testToken,
+  }), [resolvedAmount, walletAddress, checkoutPageId, invoiceRef, buyerName, testToken]);
 
   const handlePaymentSuccess = useCallback((result: PaymentResult) => {
     onSuccess(result);

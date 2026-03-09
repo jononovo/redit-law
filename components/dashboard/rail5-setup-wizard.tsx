@@ -85,8 +85,10 @@ interface TestVerificationField {
 }
 
 interface TestPurchaseApiResponse {
-  status: "pending" | "completed";
+  status: "pending" | "in_progress" | "completed";
   sale_id?: string;
+  completed_at?: string;
+  started_at?: string;
   submitted_details?: {
     cardNumber: string;
     cardExpiry: string;
@@ -100,7 +102,7 @@ interface TestPurchaseApiResponse {
 }
 
 interface TestPurchaseResult {
-  status: "pending" | "completed";
+  status: "pending" | "in_progress" | "completed";
   sale_id?: string;
   verified?: boolean;
   fields?: Record<string, TestVerificationField>;
@@ -415,15 +417,30 @@ function Step7DeliveryResult({
   );
 }
 
+const TEST_RELAY_MESSAGE = `Complete a test purchase to verify your encrypted card file works correctly.
+
+Steps:
+1. Check your messages: GET https://creditclaw.com/api/v1/bot/messages — look for a "rail5.test.required" event with a test_checkout_url.
+2. Navigate to the test_checkout_url from that message.
+3. Decrypt the encrypted card file you saved in .creditclaw/cards/
+4. Fill in ALL fields on the checkout form: card number, expiry, CVV, cardholder name, billing address, city, state, ZIP.
+5. Submit the test payment.
+
+This is a sandbox checkout — no real payment will be processed.`;
+
 function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, onDone }: Step8Props) {
+  const { toast } = useToast();
   const [testPurchaseResult, setTestPurchaseResult] = useState<TestPurchaseResult | null>(null);
   const [testPollingActive, setTestPollingActive] = useState(false);
   const [testPollingTimedOut, setTestPollingTimedOut] = useState(false);
+  const [testStatus, setTestStatus] = useState<"pending" | "in_progress" | "completed">("pending");
+  const [copied, setCopied] = useState(false);
+  const [discordCopied, setDiscordCopied] = useState(false);
   const testPollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const testStartRef = useRef(Date.now());
 
   useEffect(() => {
-    if (!savedCardDetails || !cardId) return;
+    if (!cardId) return;
     if (testPurchaseResult?.status === "completed") return;
 
     setTestPollingActive(true);
@@ -432,7 +449,7 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
     const normalize = (v: string | undefined | null) => (v || "").trim().toLowerCase();
 
     const compareFields = (submitted: TestPurchaseApiResponse["submitted_details"]): TestPurchaseResult => {
-      if (!submitted) return { status: "completed", verified: false, fields: {} };
+      if (!submitted || !savedCardDetails) return { status: "completed", verified: false, fields: {} };
       const fields: Record<string, TestVerificationField> = {
         card_number: { match: normalize(submitted.cardNumber) === normalize(savedCardDetails.cardNumber) },
         card_expiry: { match: normalize(submitted.cardExpiry) === normalize(savedCardDetails.cardExpiry) },
@@ -459,13 +476,16 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
             const result = compareFields(data.submitted_details);
             result.sale_id = data.sale_id;
             setTestPurchaseResult(result);
+            setTestStatus("completed");
             setTestPollingActive(false);
             if (testPollingRef.current) clearInterval(testPollingRef.current);
+          } else if (data.status === "in_progress") {
+            setTestStatus("in_progress");
           }
         }
       } catch {}
 
-      if (Date.now() - testStartRef.current >= 180_000) {
+      if (Date.now() - testStartRef.current >= 300_000) {
         setTestPollingTimedOut(true);
         setTestPollingActive(false);
         if (testPollingRef.current) clearInterval(testPollingRef.current);
@@ -478,7 +498,27 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
     return () => {
       if (testPollingRef.current) clearInterval(testPollingRef.current);
     };
-  }, [savedCardDetails, cardId, testPurchaseResult?.status]);
+  }, [cardId, testPurchaseResult?.status]);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(TEST_RELAY_MESSAGE).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function handleTelegram() {
+    const url = `https://t.me/share/url?text=${encodeURIComponent(TEST_RELAY_MESSAGE)}`;
+    window.open(url, "_blank");
+  }
+
+  function handleDiscord() {
+    navigator.clipboard.writeText(TEST_RELAY_MESSAGE).then(() => {
+      setDiscordCopied(true);
+      toast({ title: "Copied!", description: "Paste this in Discord to send to your bot." });
+      setTimeout(() => setDiscordCopied(false), 2000);
+    });
+  }
 
   return (
     <div className="space-y-6" data-testid="r5-step-test-verification">
@@ -524,6 +564,18 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
               </div>
             )}
           </div>
+        ) : testStatus === "in_progress" ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+              <span className="font-medium text-sm text-blue-800" data-testid="text-verification-in-progress">
+                Your bot is completing the test checkout...
+              </span>
+            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              Your bot has started the test — it's decrypting the card and filling in the checkout form. This usually takes about a minute.
+            </p>
+          </div>
         ) : testPollingTimedOut ? (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
             <div className="flex items-center gap-2">
@@ -533,21 +585,64 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
               </span>
             </div>
             <p className="text-xs text-amber-600 mt-1">
-              The bot hasn't completed the test checkout within 3 minutes. It may still complete it later — you can check the card's dashboard for results.
+              Your bot hasn't completed the test checkout yet. It may still complete it later — you can check the card's status from your dashboard.
             </p>
           </div>
-        ) : testPollingActive ? (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-              <span className="font-medium text-sm text-blue-800" data-testid="text-verification-pending">
-                Verifying card — waiting for test purchase...
-              </span>
+        ) : testStatus === "pending" && testPollingActive ? (
+          <>
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                <span className="font-medium text-sm text-blue-800" data-testid="text-verification-pending">
+                  Waiting for your bot to start the test checkout...
+                </span>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                Your bot was sent test instructions automatically. If it doesn't start within a minute, you can send the instructions manually below.
+              </p>
             </div>
-            <p className="text-xs text-blue-600 mt-1">
-              Your bot is completing a test checkout to verify the card decrypts correctly. This may take a few minutes.
-            </p>
-          </div>
+
+            <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-xs text-amber-700 font-medium mb-2">Send this to your bot:</p>
+                <pre className="text-xs text-amber-900 whitespace-pre-wrap font-mono bg-amber-100/50 rounded-lg p-3" data-testid="text-test-relay-message">
+                  {TEST_RELAY_MESSAGE}
+                </pre>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs h-9"
+                  onClick={handleCopy}
+                  data-testid="button-test-share-copy"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs h-9"
+                  onClick={handleTelegram}
+                  data-testid="button-test-share-telegram"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  Telegram
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs h-9"
+                  onClick={handleDiscord}
+                  data-testid="button-test-share-discord"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  {discordCopied ? "Copied!" : "Discord"}
+                </Button>
+              </div>
+            </div>
+          </>
         ) : null}
       </div>
 

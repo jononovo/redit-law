@@ -11,6 +11,7 @@ export interface PaymentContext {
   invoiceRef?: string;
   buyerEmail?: string;
   buyerName?: string;
+  testToken?: string;
 }
 
 export interface PaymentResult {

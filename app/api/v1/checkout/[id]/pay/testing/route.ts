@@ -56,6 +56,7 @@ export async function POST(
 
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
     const userAgent = request.headers.get("user-agent") || null;
+    const testToken = request.nextUrl.searchParams.get("t") || null;
 
     const amountUsdc = page.amountUsdc || 0;
 
@@ -84,6 +85,7 @@ export async function POST(
         billingState: billing_state,
         billingZip: billing_zip,
         billingCountry: billing_country,
+        ...(testToken ? { testToken } : {}),
       },
     });
 

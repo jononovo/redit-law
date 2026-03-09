@@ -258,6 +258,7 @@ export interface IStorage {
   countRail5CardsByBotId(botId: string): Promise<number>;
   updateRail5Card(cardId: string, data: Partial<InsertRail5Card>): Promise<Rail5Card | null>;
   deleteRail5Card(cardId: string): Promise<void>;
+  getRail5CardByTestToken(token: string): Promise<Rail5Card | null>;
 
   createRail5Checkout(data: InsertRail5Checkout): Promise<Rail5Checkout>;
   getRail5CheckoutById(checkoutId: string): Promise<Rail5Checkout | null>;

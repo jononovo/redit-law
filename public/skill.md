@@ -405,6 +405,7 @@ HMAC-SHA256 signature in the `X-CreditClaw-Signature` header that you can verify
 | `wallet.sale.completed` | A sale completed through your checkout page |
 | `rails.updated` | Payment methods or spending config changed — call `GET /bot/status` to refresh |
 | `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
+| `rail5.test.required` | Card confirmed — complete a sandbox test purchase at the provided URL to activate |
 | `rail5.checkout.completed` | Checkout confirmed successful |
 | `rail5.checkout.failed` | Checkout reported failure |
 
