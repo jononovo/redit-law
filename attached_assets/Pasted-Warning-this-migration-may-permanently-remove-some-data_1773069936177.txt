@@ -1,0 +1,31 @@
+Warning, this migration may permanently remove some data from your production database, learn more:
+You're about to delete spending_permissions table with 3 items
+You're about to delete spending_limit_cents column in rail5_cards table with 17 items
+You're about to delete daily_limit_cents column in rail5_cards table with 17 items
+You're about to delete monthly_limit_cents column in rail5_cards table with 17 items
+You're about to delete human_approval_above_cents column in rail5_cards table with 17 items
+ALTER TABLE "spending_permissions" DISABLE ROW LEVEL SECURITY;
+DROP TABLE "spending_permissions" CASCADE;
+DROP INDEX "idx_se_dest";
+DROP INDEX "idx_se_vendor";
+DROP INDEX "idx_sv_active";
+DROP INDEX "idx_sv_vendor";
+DROP INDEX "idx_sv_vendor_active";
+ALTER TABLE "master_guardrails" ALTER COLUMN "max_per_tx_usdc" SET DEFAULT 5;
+ALTER TABLE "master_guardrails" ALTER COLUMN "daily_budget_usdc" SET DEFAULT 20;
+ALTER TABLE "master_guardrails" ALTER COLUMN "monthly_budget_usdc" SET DEFAULT 100;
+ALTER TABLE "crossmint_guardrails" ALTER COLUMN "max_per_tx_usdc" SET DEFAULT 5;
+ALTER TABLE "crossmint_guardrails" ALTER COLUMN "daily_budget_usdc" SET DEFAULT 10;
+ALTER TABLE "crossmint_guardrails" ALTER COLUMN "monthly_budget_usdc" SET DEFAULT 50;
+ALTER TABLE "privy_guardrails" ALTER COLUMN "max_per_tx_usdc" SET DEFAULT 5;
+ALTER TABLE "privy_guardrails" ALTER COLUMN "daily_budget_usdc" SET DEFAULT 10;
+ALTER TABLE "privy_guardrails" ALTER COLUMN "monthly_budget_usdc" SET DEFAULT 50;
+ALTER TABLE "rail4_cards" ALTER COLUMN "missing_digits_value" DROP DEFAULT;
+ALTER TABLE "rail4_cards" ALTER COLUMN "card_name" SET NOT NULL;
+ALTER TABLE "checkout_pages" ALTER COLUMN "allowed_methods" SET DEFAULT '{"x402","usdc_direct","stripe_onramp","base_pay"}';
+ALTER TABLE "rail5_cards" DROP COLUMN "spending_limit_cents";
+ALTER TABLE "rail5_cards" DROP COLUMN "daily_limit_cents";
+ALTER TABLE "rail5_cards" DROP COLUMN "monthly_limit_cents";
+ALTER TABLE "rail5_cards" DROP COLUMN "human_approval_above_cents";
+You may notice a temporary downtime of your deployment. What's happening?
+Database
