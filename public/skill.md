@@ -190,33 +190,7 @@ Once your human claims you with the token, they unlock:
 
 Your human can log in anytime to monitor your spending, adjust limits, or fund your wallet.
 
-### 3. Webhooks & Notifications
-
-If you provided a `callback_url` during registration, CreditClaw sends real-time POST events
-to your endpoint. Each webhook includes an HMAC-SHA256 signature in the `X-CreditClaw-Signature`
-header that you can verify using the `webhook_secret` returned at registration.
-
-| Event | When |
-|-------|------|
-| `wallet.activated` | Owner claimed bot and wallet is live |
-| `wallet.topup.completed` | Funds added to your wallet |
-| `wallet.payment.received` | Someone paid your payment link |
-| `wallet.spend.authorized` | A purchase was approved |
-| `wallet.spend.declined` | A purchase was declined (includes reason) |
-| `wallet.balance.low` | Balance dropped below $5.00 |
-| `wallet.sale.completed` | A sale completed through your checkout page |
-| `rails.updated` | Payment methods or spending config changed — call `GET /bot/status` to refresh |
-| `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
-| `rail5.checkout.completed` | Checkout confirmed successful |
-| `rail5.checkout.failed` | Checkout reported failure |
-
-Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h, 6h)
-up to 5 attempts.
-
-If webhook delivery fails repeatedly, events are staged as bot messages automatically.
-See [Bot Messages](#bot-messages-for-bots-without-webhooks) for the polling fallback.
-
-### 4. Check Full Status
+### 3. Check Full Status
 
 Use this endpoint to see your complete status across all payment rails.
 Recommended interval: every 30 minutes, or before any purchase.
@@ -290,7 +264,7 @@ If `status` is `pending`, remind your human about the claim link.
 
 **Rate limit:** 6 requests per hour.
 
-### 5. Check Spending Permissions (Before Every Purchase)
+### 4. Check Spending Permissions (Before Every Purchase)
 
 Before any purchase, fetch your spending rules. Your owner controls these
 and can update them anytime from their dashboard.
@@ -413,6 +387,32 @@ Base URL: `https://creditclaw.com/api/v1`
 | PATCH | `/bot/seller-profile` | Set up or update your seller profile. | — | [checkout.md](https://creditclaw.com/checkout.md) |
 | GET | `/bot/seller-profile` | View your seller profile. | — | [checkout.md](https://creditclaw.com/checkout.md) |
 | GET | `/bot/shop` | View your public shop. | — | [checkout.md](https://creditclaw.com/checkout.md) |
+
+### Webhook Events
+
+CreditClaw sends real-time POST events to your `callback_url`. Each webhook includes an
+HMAC-SHA256 signature in the `X-CreditClaw-Signature` header that you can verify using the
+`webhook_secret` returned at registration.
+
+| Event | When |
+|-------|------|
+| `wallet.activated` | Owner claimed bot and wallet is live |
+| `wallet.topup.completed` | Funds added to your wallet |
+| `wallet.payment.received` | Someone paid your payment link |
+| `wallet.spend.authorized` | A purchase was approved |
+| `wallet.spend.declined` | A purchase was declined (includes reason) |
+| `wallet.balance.low` | Balance dropped below $5.00 |
+| `wallet.sale.completed` | A sale completed through your checkout page |
+| `rails.updated` | Payment methods or spending config changed — call `GET /bot/status` to refresh |
+| `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
+| `rail5.checkout.completed` | Checkout confirmed successful |
+| `rail5.checkout.failed` | Checkout reported failure |
+
+Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h, 6h)
+up to 5 attempts.
+
+If webhook delivery fails repeatedly, events are staged as bot messages automatically.
+See [Bot Messages](#bot-messages-for-bots-without-webhooks) for the polling fallback.
 
 ---
 
