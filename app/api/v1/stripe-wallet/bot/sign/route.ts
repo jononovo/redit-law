@@ -7,7 +7,6 @@ import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
-import { getApprovalExpiresAt, RAIL1_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { createApproval } from "@/lib/approvals/service";
 import { recordOrder } from "@/lib/orders/create";
 
@@ -62,18 +61,10 @@ async function handler(request: NextRequest, botId: string) {
             balanceAfter: wallet.balanceUsdc,
           });
 
-          const approval = await storage.privyCreateApproval({
-            walletId: wallet.id,
-            transactionId: tx.id,
-            amountUsdc: amount_usdc,
-            resourceUrl: resource_url,
-            expiresAt: getApprovalExpiresAt(RAIL1_APPROVAL_TTL_MINUTES),
-          });
-
           const bot = await storage.getBotByBotId(botId);
           const owner = await storage.getOwnerByUid(wallet.ownerUid);
           if (owner && bot) {
-            createApproval({
+            const unifiedApproval = await createApproval({
               rail: "rail1",
               ownerUid: wallet.ownerUid,
               ownerEmail: owner.email,
@@ -81,14 +72,18 @@ async function handler(request: NextRequest, botId: string) {
               amountDisplay: `$${microUsdcToUsd(amount_usdc).toFixed(2)} USDC`,
               amountRaw: amount_usdc,
               merchantName: resource_url,
-              railRef: String(approval.id),
+              railRef: String(tx.id),
               metadata: { recipient_address, resource_url },
-            }).catch((err) => console.error("[Rail1] Unified approval email failed:", err));
+            });
+
+            return NextResponse.json({
+              status: "awaiting_approval",
+              approval_id: unifiedApproval.approvalId,
+            }, { status: 202 });
           }
 
           return NextResponse.json({
             status: "awaiting_approval",
-            approval_id: approval.id,
           }, { status: 202 });
         }
       }
@@ -145,18 +140,10 @@ async function handler(request: NextRequest, botId: string) {
           balanceAfter: wallet.balanceUsdc,
         });
 
-        const approval = await storage.privyCreateApproval({
-          walletId: wallet.id,
-          transactionId: tx.id,
-          amountUsdc: amount_usdc,
-          resourceUrl: resource_url,
-          expiresAt: getApprovalExpiresAt(RAIL1_APPROVAL_TTL_MINUTES),
-        });
-
         const bot = await storage.getBotByBotId(botId);
         const owner = await storage.getOwnerByUid(wallet.ownerUid);
         if (owner && bot) {
-          createApproval({
+          const unifiedApproval = await createApproval({
             rail: "rail1",
             ownerUid: wallet.ownerUid,
             ownerEmail: owner.email,
@@ -164,14 +151,18 @@ async function handler(request: NextRequest, botId: string) {
             amountDisplay: `$${microUsdcToUsd(amount_usdc).toFixed(2)} USDC`,
             amountRaw: amount_usdc,
             merchantName: resource_url,
-            railRef: String(approval.id),
+            railRef: String(tx.id),
             metadata: { recipient_address, resource_url },
-          }).catch((err) => console.error("[Rail1] Unified approval email failed:", err));
+          });
+
+          return NextResponse.json({
+            status: "awaiting_approval",
+            approval_id: unifiedApproval.approvalId,
+          }, { status: 202 });
         }
 
         return NextResponse.json({
           status: "awaiting_approval",
-          approval_id: approval.id,
         }, { status: 202 });
       }
     }

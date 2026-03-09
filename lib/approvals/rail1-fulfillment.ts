@@ -4,60 +4,52 @@ import type { UnifiedApproval } from "@/shared/schema";
 import { recordOrder } from "@/lib/orders/create";
 
 async function fulfillRail1Approval(approval: UnifiedApproval): Promise<void> {
-  const approvalId = Number(approval.railRef);
-  if (!isNaN(approvalId)) {
-    await storage.privyDecideApproval(approvalId, "approved", approval.ownerUid);
+  const transactionId = Number(approval.railRef);
+  if (isNaN(transactionId)) return;
 
-    const privyApproval = await storage.privyGetApproval(approvalId);
-    if (privyApproval) {
-      const wallet = await storage.privyGetWalletById(privyApproval.walletId);
-      const resourceUrl = privyApproval.resourceUrl || "";
-      let vendorDomain: string | null = null;
-      try {
-        vendorDomain = new URL(resourceUrl).hostname;
-      } catch {
-        vendorDomain = resourceUrl || null;
-      }
-
-      const amountUsdc = privyApproval.amountUsdc;
-      const priceCents = Math.round((amountUsdc / 1_000_000) * 100);
-
-      recordOrder({
-        ownerUid: approval.ownerUid,
-        rail: "rail1",
-        botId: wallet?.botId ?? null,
-        botName: approval.botName ?? null,
-        walletId: privyApproval.walletId,
-        transactionId: privyApproval.transactionId,
-        status: "completed",
-        vendor: vendorDomain,
-        vendorDetails: { url: resourceUrl },
-        productName: vendorDomain,
-        productUrl: resourceUrl,
-        priceCents,
-        priceCurrency: "USD",
-        metadata: {
-          recipient_address: (approval.metadata as any)?.recipient_address,
-          resource_url: resourceUrl,
-          amount_usdc: amountUsdc,
-          approval_id: approvalId,
-        },
-      }).catch((err) => console.error("[Rail1] Order creation after approval failed:", err));
-    }
+  const metadata = (approval.metadata as Record<string, any>) || {};
+  const resourceUrl = metadata.resource_url || "";
+  let vendorDomain: string | null = null;
+  try {
+    vendorDomain = new URL(resourceUrl).hostname;
+  } catch {
+    vendorDomain = resourceUrl || null;
   }
-  console.log(`[Approvals] Rail 1 approved: privy_approval ${approval.railRef}`);
+
+  await storage.privyUpdateTransactionStatus(transactionId, "pending");
+
+  recordOrder({
+    ownerUid: approval.ownerUid,
+    rail: "rail1",
+    botId: null,
+    botName: approval.botName ?? null,
+    walletId: null,
+    transactionId,
+    status: "completed",
+    vendor: vendorDomain,
+    vendorDetails: { url: resourceUrl },
+    productName: vendorDomain,
+    productUrl: resourceUrl,
+    priceCents: Math.round((approval.amountRaw / 1_000_000) * 100),
+    priceCurrency: "USD",
+    metadata: {
+      recipient_address: metadata.recipient_address,
+      resource_url: resourceUrl,
+      amount_usdc: approval.amountRaw,
+      unified_approval_id: approval.approvalId,
+    },
+  }).catch((err) => console.error("[Rail1] Order creation after approval failed:", err));
+
+  console.log(`[Approvals] Rail 1 approved: unified_approval ${approval.approvalId}, tx ${transactionId}`);
 }
 
 async function fulfillRail1Denial(approval: UnifiedApproval): Promise<void> {
-  const approvalId = Number(approval.railRef);
-  if (!isNaN(approvalId)) {
-    const privyApproval = await storage.privyGetApproval(approvalId);
-    await storage.privyDecideApproval(approvalId, "rejected", approval.ownerUid);
-    if (privyApproval?.transactionId) {
-      await storage.privyUpdateTransactionStatus(privyApproval.transactionId, "failed");
-    }
-  }
-  console.log(`[Approvals] Rail 1 denied: privy_approval ${approval.railRef}`);
+  const transactionId = Number(approval.railRef);
+  if (isNaN(transactionId)) return;
+
+  await storage.privyUpdateTransactionStatus(transactionId, "failed");
+
+  console.log(`[Approvals] Rail 1 denied: unified_approval ${approval.approvalId}, tx ${transactionId}`);
 }
 
 registerRailCallbacks("rail1", {

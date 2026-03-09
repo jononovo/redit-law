@@ -1,10 +1,9 @@
 import { db } from "@/server/db";
 import {
-  crossmintWallets, crossmintGuardrails, crossmintTransactions, crossmintApprovals,
+  crossmintWallets, crossmintGuardrails, crossmintTransactions,
   type CrossmintWallet, type InsertCrossmintWallet,
   type CrossmintGuardrail, type InsertCrossmintGuardrail,
   type CrossmintTransaction, type InsertCrossmintTransaction,
-  type CrossmintApproval, type InsertCrossmintApproval,
 } from "@/shared/schema";
 import { eq, and, desc, sql, gte, inArray } from "drizzle-orm";
 import type { IStorage } from "./types";
@@ -18,8 +17,6 @@ type Rail2Methods = Pick<IStorage,
   | "crossmintCreateTransaction" | "crossmintGetTransactionsByWalletId"
   | "crossmintGetTransactionById" | "crossmintGetTransactionByOrderId"
   | "crossmintUpdateTransaction" | "crossmintGetDailySpend" | "crossmintGetMonthlySpend"
-  | "crossmintCreateApproval" | "crossmintGetApproval"
-  | "crossmintGetPendingApprovalsByOwnerUid" | "crossmintDecideApproval"
 >;
 
 export const rail2Methods: Rail2Methods = {
@@ -180,36 +177,4 @@ export const rail2Methods: Rail2Methods = {
     return Number(result?.total || 0);
   },
 
-  async crossmintCreateApproval(data: InsertCrossmintApproval): Promise<CrossmintApproval> {
-    const [approval] = await db.insert(crossmintApprovals).values(data).returning();
-    return approval;
-  },
-
-  async crossmintGetApproval(id: number): Promise<CrossmintApproval | null> {
-    const [approval] = await db.select().from(crossmintApprovals).where(eq(crossmintApprovals.id, id)).limit(1);
-    return approval || null;
-  },
-
-  async crossmintGetPendingApprovalsByOwnerUid(ownerUid: string): Promise<CrossmintApproval[]> {
-    const walletList = await this.crossmintGetWalletsByOwnerUid(ownerUid);
-    if (walletList.length === 0) return [];
-    const walletIds = walletList.map(w => w.id);
-    return db
-      .select()
-      .from(crossmintApprovals)
-      .where(and(
-        inArray(crossmintApprovals.walletId, walletIds),
-        eq(crossmintApprovals.status, "pending"),
-      ))
-      .orderBy(desc(crossmintApprovals.createdAt));
-  },
-
-  async crossmintDecideApproval(id: number, decision: string, decidedBy: string): Promise<CrossmintApproval | null> {
-    const [updated] = await db
-      .update(crossmintApprovals)
-      .set({ status: decision, decidedAt: new Date(), decidedBy })
-      .where(and(eq(crossmintApprovals.id, id), eq(crossmintApprovals.status, "pending")))
-      .returning();
-    return updated || null;
-  },
 };

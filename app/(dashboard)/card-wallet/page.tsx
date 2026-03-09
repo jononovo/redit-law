@@ -145,7 +145,7 @@ export default function CardWalletPage() {
 
   const fetchApprovals = useCallback(async () => {
     try {
-      const res = await authFetch("/api/v1/card-wallet/approvals");
+      const res = await authFetch("/api/v1/approvals?rail=rail2");
       if (res.ok) {
         const data = await res.json();
         setApprovals(data.approvals || []);
@@ -156,6 +156,7 @@ export default function CardWalletPage() {
   const walletActions = useWalletActions({
     railPrefix: "card-wallet",
     entityType: "wallet",
+    approvalsDecideEndpoint: "/api/v1/approvals/decide",
     entityIdField: "wallet_id",
     onUpdate: fetchWallets,
     onTransactionsRefresh: () => fetchTransactions(),

@@ -5,7 +5,6 @@ import { authenticateBot } from "@/lib/agent-management/auth";
 import { evaluateGuardrails } from "@/lib/guardrails/evaluate";
 import { evaluateProcurementControls } from "@/lib/procurement-controls/evaluate";
 import { evaluateMasterGuardrails } from "@/lib/guardrails/master";
-import { getApprovalExpiresAt, RAIL2_APPROVAL_TTL_MINUTES } from "@/lib/approvals/lifecycle";
 import { usdToMicroUsdc } from "@/lib/rail2/client";
 import { createApproval } from "@/lib/approvals/service";
 
@@ -219,21 +218,12 @@ async function handler(request: NextRequest, botId: string) {
       balanceAfter: wallet.balanceUsdc,
     });
 
-    const approval = await storage.crossmintCreateApproval({
-      walletId: wallet.id,
-      transactionId: tx.id,
-      amountUsdc: estimatedAmountUsdc,
-      productLocator,
-      productName: product_name || productLocator,
-      shippingAddress: shipping_address,
-      expiresAt: getApprovalExpiresAt(RAIL2_APPROVAL_TTL_MINUTES),
-    });
-
     const bot = await storage.getBotByBotId(botId);
     const owner = await storage.getOwnerByUid(wallet.ownerUid);
+    const totalUsd = estimated_price_usd ? estimated_price_usd * (quantity || 1) : 0;
+
     if (owner && bot) {
-      const totalUsd = estimated_price_usd ? estimated_price_usd * (quantity || 1) : 0;
-      createApproval({
+      const unifiedApproval = await createApproval({
         rail: "rail2",
         ownerUid: wallet.ownerUid,
         ownerEmail: owner.email,
@@ -242,19 +232,27 @@ async function handler(request: NextRequest, botId: string) {
         amountRaw: estimatedAmountUsdc,
         merchantName: merchant,
         itemName: product_name || productLocator,
-        railRef: String(approval.id),
-        metadata: { productLocator, quantity: quantity || 1, shipping_address },
-      }).catch((err) => console.error("[Rail2] Unified approval email failed:", err));
+        railRef: String(tx.id),
+        metadata: { productLocator, product_name: product_name || productLocator, quantity: quantity || 1, shipping_address },
+      });
+
+      return NextResponse.json({
+        status: "awaiting_approval",
+        approval_id: unifiedApproval.approvalId,
+        transaction_id: tx.id,
+        product_name: tx.productName,
+        product_locator: productLocator,
+        estimated_total_usd: totalUsd > 0 ? totalUsd : null,
+        expires_at: unifiedApproval.expiresAt,
+      }, { status: 202 });
     }
 
     return NextResponse.json({
       status: "awaiting_approval",
-      approval_id: approval.id,
       transaction_id: tx.id,
       product_name: tx.productName,
       product_locator: productLocator,
-      estimated_total_usd: estimated_price_usd ? estimated_price_usd * (quantity || 1) : null,
-      expires_at: approval.expiresAt,
+      estimated_total_usd: totalUsd > 0 ? totalUsd : null,
     }, { status: 202 });
   } catch (error) {
     console.error("POST /api/v1/card-wallet/bot/purchase error:", error);

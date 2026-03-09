@@ -454,30 +454,12 @@ export const privyTransactions = pgTable("privy_transactions", {
   index("privy_transactions_type_idx").on(table.type),
 ]);
 
-export const privyApprovals = pgTable("privy_approvals", {
-  id: serial("id").primaryKey(),
-  walletId: integer("wallet_id").notNull(),
-  transactionId: integer("transaction_id").notNull(),
-  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
-  resourceUrl: text("resource_url").notNull(),
-  status: text("status").notNull().default("pending"),
-  expiresAt: timestamp("expires_at").notNull(),
-  decidedAt: timestamp("decided_at"),
-  decidedBy: text("decided_by"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [
-  index("privy_approvals_wallet_id_idx").on(table.walletId),
-  index("privy_approvals_status_idx").on(table.status),
-]);
-
 export type PrivyWallet = typeof privyWallets.$inferSelect;
 export type InsertPrivyWallet = typeof privyWallets.$inferInsert;
 export type PrivyGuardrail = typeof privyGuardrails.$inferSelect;
 export type InsertPrivyGuardrail = typeof privyGuardrails.$inferInsert;
 export type PrivyTransaction = typeof privyTransactions.$inferSelect;
 export type InsertPrivyTransaction = typeof privyTransactions.$inferInsert;
-export type PrivyApproval = typeof privyApprovals.$inferSelect;
-export type InsertPrivyApproval = typeof privyApprovals.$inferInsert;
 
 export const createPrivyWalletSchema = z.object({
   bot_id: z.string().min(1),
@@ -506,11 +488,6 @@ export const privyBotSignSchema = z.object({
   amount_usdc: z.number().int().positive(),
   recipient_address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   valid_before: z.number().int().positive().optional(),
-});
-
-export const privyApprovalDecideSchema = z.object({
-  approval_id: z.number().int().positive(),
-  decision: z.enum(["approve", "reject"]),
 });
 
 // ─── Rail 2: Card Wallet (CrossMint + Commerce) ─────────────────────────────
@@ -587,40 +564,12 @@ export const crossmintTransactions = pgTable("crossmint_transactions", {
   index("crossmint_transactions_order_id_idx").on(table.crossmintOrderId),
 ]);
 
-export const crossmintApprovals = pgTable("crossmint_approvals", {
-  id: serial("id").primaryKey(),
-  walletId: integer("wallet_id").notNull(),
-  transactionId: integer("transaction_id").notNull(),
-  amountUsdc: bigint("amount_usdc", { mode: "number" }).notNull(),
-  productLocator: text("product_locator").notNull(),
-  productName: text("product_name"),
-  shippingAddress: jsonb("shipping_address").$type<{
-    name: string;
-    line1: string;
-    line2?: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-  }>(),
-  status: text("status").notNull().default("pending"),
-  expiresAt: timestamp("expires_at").notNull(),
-  decidedBy: text("decided_by"),
-  decidedAt: timestamp("decided_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => [
-  index("crossmint_approvals_wallet_id_idx").on(table.walletId),
-  index("crossmint_approvals_status_idx").on(table.status),
-]);
-
 export type CrossmintWallet = typeof crossmintWallets.$inferSelect;
 export type InsertCrossmintWallet = typeof crossmintWallets.$inferInsert;
 export type CrossmintGuardrail = typeof crossmintGuardrails.$inferSelect;
 export type InsertCrossmintGuardrail = typeof crossmintGuardrails.$inferInsert;
 export type CrossmintTransaction = typeof crossmintTransactions.$inferSelect;
 export type InsertCrossmintTransaction = typeof crossmintTransactions.$inferInsert;
-export type CrossmintApproval = typeof crossmintApprovals.$inferSelect;
-export type InsertCrossmintApproval = typeof crossmintApprovals.$inferInsert;
 
 export const createCrossmintWalletSchema = z.object({
   bot_id: z.string().min(1),
@@ -658,11 +607,6 @@ export const crossmintBotPurchaseSchema = z.object({
     zip: z.string().min(1).max(20),
     country: z.string().length(2).default("US"),
   }).optional(),
-});
-
-export const crossmintApprovalDecideSchema = z.object({
-  approval_id: z.number().int().positive(),
-  decision: z.enum(["approve", "reject"]),
 });
 
 // ─── Owners (local user records) ──────────────────────────────────────────────
