@@ -48,7 +48,7 @@ on what your owner has configured.
 | **Stripe Wallet (x402)** | USDC on Base chain, x402 payment protocol | Private Beta | [stripe-x402-wallet.md](https://creditclaw.com/stripe-x402-wallet.md) |
 | **Crossmint Wallet** | Crossmint-managed purchases for supported merchants | Coming Soon | [crossmint-wallet.md](https://creditclaw.com/crossmint-wallet.md) |
 
-Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
+The default payment rail is "Encrypted Card". Your owner chooses which rails to enable for you. Check `GET /bot/status` to see
 your full status across all connected rails.
 
 > **Note:** `GET /bot/status` may return additional rail types not listed above
@@ -113,10 +113,6 @@ registration and your wallet activates instantly — no claim step needed.
 
 You can register before your human does. You'll get an API key immediately.
 
-**Strongly recommended:** Include a `callback_url` during registration. Webhooks are how you
-receive real-time notifications — card file deliveries, approval results, spending alerts, and
-balance changes. Without a webhook, you'll need to poll the bot messages endpoint instead.
-
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \
   -H "Content-Type: application/json" \
@@ -134,7 +130,7 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
 | `bot_name` | Yes | Your bot's name (1-100 chars) |
 | `owner_email` | Yes | Your owner's email address |
 | `description` | No | What you do (max 500 chars) |
-| `callback_url` | Strongly recommended | URL to receive webhook events (HTTPS). Required for real-time card deliveries and approval notifications. |
+| `callback_url` | Yes | URL to receive webhook events (HTTPS). Enables real-time card deliveries, approval notifications, and spending alerts. |
 | `pairing_code` | No | 6-digit code from owner (skips claim step) |
 
 Response:
@@ -150,9 +146,9 @@ Response:
 }
 ```
 
-If you provided a `callback_url`, the response includes a `webhook_secret` for verifying
-webhook signatures (HMAC-SHA256 via the `X-CreditClaw-Signature` header). **Save this secret
-alongside your API key** — you'll need it to verify incoming webhooks.
+The response includes a `webhook_secret` for verifying webhook signatures (HMAC-SHA256
+via the `X-CreditClaw-Signature` header). **Save this secret alongside your API key** — you'll
+need it to verify incoming webhooks.
 
 If you provided a `pairing_code`, the response will show `"status": "active"`, `"paired": true`,
 and `"claim_token": null` — your wallet is already live.
@@ -177,6 +173,11 @@ Ask your human if they'd like you to share the claim details. Here's a template:
 > a payment method. After that I can spend on your behalf within the limits you set."
 
 **Rate limit:** 3 registrations per IP per hour.
+
+> **Can't expose a public HTTPS endpoint?** CreditClaw still works without a webhook. Your
+> owner will send card files and instructions manually, and you'll poll for updates instead
+> of receiving them in real time. See [Bot Messages](#bot-messages-for-bots-without-webhooks)
+> for the polling fallback.
 
 ### 2. Human Claims the Bot
 
@@ -227,9 +228,8 @@ header that you can verify using the `webhook_secret` returned at registration.
 Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h, 6h)
 up to 5 attempts.
 
-**If you can't provide a webhook URL** (e.g., your environment doesn't expose a public
-HTTPS endpoint), use the [Bot Messages](#bot-messages-for-bots-without-webhooks) polling
-fallback instead. You won't miss any events — they'll be staged for you to fetch.
+If webhook delivery fails repeatedly, events are staged as bot messages automatically.
+See [Bot Messages](#bot-messages-for-bots-without-webhooks) for the polling fallback.
 
 ### 4. Check Full Status
 
@@ -554,5 +554,5 @@ you retrieve it, your owner can re-stage the delivery from their dashboard.
 - **Stripe Wallet (x402) is in private beta.** These endpoints may not be available for your account yet.
 - **Spawn a sub-agent for every transaction.** When using encrypted cards, always spawn an ephemeral sub-agent for checkout. The sub-agent handles decryption, completes the purchase, and is deleted afterward. Never store or log decrypted card data. See [encrypted-card.md](https://creditclaw.com/encrypted-card.md).
 - **Decryption keys are single-use.** Each checkout gets a unique key from `POST /bot/rail5/key` that is invalidated after retrieval. There is no way to re-request a key for the same checkout.
-- **Set up webhooks for the best experience.** A `callback_url` enables real-time card deliveries, approval notifications, and spending alerts. Without it, you'll need to poll `GET /bot/messages` manually.
+- **Webhooks keep you in sync.** Your `callback_url` receives real-time card deliveries, approval notifications, and spending alerts. If your endpoint becomes unreachable, events are staged as bot messages until you recover.
 - **Payment links expire in 24 hours.** Generate a new one if needed. See [checkout.md](https://creditclaw.com/checkout.md).
