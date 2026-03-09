@@ -1,0 +1,21 @@
+Sure, here you go:
+
+Hey — I had another agent review the v2.4.0 skill.md against the actual codebase. Here are the specific changes that need to be made:
+1. Payment Rails table — fix the Wallet row's spending mechanism (line 41)
+The "Wallet" row currently says GET /bot/wallet/check as the spending mechanism, but that's just a status endpoint. POST /bot/wallet/purchase was removed because it never existed in the codebase. The Wallet is really a balance/funding container that backs the other rails. Change the spending mechanism column to something like "Balance & funding — supports Rail 5 and x402 spending" or similar. Don't list an endpoint that doesn't exist and don't list a GET status check as a "spending mechanism."
+2. Confirm-delivery response is missing test purchase fields (around line 578-583)
+The actual POST /bot/rail5/confirm-delivery endpoint returns test_checkout_url and test_instructions in its response — this is the sandbox verification step where the bot proves the card file decrypts correctly before any real purchase. The skill currently shows a simplified response without these fields. Add them to the example response and add a brief note that the bot should complete the test purchase after confirming delivery to advance the card to working status.
+3. Add rails.updated to the webhook events table (around line 206-216)
+The codebase fires rails.updated events across all rails whenever payment config changes (card linked/removed, limits updated, wallet frozen, etc.). The docs explicitly recommend bots subscribe to it and call GET /bot/status afterward. Add a row:
+rails.updated | Payment methods or spending config changed — call GET /bot/status to refresh
+4. Fix the checkout/status rate limit in the API reference (line 961)
+The skill says 30/hr for GET /bot/rail5/checkout/status but the actual rate limit config in the codebase is 60/hr. Change to 60/hr. This matters because a bot polling every 30 seconds during a 15-minute approval window would hit 30 calls — right at the documented limit but well within the real one.
+5. Clean up the x402 approval polling language (line 837)
+The sentence currently says "Poll the approvals endpoint or wait approximately 5 minutes before retrying." There's no bot-facing approvals polling endpoint for x402. Just say "Wait approximately 5 minutes before retrying your request." Drop the "poll the approvals endpoint" part.
+6. (Optional) Add wallet.sale.completed to the webhook table
+The checkout.md references this event and it exists in the codebase. If bots are selling things via checkout pages, they'd want to know about completed sales. Low priority but worth adding for completeness:
+wallet.sale.completed | A sale completed through your checkout page
+7. (Optional) Card status progression — note about pending_setup
+The actual progression starts at pending_setup (wizard in progress), but the skill starts the table at pending_delivery. The bot probably never encounters pending_setup, so this is minor — but you could add a small note like "Cards begin in pending_setup during owner configuration. Your bot first sees the card at pending_delivery when the encrypted file is delivered."
+
+Items 1-5 are real inaccuracies that should be fixed. Items 6-7 are nice-to-haves. Everything else in the v2.4.0 looks solid and matches the codebase.
