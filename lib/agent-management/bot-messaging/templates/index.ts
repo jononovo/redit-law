@@ -1,6 +1,6 @@
 import { RAIL5_CARD_DELIVERED } from "./rail5-card-delivered";
-
 export { RAIL5_CARD_DELIVERED } from "./rail5-card-delivered";
+export { buildRail5TestInstructions } from "./rail5-test-required";
 
 const templates: Record<string, string> = {
   "rail5.card.delivered": RAIL5_CARD_DELIVERED,

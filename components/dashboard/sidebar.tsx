@@ -27,6 +27,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
+import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Tier } from "@/lib/feature-flags/tiers";
@@ -70,6 +71,7 @@ const salesNavItems: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const [newCardModalOpen, setNewCardModalOpen] = useState(false);
+  const [rail5WizardOpen, setRail5WizardOpen] = useState(false);
   const { user } = useAuth();
   const userFlags = user?.flags ?? [];
 
@@ -98,7 +100,8 @@ export function Sidebar() {
         </Button>
       </div>
 
-      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
+      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} onRail5Select={() => setRail5WizardOpen(true)} />
+      <Rail5SetupWizard open={rail5WizardOpen} onOpenChange={setRail5WizardOpen} onComplete={() => setRail5WizardOpen(false)} />
 
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
         {visibleMainNav.map((item) => {

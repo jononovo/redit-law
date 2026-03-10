@@ -405,6 +405,7 @@ HMAC-SHA256 signature in the `X-CreditClaw-Signature` header that you can verify
 | `wallet.sale.completed` | A sale completed through your checkout page |
 | `rails.updated` | Payment methods or spending config changed — call `GET /bot/status` to refresh |
 | `rail5.card.delivered` | Owner set up an encrypted card — file delivered for you to save |
+| `rail5.test.required` | Card confirmed — complete a sandbox test purchase at the provided URL to activate |
 | `rail5.checkout.completed` | Checkout confirmed successful |
 | `rail5.checkout.failed` | Checkout reported failure |
 
@@ -540,4 +541,3 @@ you retrieve it, your owner can re-stage the delivery from their dashboard.
 - **Spawn a sub-agent for every transaction.** When using encrypted cards, always spawn an ephemeral sub-agent for checkout. The sub-agent handles decryption, completes the purchase, and is deleted afterward. Never store or log decrypted card data. See [encrypted-card.md](https://creditclaw.com/encrypted-card.md).
 - **Decryption keys are single-use.** Each checkout gets a unique key from `POST /bot/rail5/key` that is invalidated after retrieval. There is no way to re-request a key for the same checkout.
 - **Webhooks keep you in sync.** Your `callback_url` receives real-time card deliveries, approval notifications, and spending alerts. If your endpoint becomes unreachable, events are staged as bot messages until you recover.
-- **Payment links expire in 24 hours.** Generate a new one if needed. See [checkout.md](https://creditclaw.com/checkout.md).

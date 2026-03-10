@@ -103,7 +103,10 @@ export function TestingHandler({ context, onSuccess, onError, onCancel }: Paymen
     const cardExpiry = `${expiryMonth}/${expiryYear}`;
 
     try {
-      const res = await fetch(`/api/v1/checkout/${context.checkoutPageId}/pay/testing`, {
+      const testPayUrl = context.testToken
+        ? `/api/v1/checkout/${context.checkoutPageId}/pay/testing?t=${encodeURIComponent(context.testToken)}`
+        : `/api/v1/checkout/${context.checkoutPageId}/pay/testing`;
+      const res = await fetch(testPayUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
