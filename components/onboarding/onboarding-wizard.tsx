@@ -42,10 +42,7 @@ export function OnboardingWizard() {
   const [transitionClass, setTransitionClass] = useState("wizard-step-active");
   const [showCardWizard, setShowCardWizard] = useState(false);
 
-  const activeSteps = useMemo<StepId[]>(() => {
-    if (state.botConnected) return STEPS;
-    return STEPS.filter((s) => s !== "add-card-bridge");
-  }, [state.botConnected]);
+  const activeSteps = useMemo<StepId[]>(() => STEPS, []);
 
   const animateTransition = useCallback((direction: "forward" | "back", callback: () => void) => {
     setTransitionClass(direction === "forward" ? "wizard-step-exit" : "wizard-step-exit-back");
@@ -134,7 +131,7 @@ export function OnboardingWizard() {
             onNext={(botId, botName) => {
               setState((s) => ({ ...s, botId, botName, botConnected: true }));
             }}
-            onSkip={finishOnboarding}
+            onSkip={goForward}
           />
         );
 
