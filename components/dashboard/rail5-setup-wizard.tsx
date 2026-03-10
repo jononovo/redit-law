@@ -22,6 +22,13 @@ interface Rail5SetupWizardProps {
   onComplete: () => void;
 }
 
+interface Rail5SetupWizardContentProps {
+  onComplete: () => void;
+  onClose: () => void;
+  preselectedBotId?: string;
+  inline?: boolean;
+}
+
 interface BotOption {
   bot_id: string;
   bot_name: string;
@@ -639,7 +646,7 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
   );
 }
 
-export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
+export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId, inline = false }: Rail5SetupWizardContentProps) {
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -671,7 +678,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   const [approvalThreshold, setApprovalThreshold] = useState("25");
 
   const [bots, setBots] = useState<BotOption[]>([]);
-  const [selectedBotId, setSelectedBotId] = useState("");
+  const [selectedBotId, setSelectedBotId] = useState(preselectedBotId || "");
   const [botsLoading, setBotsLoading] = useState(false);
   const [botsFetched, setBotsFetched] = useState(false);
 
@@ -723,45 +730,6 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setCardErrors({});
   }
 
-  const resetWizard = useCallback(() => {
-    setStep(0);
-    setLoading(false);
-    setCardName(randomCardName());
-    setCardId("");
-    setCardNumber("");
-    setCardCvv("");
-    setExpMonth("");
-    setExpYear("");
-    setHolderName("");
-    setAddress("");
-    setCity("");
-    setState("");
-    setZip("");
-    setCountry("US");
-    setShowCountryPicker(false);
-    setEncryptionDone(false);
-    setDownloadDone(false);
-    setKeySent(false);
-    setCardEncrypting(false);
-    setCardEncrypted(false);
-    setSpendingLimit("50");
-    setDailyLimit("100");
-    setMonthlyLimit("500");
-    setApproveAll(true);
-    setApprovalThreshold("25");
-    setBots([]);
-    setSelectedBotId("");
-    setBotsFetched(false);
-    setDirectDeliverySucceeded(false);
-    setDeliveryAttempted(false);
-    setDeliveryResult(null);
-    setStoredFileContent("");
-    setCopied(false);
-    setCardErrors({});
-    setAddressErrors({});
-    setShowExitConfirm(false);
-  }, []);
-
   const [cardErrors, setCardErrors] = useState<CardFieldErrors>({});
   useEffect(() => {
     if (Object.keys(cardErrors).length === 0) return;
@@ -784,19 +752,17 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }, [cardNumber, expMonth, expYear, cardCvv, holderName]);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  function handleClose(val: boolean) {
-    if (!val && step !== 7) {
+  function handleRequestClose() {
+    if (step !== 7) {
       setShowExitConfirm(true);
-      return;
+    } else {
+      onClose();
     }
-    if (!val) resetWizard();
-    onOpenChange(val);
   }
 
   function confirmExit() {
     setShowExitConfirm(false);
-    resetWizard();
-    onOpenChange(false);
+    onClose();
   }
 
   const cardLast4 = cardNumber.replace(/\s/g, "").slice(-4);
@@ -955,7 +921,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
     setStep(4);
   }
 
-  function handleAddressNext() {
+  async function handleAddressNext() {
     const errs: { address?: boolean; city?: boolean; zip?: boolean } = {
       address: !address.trim(),
       city: !city.trim(),
@@ -966,7 +932,24 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
       return;
     }
     setAddressErrors({});
-    setStep(5);
+    if (preselectedBotId) {
+      setLoading(true);
+      try {
+        const res = await authFetch(`/api/v1/rail5/cards/${cardId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bot_id: preselectedBotId }),
+        });
+        if (!res.ok) throw new Error("Failed to link bot");
+      } catch {
+        toast({ title: "Warning", description: "Could not link bot to card. You can link it later from card settings.", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+      setStep(6);
+    } else {
+      setStep(5);
+    }
   }
 
   async function handleLimitsNext() {
@@ -1051,28 +1034,21 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
   }
 
   function handleDone() {
-    handleClose(false);
     onComplete();
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
-        onInteractOutside={(e) => { if (step < 7) { e.preventDefault(); setShowExitConfirm(true); } }}
-        onEscapeKeyDown={(e) => { if (step < 7) { e.preventDefault(); setShowExitConfirm(true); } }}
-      >
-        <VisuallyHidden>
-          <DialogTitle>Rail 5 Card Setup</DialogTitle>
-        </VisuallyHidden>
-
+  const content = (
+    <>
         <button
           type="button"
-          onClick={() => step >= 7 ? handleClose(false) : setShowExitConfirm(true)}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          onClick={handleRequestClose}
+          className={inline
+            ? "absolute top-4 right-4 z-20 p-2 rounded-full bg-white/80 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors shadow-sm border border-neutral-200 cursor-pointer"
+            : "absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
+          }
           data-testid="button-r5-close"
         >
-          <X className="h-4 w-4" />
+          <X className={inline ? "w-5 h-5" : "h-4 w-4"} />
           <span className="sr-only">Close</span>
         </button>
 
@@ -1571,7 +1547,7 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(5)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step7-back">
+              <Button variant="outline" onClick={() => setStep(preselectedBotId ? 4 : 5)} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step7-back">
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               <Button onClick={handleEncryptAndDownload} disabled={loading || downloadDone} className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700" data-testid="button-r5-encrypt">
@@ -1609,6 +1585,39 @@ export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupW
             onDone={handleDone}
           />
         )}
+    </>
+  );
+
+  if (inline) {
+    return (
+      <div className="min-h-screen flex flex-col bg-neutral-50">
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
+          <div className="w-full max-w-2xl relative">
+            {content}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="relative">{content}</div>;
+}
+
+export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
+  return (
+    <Dialog open={open} onOpenChange={(val) => { if (!val) return; onOpenChange(val); }}>
+      <DialogContent
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <VisuallyHidden>
+          <DialogTitle>Rail 5 Card Setup</DialogTitle>
+        </VisuallyHidden>
+        <Rail5SetupWizardContent
+          onComplete={() => { onComplete(); onOpenChange(false); }}
+          onClose={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );

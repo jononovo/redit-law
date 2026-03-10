@@ -7,6 +7,8 @@ import { ChoosePath } from "./steps/choose-path";
 import { RegisterBot } from "./steps/register-bot";
 import { SignInStep } from "./steps/sign-in";
 import { ClaimToken } from "./steps/claim-token";
+import { AddCardBridge } from "./steps/add-card-bridge";
+import { Rail5SetupWizardContent } from "@/components/dashboard/rail5-setup-wizard";
 
 interface WizardState {
   agentType: string | null;
@@ -20,7 +22,8 @@ type StepId =
   | "choose-agent-type"
   | "register-bot"
   | "sign-in"
-  | "claim-token";
+  | "claim-token"
+  | "add-card-bridge";
 
 const initialState: WizardState = {
   agentType: null,
@@ -30,15 +33,19 @@ const initialState: WizardState = {
   isAuthenticated: false,
 };
 
-const STEPS: StepId[] = ["choose-agent-type", "register-bot", "sign-in", "claim-token"];
+const STEPS: StepId[] = ["choose-agent-type", "register-bot", "sign-in", "claim-token", "add-card-bridge"];
 
 export function OnboardingWizard() {
   const router = useRouter();
   const [state, setState] = useState<WizardState>(initialState);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [transitionClass, setTransitionClass] = useState("wizard-step-active");
+  const [showCardWizard, setShowCardWizard] = useState(false);
 
-  const activeSteps = useMemo<StepId[]>(() => STEPS, []);
+  const activeSteps = useMemo<StepId[]>(() => {
+    if (state.botConnected) return STEPS;
+    return STEPS.filter((s) => s !== "add-card-bridge");
+  }, [state.botConnected]);
 
   const animateTransition = useCallback((direction: "forward" | "back", callback: () => void) => {
     setTransitionClass(direction === "forward" ? "wizard-step-exit" : "wizard-step-exit-back");
@@ -74,6 +81,12 @@ export function OnboardingWizard() {
 
   const currentStep = activeSteps[currentStepIndex];
   const totalSteps = activeSteps.length;
+
+  useEffect(() => {
+    if (state.botConnected && currentStep === "claim-token") {
+      goForward();
+    }
+  }, [state.botConnected, currentStep, goForward]);
 
   function renderStep() {
     switch (currentStep) {
@@ -120,8 +133,18 @@ export function OnboardingWizard() {
             onBack={goBack}
             onNext={(botId, botName) => {
               setState((s) => ({ ...s, botId, botName, botConnected: true }));
-              finishOnboarding();
             }}
+            onSkip={finishOnboarding}
+          />
+        );
+
+      case "add-card-bridge":
+        return (
+          <AddCardBridge
+            currentStep={currentStepIndex}
+            totalSteps={totalSteps}
+            onBack={goBack}
+            onNext={() => setShowCardWizard(true)}
             onSkip={finishOnboarding}
           />
         );
@@ -129,6 +152,17 @@ export function OnboardingWizard() {
       default:
         return null;
     }
+  }
+
+  if (showCardWizard) {
+    return (
+      <Rail5SetupWizardContent
+        inline
+        preselectedBotId={state.botId || undefined}
+        onComplete={finishOnboarding}
+        onClose={finishOnboarding}
+      />
+    );
   }
 
   return (
