@@ -20,7 +20,6 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
   function handleCopy() {
     navigator.clipboard.writeText(BOT_INSTRUCTIONS);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   return (
