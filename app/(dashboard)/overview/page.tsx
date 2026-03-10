@@ -417,14 +417,14 @@ export default function DashboardOverview() {
                   />
                   <div
                     onClick={() => setRail5WizardOpen(true)}
-                    className="group absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors duration-200 hover:bg-white/40"
+                    className="group absolute inset-0 rounded-2xl flex items-center justify-center cursor-pointer transition-colors duration-200 hover:bg-black/15"
                     data-testid="button-add-card-overlay"
                   >
-                    <p className="text-xs text-neutral-500 max-w-[240px] text-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">Securely encrypt your card for autonomous bot purchases</p>
+                    <p className="absolute top-1/2 -translate-y-full -mt-4 text-sm text-white font-medium max-w-[240px] text-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none drop-shadow-sm">Securely encrypt your card for autonomous bot purchases</p>
                     <button
-                      className="rounded-xl gap-2 px-6 py-3 text-sm font-semibold bg-white/70 backdrop-blur-sm text-neutral-700 border border-white/50 shadow-sm cursor-pointer transition-all duration-200 hover:bg-white/90 hover:shadow-md flex items-center"
+                      className="absolute top-1/2 translate-y-2 rounded-xl gap-2 px-8 py-4 text-base font-semibold bg-white/80 backdrop-blur-sm text-neutral-800 border border-white/50 shadow-sm cursor-pointer transition-all duration-200 hover:bg-white hover:shadow-md flex items-center"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-5 h-5" />
                       Add Your Card
                     </button>
                   </div>
