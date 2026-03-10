@@ -64,7 +64,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
           className="w-full text-sm text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer"
           data-testid="button-skip-already-registered"
         >
-          Skip — Already registered
+          Skip — My bot already registered
         </button>
       </div>
     </WizardStep>
