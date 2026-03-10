@@ -61,7 +61,7 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: 
           value={token}
           onChange={(e) => { setToken(e.target.value); setError(null); }}
           placeholder="e.g. coral-X9K2"
-          className="rounded-xl h-12 text-base"
+          className="rounded-xl h-12 md:h-14 text-base md:text-lg"
           data-testid="input-claim-token"
           autoFocus
         />
@@ -96,7 +96,7 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: 
         <Button
           onClick={handleClaim}
           disabled={!token.trim() || loading}
-          className="w-full rounded-xl h-12 text-base cursor-pointer"
+          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg cursor-pointer"
           data-testid="button-claim"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Claim Bot"}

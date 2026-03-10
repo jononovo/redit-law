@@ -82,7 +82,7 @@ export function ApprovalThreshold({ currentStep, totalSteps, onBack, onNext, def
       <Button
         onClick={() => onNext(amountCents)}
         disabled={amountCents < 100}
-        className="w-full rounded-xl h-12 text-base"
+        className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
         data-testid="button-continue"
       >
         Continue

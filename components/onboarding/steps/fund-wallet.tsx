@@ -132,7 +132,7 @@ export function FundWallet({ currentStep, totalSteps, onBack, onNext }: FundWall
         <Button
           onClick={handleFund}
           disabled={loading || amountCents < 100}
-          className="w-full rounded-xl h-12 text-base"
+          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
           data-testid="button-fund"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : `Add $${(amountCents / 100).toFixed(2)}`}

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw, Copy, Send, MessageCircle, ExternalLink } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { wt } from "@/lib/wizard-typography";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -226,16 +227,16 @@ function Step7DeliveryResult({
             <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Bot Received the Card</h2>
-            <p className="text-sm text-neutral-500 mt-2">Your encrypted card file was delivered to {botDisplayName} via webhook.</p>
+            <h2 className={`${wt.title} mb-2`} data-testid="text-delivery-title">Bot Received the Card</h2>
+            <p className={`${wt.subtitle} mt-2`}>Your encrypted card file was delivered to {botDisplayName} via webhook.</p>
           </>
         ) : botConfirmed ? (
           <>
             <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Bot Confirmed!</h2>
-            <p className="text-sm text-neutral-500 mt-2">{botDisplayName} picked up and confirmed the card file.</p>
+            <h2 className={`${wt.title} mb-2`} data-testid="text-delivery-title">Bot Confirmed!</h2>
+            <p className={`${wt.subtitle} mt-2`}>{botDisplayName} picked up and confirmed the card file.</p>
           </>
         ) : isWaiting ? (
           <>
@@ -246,10 +247,10 @@ function Step7DeliveryResult({
                 <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
               )}
             </div>
-            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">
+            <h2 className={`${wt.title} mb-2`} data-testid="text-delivery-title">
               {pollingDone ? "File Staged for Your Bot" : "Waiting for Your Bot..."}
             </h2>
-            <p className="text-sm text-neutral-500 mt-2">
+            <p className={`${wt.subtitle} mt-2`}>
               {pollingDone
                 ? "Your encrypted card file is staged for 24 hours. Your bot can pick it up anytime."
                 : "Your encrypted card file is ready for pickup. Tell your bot to check for messages."}
@@ -260,8 +261,8 @@ function Step7DeliveryResult({
             <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-delivery-title">Card Ready!</h2>
-            <p className="text-sm text-neutral-500 mt-2">Your encrypted card has been set up successfully.</p>
+            <h2 className={`${wt.title} mb-2`} data-testid="text-delivery-title">Card Ready!</h2>
+            <p className={`${wt.subtitle} mt-2`}>Your encrypted card has been set up successfully.</p>
           </>
         )}
       </div>
@@ -504,8 +505,8 @@ function Step8TestVerification({ cardId, cardName, cardLast4, savedCardDetails, 
         <div className="w-16 h-16 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
           <Shield className="w-8 h-8 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-neutral-900" data-testid="text-test-title">Test Verification</h2>
-        <p className="text-sm text-neutral-500 mt-2">
+        <h2 className={`${wt.title} mb-2`} data-testid="text-test-title">Test Verification</h2>
+        <p className={`${wt.subtitle} mt-2`}>
           Your bot is completing a sandbox test purchase to verify the card file decrypts correctly.
         </p>
       </div>
@@ -1085,7 +1086,7 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
                 <CreditCard className="w-6 h-6 text-primary" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Name Your Card</h2>
+              <h2 className={wt.title}>Name Your Card</h2>
             </div>
 
             <div className="space-y-4">
@@ -1114,14 +1115,14 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-3">
                 <Shield className="w-6 h-6 text-emerald-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">How It Works</h2>
+              <h2 className={wt.title}>How It Works</h2>
             </div>
 
             <div className="bg-emerald-50 rounded-xl p-5 space-y-3">
-              <p className="text-sm text-neutral-700 leading-relaxed">
+              <p className={`${wt.body} text-neutral-700 leading-relaxed`}>
                 <strong>CreditClaw will never see your card details.</strong> Everything is encrypted in your browser before it leaves this page.
               </p>
-              <div className="space-y-2 text-sm text-neutral-600">
+              <div className={`space-y-2 ${wt.body} text-neutral-600`}>
                 <div className="flex items-start gap-2">
                   <Lock className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                   <span>Your card details are encrypted using AES-256-GCM right here in your browser.</span>
@@ -1158,7 +1159,7 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
                 <Lock className="w-6 h-6 text-blue-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Enter Card Details</h2>
+              <h2 className={wt.title}>Enter Card Details</h2>
             </div>
 
             <Rail5InteractiveCard
@@ -1231,7 +1232,7 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3">
                 <CreditCard className="w-6 h-6 text-indigo-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Billing Address</h2>
+              <h2 className={wt.title}>Billing Address</h2>
             </div>
 
             <div className="space-y-4">
@@ -1333,8 +1334,8 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center mx-auto mb-3">
                 <Shield className="w-6 h-6 text-orange-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Spending Limits</h2>
-              <p className="text-sm text-neutral-500 mt-1">Set hardened guardrails for how your bot can spend.</p>
+              <h2 className={wt.title}>Spending Limits</h2>
+              <p className={`${wt.subtitle} mt-1`}>Set hardened guardrails for how your bot can spend.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1426,8 +1427,8 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
                 <Bot className="w-6 h-6 text-blue-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">Link a Bot</h2>
-              <p className="text-sm text-neutral-500 mt-1">Choose which bot can use this card for purchases.</p>
+              <h2 className={wt.title}>Link a Bot</h2>
+              <p className={`${wt.subtitle} mt-1`}>Choose which bot can use this card for purchases.</p>
             </div>
 
             {botsLoading && (
@@ -1497,10 +1498,10 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
               <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-3">
                 <Lock className="w-6 h-6 text-purple-600" />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900">
+              <h2 className={wt.title}>
                 {selectedBotId ? "Encrypt & Deliver" : "Encrypt & Download"}
               </h2>
-              <p className="text-sm text-neutral-500 mt-1">
+              <p className={`${wt.subtitle} mt-1`}>
                 {selectedBotId
                   ? "Your card will be encrypted and delivered directly to your bot."
                   : "Your card will be encrypted and downloaded as a file."}
@@ -1512,20 +1513,20 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${encryptionDone ? "bg-green-500" : "bg-neutral-200"}`}>
                   {encryptionDone ? <CheckCircle2 className="w-4 h-4 text-white" /> : <span className="text-xs text-neutral-500">1</span>}
                 </div>
-                <span className="text-sm text-neutral-700">Encrypt card details (AES-256-GCM)</span>
+                <span className={`${wt.body} text-neutral-700`}>Encrypt card details (AES-256-GCM)</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${keySent ? "bg-green-500" : "bg-neutral-200"}`}>
                   {keySent ? <CheckCircle2 className="w-4 h-4 text-white" /> : <span className="text-xs text-neutral-500">2</span>}
                 </div>
-                <span className="text-sm text-neutral-700">Send decryption key to CreditClaw</span>
+                <span className={`${wt.body} text-neutral-700`}>Send decryption key to CreditClaw</span>
               </div>
               {selectedBotId && (
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center ${directDeliverySucceeded ? "bg-green-500" : deliveryAttempted && !directDeliverySucceeded ? "bg-amber-500" : "bg-neutral-200"}`}>
                     {directDeliverySucceeded ? <CheckCircle2 className="w-4 h-4 text-white" /> : deliveryAttempted ? <CheckCircle2 className="w-4 h-4 text-white" /> : <span className="text-xs text-neutral-500">3</span>}
                   </div>
-                  <span className="text-sm text-neutral-700">
+                  <span className={`${wt.body} text-neutral-700`}>
                     {directDeliverySucceeded
                       ? "Delivered to bot via webhook"
                       : deliveryAttempted
@@ -1538,7 +1539,7 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${downloadDone ? "bg-green-500" : "bg-neutral-200"}`}>
                   {downloadDone ? <CheckCircle2 className="w-4 h-4 text-white" /> : <span className="text-xs text-neutral-500">{selectedBotId ? "4" : "3"}</span>}
                 </div>
-                <span className="text-sm text-neutral-700">{selectedBotId ? "Download backup copy" : "Download encrypted card file"}</span>
+                <span className={`${wt.body} text-neutral-700`}>{selectedBotId ? "Download backup copy" : "Download encrypted card file"}</span>
               </div>
             </div>
 

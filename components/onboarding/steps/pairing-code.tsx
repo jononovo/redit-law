@@ -140,7 +140,7 @@ export function PairingCode({ currentStep, totalSteps, onBack, onNext, onSkip, p
         <Button
           onClick={handleManualCheck}
           disabled={!pairingCode}
-          className="w-full rounded-xl h-12 text-base"
+          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
           data-testid="button-check-pairing"
         >
           My bot has registered
