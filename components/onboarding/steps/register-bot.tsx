@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { WizardStep } from "../wizard-step";
 import { Button } from "@/components/ui/button";
-import { Copy, Check } from "lucide-react";
+import { BotInstructionBlock } from "../bot-instruction-block";
 
 interface RegisterBotProps {
   currentStep: number;
@@ -12,15 +12,8 @@ interface RegisterBotProps {
   onNext: () => void;
 }
 
-const BOT_INSTRUCTIONS = "Go to creditclaw.com/skill.md and register there.";
-
 export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: RegisterBotProps) {
   const [copied, setCopied] = useState(false);
-
-  function handleCopy() {
-    navigator.clipboard.writeText(BOT_INSTRUCTIONS);
-    setCopied(true);
-  }
 
   return (
     <WizardStep
@@ -30,21 +23,8 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
       totalSteps={totalSteps}
       onBack={onBack}
     >
-      <div className="space-y-4 mb-8">
-        <div className="bg-neutral-900 rounded-xl p-4">
-          <code className="text-sm text-neutral-100 leading-relaxed block text-center" data-testid="text-bot-instructions">
-            {BOT_INSTRUCTIONS}
-          </code>
-        </div>
-        <Button
-          onClick={handleCopy}
-          variant={copied ? "outline" : "default"}
-          className="w-full gap-2 cursor-pointer rounded-xl h-12 text-base"
-          data-testid="button-copy-skill-url"
-        >
-          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied ? "Copied | Now paste it into your bot chat" : "Copy"}
-        </Button>
+      <div className="mb-8">
+        <BotInstructionBlock onCopied={() => setCopied(true)} />
       </div>
 
       <div className="space-y-3">
