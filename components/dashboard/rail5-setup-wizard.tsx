@@ -1043,11 +1043,11 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
       onClick={handleRequestClose}
       className={inline
         ? "fixed top-4 right-4 z-20 p-2 rounded-full bg-white/80 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors shadow-sm border border-neutral-200 cursor-pointer"
-        : "absolute -right-4 -top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer z-10"
+        : "absolute -right-4 -top-4 z-20 p-2 rounded-full bg-white/80 hover:bg-neutral-100 text-neutral-500 hover:text-neutral-900 transition-colors shadow-sm border border-neutral-200 cursor-pointer"
       }
       data-testid="button-r5-close"
     >
-      <X className={inline ? "w-5 h-5" : "h-4 w-4"} />
+      <X className="w-5 h-5" />
       <span className="sr-only">Close</span>
     </button>
   );
