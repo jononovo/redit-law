@@ -19,6 +19,15 @@ interface CardTypeOption {
 
 const cardTypes: CardTypeOption[] = [
   {
+    icon: Shield,
+    label: "My Card - Encrypted",
+    description: "Bring your own card. Encrypted and split between you and CreditClaw.",
+    href: "/sub-agent-cards",
+    color: "text-emerald-600",
+    iconBg: "bg-emerald-50",
+    borderColor: "border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50",
+  },
+  {
     icon: Wallet,
     label: "Stripe Wallet",
     description: "Fund bots with USDC on Base via Stripe. Bots pay for API resources using the x402 protocol.",
@@ -35,15 +44,6 @@ const cardTypes: CardTypeOption[] = [
     color: "text-violet-600",
     iconBg: "bg-violet-50",
     borderColor: "border-violet-200 hover:border-violet-400 hover:bg-violet-50/50",
-  },
-  {
-    icon: Shield,
-    label: "Self-Hosted",
-    description: "Bring your own card. Encrypted and split between you and CreditClaw.",
-    href: "/sub-agent-cards",
-    color: "text-emerald-600",
-    iconBg: "bg-emerald-50",
-    borderColor: "border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50",
   },
   {
     icon: CreditCard,
