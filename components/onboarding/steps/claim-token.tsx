@@ -11,9 +11,10 @@ interface ClaimTokenProps {
   totalSteps: number;
   onBack: () => void;
   onNext: (botId: string, botName: string) => void;
+  onSkip?: () => void;
 }
 
-export function ClaimToken({ currentStep, totalSteps, onBack, onNext }: ClaimTokenProps) {
+export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: ClaimTokenProps) {
   const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,14 +72,25 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext }: ClaimTok
         )}
       </div>
 
-      <Button
-        onClick={handleClaim}
-        disabled={!token.trim() || loading}
-        className="w-full rounded-xl h-12 text-base"
-        data-testid="button-claim"
-      >
-        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Claim Bot"}
-      </Button>
+      <div className="space-y-3">
+        <Button
+          onClick={handleClaim}
+          disabled={!token.trim() || loading}
+          className="w-full rounded-xl h-12 text-base"
+          data-testid="button-claim"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Claim Bot"}
+        </Button>
+        {onSkip && (
+          <button
+            onClick={onSkip}
+            className="w-full text-sm text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer"
+            data-testid="button-skip-claim"
+          >
+            Skip — I&apos;ll add my bot later
+          </button>
+        )}
+      </div>
     </WizardStep>
   );
 }
