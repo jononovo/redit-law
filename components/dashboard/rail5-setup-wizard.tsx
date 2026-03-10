@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw, Copy, Send, MessageCircle, ExternalLink } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,11 +38,11 @@ const TOTAL_STEPS = 9;
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center justify-center gap-1 sm:gap-2 mb-8" data-testid="r5-step-indicator">
+    <div className="flex items-center justify-center gap-2 mb-8" data-testid="r5-step-indicator">
       {Array.from({ length: total }, (_, i) => (
-        <div key={i} className="flex items-center gap-1 sm:gap-2">
+        <div key={i} className="flex items-center gap-2">
           <div
-            className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-all duration-300 ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
               i < current
                 ? "bg-green-500 text-white"
                 : i === current
@@ -48,10 +50,10 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
                   : "bg-neutral-100 text-neutral-400"
             }`}
           >
-            {i < current ? <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" /> : i + 1}
+            {i < current ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={`w-3 sm:w-5 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
+            <div className={`w-5 h-0.5 transition-colors duration-300 ${i < current ? "bg-green-500" : "bg-neutral-200"}`} />
           )}
         </div>
       ))}
@@ -1607,24 +1609,21 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
 }
 
 export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
-
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-neutral-50" role="dialog" aria-modal="true" aria-label="Rail 5 Card Setup">
-      <div className="w-full h-full overflow-y-auto">
+    <Dialog open={open} onOpenChange={(val) => { if (!val) return; onOpenChange(val); }}>
+      <DialogContent
+        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <VisuallyHidden>
+          <DialogTitle>Rail 5 Card Setup</DialogTitle>
+        </VisuallyHidden>
         <Rail5SetupWizardContent
-          inline
           onComplete={() => { onComplete(); onOpenChange(false); }}
           onClose={() => onOpenChange(false)}
         />
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
