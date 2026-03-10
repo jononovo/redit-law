@@ -31,22 +31,20 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
       totalSteps={totalSteps}
       onBack={onBack}
     >
-      <div className="space-y-6 mb-8">
-        <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6">
-          <p className="text-base text-neutral-900 text-center leading-relaxed" data-testid="text-bot-instructions">
+      <div className="space-y-4 mb-8">
+        <div className="bg-neutral-900 rounded-xl p-4">
+          <code className="text-sm text-neutral-100 leading-relaxed block text-center" data-testid="text-bot-instructions">
             {BOT_INSTRUCTIONS}
-          </p>
-          <div className="flex justify-center mt-4">
-            <Button
-              onClick={handleCopy}
-              className="gap-2 cursor-pointer"
-              data-testid="button-copy-skill-url"
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Copied!" : "Copy"}
-            </Button>
-          </div>
+          </code>
         </div>
+        <Button
+          onClick={handleCopy}
+          className="w-full gap-2 cursor-pointer rounded-xl h-12 text-base"
+          data-testid="button-copy-skill-url"
+        >
+          {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          {copied ? "Copied!" : "Copy"}
+        </Button>
       </div>
 
       <div className="space-y-3">
