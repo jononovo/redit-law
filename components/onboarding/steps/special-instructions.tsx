@@ -41,7 +41,7 @@ export function SpecialInstructions({ currentStep, totalSteps, onBack, onNext, d
       <div className="space-y-3">
         <Button
           onClick={() => onNext(notes)}
-          className="w-full rounded-xl h-12 text-base"
+          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
           data-testid="button-continue"
         >
           {notes.trim() ? "Continue" : "Skip"}

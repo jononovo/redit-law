@@ -102,7 +102,7 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
           <Button
             data-testid="button-onboarding-sign-in-google"
             variant="outline"
-            className="w-full h-12 rounded-xl text-sm font-semibold gap-3 cursor-pointer"
+            className="w-full h-12 md:h-14 rounded-xl text-sm md:text-base font-semibold gap-3 cursor-pointer"
             onClick={handleGoogle}
             disabled={loading}
           >
@@ -113,7 +113,7 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
           <Button
             data-testid="button-onboarding-sign-in-github"
             variant="outline"
-            className="w-full h-12 rounded-xl text-sm font-semibold gap-3 cursor-pointer"
+            className="w-full h-12 md:h-14 rounded-xl text-sm md:text-base font-semibold gap-3 cursor-pointer"
             onClick={handleGithub}
             disabled={loading}
           >
@@ -157,13 +157,13 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-12 rounded-xl"
+              className="h-12 md:h-14 rounded-xl"
               required
             />
             <Button
               data-testid="button-onboarding-send-magic-link"
               type="submit"
-              className="w-full h-12 rounded-xl bg-primary text-white hover:bg-primary/90 font-semibold cursor-pointer"
+              className="w-full h-12 md:h-14 rounded-xl bg-primary text-white hover:bg-primary/90 font-semibold text-base md:text-lg cursor-pointer"
               disabled={loading || !email.trim()}
             >
               <Mail className="w-4 h-4 mr-2" />

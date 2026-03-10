@@ -79,7 +79,7 @@ export function SpendingLimits({ currentStep, totalSteps, onBack, onNext, defaul
 
       <Button
         onClick={() => onNext(perTx, daily, monthly)}
-        className="w-full rounded-xl h-12 text-base"
+        className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
         data-testid="button-continue"
       >
         Continue

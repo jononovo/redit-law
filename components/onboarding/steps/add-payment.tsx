@@ -78,7 +78,7 @@ function SetupForm({ onSuccess, customerId }: { onSuccess: () => void; customerI
       <Button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full rounded-xl h-12 text-base gap-2"
+        className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg gap-2"
         data-testid="button-save-card-wizard"
       >
         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CreditCard className="w-5 h-5" />}
@@ -143,7 +143,7 @@ export function AddPayment({ currentStep, totalSteps, onBack, onNext }: AddPayme
         <div className="space-y-4 mb-6">
           <Button
             onClick={startSetup}
-            className="w-full rounded-xl h-12 text-base gap-2"
+            className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg gap-2"
             data-testid="button-add-card-wizard"
           >
             <CreditCard className="w-5 h-5" />

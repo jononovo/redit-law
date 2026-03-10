@@ -8,7 +8,6 @@ import { ActivityLog } from "@/components/dashboard/activity-log";
 import { WebhookLog } from "@/components/dashboard/webhook-log";
 import { OpsHealth } from "@/components/dashboard/ops-health";
 import { PaymentLinksPanel } from "@/components/dashboard/payment-links";
-import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 import { Bot as BotIcon, Plus, Loader2, Wallet, CreditCard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -64,7 +63,6 @@ export default function DashboardOverview() {
 
   const [overviewApprovals, setOverviewApprovals] = useState<ApprovalRow[]>([]);
 
-  const [rail5WizardOpen, setRail5WizardOpen] = useState(false);
   const [rail5FreezeTarget, setRail5FreezeTarget] = useState<NormalizedCard | null>(null);
   const [rail5FreezeLoading, setRail5FreezeLoading] = useState(false);
 
@@ -417,7 +415,7 @@ export default function DashboardOverview() {
                     className="pointer-events-none"
                   />
                   <div
-                    onClick={() => setRail5WizardOpen(true)}
+                    onClick={() => router.push("/setup/rail5")}
                     className="group absolute inset-0 rounded-2xl flex items-center justify-center cursor-pointer transition-colors duration-200 hover:bg-black/15"
                     data-testid="button-add-card-overlay"
                   >
@@ -448,12 +446,6 @@ export default function DashboardOverview() {
         open={fundOpen}
         onOpenChange={setFundOpen}
         onSuccess={() => fetchData()}
-      />
-
-      <Rail5SetupWizard
-        open={rail5WizardOpen}
-        onOpenChange={setRail5WizardOpen}
-        onComplete={() => { fetchRail5Cards(); setRail5WizardOpen(false); }}
       />
 
       <FreezeDialog

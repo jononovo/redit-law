@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sidebar } from "@/components/dashboard/sidebar";
+import { AppSidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 import { useAuth } from "@/lib/auth/auth-context";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { NewCardModal } from "@/components/dashboard/new-card-modal";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +15,7 @@ export default function DashboardLayout({
 }) {
   const { user, loading, completeMagicLink } = useAuth();
   const router = useRouter();
+  const [newCardModalOpen, setNewCardModalOpen] = useState(false);
 
   useEffect(() => {
     completeMagicLink();
@@ -42,14 +45,15 @@ export default function DashboardLayout({
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans text-neutral-900 flex">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
+    <SidebarProvider>
+      <AppSidebar onNewCard={() => setNewCardModalOpen(true)} />
+      <SidebarInset className="min-h-screen bg-neutral-50">
         <Header title="Dashboard" />
         <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
           {children}
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
+    </SidebarProvider>
   );
 }

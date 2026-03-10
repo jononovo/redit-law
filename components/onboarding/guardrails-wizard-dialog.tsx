@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
+import { wt } from "@/lib/wizard-typography";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { authFetch } from "@/lib/auth-fetch";
 import { ApprovalMode, type ApprovalModeValue } from "./steps/approval-mode";
@@ -70,8 +71,8 @@ function DialogWizardStep({
         </button>
       )}
 
-      <h2 className="text-xl font-bold text-neutral-900 mb-1">{title}</h2>
-      {subtitle && <p className="text-neutral-500 text-sm mb-6">{subtitle}</p>}
+      <h2 className={`${wt.title} mb-1`}>{title}</h2>
+      {subtitle && <p className={`${wt.subtitle} mb-6`}>{subtitle}</p>}
       {!subtitle && <div className="mb-6" />}
 
       {children}

@@ -1,8 +1,9 @@
 "use client";
 
-import { CreditCard, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WizardStep } from "../wizard-step";
+import { wt } from "@/lib/wizard-typography";
 
 interface AddCardBridgeProps {
   currentStep: number;
@@ -22,21 +23,9 @@ export function AddCardBridge({ currentStep, totalSteps, onBack, onNext, onSkip 
       onBack={onBack}
     >
       <div className="space-y-6">
-        <div className="bg-white rounded-2xl border border-neutral-200 p-6 text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-            <CreditCard className="w-7 h-7 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm text-neutral-600 leading-relaxed">
-              Your card details are encrypted in your browser and never seen by CreditClaw.
-              A disposable sub-agent decrypts at checkout, pays, and is deleted.
-            </p>
-          </div>
-        </div>
-
         <Button
           onClick={onNext}
-          className="w-full gap-2 cursor-pointer"
+          className={`w-full rounded-xl h-12 md:h-14 ${wt.primaryButton} gap-2 cursor-pointer`}
           data-testid="button-add-card-yes"
         >
           Yes, let's add a card
@@ -46,7 +35,7 @@ export function AddCardBridge({ currentStep, totalSteps, onBack, onNext, onSkip 
         <div className="text-center">
           <button
             onClick={onSkip}
-            className="text-sm text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer"
+            className={`${wt.secondaryButton} text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer`}
             data-testid="button-add-card-skip"
           >
             Skip — I'll do this later

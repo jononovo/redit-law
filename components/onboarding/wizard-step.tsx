@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+import { wt } from "@/lib/wizard-typography";
 
 interface WizardStepProps {
   title: string;
@@ -29,7 +30,7 @@ export function WizardStep({ title, subtitle, currentStep, totalSteps, onBack, s
           {showBack && onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-neutral-400 hover:text-neutral-600 mb-8 text-sm cursor-pointer"
+              className={`flex items-center gap-2 text-neutral-400 hover:text-neutral-600 mb-8 ${wt.secondaryButton} cursor-pointer`}
               data-testid="button-wizard-back"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -37,11 +38,11 @@ export function WizardStep({ title, subtitle, currentStep, totalSteps, onBack, s
             </button>
           )}
 
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-2 font-[var(--font-plus-jakarta)]">
+          <h1 className={`${wt.title} mb-2 font-[var(--font-plus-jakarta)]`}>
             {title}
           </h1>
           {subtitle && (
-            <p className="text-neutral-500 text-sm mb-8">{subtitle}</p>
+            <p className={`${wt.subtitle} mb-8`}>{subtitle}</p>
           )}
           {!subtitle && <div className="mb-8" />}
 

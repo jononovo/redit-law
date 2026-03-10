@@ -59,7 +59,7 @@ export function ApprovedCategories({ currentStep, totalSteps, onBack, onNext, de
 
       <Button
         onClick={() => onNext(approved)}
-        className="w-full rounded-xl h-12 text-base"
+        className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg"
         data-testid="button-continue"
       >
         Continue

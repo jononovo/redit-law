@@ -1,6 +1,7 @@
 "use client";
 
 import { WizardStep } from "../wizard-step";
+import { wt } from "@/lib/wizard-typography";
 import { Zap, Bot, Monitor } from "lucide-react";
 
 interface ChoosePathProps {
@@ -65,7 +66,7 @@ export function ChoosePath({ currentStep, totalSteps, onNext }: ChoosePathProps)
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className={`font-semibold ${type.enabled ? "text-neutral-900" : "text-neutral-500"}`}>
+                    <p className={`font-semibold ${wt.body} ${type.enabled ? "text-neutral-900" : "text-neutral-500"}`}>
                       {type.label}
                     </p>
                     {!type.enabled && (
@@ -77,7 +78,7 @@ export function ChoosePath({ currentStep, totalSteps, onNext }: ChoosePathProps)
                       </span>
                     )}
                   </div>
-                  <p className={`text-sm mt-1 ${type.enabled ? "text-neutral-500" : "text-neutral-400"}`}>
+                  <p className={`${wt.bodySmall} mt-1 ${type.enabled ? "text-neutral-500" : "text-neutral-400"}`}>
                     {type.description}
                   </p>
                 </div>

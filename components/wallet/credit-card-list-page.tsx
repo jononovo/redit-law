@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, CreditCard, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -28,7 +29,8 @@ export interface CreditCardListPageConfig {
   basePath: string;
   normalizeCards: (data: any) => NormalizedCard[];
   explainer: ReactNode;
-  setupWizard: (props: { open: boolean; onOpenChange: (v: boolean) => void; onComplete: () => void }) => ReactNode;
+  setupWizard?: (props: { open: boolean; onOpenChange: (v: boolean) => void; onComplete: () => void }) => ReactNode;
+  setupWizardHref?: string;
   supportsBotLinking?: boolean;
   transactionsEndpoint?: string;
   approvalsEndpoint?: string;
@@ -37,6 +39,7 @@ export interface CreditCardListPageConfig {
 
 export function CreditCardListPage({ config }: { config: CreditCardListPageConfig }) {
   const { user } = useAuth();
+  const router = useRouter();
   const [cards, setCards] = useState<NormalizedCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -248,7 +251,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
           <p className="text-neutral-500">{config.subtitle}</p>
         </div>
         <Button
-          onClick={() => setWizardOpen(true)}
+          onClick={() => config.setupWizardHref ? router.push(config.setupWizardHref) : setWizardOpen(true)}
           className="rounded-full bg-primary hover:bg-primary/90 gap-2"
           data-testid="button-add-card"
         >
@@ -257,7 +260,7 @@ export function CreditCardListPage({ config }: { config: CreditCardListPageConfi
         </Button>
       </div>
 
-      {config.setupWizard({ open: wizardOpen, onOpenChange: setWizardOpen, onComplete: fetchCards })}
+      {config.setupWizard?.({ open: wizardOpen, onOpenChange: setWizardOpen, onComplete: fetchCards })}
 
       <FreezeDialog
         open={!!freezeTarget}
