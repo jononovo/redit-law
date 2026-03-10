@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -20,17 +19,20 @@ import {
   ShoppingBag,
   ExternalLink,
   Package,
-  UserCircle,
   FileText
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { NewCardModal } from "@/components/dashboard/new-card-modal";
-import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useAuth } from "@/lib/auth/auth-context";
 import type { Tier } from "@/lib/feature-flags/tiers";
+import {
+  Sidebar as SidebarShell,
+  SidebarHeader,
+  SidebarContent,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -68,11 +70,14 @@ const salesNavItems: NavItem[] = [
   { icon: FileText, label: "Invoices", href: "/invoices" },
 ];
 
-export function Sidebar() {
+interface AppSidebarProps {
+  onNewCard?: () => void;
+}
+
+export function AppSidebar({ onNewCard }: AppSidebarProps) {
   const pathname = usePathname();
-  const [newCardModalOpen, setNewCardModalOpen] = useState(false);
-  const [rail5WizardOpen, setRail5WizardOpen] = useState(false);
   const { user } = useAuth();
+  const { setOpenMobile } = useSidebar();
   const userFlags = user?.flags ?? [];
 
   const filterByAccess = (items: NavItem[]) =>
@@ -82,16 +87,23 @@ export function Sidebar() {
   const visibleProcurementNav = filterByAccess(procurementNavItems);
   const visibleSalesNav = filterByAccess(salesNavItems);
 
+  const handleNavClick = () => {
+    setOpenMobile(false);
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-neutral-100 h-screen fixed left-0 top-0 flex flex-col z-50">
-      <div className="p-6 flex items-center gap-3">
+    <SidebarShell className="border-r border-neutral-100">
+      <SidebarHeader className="p-6 flex-row items-center gap-3">
         <Image src="/images/logo-claw-chip.png" alt="CreditClaw" width={32} height={32} className="object-contain" />
         <span className="font-bold text-lg tracking-tight text-neutral-900">CreditClaw</span>
-      </div>
+      </SidebarHeader>
 
       <div className="px-4 mb-6">
         <Button
-          onClick={() => setNewCardModalOpen(true)}
+          onClick={() => {
+            onNewCard?.();
+            setOpenMobile(false);
+          }}
           className="w-full justify-start gap-2 rounded-xl bg-primary hover:bg-primary/90 shadow-md shadow-primary/20"
           data-testid="button-new-card"
         >
@@ -100,16 +112,13 @@ export function Sidebar() {
         </Button>
       </div>
 
-      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} onRail5Select={() => setRail5WizardOpen(true)} />
-      <Rail5SetupWizard open={rail5WizardOpen} onOpenChange={setRail5WizardOpen} onComplete={() => setRail5WizardOpen(false)} />
-
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+      <SidebarContent className="px-4 space-y-1">
         {visibleMainNav.map((item) => {
           const isActive = pathname === item.href;
           const isInactive = item.inactive;
           const hasTooltip = item.tooltip;
           const navLink = (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={handleNavClick}>
               <div className={cn(
                 "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isInactive
@@ -174,7 +183,7 @@ export function Sidebar() {
         {visibleSalesNav.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href}>
+            <Link key={item.href} href={item.href} onClick={handleNavClick}>
               <div className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isActive 
@@ -199,7 +208,7 @@ export function Sidebar() {
           const isExternal = item.external;
           const linkProps = isExternal ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
           return (
-            <Link key={item.href} href={item.href} {...linkProps}>
+            <Link key={item.href} href={item.href} {...linkProps} onClick={handleNavClick}>
               <div className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer",
                 isActive 
@@ -215,8 +224,7 @@ export function Sidebar() {
             </Link>
           );
         })}
-      </nav>
-
-    </aside>
+      </SidebarContent>
+    </SidebarShell>
   );
 }

@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/session";
 import { notFound } from "next/navigation";
+import { AdminLayoutShell } from "./admin-layout-shell";
 
 export default async function AdminLayout({
   children,
@@ -10,5 +11,5 @@ export default async function AdminLayout({
   if (!user || !user.flags?.includes("admin")) {
     notFound();
   }
-  return <>{children}</>;
+  return <AdminLayoutShell>{children}</AdminLayoutShell>;
 }

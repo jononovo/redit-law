@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/auth/auth-context";
 import { NotificationPopover } from "./notification-popover";
 import { FeedbackDialog } from "./feedback-dialog";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,8 +23,11 @@ export function Header({ title }: { title: string }) {
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-8 flex items-center justify-between">
-      <h1 className="text-xl font-bold text-neutral-900">{title}</h1>
+    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-neutral-100 sticky top-0 z-40 px-4 md:px-8 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <SidebarTrigger className="md:hidden" data-testid="button-sidebar-toggle" />
+        <h1 className="text-xl font-bold text-neutral-900">{title}</h1>
+      </div>
 
       <div className="flex items-center gap-4">
         <div className="relative w-64 hidden md:block">
