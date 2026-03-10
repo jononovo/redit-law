@@ -63,6 +63,18 @@ export function OnboardingWizard() {
     });
   }, [animateTransition]);
 
+  const goBackSkipAuth = useCallback(() => {
+    animateTransition("back", () => {
+      setCurrentStepIndex((prev) => {
+        const signInIndex = STEPS.indexOf("sign-in");
+        if (prev === signInIndex + 1 && state.isAuthenticated) {
+          return Math.max(signInIndex - 1, 0);
+        }
+        return Math.max(prev - 1, 0);
+      });
+    });
+  }, [animateTransition, state.isAuthenticated]);
+
   const finishOnboarding = useCallback(() => {
     fetch("/api/v1/owners/onboarded", { method: "POST" }).catch(() => {});
     router.push("/overview");
