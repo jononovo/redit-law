@@ -104,7 +104,7 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: 
               data-testid="button-copy-help-instructions"
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Copied!" : "Copy"}
+              {copied ? "Copied | Now paste it into your bot chat" : "Copy"}
             </Button>
           </div>
         )}

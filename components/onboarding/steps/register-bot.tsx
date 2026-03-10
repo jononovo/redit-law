@@ -43,7 +43,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
           data-testid="button-copy-skill-url"
         >
           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-          {copied ? "Copied!" : "Copy"}
+          {copied ? "Copied | Now paste it into your bot chat" : "Copy"}
         </Button>
       </div>
 
