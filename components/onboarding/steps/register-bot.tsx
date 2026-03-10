@@ -12,13 +12,13 @@ interface RegisterBotProps {
   onNext: () => void;
 }
 
-const SKILL_URL = "creditclaw.com/skill.md";
+const BOT_INSTRUCTIONS = "Go to creditclaw.com/skill.md and register there. Give me the claim token when registered.";
 
 export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: RegisterBotProps) {
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
-    navigator.clipboard.writeText(`https://${SKILL_URL}`);
+    navigator.clipboard.writeText(BOT_INSTRUCTIONS);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -26,27 +26,28 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
   return (
     <WizardStep
       title="Register your bot"
-      subtitle="Go to creditclaw.com/skill.md and register there. Give me the claim token when registered."
+      subtitle="Give these instructions to your bot."
       currentStep={currentStep}
       totalSteps={totalSteps}
       onBack={onBack}
     >
       <div className="space-y-6 mb-8">
-        <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6 text-center">
-          <p className="text-sm text-neutral-500 mb-3">Send your bot to:</p>
-          <p className="text-lg font-mono font-semibold text-neutral-900 mb-4" data-testid="text-skill-url">
-            {SKILL_URL}
+        <div className="bg-white rounded-2xl border-2 border-neutral-200 p-6">
+          <p className="text-base text-neutral-900 text-center leading-relaxed" data-testid="text-bot-instructions">
+            {BOT_INSTRUCTIONS}
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopy}
-            className="text-neutral-500 gap-2 cursor-pointer"
-            data-testid="button-copy-skill-url"
-          >
-            {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copied!" : "Copy URL"}
-          </Button>
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopy}
+              className="text-neutral-500 gap-2 cursor-pointer"
+              data-testid="button-copy-skill-url"
+            >
+              {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+          </div>
         </div>
       </div>
 
