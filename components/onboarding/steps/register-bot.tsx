@@ -12,7 +12,7 @@ interface RegisterBotProps {
   onNext: () => void;
 }
 
-const BOT_INSTRUCTIONS = "Go to creditclaw.com/skill.md and register there. Give me the claim token when registered.";
+const BOT_INSTRUCTIONS = "Go to creditclaw.com/skill.md and register there.";
 
 export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: RegisterBotProps) {
   const [copied, setCopied] = useState(false);
@@ -38,13 +38,11 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
           </p>
           <div className="flex justify-center mt-4">
             <Button
-              variant="ghost"
-              size="sm"
               onClick={handleCopy}
-              className="text-neutral-500 gap-2 cursor-pointer"
+              className="gap-2 cursor-pointer"
               data-testid="button-copy-skill-url"
             >
-              {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               {copied ? "Copied!" : "Copy"}
             </Button>
           </div>
@@ -54,6 +52,8 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
       <div className="space-y-3">
         <Button
           onClick={onNext}
+          disabled={!copied}
+          variant="outline"
           className="w-full rounded-xl h-12 text-base"
           data-testid="button-register-continue"
         >
