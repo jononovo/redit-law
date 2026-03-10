@@ -52,7 +52,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
           onClick={onNext}
           disabled={!copied}
           variant={copied ? "default" : "outline"}
-          className="w-full rounded-xl h-12 text-base"
+          className="w-full rounded-xl h-12 text-base cursor-pointer"
           data-testid="button-register-continue"
         >
           Continue

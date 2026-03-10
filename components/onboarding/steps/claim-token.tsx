@@ -76,7 +76,7 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: 
         <Button
           onClick={handleClaim}
           disabled={!token.trim() || loading}
-          className="w-full rounded-xl h-12 text-base"
+          className="w-full rounded-xl h-12 text-base cursor-pointer"
           data-testid="button-claim"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Claim Bot"}
