@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { CheckCircle2, Loader2, ArrowRight, ArrowLeft, CreditCard, Shield, Download, Lock, Bot, Sparkles, ChevronDown, X, RotateCcw, Copy, Send, MessageCircle, ExternalLink } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,12 +13,6 @@ import { detectCardBrand, brandToApiValue, getMaxDigits, type CardBrand } from "
 import { Rail5InteractiveCard } from "@/lib/card/onboarding-rail5/interactive-card";
 import { type CardFieldErrors } from "@/lib/card/hooks";
 import { RAIL5_CARD_DELIVERED } from "@/lib/agent-management/bot-messaging/templates";
-
-interface Rail5SetupWizardProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onComplete: () => void;
-}
 
 interface Rail5SetupWizardContentProps {
   onComplete: () => void;
@@ -1606,24 +1598,4 @@ export function Rail5SetupWizardContent({ onComplete, onClose, preselectedBotId,
   }
 
   return <div className="relative">{content}</div>;
-}
-
-export function Rail5SetupWizard({ open, onOpenChange, onComplete }: Rail5SetupWizardProps) {
-  return (
-    <Dialog open={open} onOpenChange={(val) => { if (!val) return; onOpenChange(val); }}>
-      <DialogContent
-        className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-8 [&>button:last-child]:hidden"
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-      >
-        <VisuallyHidden>
-          <DialogTitle>Rail 5 Card Setup</DialogTitle>
-        </VisuallyHidden>
-        <Rail5SetupWizardContent
-          onComplete={() => { onComplete(); onOpenChange(false); }}
-          onClose={() => onOpenChange(false)}
-        />
-      </DialogContent>
-    </Dialog>
-  );
 }

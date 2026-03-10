@@ -7,7 +7,6 @@ import { Header } from "@/components/dashboard/header";
 import { useAuth } from "@/lib/auth/auth-context";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { NewCardModal } from "@/components/dashboard/new-card-modal";
-import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +16,6 @@ export default function DashboardLayout({
   const { user, loading, completeMagicLink } = useAuth();
   const router = useRouter();
   const [newCardModalOpen, setNewCardModalOpen] = useState(false);
-  const [rail5WizardOpen, setRail5WizardOpen] = useState(false);
 
   useEffect(() => {
     completeMagicLink();
@@ -55,8 +53,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </SidebarInset>
-      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} onRail5Select={() => setRail5WizardOpen(true)} />
-      <Rail5SetupWizard open={rail5WizardOpen} onOpenChange={setRail5WizardOpen} onComplete={() => setRail5WizardOpen(false)} />
+      <NewCardModal open={newCardModalOpen} onOpenChange={setNewCardModalOpen} />
     </SidebarProvider>
   );
 }

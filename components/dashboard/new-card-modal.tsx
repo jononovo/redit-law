@@ -15,7 +15,6 @@ interface CardTypeOption {
   iconBg: string;
   borderColor: string;
   comingSoon?: boolean;
-  action?: string;
 }
 
 const cardTypes: CardTypeOption[] = [
@@ -23,11 +22,10 @@ const cardTypes: CardTypeOption[] = [
     icon: Shield,
     label: "My Card - Encrypted",
     description: "Bring your own card. Encrypted and split between you and CreditClaw.",
-    href: "/sub-agent-cards",
+    href: "/setup/rail5",
     color: "text-emerald-600",
     iconBg: "bg-emerald-50",
     borderColor: "border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50/50",
-    action: "rail5-wizard",
   },
   {
     icon: Wallet,
@@ -62,19 +60,14 @@ const cardTypes: CardTypeOption[] = [
 interface NewCardModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRail5Select?: () => void;
 }
 
-export function NewCardModal({ open, onOpenChange, onRail5Select }: NewCardModalProps) {
+export function NewCardModal({ open, onOpenChange }: NewCardModalProps) {
   const router = useRouter();
 
   const handleSelect = (option: CardTypeOption) => {
     if (option.comingSoon) return;
     onOpenChange(false);
-    if (option.action === "rail5-wizard" && onRail5Select) {
-      onRail5Select();
-      return;
-    }
     router.push(option.href);
   };
 

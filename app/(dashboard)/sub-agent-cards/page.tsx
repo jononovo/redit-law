@@ -1,7 +1,6 @@
 "use client";
 
 import { Lock } from "lucide-react";
-import { Rail5SetupWizard } from "@/components/dashboard/rail5-setup-wizard";
 import { CreditCardListPage, type CreditCardListPageConfig } from "@/components/wallet/credit-card-list-page";
 import { normalizeRail5Card } from "@/components/wallet/types";
 
@@ -34,9 +33,7 @@ const config: CreditCardListPageConfig = {
       </div>
     </div>
   ),
-  setupWizard: ({ open, onOpenChange, onComplete }) => (
-    <Rail5SetupWizard open={open} onOpenChange={onOpenChange} onComplete={onComplete} />
-  ),
+  setupWizardHref: "/setup/rail5",
   supportsBotLinking: true,
 };
 
