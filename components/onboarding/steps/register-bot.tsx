@@ -39,6 +39,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
         </div>
         <Button
           onClick={handleCopy}
+          variant={copied ? "outline" : "default"}
           className="w-full gap-2 cursor-pointer rounded-xl h-12 text-base"
           data-testid="button-copy-skill-url"
         >
@@ -51,7 +52,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
         <Button
           onClick={onNext}
           disabled={!copied}
-          variant="outline"
+          variant={copied ? "default" : "outline"}
           className="w-full rounded-xl h-12 text-base"
           data-testid="button-register-continue"
         >
