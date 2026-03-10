@@ -1,0 +1,17 @@
+{
+  "source": "public",
+  "urlPrefix": "amazon",
+  "overrides": {
+    "name": "creditclaw-amazon",
+    "version": "2.3.0",
+    "updated": "2026-02-23T00:00:00Z",
+    "description": "Let your agent shop on Amazon with guardrailed wallets and owner approval."
+  },
+  "skillJsonOverrides": {
+    "name": "creditclaw-amazon",
+    "version": "2.3.0",
+    "description": "Let your agent shop on Amazon with guardrailed wallets, owner approval, and full order tracking."
+  },
+  "titleOverride": "CreditClaw — Amazon Shopping for AI Agents",
+  "extraFiles": []
+}
