@@ -414,6 +414,7 @@ export default function DashboardOverview() {
                     balance="$0.00"
                     balanceLabel="Spending Limit"
                     status="pending_setup"
+                    className="pointer-events-none"
                   />
                   <div
                     onClick={() => setRail5WizardOpen(true)}
