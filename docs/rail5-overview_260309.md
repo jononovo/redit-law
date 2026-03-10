@@ -1,6 +1,6 @@
 # Rail 5: Sub-Agent Cards — Technical Overview
 
-**March 6, 2026 • Internal • v3**
+**v4 • March 10, 2026 • Internal**
 
 ---
 
@@ -55,7 +55,7 @@ Rail 5 is **autonomous from Rail 4**. Own table, own folder, own page, own endpo
 ```
 lib/
   rail5/
-    index.ts                                 # Spawn payload builder, validation helpers
+    index.ts                                 # Spawn payload builder, validation helpers, constants
     encrypt.ts                               # Server-side encryption utilities
     decrypt-script.ts                        # Deterministic decrypt script content
   card/onboarding-rail5/
@@ -66,9 +66,14 @@ lib/
       index.ts                               # sendToBot() — universal delivery function
       expiry.ts                              # Per-event-type expiry config
       templates/
-        index.ts                             # Template loader with {{variable}} substitution
+        index.ts                             # Template exports
         rail5-card-delivered.ts              # Canonical card delivery instructions
+        rail5-test-required.ts               # Test checkout instructions (with URL builder)
   webhooks.ts                                # Webhook helpers (signPayload, attemptDelivery)
+  payments/
+    types.ts                                 # PaymentContext (includes testToken field)
+    handlers/testing-handler.tsx             # Test payment form — forwards testToken in URL
+    components/checkout-payment-panel.tsx    # Passes testToken through to payment handlers
 
 app/
   api/v1/rail5/
@@ -76,24 +81,32 @@ app/
     submit-key/route.ts                      # Owner: store encryption key (POST)
     cards/route.ts                           # Owner: list rail5 cards (GET)
     cards/[cardId]/route.ts                  # Owner: get/update card (GET, PATCH)
-    deliver-to-bot/route.ts                  # Owner: transient relay of encrypted file to bot (POST)
+    cards/[cardId]/test-purchase-status/route.ts  # Owner: poll test result, 3-state (pending/in_progress/completed)
+    deliver-to-bot/route.ts                  # Owner: transient relay of encrypted file to bot (POST, legacy)
   api/v1/bot/rail5/
     key/route.ts                             # Bot: sub-agent gets decryption key (POST)
     checkout/route.ts                        # Bot: get spawn payload (POST)
     checkout/status/route.ts                 # Bot: check checkout status (GET)
     confirm/route.ts                         # Bot: sub-agent reports checkout result (POST)
-    confirm-delivery/route.ts                # Bot: confirms encrypted card file received (POST)
+    confirm-delivery/route.ts                # Bot: confirms card file received, generates test token, sends rail5.test.required (POST)
   api/v1/bot-messages/
     send/route.ts                            # Owner: send message to bot via sendToBot()
   api/v1/bot/messages/
     route.ts                                 # Bot: poll pending messages (GET)
     ack/route.ts                             # Bot: acknowledge messages (POST)
+  api/v1/checkout/[id]/
+    public/route.ts                          # Public checkout page data — records test_started_at when ?t= token present
+    pay/testing/route.ts                     # Test payment submission — records testToken in sale metadata
   app/sub-agent-cards/
     page.tsx                                 # Dashboard listing page
     [cardId]/page.tsx                        # Card detail page
+  app/pay/[id]/
+    page.tsx                                 # Public checkout page — forwards ?t= token to API and payment handlers
 
 components/dashboard/
-  rail5-setup-wizard.tsx                     # 9-step onboarding wizard with delivery + test verification
+  rail5-setup-wizard.tsx                     # 9-step onboarding wizard (steps 0–8)
+  new-card-modal.tsx                         # "Add a New Card" modal — "My Card - Encrypted" opens wizard directly
+  sidebar.tsx                                # Sidebar — manages wizard open state from modal callback
 
 shared/schema.ts                             # rail5_cards, rail5_checkouts, rail5_guardrails tables
 server/storage.ts                            # rail5 storage methods
@@ -118,6 +131,8 @@ server/storage.ts                            # rail5 storage methods
 | `card_last4` | text | Last 4 digits for display only |
 | `card_brand` | text | Visa/MC/Amex — user-selected for display |
 | `status` | text | `pending_setup` → `pending_delivery` → `confirmed` → `active` → `frozen` |
+| `test_token` | text, nullable | 8-char hex token for test checkout tracking (set by confirm-delivery) |
+| `test_started_at` | timestamp, nullable | Set when bot visits test checkout URL with matching token |
 | `created_at` | timestamp | |
 | `updated_at` | timestamp | |
 
@@ -161,7 +176,13 @@ Spending controls per card. Separate from the card record.
 
 ## Onboarding Flow (Setup Wizard)
 
-9-step wizard at `components/dashboard/rail5-setup-wizard.tsx` (`TOTAL_STEPS = 9`, index 0–8).
+### Entry Points
+
+- **Sidebar "New Card" button** → opens "Add a New Card" modal → clicking **"My Card - Encrypted"** (first option) opens the Rail 5 wizard directly via `onRail5Select` callback. The modal closes, the wizard opens.
+- **Sub-Agent Cards page** (`/sub-agent-cards`) → "Add New Card" button → opens the same wizard.
+- **Overview page** (`/overview`) → Rail 5 card section → opens the same wizard.
+
+9-step modal wizard at `components/dashboard/rail5-setup-wizard.tsx` (`TOTAL_STEPS = 9`, index 0–8).
 
 ### Step 0: Card Name + Brand
 User enters a name, selects brand, enters last 4 digits. Calls `POST /api/v1/rail5/initialize` → creates `rail5_cards` row, returns `cardId`. Status: `pending_setup`.
@@ -197,7 +218,9 @@ Fetches `GET /api/v1/bots/mine`. User selects a bot. Calls `PATCH /api/v1/rail5/
 
 5. **Manual download** — `downloadEncryptedFile()` always triggers browser download as backup.
 
-### Step 7: Delivery Result
+6. **Save card details** — Before clearing the card input fields, the wizard saves the original values (card number, expiry, CVV, holder name, billing address) into `savedCardDetails` state. These persist through Steps 7–8 for field-by-field comparison during test verification.
+
+### Step 7: Delivery Result (`Step7DeliveryResult`)
 
 Adaptive display based on delivery outcome:
 
@@ -210,64 +233,124 @@ Adaptive display based on delivery outcome:
 - **Discord** — copies to clipboard + toast notification.
 - Polls `GET /api/v1/rail5/cards/[cardId]/delivery-status` every 5 seconds for bot confirmation.
 
----
+**Card summary panel** — light gray box showing card name/last4, per-checkout limit, daily/monthly limits, and bot delivery status.
 
-## Message Delivery System
+**Collapsible section** — "For AI Agents or manual file placement" with OpenClaw bot instructions, API guide link, and re-download button.
 
-All three delivery paths use the same instruction text from `lib/agent-management/bot-messaging/templates/rail5-card-delivered.ts`:
+**"Continue to Test Verification"** button appears once delivery is confirmed → advances to Step 8.
+**"Skip — I'll check later"** link allows closing the wizard before confirmation.
 
-| Path | File | How it uses the template |
+### Step 8: Test Verification (`Step8TestVerification`)
+
+Dedicated step for verifying the card decrypts correctly via a sandbox test purchase. Uses token-based tracking for per-card test correlation.
+
+**Three states:**
+
+| State | How detected | Wizard UI |
 |---|---|---|
-| Relay message (wizard UI) | `rail5-setup-wizard.tsx` | Displayed as copyable text, shared via Telegram/Discord |
-| Staged message payload | `rail5-setup-wizard.tsx` → `sendToBot()` | `instructions` field in pending message payload |
-| Webhook payload | `deliver-to-bot/route.ts` | `instructions` field in webhook JSON |
+| **pending** | No `test_started_at`, no completed sale matching token | Shows copy-paste instructions for owner to relay to bot manually (with Copy/Telegram/Discord share buttons) |
+| **in_progress** | `test_started_at` is set, no completed sale yet | Shows spinner — "Your bot is completing the test checkout..." |
+| **completed** | Sale record exists with matching `testToken` in metadata | Shows field-by-field verification results (match/mismatch per field) |
 
-`sendToBot()` (`lib/agent-management/bot-messaging/index.ts`) handles routing:
-- Checks bot's `webhookStatus` (from `bots` table `webhook_status` column)
-- `active` or `degraded` → attempts `fireWebhook()`. On success, resets health to `active`.
-- `unreachable` or `none` → skips webhook, stages as pending message.
-- On webhook failure → increments `webhook_fail_count` atomically, transitions `active→degraded→unreachable`.
+- Polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` every 5 seconds, 5-minute timeout.
+- Server returns the card details the bot submitted at the test checkout; the wizard compares them field-by-field against `savedCardDetails` still in browser memory (client-side only — raw card data never sent to server for comparison).
+- **Test relay message** uses `TEST_RELAY_MESSAGE` constant — instructions for bot to check for `rail5.test.required` event, navigate to the test URL, decrypt the card, and fill the checkout form.
+- **Timeout (5 min)**: Amber warning — "Test purchase not completed yet" with suggestion to check dashboard later.
+- **"Done" button** closes the wizard.
 
-Pending messages expire per event type (`lib/agent-management/bot-messaging/expiry.ts`): `rail5.card.delivered` = 24h.
+**Key constants:** `RAIL5_TEST_CHECKOUT_PAGE_ID` and `RAIL5_TEST_CHECKOUT_URL` in `lib/rail5/index.ts`.
 
 ---
 
 ## Bot-Side Flow
 
 ### 1. Retrieve message
-Bot polls `GET /api/v1/bot/messages` → returns pending messages including `rail5.card.delivered` payload with `file_content`.
+Bot polls `GET /api/v1/bot/messages` (authenticated with API key).
+Returns pending messages including any `rail5.card.delivered` events with the encrypted file in `payload.file_content`.
+
+**Route:** `app/api/v1/bot/messages/route.ts`
 
 ### 2. Save the file
-Bot saves `file_content` to `.creditclaw/cards/` (or path in `suggested_path`).
+Bot saves `file_content` to `.creditclaw/cards/` (or the path in `payload.suggested_path`).
 
 ### 3. Acknowledge message
-Bot calls `POST /api/v1/bot/messages/ack` with `{ message_ids: [id] }` — removes from pending queue.
+Bot calls `POST /api/v1/bot/messages/ack` with `{ message_ids: [id] }`.
+This removes the message from the pending queue — purely queue cleanup.
+
+**Route:** `app/api/v1/bot/messages/ack/route.ts`
 
 ### 4. Confirm delivery
-Bot calls `POST /api/v1/bot/rail5/confirm-delivery` (no body needed).
+Bot calls `POST /api/v1/bot/rail5/confirm-delivery` (authenticated with API key, no body needed).
 
 **Route:** `app/api/v1/bot/rail5/confirm-delivery/route.ts`
 
-- Looks up card linked to bot via `storage.getRail5CardByBotId()`
-- Validates card is in `pending_delivery` status
-- Updates to `confirmed` via `storage.updateRail5Card()`
-- Cleans up pending messages via `storage.deletePendingMessagesByRef()`
+Logic:
+- Looks up the card linked to this bot via `storage.getRail5CardByBotId()`.
+- Validates card is in `pending_delivery` status.
+- Updates card status to `confirmed` via `storage.updateRail5Card()`.
+- Generates an 8-char hex test token: `randomBytes(4).toString("hex")`.
+- Stores the token on the card: `storage.updateRail5Card(cardId, { testToken })`.
+- Builds the test checkout URL with the token: `${RAIL5_TEST_CHECKOUT_URL}?t=${testToken}`.
+- Sends a `rail5.test.required` event via `sendToBot()` with:
+  - `card_id`, `card_name`, `test_checkout_url` (with token), `instructions` (from `buildRail5TestInstructions()` template)
+  - This ensures the bot is proactively notified about the test, even if it doesn't parse the confirm-delivery response.
+- Cleans up any remaining pending messages for this card via `storage.deletePendingMessagesByRef()`.
 - Returns:
+  ```json
+  {
+    "status": "confirmed",
+    "card_id": "r5card_...",
+    "card_name": "...",
+    "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
+    "test_checkout_url": "https://creditclaw.com/pay/cp_dd5f6ff666dcb31fce0f251a?t=a3f8b2c1",
+    "test_instructions": "Navigate to the test checkout URL to complete a sandbox purchase.\n..."
+  }
+  ```
+
+### 5. Test purchase (verification)
+After confirming delivery, the bot receives a `rail5.test.required` event (via webhook or pending message) with the test checkout URL and full instructions:
+
+1. Bot navigates to the test checkout URL (includes `?t=<token>` for tracking).
+2. When the checkout page loads with the `?t=` parameter, the server records `test_started_at` on the matching card (marking the test as "in progress" for the owner's wizard).
+3. Bot decrypts the card file using `POST /api/v1/bot/rail5/key` and the embedded decrypt script.
+4. Bot fills in all card details on the test checkout form and submits.
+5. The test payment handler records the submitted details in the sale's metadata along with the `testToken` (forwarded via `?t=` query param). No real charge is processed.
+6. The wizard (still open) polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status`. The endpoint matches the sale by `testToken` (not by time window), preventing cross-card contamination.
+7. The wizard compares each field client-side against `savedCardDetails` still in browser memory.
+
+**Route:** `app/api/v1/rail5/cards/[cardId]/test-purchase-status/route.ts`
+
+Logic:
+- Session-authenticated (owner only), validates card ownership.
+- Loads card record to get `card.testToken` and `card.testStartedAt`.
+- If `card.testToken` is set, queries sales for the test checkout page and filters to those where `metadata.testToken === card.testToken`.
+- Returns one of three states:
+  - Matching sale found → `{ status: "completed", sale_id, submitted_details }`
+  - `card.testStartedAt` set but no matching sale → `{ status: "in_progress", started_at }`
+  - Otherwise → `{ status: "pending" }`
+
+Response when completed:
 ```json
 {
-  "status": "confirmed",
-  "card_id": "r5card_...",
-  "card_name": "...",
-  "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
-  "test_checkout_url": "https://creditclaw.com/pay/cp_dd5f6ff666dcb31fce0f251a",
-  "test_instructions": "Navigate to ... to complete a test purchase.\nThis is a sandbox checkout — no real payment will be processed.\n..."
+  "status": "completed",
+  "sale_id": "sale_...",
+  "completed_at": "2026-03-10T...",
+  "submitted_details": {
+    "cardNumber": "4111111111111111",
+    "cardExpiry": "12/26",
+    "cardCvv": "123",
+    "cardholderName": "John Doe",
+    "billingAddress": "123 Main St",
+    "billingCity": "New York",
+    "billingState": "NY",
+    "billingZip": "10001"
+  }
 }
 ```
 
-### 5. Test purchase (verification)
-Bot follows the `test_instructions` from confirm-delivery: navigates to the test checkout URL, decrypts the card file, fills in card details, and submits. The "testing" payment method records the entered details in the sale metadata without processing a real charge. The owner's wizard polls `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` to compare the submitted details against the originals field-by-field.
+---
 
-### Card Status Progression
+## Card Status Progression
 
 | Status | Meaning | Triggered By |
 |---|---|---|
@@ -283,6 +366,37 @@ UI label mapping (`components/wallet/card-visual.tsx`):
 - `confirmed` → "Confirmed"
 - `active` → "Active"
 - `frozen` → "Frozen"
+
+---
+
+## Message Delivery System
+
+### Webhook Events
+
+| Event | Description |
+|---|---|
+| `rail5.card.delivered` | Encrypted card file delivered to bot |
+| `rail5.test.required` | Card confirmed — complete a sandbox test purchase at the provided URL to activate |
+| `rail5.checkout.completed` | Checkout confirmed successful |
+| `rail5.checkout.failed` | Checkout reported failure |
+| `rails.updated` | Payment methods or spending config changed |
+
+### Delivery Routing
+
+All delivery paths use centralized templates from `lib/agent-management/bot-messaging/templates/`:
+
+| Template | File | Used By |
+|---|---|---|
+| `RAIL5_CARD_DELIVERED` | `rail5-card-delivered.ts` | Wizard relay message, `sendToBot()` card delivery payload |
+| `buildRail5TestInstructions(url)` | `rail5-test-required.ts` | `confirm-delivery` endpoint, wizard test relay message |
+
+`sendToBot()` (`lib/agent-management/bot-messaging/index.ts`) handles routing:
+- Checks bot's `webhookStatus` (from `bots` table `webhook_status` column)
+- `active` or `degraded` → attempts `fireWebhook()`. On success, resets health to `active`.
+- `unreachable` or `none` → skips webhook, stages as pending message.
+- On webhook failure → increments `webhook_fail_count` atomically, transitions `active→degraded→unreachable`.
+
+Pending messages expire per event type (`lib/agent-management/bot-messaging/expiry.ts`): `rail5.card.delivered` = 24h.
 
 ---
 
@@ -355,9 +469,7 @@ All rails fire a unified `rails.updated` webhook when a bot's payment methods ch
 }
 ```
 
-### Available Actions
-
-`card_linked`, `card_removed`, `card_frozen`, `card_unfrozen`, `card_created`, `card_deleted`, `wallet_created`, `wallet_linked`, `wallet_unlinked`, `wallet_frozen`, `wallet_unfrozen`, `wallet_funded`, `limits_updated`
+Available actions: `card_linked`, `card_removed`, `card_frozen`, `card_unfrozen`, `card_created`, `card_deleted`, `wallet_created`, `wallet_linked`, `wallet_unlinked`, `wallet_frozen`, `wallet_unfrozen`, `wallet_funded`, `limits_updated`
 
 All `rails.updated` webhooks use `fireWebhook()` with full persistence. These payloads contain no sensitive data (just action + IDs).
 
@@ -471,7 +583,7 @@ Session deleted. Key, decrypted card, all context — gone.
 | GET | `/api/v1/rail5/cards` | List owner's Rail 5 cards |
 | GET | `/api/v1/rail5/cards/[cardId]` | Get card detail + checkout history |
 | PATCH | `/api/v1/rail5/cards/[cardId]` | Update card settings, link/unlink bot, freeze/unfreeze |
-| GET | `/api/v1/rail5/cards/[cardId]/test-purchase-status` | Poll test purchase result + field-by-field card verification |
+| GET | `/api/v1/rail5/cards/[cardId]/test-purchase-status` | Poll test result — 3 states: pending, in_progress, completed |
 | POST | `/api/v1/rail5/deliver-to-bot` | Transient relay of encrypted file to bot (legacy) |
 | POST | `/api/v1/bot-messages/send` | Universal message delivery via `sendToBot()` |
 
@@ -482,7 +594,7 @@ Session deleted. Key, decrypted card, all context — gone.
 | POST | `/api/v1/bot/rail5/checkout` | 30/hr | Validate spend + return spawn payload |
 | POST | `/api/v1/bot/rail5/key` | 30/hr | Return decryption key (single-use) |
 | POST | `/api/v1/bot/rail5/confirm` | 30/hr | Sub-agent reports checkout result |
-| POST | `/api/v1/bot/rail5/confirm-delivery` | — | Bot confirms card file received + gets test checkout instructions |
+| POST | `/api/v1/bot/rail5/confirm-delivery` | — | Bot confirms card file received + generates test token + sends `rail5.test.required` event |
 | GET | `/api/v1/bot/messages` | — | Poll pending messages |
 | POST | `/api/v1/bot/messages/ack` | — | Acknowledge (remove) pending messages |
 
@@ -520,6 +632,7 @@ Stable since Node 10+. Built-in, no dependencies.
 | Human approval | Configurable threshold — owner confirmation for purchases above limit |
 | Sub-agent timeout | 5 minutes, then killed + deleted |
 | Webhook delivery persistence | `rails.updated` and other events: persisted. `rail5.card.delivered`: transient (webhook) or 24h expiry (pending message) |
+| Test verification | Per-card token matching — no cross-card contamination |
 
 ---
 
@@ -536,7 +649,6 @@ Stable since Node 10+. Built-in, no dependencies.
 | 2026-02-26 | Exported `signPayload` and `attemptDelivery` from `lib/webhooks.ts` for transient relay use |
 | 2026-02-26 | Removed all `webhook_deliveries` writes from deliver-to-bot |
 | 2026-03-06 | Wizard expanded to 8 steps (added billing address + delivery result with relay message sharing) |
-| 2026-03-07 | Wizard expanded to 9 steps (split delivery result and test verification into separate steps) |
 | 2026-03-06 | `sendToBot()` replaced direct `fireWebhook()` for card delivery — adds pending message fallback |
 | 2026-03-06 | Moved `lib/bot-messaging/` → `lib/agent-management/bot-messaging/` |
 | 2026-03-06 | Added centralized message templates (`lib/agent-management/bot-messaging/templates/`) |
@@ -546,8 +658,19 @@ Stable since Node 10+. Built-in, no dependencies.
 | 2026-03-06 | Status label `pending_delivery` → "Ready to Test" (was "Awaiting Bot") |
 | 2026-03-06 | Webhook health tracking: `webhookStatus`/`webhookFailCount` on bots table, smart routing in `sendToBot()` |
 | 2026-03-06 | Spending controls moved to `rail5_guardrails` table (separate from `rail5_cards`) |
-| 2026-03-06 | Removed confirm-delivery docs from `skill.md` — bot receives instructions via message payload |
-| 2026-03-07 | Confirm-delivery response updated with real `test_checkout_url` and `test_instructions` for sandbox verification |
-| 2026-03-07 | Added `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` — field-by-field card detail verification against test sale |
-| 2026-03-07 | Step 7 Phase 2: test purchase verification with 3-minute polling, field-by-field match display |
-| 2026-03-07 | Card details saved into `savedCardDetails` state before clearing inputs — persists through Step 7 for comparison |
+| 2026-03-07 | Wizard expanded to 9 steps (split delivery result and test verification into separate steps) |
+| 2026-03-07 | Confirm-delivery response updated with real `test_checkout_url` and `test_instructions` |
+| 2026-03-07 | Added `GET /api/v1/rail5/cards/[cardId]/test-purchase-status` — field-by-field card verification |
+| 2026-03-07 | Card details saved into `savedCardDetails` state before clearing inputs |
+| 2026-03-10 | Added `test_token` and `test_started_at` columns to `rail5_cards` for per-card test tracking |
+| 2026-03-10 | Added `rail5.test.required` event — sent via `sendToBot()` after confirm-delivery |
+| 2026-03-10 | Created `rail5-test-required.ts` template with `buildRail5TestInstructions(url)` |
+| 2026-03-10 | `confirm-delivery` now generates 8-char hex token, stores on card, appends to test URL as `?t=` |
+| 2026-03-10 | Test checkout page records `test_started_at` when loaded with matching `?t=` token |
+| 2026-03-10 | Test payment handler forwards `testToken` in sale metadata via `?t=` query param |
+| 2026-03-10 | `test-purchase-status` matches sales by token only — removed 5-minute window fallback (fixes cross-card contamination bug) |
+| 2026-03-10 | Step 8 now shows three states: pending (manual relay instructions), in_progress (spinner), completed (field-by-field results) |
+| 2026-03-10 | Removed dark card info/API cheat sheet block from Step 7 (redundant with card summary panel) |
+| 2026-03-10 | Renamed "Self-Hosted" to "My Card - Encrypted" in New Card modal, moved to first position |
+| 2026-03-10 | "My Card - Encrypted" now opens Rail 5 wizard directly from the modal (no navigation to `/sub-agent-cards`) |
+| 2026-03-10 | Added `rail5.test.required` to webhook events docs in `skill.md` and `encrypted-card.md` |
