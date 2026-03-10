@@ -29,3 +29,6 @@ Thumbs.db
 
 # TypeScript build info
 tsconfig.tsbuildinfo
+
+# Skill variant build output
+skill-variants/*/dist/

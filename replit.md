@@ -192,6 +192,20 @@ CreditClaw supports USDC transfers between wallets across all rails and to exter
 ### Transaction Ledger — `balance_after` Column
 All transaction tables (`transactions`, `privy_transactions`, `crossmint_transactions`, `rail5_checkouts`) have a nullable `balance_after` column that records the wallet's balance at the time the transaction was created. No calculations — just stores whatever the DB balance is at that moment. For reconciliation, it stores the on-chain balance. For pending x402 payments, it stores the current (unchanged) DB balance. The real balance drop shows when reconciliation runs. All owner-facing and bot-facing transaction list APIs include `balance_after` / `balance_after_display` in responses. Frontend ledger tables show a "Balance" column.
 
+### Skill Variants System
+A config-driven build system at `skill-variants/` (project root) that generates variant skill packages from the master files in `public/`. Each variant has its own independent `variant.config.json` defining overrides.
+
+**Structure:**
+- `skill-variants/<name>/variant.config.json` — config with frontmatter overrides, URL prefix, title override, optional extra files
+- `skill-variants/<name>/dist/` — generated output (gitignored)
+- Master source: `public/` (skill.md, skill.json, heartbeat.md, and all supporting .md files)
+
+**Config fields:** `source` (master dir), `urlPrefix` (rewrites all file URLs), `overrides` (frontmatter patches), `skillJsonOverrides` (skill.json patches), `titleOverride` (H1 heading), `extraFiles` (optional additional files from variant folder)
+
+**Build:** `npx tsx scripts/build-variants.ts` — scans all variant folders, copies master files, patches frontmatter/URLs/skill.json, auto-generates Skill Files table and install commands, outputs to dist/.
+
+**Current variants:** stripe, creditcard, amazon, shopping
+
 ### Procurement Skills Module
 A `/skills/` module provides a curated library of vendor shopping skills.
 - **Types:** Defines CheckoutMethod taxonomy, VendorCapability, SkillMaturity, and VendorSkill interface.
