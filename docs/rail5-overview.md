@@ -1,6 +1,6 @@
 # Rail 5: Sub-Agent Cards — Technical Overview
 
-**Internal Reference**
+**v4 • March 10, 2026 • Internal**
 
 ---
 
