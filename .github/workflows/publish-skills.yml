@@ -1,5 +1,5 @@
-# This workflow has been moved to scripts/publish-skills.yml
-# To use it on GitHub, copy scripts/publish-skills.yml to .github/workflows/publish-skills.yml
+# This workflow has been moved to skill-variants/publish-skills.yml
+# To use it on GitHub, copy skill-variants/publish-skills.yml to .github/workflows/publish-skills.yml
 # in your GitHub repository (via GitHub web UI or local clone).
 #
 # The file was moved out of .github/ to avoid Replit-GitHub sync conflicts.

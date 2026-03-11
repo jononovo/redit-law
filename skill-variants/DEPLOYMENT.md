@@ -39,7 +39,7 @@ Example config:
 ### Running a Build
 
 ```bash
-npx tsx scripts/build-variants.ts
+npx tsx skill-variants/build-variants.ts
 ```
 
 This reads every `skill-variants/<name>/variant.config.json`, processes the master files, and writes output to `skill-variants/<name>/dist/`.
@@ -131,7 +131,7 @@ That's it for now. Variant publishing is commented out in the workflow file.
 
 #### Workflow File
 
-The workflow reference copy lives at `scripts/publish-skills.yml`. To activate it on GitHub,
+The workflow reference copy lives at `skill-variants/publish-skills.yml`. To activate it on GitHub,
 copy this file to `.github/workflows/publish-skills.yml` in your GitHub repository (via the
 GitHub web editor or a local clone). This is a one-time setup step — see "Setup (One-Time)" below.
 
@@ -141,7 +141,7 @@ The `.github/` folder is not managed by Replit to avoid sync conflicts.
 
 ## Enabling Variant Publishing (Phase 2)
 
-When you're confident the main skill is publishing and updating correctly on ClawHub, enable variant auto-publishing by making these changes in `scripts/publish-skills.yml` (and re-copying it to GitHub):
+When you're confident the main skill is publishing and updating correctly on ClawHub, enable variant auto-publishing by making these changes in `skill-variants/publish-skills.yml` (and re-copying it to GitHub):
 
 ### Step 1: Uncomment the path triggers
 
@@ -150,14 +150,14 @@ Find these commented lines near the top of the file (around lines 9-10):
 ```yaml
       # UNCOMMENT THESE when ready to auto-publish variants (see DEPLOYMENT.md "Enabling Variant Publishing")
       # - 'skill-variants/**/variant.config.json'
-      # - 'scripts/build-variants.ts'
+      # - 'skill-variants/build-variants.ts'
 ```
 
 Change them to:
 
 ```yaml
       - 'skill-variants/**/variant.config.json'
-      - 'scripts/build-variants.ts'
+      - 'skill-variants/build-variants.ts'
 ```
 
 This tells GitHub to also trigger the workflow when variant configs or the build script change.
@@ -195,7 +195,7 @@ Commit and push. The next time any skill file changes, both the main skill and a
 The full pipeline becomes:
 
 1. **Publishes the main skill** — with `--slug`, `--version`, and `--tags latest` extracted from `public/skill.md`
-2. **Builds all variants** — runs `npx tsx scripts/build-variants.ts` to generate each variant's `dist/` folder
+2. **Builds all variants** — runs `npx tsx skill-variants/build-variants.ts` to generate each variant's `dist/` folder
 3. **Publishes each variant** — reads `overrides.name` and `overrides.version` from each variant's `variant.config.json`, then runs:
    ```bash
    clawhub publish ./skill-variants/<name>/dist \
@@ -225,7 +225,7 @@ To enable automated publishing:
    - Value: paste your CLI token
 
 3. **Copy the workflow file to GitHub**
-   - The workflow reference copy is at `scripts/publish-skills.yml` in this repo
+   - The workflow reference copy is at `skill-variants/publish-skills.yml` in this repo
    - On GitHub, create `.github/workflows/publish-skills.yml` and paste the contents
    - You can do this via the GitHub web editor: navigate to your repo → Add file → Create new file → enter the path `.github/workflows/publish-skills.yml` → paste → commit to `main`
    - Once it's there, GitHub starts watching for skill file changes automatically
@@ -251,7 +251,7 @@ clawhub publish ./public \
   --tags latest
 
 # Build and publish variants (when ready)
-npx tsx scripts/build-variants.ts
+npx tsx skill-variants/build-variants.ts
 
 clawhub publish ./skill-variants/stripe/dist \
   --slug stripe --version 2.3.1 --tags latest
