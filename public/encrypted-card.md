@@ -2,20 +2,20 @@
 name: creditclaw-encrypted-card
 version: 2.5.0
 updated: 2026-03-09
-description: "Encrypted Card (Rail 5) — sub-agent checkout flow for CreditClaw bots."
+description: "My Card (Rail 5) — secure checkout flow for CreditClaw bots."
 companion_of: https://creditclaw.com/skill.md
 api_base: https://creditclaw.com/api/v1
 credentials: [CREDITCLAW_API_KEY]
 ---
 
-# Encrypted Card (Rail 5)
+# My Card (Rail 5)
 
 > **This file is a companion to [skill.md](https://creditclaw.com/skill.md).**
 > For registration, security details, webhooks, spending permissions, and the full API reference, see the main skill file.
 
-Rail 5 lets your owner encrypt their real-world credit card and deliver it to you as a file.
-You use a **sub-agent checkout flow** to decrypt the card for a single transaction, then the
-sub-agent is deleted — decrypted card data never persists.
+Rail 5 lets your owner securely share their card details with you. Card details are protected
+with AES-256-GCM encryption. You decrypt the card details for a single transaction using a
+one-time key from the API, and the decrypted data is discarded immediately after checkout.
 
 **Base URL:** `https://creditclaw.com/api/v1`
 
@@ -23,10 +23,9 @@ sub-agent is deleted — decrypted card data never persists.
 
 ## Making a Purchase
 
-This is the core transaction flow. When you need to buy something, you should **spawn an
-ephemeral sub-agent** to handle the checkout. This keeps decrypted payment details isolated
-from your main context and ensures sensitive data is automatically cleaned up after the
-transaction completes.
+This is the core transaction flow. When you need to buy something, follow the checkout steps
+below. Decrypted card details should only exist in memory for the duration of the checkout
+and must be discarded immediately after.
 
 ### How It Works
 
@@ -35,23 +34,13 @@ transaction completes.
 2. You call POST /bot/rail5/checkout with the merchant and amount details
 3. CreditClaw checks guardrails — if within limits, it approves immediately
    If above threshold, your owner gets an approval request (via dashboard or email)
-4. Once approved, you spawn a sub-agent with the checkout_steps
-5. The sub-agent calls POST /bot/rail5/key to get the one-time decryption key
-6. The sub-agent decrypts the card file and completes checkout at the merchant
-7. The sub-agent calls POST /bot/rail5/confirm with success or failure
-8. The sub-agent is deleted — decrypted card data never persists
-9. You announce the result to your human
+4. Once approved, follow the checkout_steps returned by the API
+5. Call POST /bot/rail5/key to get the one-time decryption key
+6. Decrypt the card details using AES-256-GCM and complete checkout at the merchant
+7. Call POST /bot/rail5/confirm with success or failure
+8. Discard decrypted card data — it must not persist beyond this checkout
+9. Announce the result to your human
 ```
-
-**Why sub-agents?** The sub-agent pattern ensures that:
-- Your main agent **never sees** the decrypted card details
-- Card data exists only in the sub-agent's memory for the duration of one transaction
-- The sub-agent is deleted after checkout — no data leaks across sessions
-- If the sub-agent crashes, the decryption key is already consumed and cannot be reused
-
-> **Alternative:** If your environment doesn't support spawning sub-agents, you can execute
-> the `checkout_steps` directly as the main agent. The guardrails and encryption still protect
-> your owner's card — but the main agent will see the decrypted card details in its context.
 
 ### Step 1: Request Checkout
 
@@ -84,18 +73,12 @@ curl -X POST https://creditclaw.com/api/v1/bot/rail5/checkout \
   "checkout_id": "r5chk_abc123",
   "checkout_steps": [
     "Call POST /api/v1/bot/rail5/key with { \"checkout_id\": \"r5chk_abc123\" } to get the decryption key.",
-    "Run: node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md",
+    "Decrypt the encrypted card data using AES-256-GCM with the key, IV, and tag from the API response.",
     "Use the decrypted card details to complete checkout at DigitalOcean.",
     "Call POST /api/v1/bot/rail5/confirm with { \"checkout_id\": \"r5chk_abc123\", \"status\": \"success\" } when done.",
     "If checkout fails, call confirm with { \"status\": \"failed\" } instead.",
-    "Announce the result."
-  ],
-  "spawn_payload": {
-    "task": "You are a checkout agent...",
-    "cleanup": "delete",
-    "runTimeoutSeconds": 300,
-    "label": "checkout-digitalocean"
-  }
+    "Discard all decrypted card data. Announce the result."
+  ]
 }
 ```
 
@@ -137,7 +120,7 @@ Response:
 | Status | Meaning |
 |--------|---------|
 | `pending_approval` | Owner hasn't responded yet — poll again in 30 seconds |
-| `approved` | Owner approved — proceed with spawning a sub-agent |
+| `approved` | Owner approved — proceed with checkout |
 | `rejected` | Owner declined — do not proceed |
 | `expired` | 15-minute approval window passed — try again if needed |
 | `completed` | Checkout confirmed successful |
@@ -145,20 +128,9 @@ Response:
 
 Your owner receives the approval request via their dashboard and email. Approvals expire after 15 minutes.
 
-### Step 2: Spawn a Sub-Agent
+### Step 2: Get Decryption Key
 
-Once the checkout is approved, spawn an ephemeral sub-agent using the `spawn_payload` from the response:
-
-```
-sessions_spawn({ task: spawn_payload.task, cleanup: "delete", runTimeoutSeconds: 300 })
-```
-
-The sub-agent executes the `checkout_steps` in sequence. You (the main agent) wait for
-the sub-agent to complete and then announce the result.
-
-### Step 3: Get Key (Sub-Agent Does This)
-
-The sub-agent calls this endpoint to retrieve the one-time decryption key:
+Once the checkout is approved, call this endpoint to retrieve the one-time decryption key:
 
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bot/rail5/key \
@@ -169,23 +141,19 @@ curl -X POST https://creditclaw.com/api/v1/bot/rail5/key \
 
 **Response:** `{ "key_hex": "...", "iv_hex": "...", "tag_hex": "..." }`
 
-**This key is single-use.** It cannot be retrieved again for this checkout. If the sub-agent
+**This key is single-use.** It cannot be retrieved again for this checkout. If decryption
 fails after retrieving the key, the checkout must be re-initiated.
 
-### Step 4: Decrypt (Sub-Agent Does This)
+### Step 3: Decrypt Card Details
 
-The sub-agent runs the deterministic decrypt script that was delivered with the card file:
+Using the `key_hex`, `iv_hex`, and `tag_hex` from the API response, perform AES-256-GCM
+decryption on the encrypted card data you received from your owner. This produces the
+card details (number, CVV, expiry, name, billing address).
 
-```
-node decrypt.js <key_hex> <iv_hex> <tag_hex> Card-ChaseD-9547.md
-```
+**Critical:** Never store, log, or persist the decrypted card data.
+It should exist only in memory for the duration of this single checkout.
 
-This outputs the card JSON (number, CVV, expiry, name, billing address).
-
-**Critical:** The sub-agent must **never** store, log, or persist the decrypted card data.
-It exists only in memory for this single transaction. After checkout, the sub-agent is deleted.
-
-### Step 5: Confirm (Sub-Agent Does This)
+### Step 4: Confirm
 
 After completing (or failing) checkout at the merchant:
 
@@ -202,12 +170,12 @@ from `confirmed` to `active`.
 
 ---
 
-## Encrypted Card File Delivery
+## Receiving Card Details
 
-When your owner sets up an encrypted card for you, CreditClaw delivers a single self-contained
-file via the `rail5.card.delivered` event.
+When your owner sets up a card for you, CreditClaw delivers the encrypted card details
+via the `rail5.card.delivered` event.
 
-**Via webhook:** If you have a `callback_url`, the file is delivered automatically:
+**Via webhook:** If you have a `callback_url`, the card details are delivered automatically:
 ```json
 {
   "event": "rail5.card.delivered",
@@ -216,26 +184,22 @@ file via the `rail5.card.delivered` event.
     "card_id": "r5card_...",
     "card_name": "ChaseD",
     "card_last4": "9547",
-    "file_content": "<self-contained markdown file with decrypt script and encrypted data>",
-    "suggested_path": ".creditclaw/cards/Card-ChaseD-9547.md",
-    "instructions": "Save this file to .creditclaw/cards/Card-ChaseD-9547.md — then confirm delivery via POST /bot/rail5/confirm-delivery"
+    "encrypted_data": "<encrypted card details>",
+    "instructions": "Accept the encrypted card details and confirm delivery via POST /bot/rail5/confirm-delivery"
   }
 }
 ```
 
 **Via bot messages (fallback):** If you don't have a webhook, check `GET /bot/messages` for
-messages with `event_type: "rail5.card.delivered"`. The payload is identical. After saving the
-file, acknowledge the message via `POST /bot/messages/ack`.
+messages with `event_type: "rail5.card.delivered"`. The payload is identical. After accepting
+the card details, acknowledge the message via `POST /bot/messages/ack`.
 
-**Save the file** to `.creditclaw/cards/` (or the path in `suggested_path`). The file is
-self-contained — it includes the decrypt script between `DECRYPT_SCRIPT_START/END` markers
-and the encrypted data between `ENCRYPTED_CARD_START/END` markers.
-
-Follow the `instructions` field in the message payload for next steps.
+Store the encrypted card data securely using your platform's secrets manager or keep it
+in memory. Follow the `instructions` field in the message payload for next steps.
 
 ### Confirm Delivery
 
-**After saving the file**, confirm delivery so your card status advances from `pending_delivery`
+**After receiving the card details**, confirm delivery so your card status advances from `pending_delivery`
 to `confirmed`:
 
 ```bash
@@ -251,7 +215,7 @@ Response:
   "card_name": "ChaseD",
   "message": "Card confirmed. Complete a test purchase to verify your card works end-to-end.",
   "test_checkout_url": "https://creditclaw.com/pay/test_...",
-  "test_instructions": "Navigate to the test checkout URL to complete a sandbox purchase.\nThis is a sandbox checkout — no real payment will be processed.\nUse the encrypted card file you just saved to decrypt and enter the card details.\nFill in all fields: card number, expiry, CVV, cardholder name, and billing address.\nSubmit the payment. The system will verify that the card details were decrypted correctly.\nThis proves your card file works end-to-end before any real purchase."
+  "test_instructions": "Navigate to the test checkout URL to complete a sandbox purchase.\nThis is a sandbox checkout — no real payment will be processed.\nDecrypt the card details and enter them at the checkout page.\nFill in all fields: card number, expiry, CVV, cardholder name, and billing address.\nSubmit the payment. The system will verify that the card details were decrypted correctly.\nThis proves your card works end-to-end before any real purchase."
 }
 ```
 
@@ -261,13 +225,13 @@ even if you don't parse the `confirm-delivery` response.
 
 **Complete the test purchase** at the `test_checkout_url` to advance your card from `confirmed`
 to `active`. This is a sandbox checkout — no real payment is processed. It verifies that your
-card file decrypts correctly end-to-end before any real purchase.
+card details decrypt correctly end-to-end before any real purchase.
 
 **Pending messages for card deliveries expire after 24 hours.** If the message expires before
 you retrieve it, your owner can re-stage the delivery from their dashboard.
 
-**Recovery:** If you lose the file, your owner deletes the card and creates a new one
-through the setup wizard. The file is re-delivered automatically.
+**Recovery:** If you lose the card data, your owner deletes the card and creates a new one
+through the setup wizard. The card details are re-delivered automatically.
 
 ---
 
@@ -275,13 +239,13 @@ through the setup wizard. The file is re-delivered automatically.
 
 | Status | Meaning |
 |--------|---------|
-| `pending_delivery` | Key submitted, waiting for bot to confirm file delivery |
-| `confirmed` | Bot confirmed file saved — ready for checkout |
+| `pending_delivery` | Key submitted, waiting for bot to confirm card details received |
+| `confirmed` | Bot confirmed card details received — ready for checkout |
 | `active` | First successful checkout completed — proven working |
 | `frozen` | Owner manually paused the card |
 
 > Cards begin in `pending_setup` during owner configuration. Your bot first sees the card
-> at `pending_delivery` when the encrypted file is delivered.
+> at `pending_delivery` when the encrypted card details are delivered.
 
 ---
 
