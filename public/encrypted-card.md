@@ -78,7 +78,13 @@ curl -X POST https://creditclaw.com/api/v1/bot/rail5/checkout \
     "Call POST /api/v1/bot/rail5/confirm with { \"checkout_id\": \"r5chk_abc123\", \"status\": \"success\" } when done.",
     "If checkout fails, call confirm with { \"status\": \"failed\" } instead.",
     "Discard all decrypted card data. Announce the result."
-  ]
+  ],
+  "spawn_payload": {
+    "task": "You are a checkout agent...",
+    "cleanup": "delete",
+    "runTimeoutSeconds": 300,
+    "label": "checkout-digitalocean"
+  }
 }
 ```
 
