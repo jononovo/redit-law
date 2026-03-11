@@ -8,7 +8,7 @@ import { RegisterBot } from "./steps/register-bot";
 import { SignInStep } from "./steps/sign-in";
 import { ClaimToken } from "./steps/claim-token";
 import { AddCardBridge } from "./steps/add-card-bridge";
-import { Rail5SetupWizardContent } from "@/components/dashboard/rail5-setup-wizard";
+import { Rail5SetupWizardContent } from "@/components/onboarding/rail5-wizard";
 
 interface WizardState {
   agentType: string | null;

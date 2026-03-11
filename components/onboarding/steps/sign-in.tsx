@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { WizardStep } from "../wizard-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { wt } from "@/lib/wizard-typography";
 import { Mail, Chrome, Github, Loader2 } from "lucide-react";
 
 interface SignInStepProps {
@@ -102,7 +103,7 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
           <Button
             data-testid="button-onboarding-sign-in-google"
             variant="outline"
-            className="w-full h-12 md:h-14 rounded-xl text-sm md:text-base font-semibold gap-3 cursor-pointer"
+            className={`w-full ${wt.secondaryButton} font-semibold gap-3 cursor-pointer`}
             onClick={handleGoogle}
             disabled={loading}
           >
@@ -113,7 +114,7 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
           <Button
             data-testid="button-onboarding-sign-in-github"
             variant="outline"
-            className="w-full h-12 md:h-14 rounded-xl text-sm md:text-base font-semibold gap-3 cursor-pointer"
+            className={`w-full ${wt.secondaryButton} font-semibold gap-3 cursor-pointer`}
             onClick={handleGithub}
             disabled={loading}
           >
@@ -163,7 +164,7 @@ export function SignInStep({ currentStep, totalSteps, onBack, onNext }: SignInSt
             <Button
               data-testid="button-onboarding-send-magic-link"
               type="submit"
-              className="w-full h-12 md:h-14 rounded-xl bg-primary text-white hover:bg-primary/90 font-semibold text-base md:text-lg cursor-pointer"
+              className={`w-full ${wt.primaryButton} bg-primary text-white hover:bg-primary/90 font-semibold cursor-pointer`}
               disabled={loading || !email.trim()}
             >
               <Mail className="w-4 h-4 mr-2" />

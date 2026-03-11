@@ -30,7 +30,7 @@ export function WizardStep({ title, subtitle, currentStep, totalSteps, onBack, s
           {showBack && onBack && (
             <button
               onClick={onBack}
-              className={`flex items-center gap-2 text-neutral-400 hover:text-neutral-600 mb-8 ${wt.secondaryButton} cursor-pointer`}
+              className={`flex items-center gap-2 text-neutral-400 hover:text-neutral-600 mb-8 ${wt.body} cursor-pointer`}
               data-testid="button-wizard-back"
             >
               <ArrowLeft className="w-4 h-4" />

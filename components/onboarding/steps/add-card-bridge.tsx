@@ -25,7 +25,7 @@ export function AddCardBridge({ currentStep, totalSteps, onBack, onNext, onSkip 
       <div className="space-y-6">
         <Button
           onClick={onNext}
-          className={`w-full rounded-xl h-12 md:h-14 ${wt.primaryButton} gap-2 cursor-pointer`}
+          className={`w-full ${wt.primaryButton} gap-2 cursor-pointer`}
           data-testid="button-add-card-yes"
         >
           Yes, let's add a card
@@ -35,7 +35,7 @@ export function AddCardBridge({ currentStep, totalSteps, onBack, onNext, onSkip 
         <div className="text-center">
           <button
             onClick={onSkip}
-            className={`${wt.secondaryButton} text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer`}
+            className={`${wt.body} text-neutral-400 hover:text-neutral-600 py-2 cursor-pointer`}
             data-testid="button-add-card-skip"
           >
             Skip — I'll do this later

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WizardStep } from "../wizard-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { wt } from "@/lib/wizard-typography";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { BotInstructionBlock } from "../bot-instruction-block";
 
@@ -96,7 +97,7 @@ export function ClaimToken({ currentStep, totalSteps, onBack, onNext, onSkip }: 
         <Button
           onClick={handleClaim}
           disabled={!token.trim() || loading}
-          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg cursor-pointer"
+          className={`w-full ${wt.primaryButton} cursor-pointer`}
           data-testid="button-claim"
         >
           {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Claim Bot"}
