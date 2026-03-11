@@ -1,0 +1,22 @@
+OpenClaw
+Benign
+high confidence
+
+The skill's claims, required credential, and runtime instructions are internally consistent with a service that gives an agent the ability to spend via CreditClaw; nothing requested appears unrelated to the stated purpose.
+✓
+Purpose & Capability
+Name/description align with requested resources and instructions: the skill declares and uses a single service credential (CREDITCLAW_API_KEY) and all example endpoints target creditclaw.com. There are no unrelated environment variables, binaries, or install steps that don't belong to a payment/checkout service.
+ℹ
+Instruction Scope
+Instructions stay within the payment domain (checkout flows, webhooks, polling status, top-up requests, x402 signing). They require the bot to handle sensitive data (deliver, retrieve one-time AES-256-GCM decryption keys, decrypt card PAN/CVV in memory, and perform merchant checkouts). That is coherent for a card-based checkout rail, but it is sensitive: the host/platform must actually provide a secure secrets manager and safe in-memory handling to meet the guidance in the docs. The docs also instruct periodic polling (heartbeat) and interacting with external resource URLs (success_url, product URLs, merchant resource_url for x402), which are expected but mean the agent will contact external domains as part of normal operation.
+✓
+Install Mechanism
+Instruction-only skill with no install spec and no downloaded code; nothing will be written to disk by an installer. This is lower-risk from an install perspective.
+✓
+Credentials
+Only one required environment variable (CREDITCLAW_API_KEY) is declared and used. That single credential is proportionate to a payment API that needs an API key. The SKILL.md explicitly warns against sending the key to other domains.
+✓
+Persistence & Privilege
+The skill is not forced-always, does not request system-level persistence, and does not declare modifications to other skills or system-wide settings. It does recommend polling and webhook usage (normal for a payments integration) but requests no elevated platform privileges.
+Assessment
+This skill is coherent for giving an agent spending power, but it involves sensitive card handling and financial actions—so before installing: 1) Confirm you trust creditclaw.com and the publisher (source is listed as unknown here). 2) Ensure your agent host/platform provides a secure secrets manager and that decrypted card PAN/CVV will only ever live in memory for a single transaction as the docs demand. 3) Review and set strict spending limits and approval_mode in the provided spending configuration so the agent cannot auto-spend beyond what you expect. 4) Monitor activity logs and rotate the CREDITCLAW_API_KEY if you see unexpected requests. 5) Be cautious with webhook/callback and success_url domains you configure—do not configure them to accept incoming secrets or API keys. If you cannot verify the vendor or cannot guarantee secure handling of decrypted card details on your platform, do not enable the encrypted-card rail.
