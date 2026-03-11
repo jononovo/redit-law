@@ -1,6 +1,6 @@
 ---
 name: creditclaw
-version: 2.5.0
+version: 2.6.0
 updated: 2026-03-09
 description: "Give your agent spending power. Financial management for Agents and OpenClaw bots."
 homepage: https://creditclaw.com
@@ -85,10 +85,14 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 
 ```
 1. You fetch this skill file from creditclaw.com/skill.md
-2. You call POST /bots/register → get apiKey + claimToken (include your callback_url for webhooks)
+2. You call POST /bots/register → get apiKey + claimToken
+   - If you have a webhook endpoint, include callback_url (e.g. your OpenClaw Gateway hooks URL)
+   - If not, omit callback_url — you'll poll GET /bot/messages instead
 3. You tell your human the claimToken and verification link
 4. Human visits creditclaw.com/claim, enters claimToken, adds payment method
-5. Your wallet activates — you receive a webhook notification (or poll GET /bot/status)
+5. Your wallet activates
+   - Via webhook: you receive a wallet.activated event
+   - Via polling: call GET /bot/status until status changes to "active"
 6. You poll GET /bot/status periodically to monitor balance across all rails
 7. You check GET /bot/wallet/spending for your owner's permission rules
 8. When you need to make a purchase, follow encrypted-card.md or stripe-x402-wallet.md
@@ -104,6 +108,7 @@ CreditClaw is designed with defense-in-depth to protect your owner's funds:
 
 You can register before your human does. You'll get an API key immediately.
 
+**With webhook (recommended if you have a reachable endpoint):**
 ```bash
 curl -X POST https://creditclaw.com/api/v1/bots/register \
   -H "Content-Type: application/json" \
@@ -111,9 +116,25 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
     "bot_name": "my-research-bot",
     "owner_email": "jonathan@example.com",
     "description": "Performs web research tasks for hire",
-    "callback_url": "https://my-bot.example.com/webhook"
+    "callback_url": "https://<your-gateway>/hooks/creditclaw"
   }'
 ```
+
+**Without webhook (polling mode):**
+```bash
+curl -X POST https://creditclaw.com/api/v1/bots/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bot_name": "my-research-bot",
+    "owner_email": "jonathan@example.com",
+    "description": "Performs web research tasks for hire"
+  }'
+```
+
+> **OpenClaw agents:** Your `callback_url` is your Gateway hooks endpoint. Use
+> `https://<your-gateway-url>/hooks/creditclaw` — or any custom mapped hook path
+> you've configured. If you don't have a Gateway or public endpoint, omit
+> `callback_url` entirely and use polling instead. Everything works either way.
 
 **Request fields:**
 | Field | Required | Description |
@@ -121,9 +142,9 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
 | `bot_name` | Yes | Your bot's name (1-100 chars) |
 | `owner_email` | Yes | Your owner's email address |
 | `description` | No | What you do (max 500 chars) |
-| `callback_url` | Yes | URL to receive webhook events (HTTPS). Enables real-time approval notifications, card details delivery, and spending alerts. |
+| `callback_url` | No | HTTPS URL to receive webhook events. Enables real-time notifications for approvals, card delivery, and spending alerts. Omit to use polling via `GET /bot/messages` instead. |
 
-Response:
+**Response (with callback_url):**
 ```json
 {
   "bot_id": "bot_a1b2c3d4",
@@ -136,9 +157,24 @@ Response:
 }
 ```
 
-The response includes a `webhook_secret` for verifying webhook signatures (HMAC-SHA256
-via the `X-CreditClaw-Signature` header). **Save this secret alongside your API key** — you'll
-need it to verify incoming webhooks.
+If you provided a `callback_url`, the response includes a `webhook_secret` for verifying
+webhook signatures (HMAC-SHA256 via the `X-CreditClaw-Signature` header). **Save this
+secret alongside your API key** — you'll need it to verify incoming webhooks.
+
+**Response (without callback_url):**
+```json
+{
+  "bot_id": "bot_a1b2c3d4",
+  "api_key": "cck_live_7f3e...",
+  "claim_token": "coral-X9K2",
+  "status": "pending_owner_verification",
+  "owner_verification_url": "https://creditclaw.com/claim?token=coral-X9K2",
+  "important": "Save your api_key now — it cannot be retrieved later. Give the claim_token to your human so they can activate your wallet."
+}
+```
+
+No `webhook_secret` is returned when registering without a `callback_url`. You'll receive
+all events via `GET /bot/messages` instead.
 
 **Save your `api_key` immediately.** It cannot be retrieved again.
 
@@ -158,11 +194,6 @@ Ask your human if they'd like you to share the claim details. Here's a template:
 > "I've registered for a CreditClaw wallet. To activate it and fund my account,
 > visit https://creditclaw.com/claim?token=coral-X9K2 — you'll need to add
 > a payment method. After that I can spend on your behalf within the limits you set."
-
-> **Can't expose a public HTTPS endpoint?** CreditClaw still works without a webhook. Your
-> owner will provide card details and instructions manually, and you'll poll for updates instead
-> of receiving them in real time. See [Bot Messages](#bot-messages-for-bots-without-webhooks)
-> for the polling fallback.
 
 ### 2. Human Claims the Bot
 
@@ -391,7 +422,7 @@ Base URL: `https://creditclaw.com/api/v1`
 | GET | `/bot/seller-profile` | View your seller profile. | — | [checkout.md](https://creditclaw.com/checkout.md) |
 | GET | `/bot/shop` | View your public shop. | — | [checkout.md](https://creditclaw.com/checkout.md) |
 
-### Webhook Events
+### Webhook Events (If You Registered With a callback_url)
 
 CreditClaw sends real-time POST events to your `callback_url`. Each webhook includes an
 HMAC-SHA256 signature in the `X-CreditClaw-Signature` header that you can verify using the
@@ -416,7 +447,10 @@ Failed webhook deliveries are retried with exponential backoff (1m, 5m, 15m, 1h,
 up to 5 attempts.
 
 If webhook delivery fails repeatedly, events are staged as bot messages automatically.
-See [Bot Messages](#bot-messages-for-bots-without-webhooks) for the polling fallback.
+
+> **No webhook?** Every event above is also available via polling. Call `GET /bot/messages`
+> to fetch pending events and `POST /bot/messages/ack` to acknowledge them. See
+> [Bot Messages](#bot-messages-polling) below.
 
 ---
 
@@ -434,11 +468,11 @@ See [Bot Messages](#bot-messages-for-bots-without-webhooks) for the polling fall
 
 ---
 
-## Bot Messages (For Bots Without Webhooks)
+## Bot Messages (Polling)
 
-If your bot doesn't have a `callback_url` configured (or webhook delivery fails), CreditClaw
-stages messages for you to poll. This is the fallback delivery mechanism — webhooks are
-preferred when available, but bot messages ensure you never miss an event.
+If you registered without a `callback_url` (or webhook delivery fails), CreditClaw stages
+all events as messages you can poll. This is the standard delivery mechanism for bots
+without a webhook endpoint — and it covers every event listed in the webhook table above.
 
 ### Check for Pending Messages
 

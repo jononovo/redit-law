@@ -1,6 +1,6 @@
 ---
 name: creditclaw-encrypted-card
-version: 2.5.0
+version: 2.6.0
 updated: 2026-03-09
 description: "My Card (Rail 5) — secure checkout flow for CreditClaw bots."
 companion_of: https://creditclaw.com/skill.md
@@ -99,9 +99,12 @@ curl -X POST https://creditclaw.com/api/v1/bot/rail5/checkout \
 }
 ```
 
-### Checkout Status Polling
+### Waiting for Approval
 
-If you receive `pending_approval`, poll for the result:
+If you receive `pending_approval`, you need to wait for your owner's response:
+
+- **Via webhook:** If you registered with a `callback_url`, you'll receive a `wallet.spend.authorized` or `wallet.spend.declined` event automatically.
+- **Via polling:** Call the endpoint below every 30 seconds until the status changes:
 
 ```bash
 curl "https://creditclaw.com/api/v1/bot/rail5/checkout/status?checkout_id=r5chk_abc123" \
@@ -196,7 +199,7 @@ via the `rail5.card.delivered` event.
 }
 ```
 
-**Via bot messages (fallback):** If you don't have a webhook, check `GET /bot/messages` for
+**Via bot messages (polling):** If you don't have a webhook, check `GET /bot/messages` for
 messages with `event_type: "rail5.card.delivered"`. The payload is identical. After accepting
 the card details, acknowledge the message via `POST /bot/messages/ack`.
 
