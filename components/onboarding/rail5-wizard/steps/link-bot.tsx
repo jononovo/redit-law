@@ -77,13 +77,13 @@ export function LinkBot({
       )}
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onSkip} className="flex-1" data-testid="button-r5-skip-bot">
+        <Button variant="outline" onClick={onSkip} className={`flex-1 ${wt.secondaryButton}`} data-testid="button-r5-skip-bot">
           Skip for Now
         </Button>
         <Button
           onClick={onLink}
           disabled={loading || botsLoading || (!selectedBotId && bots.length > 0)}
-          className="flex-1 gap-2"
+          className={`flex-1 ${wt.primaryButton} gap-2`}
           data-testid="button-r5-link-bot"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}

@@ -178,7 +178,7 @@ export function DeliveryResult({
       )}
 
       {deliveryConfirmed ? (
-        <Button onClick={onNext} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-next-test">
+        <Button onClick={onNext} className={`w-full ${wt.primaryButton} gap-2 bg-green-600 hover:bg-green-700`} data-testid="button-r5-next-test">
           <ArrowRight className="w-4 h-4" /> Continue to Test Verification
         </Button>
       ) : null}

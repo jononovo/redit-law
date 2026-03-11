@@ -44,10 +44,10 @@ export function HowItWorks({ onBack, onNext }: HowItWorksProps) {
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-1 gap-2" data-testid="button-r5-step2-back">
+        <Button variant="outline" onClick={onBack} className={`flex-1 ${wt.secondaryButton} gap-2`} data-testid="button-r5-step2-back">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onNext} className="flex-1 gap-2" data-testid="button-r5-step2-next">
+        <Button onClick={onNext} className={`flex-1 ${wt.primaryButton} gap-2`} data-testid="button-r5-step2-next">
           Got It <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

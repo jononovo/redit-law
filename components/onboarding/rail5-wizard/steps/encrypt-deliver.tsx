@@ -75,10 +75,10 @@ export function EncryptDeliver({
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step7-back">
+        <Button variant="outline" onClick={onBack} disabled={loading} className={`flex-1 ${wt.secondaryButton} gap-2`} data-testid="button-r5-step7-back">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onEncrypt} disabled={loading || downloadDone} className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700" data-testid="button-r5-encrypt">
+        <Button onClick={onEncrypt} disabled={loading || downloadDone} className={`flex-1 ${wt.primaryButton} gap-2 bg-purple-600 hover:bg-purple-700`} data-testid="button-r5-encrypt">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
           {downloadDone ? "Done!" : "Encrypt Now"}
         </Button>

@@ -35,7 +35,7 @@ export function NameCard({ cardName, setCardName, loading, onNext }: NameCardPro
 
       </div>
 
-      <Button onClick={onNext} disabled={loading} className="w-full gap-2" data-testid="button-r5-step1-next">
+      <Button onClick={onNext} disabled={loading} className={`w-full ${wt.primaryButton} gap-2`} data-testid="button-r5-step1-next">
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
         Next
       </Button>

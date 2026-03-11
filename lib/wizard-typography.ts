@@ -3,7 +3,7 @@ export const wt = {
   subtitle: "text-base md:text-lg text-neutral-500",
   body: "text-sm md:text-base",
   bodySmall: "text-xs md:text-sm",
-  primaryButton: "text-base md:text-lg",
-  secondaryButton: "text-sm md:text-base",
+  primaryButton: "h-12 md:h-14 rounded-xl text-base md:text-lg",
+  secondaryButton: "h-12 md:h-14 rounded-xl text-sm md:text-base",
   fine: "text-xs",
 } as const;

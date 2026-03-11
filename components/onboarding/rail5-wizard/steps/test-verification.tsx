@@ -244,7 +244,7 @@ export function TestVerification({ cardId, cardName, cardLast4, savedCardDetails
         </div>
       </div>
 
-      <Button onClick={onDone} className="w-full gap-2 bg-green-600 hover:bg-green-700" data-testid="button-r5-done">
+      <Button onClick={onDone} className={`w-full ${wt.primaryButton} gap-2 bg-green-600 hover:bg-green-700`} data-testid="button-r5-done">
         <CheckCircle2 className="w-4 h-4" /> Done
       </Button>
     </div>

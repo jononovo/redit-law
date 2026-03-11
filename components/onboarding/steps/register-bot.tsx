@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { WizardStep } from "../wizard-step";
 import { Button } from "@/components/ui/button";
+import { wt } from "@/lib/wizard-typography";
 import { BotInstructionBlock } from "../bot-instruction-block";
 
 interface RegisterBotProps {
@@ -32,7 +33,7 @@ export function RegisterBot({ currentStep, totalSteps, onBack, onNext }: Registe
           onClick={onNext}
           disabled={!copied}
           variant={copied ? "default" : "outline"}
-          className="w-full rounded-xl h-12 md:h-14 text-base md:text-lg cursor-pointer"
+          className={`w-full ${wt.primaryButton} cursor-pointer`}
           data-testid="button-register-continue"
         >
           Continue

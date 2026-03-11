@@ -113,10 +113,10 @@ export function SpendingLimits({
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" onClick={onBack} className="flex-1 gap-2" data-testid="button-r5-step3-back">
+        <Button variant="outline" onClick={onBack} className={`flex-1 ${wt.secondaryButton} gap-2`} data-testid="button-r5-step3-back">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onNext} disabled={loading} className="flex-1 gap-2" data-testid="button-r5-step3-next">
+        <Button onClick={onNext} disabled={loading} className={`flex-1 ${wt.primaryButton} gap-2`} data-testid="button-r5-step3-next">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
           Next
         </Button>

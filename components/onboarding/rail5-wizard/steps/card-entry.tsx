@@ -69,7 +69,7 @@ export function CardEntry({
           <Button
             variant="outline"
             onClick={onRestartCard}
-            className="flex-1 gap-2"
+            className={`flex-1 ${wt.secondaryButton} gap-2`}
             data-testid="button-r5-restart-card"
           >
             <RotateCcw className="w-4 h-4" /> Clear Card
@@ -78,7 +78,7 @@ export function CardEntry({
           <Button
             variant="outline"
             onClick={onBack}
-            className="flex-1 gap-2"
+            className={`flex-1 ${wt.secondaryButton} gap-2`}
             data-testid="button-r5-step3-back"
           >
             <ArrowLeft className="w-4 h-4" /> Back
@@ -87,7 +87,7 @@ export function CardEntry({
         <Button
           onClick={cardEncrypted ? onCardDetailsNext : onEncryptCard}
           disabled={cardEncrypting}
-          className={`flex-1 gap-2 font-semibold py-3 rounded-xl shadow-lg transition-all ${
+          className={`flex-1 ${wt.primaryButton} gap-2 font-semibold shadow-lg transition-all ${
             cardEncrypted
               ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-green-600/25"
               : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-600/25"
