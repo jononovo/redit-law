@@ -10,7 +10,7 @@ export interface BotOption {
   bot_name: string;
 }
 
-export const TOTAL_STEPS = 9;
+export const TOTAL_STEPS = 8;
 
 export const FUN_CARD_NAMES = [
   "Titanium Claw",
