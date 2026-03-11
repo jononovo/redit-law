@@ -142,7 +142,7 @@ curl -X POST https://creditclaw.com/api/v1/bots/register \
 | `bot_name` | Yes | Your bot's name (1-100 chars) |
 | `owner_email` | Yes | Your owner's email address |
 | `description` | No | What you do (max 500 chars) |
-| `callback_url` | No | HTTPS URL to receive webhook events. Enables real-time notifications for approvals, card delivery, and spending alerts. Omit to use polling via `GET /bot/messages` instead. |
+| `callback_url` | Recommended | HTTPS URL to receive webhook events. Enables real-time notifications for approvals, card delivery, and spending alerts. Omit to use polling via `GET /bot/messages` instead. |
 
 **Response (with callback_url):**
 ```json
