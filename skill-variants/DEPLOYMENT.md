@@ -131,13 +131,17 @@ That's it for now. Variant publishing is commented out in the workflow file.
 
 #### Workflow File
 
-The GitHub Actions workflow lives at `.github/workflows/publish-skills.yml`.
+The workflow reference copy lives at `scripts/publish-skills.yml`. To activate it on GitHub,
+copy this file to `.github/workflows/publish-skills.yml` in your GitHub repository (via the
+GitHub web editor or a local clone). This is a one-time setup step — see "Setup (One-Time)" below.
+
+The `.github/` folder is not managed by Replit to avoid sync conflicts.
 
 ---
 
 ## Enabling Variant Publishing (Phase 2)
 
-When you're confident the main skill is publishing and updating correctly on ClawHub, enable variant auto-publishing by making these changes in `.github/workflows/publish-skills.yml`:
+When you're confident the main skill is publishing and updating correctly on ClawHub, enable variant auto-publishing by making these changes in `scripts/publish-skills.yml` (and re-copying it to GitHub):
 
 ### Step 1: Uncomment the path triggers
 
@@ -220,9 +224,12 @@ To enable automated publishing:
    - Name: `CLAWHUB_TOKEN`
    - Value: paste your CLI token
 
-3. **Push the workflow file**
-   - The file at `.github/workflows/publish-skills.yml` needs to be on `main`
+3. **Copy the workflow file to GitHub**
+   - The workflow reference copy is at `scripts/publish-skills.yml` in this repo
+   - On GitHub, create `.github/workflows/publish-skills.yml` and paste the contents
+   - You can do this via the GitHub web editor: navigate to your repo → Add file → Create new file → enter the path `.github/workflows/publish-skills.yml` → paste → commit to `main`
    - Once it's there, GitHub starts watching for skill file changes automatically
+   - **Note:** The `.github/` folder is managed on GitHub only — not through Replit — to avoid sync conflicts
 
 ---
 
@@ -247,16 +254,10 @@ clawhub publish ./public \
 npx tsx scripts/build-variants.ts
 
 clawhub publish ./skill-variants/stripe/dist \
-  --slug creditclaw-stripe --version 2.3.1 --tags latest
+  --slug stripe --version 2.3.1 --tags latest
 
 clawhub publish ./skill-variants/creditcard/dist \
-  --slug creditclaw-creditcard --version 2.3.1 --tags latest
-
-clawhub publish ./skill-variants/amazon/dist \
-  --slug creditclaw-amazon --version 2.3.1 --tags latest
-
-clawhub publish ./skill-variants/shopping/dist \
-  --slug creditclaw-shopping --version 2.3.1 --tags latest
+  --slug creditcard --version 2.3.1 --tags latest
 ```
 
 ### First-Time Publish
@@ -279,10 +280,8 @@ This establishes the skill under your account. After that, the GitHub Action han
 
 | Variant | Slug | Version | Config Location |
 |---------|------|---------|-----------------|
-| Stripe | `creditclaw-stripe` | 2.3.1 | `skill-variants/stripe/variant.config.json` |
-| Credit Card | `creditclaw-creditcard` | 2.3.1 | `skill-variants/creditcard/variant.config.json` |
-| Amazon | `creditclaw-amazon` | 2.3.1 | `skill-variants/amazon/variant.config.json` |
-| Shopping | `creditclaw-shopping` | 2.3.1 | `skill-variants/shopping/variant.config.json` |
+| Stripe | `stripe` | 2.3.1 | `skill-variants/stripe/variant.config.json` |
+| Credit Card | `creditcard` | 2.3.1 | `skill-variants/creditcard/variant.config.json` |
 
 ---
 

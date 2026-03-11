@@ -213,7 +213,9 @@ A config-driven build system at `skill-variants/` (project root) that generates 
 
 **Build:** `npx tsx scripts/build-variants.ts` — scans all variant folders, copies master files, patches frontmatter/URLs/skill.json, auto-generates Skill Files table and install commands, outputs to dist/.
 
-**Current variants:** stripe, creditcard, amazon, shopping
+**Current variants:** stripe, creditcard
+
+**CI/CD:** GitHub Actions workflow for auto-publishing to ClawHub lives at `scripts/publish-skills.yml` (reference copy). Must be manually copied to `.github/workflows/publish-skills.yml` on the GitHub side — the `.github/` folder is not managed by Replit to avoid sync conflicts. See `skill-variants/DEPLOYMENT.md` for full setup instructions.
 
 ### Procurement Skills Module
 A `/skills/` module provides a curated library of vendor shopping skills.
